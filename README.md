@@ -88,6 +88,9 @@ Todo artefato é definido como estrutura formal em CUE — e a estrutura formal 
 mesh-spec/
 │
 ├── README.md                              # Este documento (única exceção ao formato CUE)
+├── CLAUDE.md                              # Regras comportamentais para agentes que operam
+│                                          #   neste repositório. Aponta para artefatos .cue
+│                                          #   como source of truth — zero duplicação.
 │
 │   ╔══════════════════════════════════════════════════════════════╗
 │   ║  CAMADA 0 — IDENTIDADE DO DOMÍNIO                          ║
@@ -336,6 +339,8 @@ mesh-spec/
 │   ╚══════════════════════════════════════════════════════════════╝
 │
 ├── governance/
+│   ├── repo-structure.cue                 # Estrutura válida do repositório (machine-readable).
+│   │                                      #   CI valida que o filesystem conforma.
 │   ├── wave-plan.cue                    # O que entra em cada wave, critérios, dependências.
 │   │                                    #   BCs ordenados por volume de custo de transação
 │   │                                    #   eliminado — o critério fundacional de priorização.
