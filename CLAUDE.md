@@ -16,6 +16,10 @@ Este CLAUDE.md governa operações dentro de mesh-spec/ exclusivamente. Nunca mo
 
 Este repositório é a autoridade do sistema. Toda mudança é uma decisão de design. Antes de criar ou alterar qualquer artefato, leia o contexto ao redor (canvas.cue do BC, invariants.cue, design-principles.cue) para entender o porquê do que existe.
 
+## Zero Duplicação
+
+Consequência direta de P0 (architecture/design-principles.cue): cada unidade de conhecimento possui exatamente uma localização canônica; todas as outras referências são ponteiros, nunca cópias. Este CLAUDE.md contém regras comportamentais e ponteiros para sources of truth. Nunca resumir, listar ou copiar conteúdo que vive no README.md ou em arquivos .cue. Violação desta regra é drift por construção.
+
 ## Proposta Antes de Implementar
 
 Nunca criar ou alterar artefatos diretamente. O ciclo é:
@@ -40,24 +44,11 @@ Se governance/repo-structure.cue ainda não existir, use a árvore declarada no 
 
 ## Formato
 
-Todo artefato autoral é CUE. Exceções:
-- README.md (landing page humana)
-- CLAUDE.md (este arquivo — restrição da ferramenta)
-- api.yaml / async-api.yaml (formato imposto por spec externa)
-- workspace.dsl (Structurizr — formato imposto pela ferramenta C4)
-- Diagramas derivados em architecture/c4/views/ (.mmd, .png — gerados, não autorais)
-- CODEOWNERS, .gitignore, Taskfile.yml, .github/ (arquivos operacionais — formato imposto pela plataforma ou ferramenta)
-
-Nunca criar arquivos markdown para conteúdo que pode ser CUE.
+Todo artefato autoral é CUE. Exceções declaradas no README.md seção P2. Nunca criar arquivos markdown para conteúdo que pode ser CUE.
 
 ## Artefatos Derivados
 
-Nunca editar manualmente artefatos derivados — aqueles gerados por tooling ou derivados de outro artefato source. Exemplos atuais:
-- .proto, .isl, .json (gerados no mesh-runtime)
-- context-dependencies.cue (derivado de strategic/context-map.cue)
-- Diagramas em architecture/c4/views/ (derivados de workspace.dsl)
-
-Na dúvida se um artefato é autoral ou derivado: se existe um source do qual ele pode ser regenerado, é derivado.
+Nunca editar manualmente artefatos derivados — aqueles gerados por tooling ou derivados de outro artefato source. Na dúvida se um artefato é autoral ou derivado: se existe um source do qual ele pode ser regenerado, é derivado.
 
 ## Conformidade com Artifact Schemas
 
@@ -69,12 +60,7 @@ Todo elemento formal em CUE carrega um campo `rationale`: frase curta que regist
 
 ## Convenções de Nomenclatura
 
-Seguir a seção "Convenções de Nomenclatura" do README.md. Resumo:
-- Commands: {verbo}-{substantivo}.cue
-- Events: {substantivo}-{particípio}.cue
-- BCs: código lowercase (stl/, cmt/, ngr/)
-- Artefatos universais: "universal" no nome
-- Nomes de arquivo e diretório em inglês (exceto termos de domínio já canonizados no universal glossary ou na ubiquitous language do BC).
+Seguir a seção "Convenções de Nomenclatura" do README.md. Nomes de arquivo e diretório em inglês (exceto termos de domínio já canonizados no universal glossary ou na ubiquitous language do BC).
 
 ## Validação
 
