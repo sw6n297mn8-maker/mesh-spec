@@ -1,0 +1,25 @@
+name: validate
+
+on: [push, pull_request]
+
+jobs:
+  cue-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CUE
+        uses: cue-lang/setup-cue@v1.0.0
+        with:
+          version: v0.16.0
+
+      - name: Validate all CUE
+        run: cue vet ./...
+
+      - name: Check CLAUDE.md sync
+        run: |
+          cue export ./governance/claude -e output --out text > /tmp/CLAUDE.md.generated
+          diff CLAUDE.md /tmp/CLAUDE.md.generated || {
+            echo "::error::CLAUDE.md foi editado diretamente. Edite governance/claude/config.cue e regenere com: cue export ./governance/claude -e output --out text > CLAUDE.md"
+            exit 1
+          }

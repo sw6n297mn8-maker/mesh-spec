@@ -79,5 +79,5 @@ Um commit por mudança lógica coesa. Mensagens em inglês, concisas, referencia
 | Criar ou mover arquivo/diretório | governance/repo-structure.cue (ou README.md) |
 | Nomear qualquer arquivo | README.md seção Convenções de Nomenclatura |
 | Deletar artefato | Verificar quem consome: interaction-contracts.cue, context-dependencies.cue, policies.cue (trigger refs), projections.cue (source refs) |
-| Alterar CLAUDE.md | README.md (para consistência de referências cruzadas) |
+| Alterar CLAUDE.md | governance/claude/config.cue (fonte) + README.md (referências cruzadas) |
 | Alterar README.md | governance/repo-structure.cue (para consistência de estrutura) |
