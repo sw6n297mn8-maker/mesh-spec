@@ -6,7 +6,13 @@ Comunicação em português brasileiro. Termos técnicos (DDD, CUE, CloudEvents)
 
 ## Modelo de Operação
 
-O agente opera via conversa no Claude Code: propõe conteúdo no chat, o founder aprova, o agente escreve o arquivo e commita na branch ativa. Não cria branches nem PRs no workflow atual. O founder é a única autoridade de aprovação. O modelo de 3 tiers (Read/Propose/Decide) do README governa o cenário futuro com múltiplos agentes — este CLAUDE.md governa o agente atual.
+O agente opera via conversa no Claude Code: propõe conteúdo no chat, o founder aprova, o agente escreve o arquivo e commita na branch ativa. Não cria branches nem PRs — gestão de branches é responsabilidade do usuário. O founder é a única autoridade de aprovação. O modelo de 3 tiers (Read/Propose/Decide) do README governa o cenário futuro com múltiplos agentes — este CLAUDE.md governa o agente atual.
+
+Axiomas operacionais (domain/domain-definition.cue seção foundingPrinciples.axioms) são hipóteses estratégicas, não verdades absolutas. Aplique-os como diretriz padrão.
+Quando uma decisão concreta tensionar um axioma — a melhor solução aparente contradiz o axioma — não ignore silenciosamente:
+1. No artefato: registrar a tensão no campo rationale com (a) qual axioma, referenciando o id; (b) por que a decisão diverge.
+2. No tension-log: criar arquivo em architecture/tension-log/ conforme o schema architecture/artifact-schemas/tension-entry.cue, com id incremental.
+3. No output: sinalizar com a tag [TENSÃO: ax-XX].
 
 ## Escopo
 
@@ -15,6 +21,12 @@ Este CLAUDE.md governa operações dentro de mesh-spec/ exclusivamente. Nunca mo
 ## Regra Fundamental
 
 Este repositório é a autoridade do sistema. Toda mudança é uma decisão de design. Antes de criar ou alterar qualquer artefato, leia o contexto ao redor (canvas.cue do BC, invariants.cue, design-principles.cue) para entender o porquê do que existe.
+
+Este repositório distingue dois tipos de diretriz:
+1. Constraints invioláveis: integridade legal (e.g.: Bacen, SCD, LGPD, KYC/AML) e responsabilidade jurídica explícita (dp-10). Estas não são tensionáveis. Nenhuma decisão de design, velocidade ou conveniência as sobrepõe. Se não é possível fazer de forma legal e com responsabilidade jurídica identificável, não se faz.
+2. Axiomas e princípios operacionais: os axiomas e derivados em domain/domain-definition.cue seção foundingPrinciples. Estes são hipóteses estratégicas aplicadas como default. Podem ser tensionados com justificativa explícita conforme descrito no Modelo de Operação (seção 2).
+
+Quando houver conflito entre diretrizes, consultar domain/domain-definition.cue seção foundingPrinciples.conflictResolution para a hierarquia de precedência.
 
 ## Zero Duplicação
 
@@ -66,6 +78,22 @@ Seguir a seção "Convenções de Nomenclatura" do README.md. Nomes de arquivo e
 
 Rodar `cue vet` antes de qualquer commit. Se CUE CLI não estiver disponível, perguntar ao founder como proceder. CUE sintaticamente inválido nunca é commitado.
 
+Validação semântica é executada com separação de contexto — nunca pelo mesmo agente na mesma sessão que produziu o artefato.
+Após produzir qualquer artefato CUE, commitar na branch ativa. Verificar se existe validation prompt correspondente em architecture/validation-prompts/.
+Se existir: NÃO executar na mesma sessão. Instruir o usuário a executar a validação em sessão separada do Claude Code antes de fazer merge (se em branch separada) ou antes de prosseguir com artefatos dependentes (se em main), indicando qual validation prompt usar e contra qual artefato. Formato:
+  Artefato commitado em [nome da branch]: [path do artefato]
+  Para validação semântica, execute em nova sessão:
+    Validar [path do validation prompt] contra [path do artefato]
+Se não existir: prosseguir sem validação semântica. Não reportar a ausência.
+Na sessão de validação, o agente:
+  1. Lê o artefato, o validation prompt, e referências declaradas no validation prompt.
+  2. Reporta findings categorizados como: pass, warning, fail.
+  3. Findings fail: reportar com contexto suficiente para que o usuário decida se é erro a corrigir ou tensão legítima a documentar.
+  4. Findings warning: incluir no output.
+  5. Findings pass: não mencionar individualmente.
+Merge (se em branch) ou prosseguimento só após resolução de findings fail ou decisão explícita do usuário de aceitar a tensão.
+Limitação conhecida: esta validação depende do usuário abrir a sessão separada. Quando o volume justificar, migrar para step automatizado do CI com API key dedicada.
+
 ## Commits
 
 Um commit por mudança lógica coesa. Mensagens em inglês, concisas, referenciando o artefato ou BC afetado.
@@ -81,3 +109,32 @@ Um commit por mudança lógica coesa. Mensagens em inglês, concisas, referencia
 | Deletar artefato | Verificar quem consome: interaction-contracts.cue, context-dependencies.cue, policies.cue (trigger refs), projections.cue (source refs) |
 | Alterar CLAUDE.md | governance/claude/config.cue (fonte) + README.md (referências cruzadas) |
 | Alterar README.md | governance/repo-structure.cue (para consistência de estrutura) |
+
+Decisões irreversíveis:
+  → Antes de implementar uma decisão que possa afetar:
+    - Schema de dados persistidos em SoTs.
+    - Contratos públicos (APIs, eventos consumidos por terceiros).
+    - Estrutura de isolamento entre tenants.
+    - Obrigações legais, fiscais ou regulatórias.
+    - Dados em produção.
+  → Escalar ao usuário por default. Apresentar: qual decisão, quais critérios de irreversibilidade são satisfeitos, quais alternativas existem, e recomendação fundamentada.
+  → Isto se aplica independentemente de existir autonomy envelope. Envelopes governam ações operacionais. Reversibilidade governa decisões estruturais. São mecanismos complementares.
+  → Referência completa dos critérios: domain/domain-definition.cue seção foundingPrinciples.conflictResolution.reversibilityThreshold.
+
+Lenses analíticas (architecture/artifacts/lenses/):
+  → Se o diretório de lenses estiver vazio, proceder com princípios apenas.
+  → Para qualquer decisão que não seja trivialmente resolvida pelos princípios, consultar as lenses disponíveis.
+  → Comparar o tipo de decisão contra os critérios de ativação definidos no schema da lente.
+  → Se uma ou mais lenses fizerem match, carregá-las.
+  → Se múltiplas lenses fizerem match, verificar no schema se devem ser usadas em conjunto.
+  → Aplicar o protocolo de raciocínio da lente como sequência de perguntas antes de chegar à recomendação.
+  → Referenciar a lente utilizada no rationale do artefato produzido.
+  → Se nenhuma lente fizer match, proceder com princípios apenas.
+
+Governança (architecture/artifacts/governance/):
+  → Para ações sobre o sistema (aprovar, rejeitar, escalar, configurar limites, alterar parâmetros operacionais), consultar o autonomy envelope aplicável ao domínio da decisão.
+  → Se existir envelope: nenhuma ação que o ultrapasse é permitida sem escalação ao humano designado.
+  → Se não existir envelope: escalar ao usuário por default. O agente não atua autonomamente em domínios sem envelope definido. Apresentar a decisão ao usuário com contexto e recomendação, e sugerir criação de envelope se o padrão de decisão for recorrente.
+
+Validation prompts (architecture/validation-prompts/):
+  → Após produzir qualquer artefato, executar conforme seção 14.
