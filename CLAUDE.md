@@ -34,7 +34,7 @@ Consequência direta de P0 (architecture/design-principles.cue): cada unidade de
 
 ## Proposta Antes de Implementar
 
-Nunca criar ou alterar artefatos diretamente. O ciclo é:
+Nunca escrever, criar, alterar ou deletar qualquer arquivo no repositório diretamente — incluindo arquivos temporários, notas de contexto, scripts auxiliares ou qualquer outro conteúdo. Toda escrita no repositório é uma decisão que requer aprovação. O ciclo é:
 1. Mostrar o conteúdo proposto no chat. Para arquivos grandes, mostrar as seções alteradas com contexto suficiente para o founder avaliar.
 2. Esperar aprovação explícita do founder.
 3. Só então escrever no arquivo.

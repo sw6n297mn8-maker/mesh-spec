@@ -63,14 +63,14 @@ config: #AgentConfig & {
 			title:           "Proposta Antes de Implementar"
 			canonicalSource: "self"
 			content: #"""
-				Nunca criar ou alterar artefatos diretamente. O ciclo é:
+				Nunca escrever, criar, alterar ou deletar qualquer arquivo no repositório diretamente — incluindo arquivos temporários, notas de contexto, scripts auxiliares ou qualquer outro conteúdo. Toda escrita no repositório é uma decisão que requer aprovação. O ciclo é:
 				1. Mostrar o conteúdo proposto no chat. Para arquivos grandes, mostrar as seções alteradas com contexto suficiente para o founder avaliar.
 				2. Esperar aprovação explícita do founder.
 				3. Só então escrever no arquivo.
 
 				Correções de sintaxe CUE detectadas por `cue vet` (token faltando, vírgula, parêntese) não exigem novo ciclo de proposta — o agente corrige, mostra a correção, e prossegue. Mudanças estruturais (adicionar/remover campos, alterar tipos, renomear) sempre exigem proposta.
 				"""#
-			rationale: "Ciclo de aprovação humana protege contra mudanças estruturais não revisadas."
+			rationale: "Ciclo de aprovação humana protege contra qualquer escrita não revisada. A regra cobre todo tipo de arquivo — não apenas artefatos formais — porque qualquer conteúdo commitado no repo se torna parte do histórico permanente."
 		},
 		{
 			title:           "Incerteza"
