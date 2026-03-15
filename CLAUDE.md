@@ -109,6 +109,20 @@ Um commit por mudança lógica coesa. Mensagens em inglês, concisas, referencia
 | Deletar artefato | Verificar quem consome: interaction-contracts.cue, context-dependencies.cue, policies.cue (trigger refs), projections.cue (source refs) |
 | Alterar CLAUDE.md | governance/claude/config.cue (fonte) + README.md (referências cruzadas) |
 | Alterar README.md | governance/repo-structure.cue (para consistência de estrutura) |
+| Criar ou alterar semanticamente artefato em architecture/ ou governance/ | Criar ADR correspondente em architecture/adrs/ no mesmo commit. ADR deve referenciar os paths afetados em affectedArtifacts. |
+
+Classificação de mudanças para fins de ADR:
+  - Semântica: altera significado, política, tipo, relação ou constraint. → exige ADR.
+  - Editorial: corrige typo, melhora redação sem alterar semântica. → não exige ADR.
+  - Mecânica: ajuste de sintaxe CUE detectado por cue vet, reformatação. → não exige ADR.
+  - Derivada: regeneração de artefato a partir de source canônico. → não exige ADR.
+  Na dúvida se uma mudança é semântica ou editorial: é semântica. Errar para o lado de registrar.
+
+Supersession de ADRs:
+  Quando um ADR novo substitui outro, atualizar os dois no mesmo commit:
+  - ADR novo: incluir id do antigo em supersedes.
+  - ADR antigo: alterar status para "superseded" e preencher supersededBy com id do novo.
+  Isto minimiza a janela de inconsistência relacional que o CI (phase adr-consistency) valida.
 
 Decisões irreversíveis:
   → Antes de implementar uma decisão que possa afetar:

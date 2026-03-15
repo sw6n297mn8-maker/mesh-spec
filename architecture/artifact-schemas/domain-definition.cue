@@ -49,6 +49,18 @@ package artifact_schemas
 
 	// CI valida que o artefato referenciado existe e é parseable.
 	stakeholderMapRef: string & !=""
+
+	// Metadata do schema — não exportado para instâncias.
+	_schema: {
+		location: {
+			canonicalPathRegex: "^domain/domain-definition\\.cue$"
+			fileNameRegex:      "^domain-definition\\.cue$"
+			description:        "Definição do domínio: tese central, mecanismos, princípios fundadores, proposta de valor, flywheel, escopo."
+			rationale:          "Artefato singleton na raiz do domínio. Nome fixo porque é unique no sistema."
+			cardinality:        "singleton"
+			allowNested:        false
+		}
+	}
 }
 
 // ── Tipos de suporte ──
@@ -93,7 +105,7 @@ package artifact_schemas
 }
 
 #CostEliminated: {
-	id: string & !=""
+	id:   string & !=""
 	cost:   string & !=""
 	bearer: string & !=""
 	// CI valida que referencia um #Mechanism.id existente.

@@ -359,11 +359,16 @@ mesh-spec/
 │   │                                    #   (tier Propose) sintetizam o problema, como draft PRs
 │   │                                    #   são propostos, e como a decisão humana (tier Decide)
 │   │                                    #   finaliza o ciclo.
-│   └── audit-commands.cue               # Protocolos de auditoria como checks executáveis:
-│                                        #   boundaries leak? events orphaned? invariantes sem teste?
-│                                        #   eventos sem consumidor? dependency cycle detection?
-│                                        #   interaction contracts consistentes com context-map
-│                                        #   e com event schemas?
+│   ├── audit-commands.cue               # Protocolos de auditoria como checks executáveis:
+│   │                                    #   boundaries leak? events orphaned? invariantes sem teste?
+│   │                                    #   eventos sem consumidor? dependency cycle detection?
+│   │                                    #   interaction contracts consistentes com context-map
+│   │                                    #   e com event schemas?
+│   └── claude/                          # Configuração do agente que opera neste repositório.
+│       ├── config.cue                   # Source of truth das regras comportamentais do agente.
+│       │                                #   CLAUDE.md é artefato derivado deste arquivo.
+│       ├── schema.cue                   # Schema de validação da config do agente.
+│       └── output.cue                   # Template de geração do CLAUDE.md.
 │
 │   ╔══════════════════════════════════════════════════════════════╗
 │   ║  CAMADA 5 — ORQUESTRAÇÃO DE IA                              ║
@@ -428,6 +433,7 @@ mesh-spec/
 | — | Ciclo de aprendizado | governance/spec-gap-protocol.cue + architecture/shared-schemas/spec-gap-event.cue |
 | — | Autorização do repo | Três tiers (Read/Propose/Decide) documentados no README |
 | — | Governança | governance/ |
+| — | Configuração do agente | governance/claude/ (config.cue → CLAUDE.md derivado) |
 | — | Orquestração de IA | ai-orchestration/ (retrieval com prioridades, lifecycle, instructions) |
 | — | Testabilidade | contexts/{bc-code}/test-specs.cue + architecture/testing-strategy.cue + governance/validation-protocol.cue |
 | — | Observabilidade | contexts/{bc-code}/observability.cue + architecture/observability-strategy.cue |
