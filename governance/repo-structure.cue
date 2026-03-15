@@ -11,6 +11,7 @@ package governance
 //      para fragments usados por múltiplos schemas
 //   4. O algoritmo de classificação e validação (validation)
 //   5. Limite explícito de responsabilidade (responsibilityBoundary)
+//   6. Artefatos derivados com source e comando de geração (derivedArtifacts)
 
 repoStructure: #RepoStructure
 
@@ -19,6 +20,7 @@ repoStructure: #RepoStructure
 	scope:     #Scope
 	pathSegments:           #PathSegments
 	responsibilityBoundary: #ResponsibilityBoundary
+	derivedArtifacts:       #DerivedArtifacts
 	validation:             #Validation
 }
 
@@ -43,6 +45,18 @@ repoStructure: #RepoStructure
 	owns:       [string & !="", ...string & !=""]
 	doesNotOwn: [string & !="", ...string & !=""]
 	rationale:  string & !=""
+}
+
+#DerivedArtifact: {
+	path:      string & !=""
+	source:    string & !=""
+	generator: string & !=""
+	rationale: string & !=""
+}
+
+#DerivedArtifacts: {
+	artifacts: [#DerivedArtifact, ...#DerivedArtifact]
+	rationale: string & !=""
 }
 
 #FileClassificationCategory: {
@@ -108,7 +122,7 @@ repoStructure: {
 			"CLAUDE.md",
 			"SESSION-CONTEXT.md",
 		]
-		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md) ou impostos por plataforma (.github/, .gitignore, etc). CI não os classifica contra schemas."
+		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md) ou impostos por plataforma (.github/, .gitignore, etc). CI não os classifica contra artifact schemas. CLAUDE.md é adicionalmente governado por derivedArtifacts — sync validado na phase derived-artifact-sync."
 	}
 
 	pathSegments: {
@@ -122,6 +136,16 @@ repoStructure: {
 		rationale:      "Renomear um diretório raiz exige 1 edição aqui. Schemas referenciam estes segmentos em vez de hardcodar paths."
 	}
 
+	derivedArtifacts: {
+		artifacts: [{
+			path:      "CLAUDE.md"
+			source:    "governance/claude/config.cue"
+			generator: "cue export ./governance/claude -e output --out text"
+			rationale: "CLAUDE.md é exceção P2 (markdown), mas conteúdo é gerado a partir de config.cue. Edição direta é drift por construção."
+		}]
+		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. Previne drift entre source e artefato gerado."
+	}
+
 	responsibilityBoundary: {
 		owns: [
 			"Escopo de validação: quais raízes o CI valida",
@@ -130,6 +154,7 @@ repoStructure: {
 			"Fases de validação: ordem e contrato de cada fase",
 			"Classificação de arquivos: algoritmo de match file→schema",
 			"Política de classificação: mapeamento categoria→ação do CI",
+			"Artefatos derivados: registro de sources, generators e paths para sync check",
 		]
 		doesNotOwn: [
 			"Quais artifact types existem — responsabilidade dos schemas em architecture/artifact-schemas/",
@@ -229,6 +254,16 @@ repoStructure: {
 				]
 				dependsOn: ["schema-conformance"]
 			},
+			{
+				id:        "derived-artifact-sync"
+				rationale: "Garante que artefatos derivados estão em sync com seus sources. Previne drift que causou o incidente de config.cue vs CLAUDE.md."
+				includes: [
+					"Para cada entrada em derivedArtifacts.artifacts:",
+					"Executar generator e comparar output com path",
+					"Se diff não for vazio, CI falha com mensagem indicando source e comando de regeneração",
+				]
+				dependsOn: ["schema-conformance"]
+			},
 		]
 
 		implementationGuidance: {
@@ -238,7 +273,8 @@ repoStructure: {
 				"file-classification": "script que extrai canonicalPathRegex dos schemas e testa contra arquivos em scope"
 				completeness:          "script que resolve conditions do completeness contra canvas de cada BC"
 				"adr-coverage":        "script que compara diff de architecture/ e governance/ contra ADRs no mesmo PR; parseia affectedArtifacts dos .cue em architecture/adrs/"
-				"adr-consistency":     "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
+				"adr-consistency":        "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
+				"derived-artifact-sync": "script que itera derivedArtifacts, executa cada generator, e compara output com path via diff"
 			}
 		}
 	}
