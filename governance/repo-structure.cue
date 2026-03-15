@@ -10,14 +10,16 @@ package governance
 //   3. Segmentos de path compartilhados (pathSegments) — single source
 //      para fragments usados por múltiplos schemas
 //   4. O algoritmo de classificação e validação (validation)
+//   5. Limite explícito de responsabilidade (responsibilityBoundary)
 
 repoStructure: #RepoStructure
 
 #RepoStructure: {
 	rationale: string & !=""
 	scope:     #Scope
-	pathSegments:  #PathSegments
-	validation:    #Validation
+	pathSegments:           #PathSegments
+	responsibilityBoundary: #ResponsibilityBoundary
+	validation:             #Validation
 }
 
 #Scope: {
@@ -37,22 +39,34 @@ repoStructure: #RepoStructure
 	rationale:      string & !=""
 }
 
-#FileClassification: {
-	strategy:  string & !=""
-	rationale: string & !=""
-	steps: [string & !="", ...string & !=""]
+#ResponsibilityBoundary: {
+	owns:       [string & !="", ...string & !=""]
+	doesNotOwn: [string & !="", ...string & !=""]
+	rationale:  string & !=""
 }
 
-#UnmatchedFilePolicy: {
-	rule:      string & !=""
+#FileClassificationCategory: {
+	description: string & !=""
+}
+
+#FileClassificationPolicy: {
+	mapping: {[string]: "reject" | "warn" | "info" | "ignore" | "validate-conformance"}
+	actions: {[string]: string}
 	rationale: string & !=""
-	behavior:  string & !=""
+}
+
+#FileClassification: {
+	strategy:   string & !=""
+	rationale:  string & !=""
+	steps:      [string & !="", ...string & !=""]
+	categories: {[string]: #FileClassificationCategory}
+	policy:     #FileClassificationPolicy
 }
 
 #ValidationPhase: {
 	id:        string & !=""
 	rationale: string & !=""
-	includes: [string & !="", ...string & !=""]
+	includes:  [string & !="", ...string & !=""]
 	dependsOn: [...string & !=""]
 }
 
@@ -64,8 +78,7 @@ repoStructure: #RepoStructure
 #Validation: {
 	rationale:              string & !=""
 	fileClassification:     #FileClassification
-	unmatchedFilePolicy:    #UnmatchedFilePolicy
-	phases: [#ValidationPhase, ...#ValidationPhase]
+	phases:                 [#ValidationPhase, ...#ValidationPhase]
 	implementationGuidance: #ImplementationGuidance
 }
 
@@ -93,6 +106,7 @@ repoStructure: {
 			"Taskfile.yml",
 			"README.md",
 			"CLAUDE.md",
+			"SESSION-CONTEXT.md",
 		]
 		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md) ou impostos por plataforma (.github/, .gitignore, etc). CI não os classifica contra schemas."
 	}
@@ -108,6 +122,25 @@ repoStructure: {
 		rationale:      "Renomear um diretório raiz exige 1 edição aqui. Schemas referenciam estes segmentos em vez de hardcodar paths."
 	}
 
+	responsibilityBoundary: {
+		owns: [
+			"Escopo de validação: quais raízes o CI valida",
+			"Exclusões globais: quais paths o CI ignora",
+			"Path segments compartilhados: vocabulário de raízes estruturais",
+			"Fases de validação: ordem e contrato de cada fase",
+			"Classificação de arquivos: algoritmo de match file→schema",
+			"Política de classificação: mapeamento categoria→ação do CI",
+		]
+		doesNotOwn: [
+			"Quais artifact types existem — responsabilidade dos schemas em architecture/artifact-schemas/",
+			"Onde cada tipo vive — responsabilidade do campo _schema.location de cada schema",
+			"O que é obrigatório por BC — responsabilidade de governance/bounded-context-completeness.cue",
+			"Convenções de naming por tipo — responsabilidade do schema do tipo",
+			"Semântica de campos de domínio — responsabilidade dos schemas de domínio",
+		]
+		rationale: "Limite explícito previne absorção gradual de responsabilidades que pertencem a outros artefatos. Sem fronteira declarada, repo-structure.cue tende a virar single point of failure — exatamente o que a abordagem type-centric visa evitar."
+	}
+
 	validation: {
 		rationale: "Declara o algoritmo que CI implementa. Mudança aqui = mudança no CI pipeline."
 
@@ -116,26 +149,50 @@ repoStructure: {
 			rationale: "Cada arquivo faz match em exatamente 1 schema pelo path. Ambiguidade é bug nos schemas, não no arquivo."
 			steps: [
 				"Filtrar arquivos por scope.validated, excluir scope.excluded",
-				"Para cada arquivo .cue, testar canonicalPathPattern de todos os schemas que declaram _schema.location",
-				"Exatamente 1 match → validar conteúdo contra aquele schema",
-				"Zero matches → aplicar unmatchedFilePolicy",
-				"2+ matches → erro nos schemas (patterns sobrepostos — corrigir schemas)",
+				"Para cada arquivo .cue, testar canonicalPathRegex de todos os schemas que declaram _schema.location",
+				"Classificar cada arquivo em exatamente 1 categoria de fileClassification.categories",
+				"Aplicar fileClassification.policy.mapping para determinar ação do CI",
 			]
-		}
 
-		unmatchedFilePolicy: {
-			rule:      "conditional-on-schema-existence"
-			rationale: "Governança cresce com o repo. Cada schema criado é enforcement imediato para seu tipo. Sem transição manual de fase."
-			behavior: """
-				Para cada arquivo sem match em nenhum schema:
-				- Se nenhum schema no repo declara location para aquele
-				  segmento de path → warn (tipo ainda não governado)
-				- Se existe schema para o segmento mas o arquivo não
-				  conforma com fileNamePattern → reject
-				Quando o último tipo ganha schema com location,
-				todos os arquivos passam a ter match potencial.
-				A transição bootstrap→produção é emergente.
-				"""
+			// Eixo A: categorias de classificação.
+			// Observações do mundo — não carregam ação.
+			categories: {
+				"outside-scope": {
+					description: "Arquivo fora de scope.validated ou em scope.excluded."
+				}
+				matched: {
+					description: "Path do arquivo faz match com exatamente 1 schema."
+				}
+				ambiguous: {
+					description: "Path do arquivo faz match com 2+ schemas. Indica sobreposição nos patterns dos schemas."
+				}
+				"unmatched-governed-with-schemas": {
+					description: "Arquivo em zona governada (dentro de scope.validated) onde existem schemas para aquela raiz, mas nenhum cobre este arquivo."
+				}
+				"unmatched-governed-without-schemas": {
+					description: "Arquivo em zona governada onde nenhum schema governa aquela raiz ainda."
+				}
+			}
+
+			// Eixo B: política de resposta por categoria.
+			// Mutável independentemente das categorias.
+			policy: {
+				mapping: {
+					"outside-scope":                     "ignore"
+					matched:                             "validate-conformance"
+					ambiguous:                           "reject"
+					"unmatched-governed-with-schemas":    "warn"
+					"unmatched-governed-without-schemas": "info"
+				}
+				actions: {
+					reject:                 "CI falha. Arquivo não pode ser mergeado."
+					warn:                   "CI reporta warning. Merge não bloqueado, mas visível em review."
+					info:                   "CI registra para visibilidade. Sem impacto no merge."
+					ignore:                 "CI não processa o arquivo."
+					"validate-conformance": "CI valida o arquivo contra o schema matched."
+				}
+				rationale: "Separar classificação de política permite evoluir severidade por zona sem alterar o modelo de categorias. Exemplo: quando uma zona amadurece, basta mudar a ação de 'warn' para 'reject' sem redesenhar a taxonomia."
+			}
 		}
 
 		phases: [
@@ -157,7 +214,7 @@ repoStructure: {
 			rationale: "CI não precisa existir completo no dia 1. Cada phase é independentemente implementável."
 			incremental: {
 				"schema-conformance":  "cue vet nativo — funciona hoje sem tooling custom"
-				"file-classification": "script que extrai canonicalPathPattern dos schemas e testa contra arquivos em scope"
+				"file-classification": "script que extrai canonicalPathRegex dos schemas e testa contra arquivos em scope"
 				completeness:          "script que resolve conditions do completeness contra canvas de cada BC"
 			}
 		}
