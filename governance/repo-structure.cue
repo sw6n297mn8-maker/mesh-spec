@@ -208,6 +208,27 @@ repoStructure: {
 				includes: ["bounded-context-completeness"]
 				dependsOn: ["schema-conformance"]
 			},
+			{
+				id:        "adr-coverage"
+				rationale: "Garante que toda mudança semântica em zonas governadas tem decisão rastreável. Sem enforcement determinístico, governança de ADR depende de disciplina de agente — insuficiente para o modelo de robustez da Mesh."
+				includes: [
+					"Se diff contém arquivos alterados em architecture/ ou governance/ (exceto architecture/adrs/)",
+					"Então o mesmo commit/PR deve conter pelo menos 1 ADR novo ou alterado em architecture/adrs/",
+					"E pelo menos 1 dos ADRs deve referenciar ao menos 1 path do diff em affectedArtifacts",
+				]
+				dependsOn: ["schema-conformance"]
+			},
+			{
+				id:        "adr-consistency"
+				rationale: "Valida invariants relacionais entre ADRs que o schema de arquivo isolado não consegue expressar: existência de referências, simetria de cadeia e ausência de ciclos."
+				includes: [
+					"Se ADR.status == superseded, o ADR referenciado em supersededBy deve existir",
+					"Se ADR-B.supersedes contém ADR-A, então ADR-A deve ter status == superseded e supersededBy == ADR-B",
+					"Nenhum ADR pode referenciar a si mesmo em supersedes ou supersededBy",
+					"O grafo de supersession deve ser acíclico (DAG)",
+				]
+				dependsOn: ["schema-conformance"]
+			},
 		]
 
 		implementationGuidance: {
@@ -216,6 +237,8 @@ repoStructure: {
 				"schema-conformance":  "cue vet nativo — funciona hoje sem tooling custom"
 				"file-classification": "script que extrai canonicalPathRegex dos schemas e testa contra arquivos em scope"
 				completeness:          "script que resolve conditions do completeness contra canvas de cada BC"
+				"adr-coverage":        "script que compara diff de architecture/ e governance/ contra ADRs no mesmo PR; parseia affectedArtifacts dos .cue em architecture/adrs/"
+				"adr-consistency":     "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
 			}
 		}
 	}
