@@ -364,6 +364,10 @@ mesh-spec/
 │   │                                    #   eventos sem consumidor? dependency cycle detection?
 │   │                                    #   interaction contracts consistentes com context-map
 │   │                                    #   e com event schemas?
+│   ├── build-time/                         # Especificações arquiteturais de build-time.
+│   │   └── work-governance.cue             # Governança de trabalho: coordenação multi-agente,
+│   │                                       #   dual state machine (admission × execution),
+│   │                                       #   event sourcing sobre git.
 │   └── claude/                          # Configuração do agente que opera neste repositório.
 │       ├── config.cue                   # Source of truth das regras comportamentais do agente.
 │       │                                #   CLAUDE.md é artefato derivado deste arquivo.
