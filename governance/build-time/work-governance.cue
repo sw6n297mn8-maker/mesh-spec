@@ -170,42 +170,65 @@ _#workEventBase: {
 // TaskSpec
 // ============================================================
 
+// Tipo compartilhado para outputs de tarefas. Usado tanto aqui
+// (#TaskSpec, definição operacional) quanto em #WaveTask
+// (architecture/artifact-schemas/wave-plan.cue, definição de
+// planejamento). Ambos os contextos usam a mesma estrutura
+// para manter consistência semântica.
+#TaskOutput: {
+	artifact: string & !=""
+	type:     "create" | "update" | "validate"
+}
+
+// TaskSpec — definição operacional completa de uma tarefa no
+// sistema de execução.
+//
+// Difere de #WaveTask (wave-plan.cue) que é a unidade de
+// planejamento: inclui tshirtSize e dependsOn, mas não version
+// nem templateRef. #TaskSpec é o que o agente consome para
+// executar; #WaveTask é o que o founder usa para planejar.
 #TaskSpec: {
 	id:                    string & =~"^WI-[0-9]{3}$"
 	version:               int & >=1
 	title:                 string & !=""
 	templateRef?:          string & !=""
 	semanticPrerequisites: [...string & !=""]
-	affects:               [...string & !=""]
-	outputs:               [...string & !=""]
-	rationale:             string & !=""
+
+	// outputs: artefatos produzidos ou alterados diretamente pela tarefa.
+	// Devem existir ao final da execução.
+	outputs: [...#TaskOutput]
+
+	// affects: superfície semântica e operacional impactada pela mudança,
+	// além dos outputs diretos. Omitir ou deixar vazio quando a tarefa
+	// impacta apenas seus outputs. NÃO repetir outputs[*].artifact.
+	affects: [...string & !=""]
+
+	rationale: string & !=""
 }
 
 // ============================================================
 // Governança operacional
 // ============================================================
 
-// Campos base de governança — interno, usado apenas para composição.
-_#taskGovernanceBase: {
+// União discriminada por scope: regra por tarefa específica ou por template.
+// Struct fechado — scope "task" não aceita templateRef e vice-versa.
+// Testado: cue vet rejeita campos do scope oposto.
+#TaskGovernanceRule: {
 	eligibleRoles:        [#Role, ...#Role]
 	approvalRequired:     bool | *true
 	criticality:          #Criticality
 	defaultLeaseDuration: string & !=""
 	rationale:            string & !=""
-	...
-}
 
-// União discriminada por scope: regra por tarefa específica ou por template.
-#TaskGovernanceRule:
-	(_#taskGovernanceBase & {
+	{
 		scope:        "task"
 		taskId:       string & =~"^WI-[0-9]{3}$"
 		taskVersion?: int & >=1
-	}) |
-	(_#taskGovernanceBase & {
+	} | {
 		scope:       "template"
 		templateRef: string & !=""
-	})
+	}
+}
 
 // ============================================================
 // Autoridade de commands
@@ -259,7 +282,11 @@ _#taskGovernanceBase: {
 // Stream file
 // ============================================================
 
+// Stream de eventos de um work-item. Cada stream file declara
+// explicitamente qual task contém (taskId), mesmo que o file name
+// também carregue o ID. Redundância intencional para validação.
 #WorkItemStream: {
+	taskId: string & =~"^WI-[0-9]{3}$"
 	events: [...#WorkEvent]
 }
 
