@@ -191,7 +191,7 @@ _#workEventBase: {
 	id:                    string & =~"^WI-[0-9]{3}$"
 	version:               int & >=1
 	title:                 string & !=""
-	templateRef?:          string & !=""
+	templateRef:           string & =~"^tmpl-[a-z][a-z0-9-]*@v[0-9]+$"
 	semanticPrerequisites: [...string & !=""]
 
 	// outputs: artefatos produzidos ou alterados diretamente pela tarefa.
