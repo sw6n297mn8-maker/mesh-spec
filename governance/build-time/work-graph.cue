@@ -141,5 +141,10 @@ workGraph: {
 		]
 		phaseId: "p3-tactical-and-validation"
 		groupId: "g3-validation-prompts"
+	}, #ExecutionDependency & {
+		taskId:    "WI-014"
+		dependsOn: []
+		phaseId:   "p3-tactical-and-validation"
+		groupId:   "g3-first-bc"
 	}]
 }
