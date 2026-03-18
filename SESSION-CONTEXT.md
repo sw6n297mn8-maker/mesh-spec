@@ -1,28 +1,132 @@
-# Contexto de Sessão — 2026-03-13
+# Contexto de Sessão — 2026-03-17
 
 Este arquivo é temporário. Existe para transferir contexto entre sessões. Pode ser deletado após a retomada.
 
 ---
 
-## O que foi feito nesta sessão
+## O que foi feito nesta sessão (2026-03-17)
 
-### 1. Atualização do config.cue (commit ee2e8af)
+### 1. `governance/repo-principles.cue` — COMMITADO E PUSHADO (b603390)
 
-Quatro seções do `governance/claude/config.cue` foram alteradas. CLAUDE.md foi regenerado automaticamente.
+Princípios orientadores do repositório (RP1–RP10) extraídos do README.md para CUE formal.
+- Prefixo RP (evita colisão com Design Principles P0–P12)
+- Map keyed por ID com constraint `[ID=string]: #RepoPrinciple & {id: ID}`
+- Bloco único `principles: { RP1: {...} ... RP10: {...} }`
+- `_schema.location` com cardinality singleton
+- 6 grupos: Organization, Format, Granularity, Consumption, Quality, Governance
 
-**Seção 2 — Modelo de Operação:** Adicionado protocolo de tensão. Axiomas são hipóteses estratégicas, não verdades absolutas. Quando uma decisão tensionar um axioma, o agente deve: (a) registrar no rationale do artefato, (b) criar entrada em `architecture/tension-log/`, (c) sinalizar com `[TENSÃO: ax-XX]` no output.
+### 2. Quality Gate — SOLUÇÃO DESENHADA E APROVADA, NÃO ESCRITA
 
-**Seção 4 — Regra Fundamental:** Adicionada distinção entre dois tipos de diretriz: (1) constraints invioláveis (integridade legal + dp-10), que nunca cedem; (2) axiomas e princípios operacionais, que são tensionáveis com justificativa. Referência a `domain/domain-definition.cue` para hierarquia de precedência.
+Problema: o agente entrega rascunhos com gaps críticos que exigem 4-5 rounds de red-team manual do founder. Solução: camada de self-review pré-proposta.
 
-**Seção 14 — Validação:** Adicionada validação semântica com separação de contexto. Após produzir artefato CUE, o agente commita na branch ativa e instrui o usuário a executar validação em sessão separada usando validation prompts. Categorização: pass/warning/fail.
+**Conteúdo completo de `governance/quality-gate.cue` foi proposto e aprovado com 5 ajustes do founder:**
+1. Tabela corrigida: cue vet dentro do loop, não como camada separada
+2. maxRounds: 3 (3 internos + ~1 do founder ≈ paridade com os 4-5 manuais)
+3. Transparência escalonada: uma linha sempre, detalhes só em falha ou sob demanda
+4. uq-02: especificidade para domínio da Mesh como critério "fail" próprio (teste: "substituir Mesh por qualquer fintech")
+5. migrationTrigger explícito: 400 linhas OU 8+ tipos → migrar para `_qualityCriteria` nos schemas
 
-**Seção 16 — Referências por Tipo de Operação:** Adicionadas 4 categorias: (1) decisões irreversíveis com 5 critérios — escalar ao usuário por default; (2) lenses analíticas — carregar quando disponíveis, proceder com princípios quando não; (3) governança com autonomia zero por default; (4) validation prompts.
+**Camadas de validação (modelo aprovado):**
 
-**Avaliação de mudança aplicada:** 10 findings identificados, 4 ajustes aplicados antes de commitar: CM-01 (consistência de workflow entre seções 2 e 14), CM-05 (prefixo "e.g." em regulamentos), CM-06 (escopo de validação delegado ao prompt), CM-08 (referências genéricas a schema de lenses).
+| Camada | Quando | Quem | O que valida |
+|---|---|---|---|
+| Self-review (NOVA) | Pré-proposta, loop interno | Mesmo agente | cue vet + crítica semântica contra critérios universais e por tipo |
+| Procedural (quality gates) | Pré-commit | Mesmo agente | Checklist de completude do task template |
+| Semântica (validation prompts) | Pós-commit, sessão separada | Agente diferente | Viés, blind spots, coerência profunda |
 
-### 2. Proposta de foundingPrinciples (NÃO commitada)
+---
 
-Proposta completa dos princípios fundacionais para `domain/domain-definition.cue` foi discutida e aceita em conversa, mas **NÃO foi escrita no repositório**. O conteúdo aceito:
+## Artefatos pendentes (sequência de implementação)
+
+### 2a. Criar `governance/quality-gate.cue` — CONTEÚDO APROVADO
+
+**Schemas:** `#Severity`, `#QualityCriterion`, `#TypeSpecificCriteria`, `#TransparencyPolicy`, `#MigrationTrigger`, `#SelfReviewProtocol`
+
+**selfReviewProtocol:**
+- maxRounds: 3
+- stabilityCondition: nenhum finding "fail" na última passada
+- exitOnMaxRounds: propor com disclaimer + findings não resolvidos
+- deterministicGate: cue vet como primeiro passo de cada round
+- transparency: always (1 linha), onFailure (listar fails), onRequest (detalhes das correções)
+- migrationTrigger: 400 linhas OU 8+ tipos
+
+**7 critérios universais (severity=fail exceto uq-05=warn):**
+- uq-01: Rationale explica WHY, não WHAT
+- uq-02: Especificidade Mesh (teste fintech)
+- uq-03: Referências cruzadas existem
+- uq-04: Consistência com design/repo principles
+- uq-05: Limitações declaradas (warn)
+- uq-06: Ubiquitous language
+- uq-07: Zero placeholder
+
+**5 blocos de critérios por tipo:**
+- adr: 3 critérios (alternativas com rationale, metadata específica, paths reais em affectedArtifacts)
+- canvas: 3 critérios (custos específicos, classificação justificada, capabilities reais vs aspiracionais)
+- domain-definition: 2 critérios (mecanismos concretos, fronteiras testáveis)
+- lens: 2 critérios (ativação testável, protocolo concreto)
+- artifact-schema: 2 critérios (constraints de domínio, _schema.location presente)
+
+### 2b. Modificar `governance/claude/config.cue` — CONTEÚDO APROVADO
+
+Nova seção "Autovalidação Pré-Proposta" entre "Incerteza" (seção 7) e "Estrutura do Repositório" (seção 8).
+- canonicalSource: "governance/quality-gate.cue"
+- Ciclo de 6 passos: gerar → cue vet → criticar universais → criticar tipo → revisar fails → repetir
+- Formato: "Self-review: N/M rounds"
+- Explicitamente NÃO substitui validation prompts
+
+### 2c. Criar `architecture/adrs/adr-009-self-review-quality-gate.cue` — NÃO PROPOSTO AINDA
+
+Deve documentar:
+- Decisão de adicionar camada de self-review pré-proposta
+- Alternativas consideradas
+- migrationTrigger como decisão diferida com thresholds
+- affectedArtifacts: governance/quality-gate.cue, governance/claude/config.cue, CLAUDE.md
+
+### 2d. Regenerar CLAUDE.md
+
+```
+cue export ./governance/claude -e output --out text > CLAUDE.md
+```
+
+### 2e. Atualizar referências cruzadas ao README
+
+Migrar ponteiros para `governance/repo-principles.cue`:
+
+**governance/claude/config.cue (14 referências):**
+- L96-98: canonicalSource "README.md#P2" → repo-principles.cue#RP2
+- L116: rationale "P10" → repo-principles.cue
+- L120-124: canonicalSource "README.md#Convenções de Nomenclatura" → TBD
+- L164-168: tabela de referências → atualizar ponteiros
+- L26, 34, 59, 88, 90, 92, 109: menções narrativas
+
+**architecture/design-principles.cue L4:** "P1-P10 do README" → "RP1-RP10 de governance/repo-principles.cue"
+
+**governance/repo-structure.cue L125:** rationale → atualizar
+
+**architecture/adrs/ — NÃO ALTERAR** (registros históricos)
+
+---
+
+## Contexto da sessão anterior (2026-03-13) — ainda válido
+
+### foundingPrinciples para domain-definition.cue — PROPOSTO, NÃO ESCRITO
+7 axiomas (ax-01 a ax-07), 10 princípios derivados (dp-01 a dp-10), 4 níveis de resolução de conflito, reversibilityThreshold com 5 critérios. Ver detalhes na seção "Proposta de foundingPrinciples" abaixo.
+
+### Insight de ordem de construção
+O agente é o ator primário (ax-01, ax-02). Ordem: definir agente → definir trabalho → definir princípios → definir ambiente → produzir conteúdo. Próximo passo decidido: schema de agent card.
+
+### 7 artefatos referenciados por config.cue que não existem
+- architecture/artifact-schemas/lens.cue
+- architecture/artifact-schemas/autonomy-envelope.cue
+- architecture/artifact-schemas/tension-entry.cue
+- architecture/artifacts/lenses/
+- architecture/artifacts/governance/
+- architecture/tension-log/
+- architecture/validation-prompts/
+
+---
+
+## foundingPrinciples (proposta aceita, não escrita)
 
 **7 axiomas:**
 - ax-01: Operada por IA
@@ -58,45 +162,9 @@ Proposta completa dos princípios fundacionais para `domain/domain-definition.cu
 4. Impacta obrigações legais, fiscais ou regulatórias
 5. Requer migração de dados em produção
 
-### 3. Insight crítico: ordem de construção
-
-A conversa chegou a um insight que **muda a sequência de trabalho inteira**. A ordem original era: princípios → schemas → conteúdo. O insight:
-
-**O agente é o ator primário do sistema (ax-01, ax-02).** Portanto, a ordem correta é:
-
-1. **Definir o agente** — agent card (quem ele é, capabilities, limites, autonomia)
-2. **Definir o trabalho** — work items (o que precisa ser feito, dependências, quem executa)
-3. **Definir os princípios** — bússola de decisão
-4. **Definir o ambiente** — schemas, estrutura, envelopes, lenses
-5. **Produzir conteúdo** — artefatos de domínio
-
-**Consequências:**
-- CLAUDE.md deveria ser DERIVADO do agent card, não escrito à mão
-- Autonomy envelopes são propriedades do agente, não artefatos soltos
-- Validation é uma capability de um agente de validação
-- Work items no repositório transformam o humano de "operador" em "supervisor"
-
-**Hoje o repo não tem:**
-- Definição do agente (agent card)
-- Representação de trabalho (work items, backlog, DAG de tarefas)
-- Ligação entre agente e trabalho
-
 ---
 
-## Dependências pendentes (TODO no topo do config.cue)
-
-7 artefatos referenciados pelo config.cue que não existem:
-- `architecture/artifact-schemas/lens.cue`
-- `architecture/artifact-schemas/autonomy-envelope.cue`
-- `architecture/artifact-schemas/tension-entry.cue`
-- `architecture/artifacts/lenses/`
-- `architecture/artifacts/governance/`
-- `architecture/tension-log/`
-- `architecture/validation-prompts/`
-
----
-
-## Backlog completo (coletado nesta sessão)
+## Backlog completo
 
 ### Infraestrutura do mesh-spec
 - Criar schema CUE para agent card (perfis de agente)
@@ -118,44 +186,37 @@ A conversa chegou a um insight que **muda a sequência de trabalho inteira**. A 
 - Criar perfil de agente do CEO briefing
 - Definir template de briefing diário
 - Implementar agente que lê estado do repo e gera briefing
-- Rodar, testar e refinar antes de criar briefings para outros humanos
 
 ### Identidade de marca e sistema de design
 - Definir os 6 princípios de marca como artefatos formais
-- Criar design token system (paleta, tipografia, espaçamento, elevação)
+- Criar design token system
 - Definir tom de voz e linguagem da marca
-- Criar primeiros componentes do sistema de design
 
 ### Ações humanas (sem agentes)
-- Encontrar advogado de regulação financeira e validar estrutura (FIDC, SCD, SCFI)
-- Identificar 2-3 relacionamentos no setor de construção civil (anchor tenants)
-- Começar a construir em público (posts sobre tese, arquitetura, lenses)
-- Mapear ecossistema fintech brasileiro para identificar potencial CTO
-- Identificar advisors de mercado de capitais/estruturação financeira
+- Encontrar advogado de regulação financeira
+- Identificar 2-3 anchor tenants no setor de construção civil
+- Começar a construir em público
+- Mapear ecossistema fintech brasileiro para potencial CTO
+- Identificar advisors de mercado de capitais
 
 ---
 
-## Para retomar
+## Referências importantes
 
-O próximo passo decidido: **criar o schema de agent card** (`architecture/artifact-schemas/agent-card.cue`), porque o agente é o ator primário e tudo mais deriva dele.
-
-Após o agent card: criar schema de work item, depois popular o backlog acima como instâncias CUE no repositório.
-
-O `domain/domain-definition.cue` (com foundingPrinciples) está desenhado mas não escrito — pode ser criado em paralelo ou após o agent card, conforme preferência do founder.
-
-**Referências importantes no repo:**
-- `architecture/artifact-schemas/domain-definition.cue` — schema existente (145 linhas, 3 rounds de red team)
+**No repo:**
+- `architecture/artifact-schemas/domain-definition.cue` — schema existente
 - `architecture/design-principles.cue` — 13 princípios de design (P0-P12)
-- `governance/claude/config.cue` — fonte do CLAUDE.md (203 linhas, 16 seções)
+- `governance/claude/config.cue` — fonte do CLAUDE.md (16 seções)
 - `governance/claude/schema.cue` — schema de #Section e #AgentConfig
 - `governance/claude/output.cue` — template que gera CLAUDE.md
+- `governance/repo-principles.cue` — NEW: 10 princípios do repo (RP1-RP10)
+- `governance/repo-structure.cue` — escopo e validação estrutural
 
-**Referências fora do repo (mesh-architecture/):**
-- `agent-map-principles-mesh-ecl.md` — 7 premissas fundacionais + 24 princípios de agentes
+**Fora do repo (mesh-architecture/):**
+- `agent-map-principles-mesh-ecl.md` — 7 premissas + 24 princípios de agentes
 - `mesh-domain-model.md` — modelo de domínio estratégico (20 subdomínios)
-- Todos os documentos de DDD (big-picture, process-level, wave-0, BCs, aggregates, etc.)
 
 **Ferramentas:**
-- CUE CLI v0.16.0 em `~/bin/cue` (requer `export PATH="$HOME/bin:$PATH"`)
-- GitHub repo: `sw6n297mn8-maker/mesh-spec` (privado, branch main, HTTPS com gh credential helper)
+- CUE CLI v0.16.0 em `~/bin/cue`
+- GitHub repo: `sw6n297mn8-maker/mesh-spec` (privado)
 - Geração CLAUDE.md: `cue export ./governance/claude -e output --out text > CLAUDE.md`
