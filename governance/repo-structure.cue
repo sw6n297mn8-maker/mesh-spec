@@ -291,15 +291,22 @@ repoStructure: {
 					schema existente não declarado), e de governança (protocolo
 					ou enforcement existente não declarado) — são verificadas
 					deterministicamente contra blocos machine-readable no README.
-					Boundary semântico (mudança de papel de zona sem mudança de
-					arquivo) NÃO é coberto — requer julgamento que bash não faz;
-					mantido como disciplina de agente em config.cue.
+					Blocos são artefatos derivados do filesystem: o script com
+					--fix os regenera automaticamente. O pre-commit hook executa
+					--fix, auto-stage o README, e depois verifica presença
+					textual de cada item no README (heurística por basename via
+					grep — não parseia markdown tree). Boundary semântico
+					(mudança de papel de zona sem mudança de arquivo) NÃO é
+					coberto — requer julgamento que bash não faz; mantido como
+					disciplina de agente em config.cue.
 					"""
 				includes: [
 					"Trigger A (estrutural): diretório depth ≤ 2 existente no filesystem (excl. .git/, .github/, cue.mod/) não declarado em bloco repo-structure-paths → FAIL",
 					"Trigger B (tipológico): arquivo .cue existente em architecture/artifact-schemas/ não declarado em bloco repo-artifact-schemas → FAIL",
-					"Trigger C (governança): arquivo existente em governance/*.cue, governance/build-time/*.cue, governance/claude/*.cue (excl. self-reviews/, task-specs/, projections/) ou scripts/ci/ não declarado em bloco repo-governance-protocols → FAIL",
+					"Trigger C (governança): arquivo existente em zonas governadas (governance/, governance/build-time/, governance/claude/, scripts/ci/, scripts/hooks/) não declarado em bloco repo-governance-protocols → FAIL",
 					"Item declarado em bloco sem correspondente no filesystem → WARN (possível item futuro legítimo ou remoção não refletida)",
+					"--fix regenera blocos machine-readable do filesystem (blocos são artefatos derivados); textual presence check verifica que cada item tem basename presente no README",
+					"Pre-commit hook (scripts/hooks/pre-commit) executa --fix, auto-stage README, e bloqueia commit se presença textual falhar",
 				]
 				dependsOn: []
 			},
@@ -315,7 +322,7 @@ repoStructure: {
 				"adr-consistency":        "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
 				"derived-artifact-sync":  "script que itera derivedArtifacts, executa cada generator, e compara output com path via diff"
 				"self-review-evidence": "scripts/ci/check-self-review.sh — cue vet estrutural + checks relacionais via bash/python; bootstrap exceptions consultadas antes de exigir report"
-				"readme-coevolution":  "scripts/ci/check-readme-coevolution.sh — compara estado atual do filesystem contra 3 blocos machine-readable no README (repo-structure-paths, repo-artifact-schemas, repo-governance-protocols); item existente não declarado = FAIL, item declarado não existente = WARN"
+				"readme-coevolution":  "scripts/ci/check-readme-coevolution.sh — modo check (CI) ou --fix (pre-commit); --fix regenera blocos do filesystem e auto-stage README; textual presence check garante que itens aparecem no README; pre-commit hook em scripts/hooks/pre-commit; instalação: git config core.hooksPath scripts/hooks"
 			}
 		}
 	}

@@ -4,18 +4,42 @@ set -euo pipefail
 # check-readme-coevolution.sh — CI phase: readme-coevolution
 #
 # Verifica que o estado atual do filesystem está refletido nos blocos
-# machine-readable do README.md. Usa o filesystem como fonte de
-# verificação, não o diff — resolve drift legado além do delta do PR.
+# machine-readable e na árvore visual do README.md. Usa o filesystem
+# como fonte de verificação, não o diff — resolve drift legado além
+# do delta do PR.
+#
+# Modos:
+#   (sem flag) — check-only: FAIL se bloco ou árvore inconsistentes
+#   --fix     — regenera blocos do filesystem, depois verifica árvore
 #
 # Três classes de trigger:
 #   A. Estrutural — diretório depth ≤ 2 existente não declarado
 #   B. Tipológico — arquivo existente em architecture/artifact-schemas/ não declarado
 #   C. Governança — protocolo/enforcement existente em zonas governadas não declarado
 #
-# Uso: ./scripts/ci/check-readme-coevolution.sh
+# Tree presence check:
+#   Após validar/regenerar blocos, verifica que cada item dos blocos
+#   tem presença textual no README (busca por basename via grep).
+#   Esta é uma heurística deliberada: o sistema não parseia markdown
+#   tree syntax. Presença textual do nome do item em qualquer lugar
+#   do README é aceita como evidência de documentação.
+#
+# Uso:
+#   ./scripts/ci/check-readme-coevolution.sh          # CI / check manual
+#   ./scripts/ci/check-readme-coevolution.sh --fix     # pre-commit hook
 
 README="README.md"
 EXIT_CODE=0
+FIX_MODE=false
+
+[[ "${1:-}" == "--fix" ]] && FIX_MODE=true
+
+# ── Guarda: README deve existir ──
+
+if [ ! -f "$README" ]; then
+    echo "FAIL: $README não encontrado."
+    exit 1
+fi
 
 # ── Helpers ──
 
@@ -27,6 +51,27 @@ extract_block() {
         | grep -v '^$'
 }
 
+replace_block() {
+    local marker="$1"
+    local new_content="$2"
+    local tmp="${README}.tmp.$$"
+
+    awk -v marker="$marker" -v content="$new_content" '
+        $0 ~ "BEGIN:" marker { print; printf "%s\n", content; skip=1; next }
+        $0 ~ "END:" marker   { skip=0 }
+        !skip { print }
+    ' "$README" > "$tmp"
+
+    if ! diff -q "$README" "$tmp" > /dev/null 2>&1; then
+        mv "$tmp" "$README"
+        echo "FIX: Bloco $marker atualizado."
+        return 0
+    else
+        rm -f "$tmp"
+        return 1
+    fi
+}
+
 fail() {
     echo "FAIL: $1"
     EXIT_CODE=1
@@ -36,132 +81,138 @@ warn() {
     echo "WARN: $1"
 }
 
-# ── Trigger A: Estrutural (diretórios depth ≤ 2) ──
+# ── Geração de conteúdo dos blocos a partir do filesystem ──
 
-check_structural() {
-    local known_paths
-    known_paths=$(extract_block "repo-structure-paths")
-    if [ -z "$known_paths" ]; then
-        warn "Bloco repo-structure-paths não encontrado no README.md — trigger A inoperante."
-        return
-    fi
-
-    local -a excluded=(".git/" ".github/" "cue.mod/")
-
-    # Diretórios que existem no HEAD
-    while IFS= read -r dir; do
-        dir="${dir}/"
-        # Profundidade ≤ 2
+generate_structure_paths() {
+    local -a excluded=(".git" ".github" "cue.mod")
+    git ls-tree -d --name-only -r HEAD | while IFS= read -r dir; do
         local depth
-        depth=$(echo "${dir%/}" | tr -cd '/' | wc -c)
-        [ "$depth" -gt 2 ] && continue
-        # Excluir plataforma
+        depth=$(echo "$dir" | tr -cd '/' | wc -c)
+        [ "$depth" -gt 1 ] && continue
         local skip=false
         for prefix in "${excluded[@]}"; do
-            [[ "$dir" == "$prefix"* ]] && skip=true && break
+            [[ "$dir" == "$prefix" || "$dir" == "$prefix/"* ]] && skip=true && break
         done
         [ "$skip" = true ] && continue
-        # Verificar contra bloco
-        if ! echo "$known_paths" | grep -qF "$dir"; then
-            fail "Diretório '$dir' existe mas não consta em repo-structure-paths"
-        fi
-    done < <(git ls-tree -d --name-only -r HEAD | sed 's|$||' | sort -u)
-
-    # Warn: items no bloco que não existem no filesystem
-    while IFS= read -r declared; do
-        [ -z "$declared" ] && continue
-        if [ ! -d "${declared%/}" ]; then
-            warn "Diretório '$declared' declarado em repo-structure-paths mas não existe no filesystem"
-        fi
-    done <<< "$known_paths"
+        echo "${dir}/"
+    done | sort -u
 }
 
-# ── Trigger B: Tipológico (artifact schemas) ──
-
-check_artifact_schemas() {
-    local known_schemas
-    known_schemas=$(extract_block "repo-artifact-schemas")
-    if [ -z "$known_schemas" ]; then
-        warn "Bloco repo-artifact-schemas não encontrado no README.md — trigger B inoperante."
-        return
-    fi
-
+generate_artifact_schemas() {
     local schema_dir="architecture/artifact-schemas"
-
-    # Arquivos que existem
-    if [ -d "$schema_dir" ]; then
-        for f in "$schema_dir"/*.cue; do
-            [ -f "$f" ] || continue
-            local basename
-            basename=$(basename "$f")
-            if ! echo "$known_schemas" | grep -qF "$basename"; then
-                fail "Artifact schema '$basename' existe mas não consta em repo-artifact-schemas"
-            fi
-        done
-    fi
-
-    # Warn: schemas no bloco que não existem
-    while IFS= read -r declared; do
-        [ -z "$declared" ] && continue
-        if [ ! -f "$schema_dir/$declared" ]; then
-            warn "Schema '$declared' declarado em repo-artifact-schemas mas não existe em $schema_dir/"
-        fi
-    done <<< "$known_schemas"
+    [ -d "$schema_dir" ] || return
+    for f in "$schema_dir"/*.cue; do
+        [ -f "$f" ] || continue
+        basename "$f"
+    done | sort
 }
 
-# ── Trigger C: Governança (protocolos e enforcement) ──
-
-check_governance_protocols() {
-    local known_protocols
-    known_protocols=$(extract_block "repo-governance-protocols")
-    if [ -z "$known_protocols" ]; then
-        warn "Bloco repo-governance-protocols não encontrado no README.md — trigger C inoperante."
-        return
-    fi
-
-    # Zonas governadas (depth 1 dentro de cada zona)
+generate_governance_protocols() {
+    # Inclui protocolos de governança e enforcement tooling operacional.
+    # O nome "governance-protocols" é mantido por estabilidade de contrato;
+    # o escopo real inclui qualquer arquivo operacional nas zonas listadas.
     local -a zones=(
         "governance"
         "governance/build-time"
         "governance/claude"
         "scripts/ci"
+        "scripts/hooks"
     )
-
     for zone in "${zones[@]}"; do
         [ -d "$zone" ] || continue
         for f in "$zone"/*; do
             [ -f "$f" ] || continue
-            if ! echo "$known_protocols" | grep -qF "$f"; then
-                fail "Protocolo '$f' existe mas não consta em repo-governance-protocols"
-            fi
+            echo "$f"
         done
-    done
+    done | sort
+}
 
-    # Warn: items no bloco que não existem
+# ── Check: blocos contra filesystem ──
+
+check_block() {
+    local block_name="$1"
+    local current_content="$2"
+    local expected_content="$3"
+    local item_type="$4"
+
+    if [ -z "$current_content" ]; then
+        warn "Bloco $block_name não encontrado no README.md — trigger inoperante."
+        return
+    fi
+
+    # Items no filesystem não declarados no bloco
+    while IFS= read -r item; do
+        [ -z "$item" ] && continue
+        if ! echo "$current_content" | grep -qF "$item"; then
+            fail "$item_type '$item' existe mas não consta em $block_name"
+        fi
+    done <<< "$expected_content"
+
+    # Items no bloco que não existem no filesystem
     while IFS= read -r declared; do
         [ -z "$declared" ] && continue
-        if [ ! -f "$declared" ]; then
-            warn "Protocolo '$declared' declarado em repo-governance-protocols mas não existe"
+        if ! echo "$expected_content" | grep -qF "$declared"; then
+            warn "$item_type '$declared' declarado em $block_name mas não existe no filesystem"
         fi
-    done <<< "$known_protocols"
+    done <<< "$current_content"
+}
+
+# ── Check: presença textual no README ──
+#
+# Heurística deliberada: busca pelo basename do item no README inteiro.
+# Não parseia markdown tree syntax. Presença textual é aceita como
+# evidência de documentação. Falsos negativos raros — filenames são
+# suficientemente específicos para evitar ambiguidade.
+
+check_textual_presence() {
+    local block_name="$1"
+    local items="$2"
+    local item_type="$3"
+
+    while IFS= read -r item; do
+        [ -z "$item" ] && continue
+        local search_term
+        search_term=$(basename "$item")
+        if ! grep -qF "$search_term" "$README"; then
+            fail "$item_type '$item' consta em $block_name mas não aparece no texto do README"
+        fi
+    done <<< "$items"
 }
 
 # ── Main ──
 
 echo "=== readme-coevolution: Trigger A (estrutural) ==="
-check_structural
+expected_paths=$(generate_structure_paths)
+current_paths=$(extract_block "repo-structure-paths")
+if [ "$FIX_MODE" = true ] && [ -n "$current_paths" ]; then
+    replace_block "repo-structure-paths" "$expected_paths" && current_paths="$expected_paths"
+fi
+check_block "repo-structure-paths" "$current_paths" "$expected_paths" "Diretório"
+check_textual_presence "repo-structure-paths" "$expected_paths" "Diretório"
 
 echo ""
 echo "=== readme-coevolution: Trigger B (tipológico) ==="
-check_artifact_schemas
+expected_schemas=$(generate_artifact_schemas)
+current_schemas=$(extract_block "repo-artifact-schemas")
+if [ "$FIX_MODE" = true ] && [ -n "$current_schemas" ]; then
+    replace_block "repo-artifact-schemas" "$expected_schemas" && current_schemas="$expected_schemas"
+fi
+check_block "repo-artifact-schemas" "$current_schemas" "$expected_schemas" "Artifact schema"
+check_textual_presence "repo-artifact-schemas" "$expected_schemas" "Artifact schema"
 
 echo ""
 echo "=== readme-coevolution: Trigger C (governança) ==="
-check_governance_protocols
+expected_protocols=$(generate_governance_protocols)
+current_protocols=$(extract_block "repo-governance-protocols")
+if [ "$FIX_MODE" = true ] && [ -n "$current_protocols" ]; then
+    replace_block "repo-governance-protocols" "$expected_protocols" && current_protocols="$expected_protocols"
+fi
+check_block "repo-governance-protocols" "$current_protocols" "$expected_protocols" "Protocolo"
+check_textual_presence "repo-governance-protocols" "$expected_protocols" "Protocolo"
 
 echo ""
 if [ "$EXIT_CODE" -eq 0 ]; then
-    echo "OK: README coevolução verificada — todos os items existentes estão declarados."
+    echo "OK: README coevolução verificada — blocos e presença textual consistentes."
 else
     echo "RESULTADO: Findings acima requerem atualização do README.md."
 fi

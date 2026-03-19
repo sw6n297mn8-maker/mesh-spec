@@ -427,9 +427,13 @@ mesh-spec/
 │   ╚══════════════════════════════════════════════════════════════╝
 │
 ├── scripts/
-│   └── ci/
-│       ├── check-self-review.sh         # Enforcement de self-review evidence.
-│       └── check-readme-coevolution.sh  # Enforcement de coevolução README ↔ repo.
+│   ├── ci/
+│   │   ├── check-self-review.sh         # Enforcement de self-review evidence.
+│   │   └── check-readme-coevolution.sh  # Enforcement de coevolução README ↔ repo.
+│   │                                    #   --fix regenera blocos machine-readable.
+│   └── hooks/
+│       └── pre-commit                   # Hook: auto-fix blocos + textual presence check.
+│                                        #   Instalação: git config core.hooksPath scripts/hooks
 ```
 
 <!-- BEGIN:repo-structure-paths
@@ -455,6 +459,7 @@ ai-orchestration/
 ai-orchestration/agent-instructions/
 scripts/
 scripts/ci/
+scripts/hooks/
 END:repo-structure-paths -->
 
 <!-- BEGIN:repo-artifact-schemas
@@ -483,6 +488,7 @@ governance/claude/output.cue
 governance/claude/schema.cue
 scripts/ci/check-self-review.sh
 scripts/ci/check-readme-coevolution.sh
+scripts/hooks/pre-commit
 END:repo-governance-protocols -->
 
 ---
