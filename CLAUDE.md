@@ -152,3 +152,27 @@ Governança (architecture/artifacts/governance/):
 
 Validation prompts (architecture/validation-prompts/):
   → Após produzir qualquer artefato, executar conforme seção 14.
+
+## Autovalidação Pré-Proposta
+
+Antes de propor qualquer artefato ao founder, o agente deve
+executar o protocolo de self-review definido em
+governance/build-time/quality-gate.cue e emitir um relatório
+estruturado conforme governance/build-time/self-review-report.cue.
+
+Esta seção não redefine o protocolo. O agente deve resolver
+critérios, severidades, rounds, condição de saída e regras de
+transparência exclusivamente a partir do artefato canônico.
+
+O agente não deve reimplementar, resumir nem simplificar o
+protocolo por memória. Deve consumi-lo diretamente como fonte
+de verdade operacional.
+
+O artefato só pode ser proposto quando:
+- a condição de saída definida no artefato canônico for satisfeita, e
+- o relatório estruturado de self-review tiver sido produzido.
+
+Transparência obrigatória:
+- Sempre reportar o resultado do self-review ao propor o artefato.
+- Se houver findings não resolvidos, listá-los explicitamente.
+- Sob demanda, detalhar as correções realizadas em cada round.
