@@ -9,8 +9,10 @@ set -euo pipefail
 # do delta do PR.
 #
 # Modos:
-#   (sem flag) — check-only: FAIL se bloco ou árvore inconsistentes
-#   --fix     — regenera blocos do filesystem, depois verifica árvore
+#   (sem flag)        — check-only: FAIL se bloco ou árvore inconsistentes
+#   --fix             — regenera blocos do filesystem, depois verifica árvore
+#   --block <blockId> — output conteúdo esperado de um bloco para stdout
+#                       (usado por derived-artifact-sync)
 #
 # Três classes de trigger:
 #   A. Estrutural — diretório depth ≤ 2 existente não declarado
@@ -25,14 +27,19 @@ set -euo pipefail
 #   do README é aceita como evidência de documentação.
 #
 # Uso:
-#   ./scripts/ci/check-readme-coevolution.sh          # CI / check manual
-#   ./scripts/ci/check-readme-coevolution.sh --fix     # pre-commit hook
+#   ./scripts/ci/check-readme-coevolution.sh                              # CI / check manual
+#   ./scripts/ci/check-readme-coevolution.sh --fix                       # pre-commit hook
+#   ./scripts/ci/check-readme-coevolution.sh --block repo-structure-paths # derived-artifact-sync
 
 README="README.md"
 EXIT_CODE=0
 FIX_MODE=false
+BLOCK_MODE=""
 
-[[ "${1:-}" == "--fix" ]] && FIX_MODE=true
+case "${1:-}" in
+    --fix)   FIX_MODE=true ;;
+    --block) BLOCK_MODE="${2:-}" ;;
+esac
 
 # ── Guarda: README deve existir ──
 
@@ -178,6 +185,19 @@ check_textual_presence() {
         fi
     done <<< "$items"
 }
+
+# ── Block mode: output single block content to stdout ──
+# Used by derived-artifact-sync to compare expected vs actual.
+
+if [ -n "$BLOCK_MODE" ]; then
+    case "$BLOCK_MODE" in
+        repo-structure-paths)      generate_structure_paths ;;
+        repo-artifact-schemas)     generate_artifact_schemas ;;
+        repo-governance-protocols) generate_governance_protocols ;;
+        *) echo "ERROR: unknown block '$BLOCK_MODE'" >&2; exit 1 ;;
+    esac
+    exit 0
+fi
 
 # ── Main ──
 

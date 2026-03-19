@@ -4,62 +4,69 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 adr016: artifact_schemas.#ADR & {
 	id:    "adr-016"
-	title: "README coevolution via CI enforcement"
+	title: "README machine-readable blocks como derived artifacts"
 	date:  "2026-03-19"
 
 	decisionClass: "structural"
 	decider:       "founder"
 
 	context: """
-		O README.md contém uma árvore prescritiva da estrutura do repositório
-		(~320 linhas) e é o mapa mental primário para humanos e agentes novos.
-		O modelo mental do repo muda quando surgem novas zonas estruturais,
-		novos tipos canônicos de artefato, ou novos mecanismos de governança —
-		não apenas quando surgem novos diretórios. CLAUDE.md instrui
-		coevolução ("atualize repo-structure.cue E README.md antes de criar o
-		arquivo"), mas enforcement por disciplina não escala (P12).
-		Drift acumulado: artifact-schemas/ listava 21 schemas inexistentes sem
-		separação de futuros e omitia 6 existentes; governance/build-time/
-		mostrava 1 arquivo de 6; scripts/ci/ não constava na árvore.
-		Alternativas consideradas: (a) gerar README da árvore de filesystem —
-		rejeitada porque README é prescrição (target), não descrição; (b) phase
-		única para diretórios novos (structural-change-coverage) — rejeitada
-		após red-team: cobre apenas topologia física, não gramática nem
-		governança; (c) duas phases separadas (structural + logic) — rejeitada
-		por redundância: ambas respondem "README precisa mudar?" com triggers
-		diferentes; (d) trigger de boundary semântico via CI — rejeitada:
-		mudanças de papel de zona sem campo explícito não são detectáveis
-		deterministicamente em bash.
+		O README.md contém 3 blocos machine-readable (repo-structure-paths,
+		repo-artifact-schemas, repo-governance-protocols) que listam itens
+		existentes no filesystem. Esses blocos são, por definição,
+		materializações do estado do filesystem — mesma natureza de CLAUDE.md
+		derivado de config.cue (ADR-004). A versão anterior deste ADR
+		propunha phase CI separada (readme-coevolution) para detectar drift.
+		Isso ignora a infraestrutura de derived artifacts já existente:
+		#DerivedArtifact em repo-structure.cue e phase derived-artifact-sync
+		(ADR-004). Alternativas consideradas:
+		(a) manter phase separada readme-coevolution — rejeitada: duplica
+		mecanismo que derivedArtifacts já resolve, violando P0;
+		(b) tratar README inteiro como derivado — rejeitada: README tem
+		conteúdo autoral humano (árvore visual, princípios, convenções);
+		(c) estender #DerivedArtifact com blockId para suportar derivação
+		parcial dentro de arquivo — escolhida: reutiliza infraestrutura
+		existente com extensão mínima.
 		"""
 
 	decision: """
-		Introduzir phase única readme-coevolution que usa o estado atual do
-		filesystem como fonte de verificação — não apenas o delta do PR. Isso
-		resolve drift legado e não depende de base-ref para correção. Três
-		classes de trigger: A (estrutural: diretório depth ≤ 2 existente não
-		declarado), B (tipológico: arquivo existente em artifact-schemas/ não
-		declarado), C (governança: protocolo existente em governance/,
-		governance/build-time/, governance/claude/ ou scripts/ci/ não
-		declarado). Cada classe tem bloco machine-readable no README
-		(repo-structure-paths, repo-artifact-schemas, repo-governance-protocols).
-		Script compara filesystem contra blocos; item existente não declarado =
-		FAIL; item declarado não existente = WARN. Boundary semântico
-		(classe D) fica como disciplina de agente — não entra no CI.
+		Estender #DerivedArtifact com campo opcional blockId. Quando
+		presente, o generator produz conteúdo do bloco para stdout e
+		derived-artifact-sync compara contra o conteúdo entre marcadores
+		<!-- BEGIN:{blockId} --> e <!-- END:{blockId} --> no arquivo path.
+		Registrar 3 derived artifacts em derivedArtifacts.artifacts de
+		repo-structure.cue:
+		(a) repo-structure-paths — gerado a partir de diretórios depth ≤ 2
+		    no filesystem (excl. .git/, .github/, cue.mod/);
+		(b) repo-artifact-schemas — gerado a partir de *.cue em
+		    architecture/artifact-schemas/;
+		(c) repo-governance-protocols — gerado a partir de arquivos em
+		    governance/*.cue, governance/build-time/*.cue,
+		    governance/claude/*.cue (excl. self-reviews/, task-specs/,
+		    projections/) e scripts/ci/, scripts/hooks/.
+		Script existente check-readme-coevolution.sh recebe modo --block
+		<id> para output individual de cada bloco. Modo --fix regenera
+		todos os blocos in-place. Pre-commit hook (já existente) executa
+		--fix e auto-stage README.md. Phase readme-coevolution eliminada
+		de repo-structure.cue — sync é responsabilidade de
+		derived-artifact-sync. Textual presence check (basename grep no
+		corpo do README) permanece como complemento no script —
+		derivedArtifacts não cobre árvore visual autoral.
 		"""
 
 	consequences: """
-		Positivas: drift de entendimento detectado automaticamente para 3 das
-		4 classes de mudança de modelo mental; mensagens de CI indicam trigger
-		e bloco específico, facilitando correção; drift acumulado na árvore
-		(artifact-schemas e governance) resolvido no commit de introdução.
-		Negativas: boundary semântico (classe D) não coberto — requer
-		julgamento que bash não faz; 3 blocos machine-readable coexistem com
-		árvore visual (duplicação aceita — formatos diferentes para consumidores
-		diferentes, risco de drift entre eles mitigado por adjacência e baixa
-		cadência de mudança); heurística depth ≤ 2 no trigger A não cobre
-		diretórios nível 3+; file-level check pode ser satisfeito por mudança
-		trivial no README (aceitável para modelo operacional atual: agente +
-		founder review).
+		Positivas: mecanismo único (derived-artifact-sync) para todos os
+		artefatos derivados — CLAUDE.md e README blocks usam a mesma infra;
+		pre-commit hook com --fix garante automatismo — blocos nunca ficam
+		desatualizados se hook está instalado; extensão blockId é genérica
+		para futuros artefatos derivados parciais; script e hook já existem
+		e funcionam — custo de implementação é marginal (adicionar --block).
+		Negativas: boundary semântico (mudança de papel de zona sem mudança
+		de arquivo) não coberto por CI — mantido como disciplina de agente;
+		derived-artifact-sync ganha complexidade marginal para resolver
+		blockId (extrair e comparar bloco em vez de arquivo inteiro);
+		textual presence check fica no script mas fora do contrato de
+		derived-artifact-sync (heurística complementar, não derivação).
 		"""
 
 	status: "proposed"
@@ -69,8 +76,11 @@ adr016: artifact_schemas.#ADR & {
 
 	affectedArtifacts: [
 		"governance/repo-structure.cue",
-		"README.md",
 		"scripts/ci/check-readme-coevolution.sh",
+	]
+
+	derivedArtifacts: [
+		"README.md",
 	]
 
 	principlesApplied: [
@@ -79,15 +89,13 @@ adr016: artifact_schemas.#ADR & {
 	]
 
 	rationale: """
-		P12 exige que governança seja código, não disciplina. P0 exige single
-		source — mas blocos machine-readable são duplicação aceita porque
-		parsear árvore visual markdown em bash é frágil (formato para humanos,
-		não máquinas). Uma phase com 3 trigger classes é mais simples que 2
-		phases separadas e cobre as 3 dimensões determinísticas de mudança de
-		modelo mental. Classe D (boundary semântico) deliberadamente excluída
-		do CI: tentativa de detectar em bash produziria falsos positivos que
-		treinam a ignorar o gate. O gate opera sobre filesystem atual, não
-		sobre diff, porque drift legado é tão nocivo quanto drift incremental
-		— um agente novo vê o estado atual do README, não a história de PRs.
+		P0 exige single source of truth — blocos machine-readable do README
+		são materialized views do filesystem, reconhecê-los como derived
+		artifacts é consequência direta. A infraestrutura de derivedArtifacts
+		(ADR-004) já resolve sync de CLAUDE.md. Criar mecanismo paralelo
+		(phase readme-coevolution separada) para o mesmo padrão viola P0
+		(dois mecanismos de sync) e ignora investimento existente. Estender
+		#DerivedArtifact com blockId é a menor mudança que unifica os dois
+		mecanismos sob um único contrato de governança.
 		"""
 }

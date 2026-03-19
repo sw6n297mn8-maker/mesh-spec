@@ -51,6 +51,7 @@ repoStructure: #RepoStructure
 	path:      string & !=""
 	source:    string & !=""
 	generator: string & !=""
+	blockId?:  string & !=""
 	rationale: string & !=""
 }
 
@@ -143,8 +144,26 @@ repoStructure: {
 			source:    "governance/claude/config.cue"
 			generator: "cue export ./governance/claude -e output --out text"
 			rationale: "CLAUDE.md é exceção P2 (markdown), mas conteúdo é gerado a partir de config.cue. Edição direta é drift por construção."
+		}, {
+			path:      "README.md"
+			blockId:   "repo-structure-paths"
+			source:    "."
+			generator: "scripts/ci/check-readme-coevolution.sh --block repo-structure-paths"
+			rationale: "Lista de diretórios depth ≤ 2 é materialização do filesystem. Source é raiz do repo porque o scan é transversal."
+		}, {
+			path:      "README.md"
+			blockId:   "repo-artifact-schemas"
+			source:    "architecture/artifact-schemas/"
+			generator: "scripts/ci/check-readme-coevolution.sh --block repo-artifact-schemas"
+			rationale: "Lista de artifact schemas é materialização do conteúdo de architecture/artifact-schemas/."
+		}, {
+			path:      "README.md"
+			blockId:   "repo-governance-protocols"
+			source:    "governance/"
+			generator: "scripts/ci/check-readme-coevolution.sh --block repo-governance-protocols"
+			rationale: "Lista de protocolos de governança é materialização de governance/, governance/build-time/, governance/claude/ e scripts/ci/, scripts/hooks/."
 		}]
-		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. Previne drift entre source e artefato gerado."
+		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. blockId estende o mecanismo para derivação parcial dentro de arquivos com conteúdo misto (autoral + derivado)."
 	}
 
 	responsibilityBoundary: {
@@ -257,11 +276,12 @@ repoStructure: {
 			},
 			{
 				id:        "derived-artifact-sync"
-				rationale: "Garante que artefatos derivados estão em sync com seus sources. Previne drift que causou o incidente de config.cue vs CLAUDE.md."
+				rationale: "Garante que artefatos derivados estão em sync com seus sources. Cobre arquivos inteiros (CLAUDE.md) e blocos dentro de arquivos (README.md blocks) via campo blockId."
 				includes: [
 					"Para cada entrada em derivedArtifacts.artifacts:",
-					"Executar generator e comparar output com path",
-					"Se diff não for vazio, CI falha com mensagem indicando source e comando de regeneração",
+					"Se blockId ausente: executar generator e comparar output com conteúdo integral de path",
+					"Se blockId presente: executar generator e comparar output com conteúdo entre marcadores <!-- BEGIN:{blockId} --> e <!-- END:{blockId} --> em path",
+					"Se diff não for vazio, CI falha com mensagem indicando source, blockId (se aplicável) e comando de regeneração (--fix)",
 				]
 				dependsOn: ["schema-conformance"]
 			},
@@ -277,39 +297,6 @@ repoStructure: {
 				]
 				dependsOn: ["schema-conformance"]
 			},
-			{
-				id:        "readme-coevolution"
-				rationale: """
-					O README é o mapa mental do repositório para humanos e agentes
-					novos. Mudanças na topologia, gramática ou governança do repo
-					que não coevoluem com o README criam drift de entendimento.
-					O gate usa o estado atual do filesystem como fonte de
-					verificação — não apenas o delta do PR. Isso resolve drift
-					legado (itens que existiam antes do gate) e não depende de
-					base-ref para correção. Três classes de trigger — estrutural
-					(diretório existente não declarado), tipológico (artifact
-					schema existente não declarado), e de governança (protocolo
-					ou enforcement existente não declarado) — são verificadas
-					deterministicamente contra blocos machine-readable no README.
-					Blocos são artefatos derivados do filesystem: o script com
-					--fix os regenera automaticamente. O pre-commit hook executa
-					--fix, auto-stage o README, e depois verifica presença
-					textual de cada item no README (heurística por basename via
-					grep — não parseia markdown tree). Boundary semântico
-					(mudança de papel de zona sem mudança de arquivo) NÃO é
-					coberto — requer julgamento que bash não faz; mantido como
-					disciplina de agente em config.cue.
-					"""
-				includes: [
-					"Trigger A (estrutural): diretório depth ≤ 2 existente no filesystem (excl. .git/, .github/, cue.mod/) não declarado em bloco repo-structure-paths → FAIL",
-					"Trigger B (tipológico): arquivo .cue existente em architecture/artifact-schemas/ não declarado em bloco repo-artifact-schemas → FAIL",
-					"Trigger C (governança): arquivo existente em zonas governadas (governance/, governance/build-time/, governance/claude/, scripts/ci/, scripts/hooks/) não declarado em bloco repo-governance-protocols → FAIL",
-					"Item declarado em bloco sem correspondente no filesystem → WARN (possível item futuro legítimo ou remoção não refletida)",
-					"--fix regenera blocos machine-readable do filesystem (blocos são artefatos derivados); textual presence check verifica que cada item tem basename presente no README",
-					"Pre-commit hook (scripts/hooks/pre-commit) executa --fix, auto-stage README, e bloqueia commit se presença textual falhar",
-				]
-				dependsOn: []
-			},
 		]
 
 		implementationGuidance: {
@@ -320,9 +307,8 @@ repoStructure: {
 				completeness:          "script que resolve conditions do completeness contra canvas de cada BC"
 				"adr-coverage":        "script que compara diff de architecture/ e governance/ contra ADRs no mesmo PR; parseia affectedArtifacts dos .cue em architecture/adrs/"
 				"adr-consistency":        "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
-				"derived-artifact-sync":  "script que itera derivedArtifacts, executa cada generator, e compara output com path via diff"
+				"derived-artifact-sync":  "script que itera derivedArtifacts; para entries sem blockId: executa generator e compara output com path via diff; para entries com blockId: extrai bloco entre marcadores BEGIN/END e compara; --fix regenera e escreve; pre-commit hook executa --fix e auto-stage"
 				"self-review-evidence": "scripts/ci/check-self-review.sh — cue vet estrutural + checks relacionais via bash/python; bootstrap exceptions consultadas antes de exigir report"
-				"readme-coevolution":  "scripts/ci/check-readme-coevolution.sh — modo check (CI) ou --fix (pre-commit); --fix regenera blocos do filesystem e auto-stage README; textual presence check garante que itens aparecem no README; pre-commit hook em scripts/hooks/pre-commit; instalação: git config core.hooksPath scripts/hooks"
 			}
 		}
 	}
