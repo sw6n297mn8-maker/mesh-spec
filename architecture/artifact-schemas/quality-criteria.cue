@@ -11,8 +11,14 @@ package artifact_schemas
 
 #Severity: "fail" | "warn" | "info"
 
+// Convenção de IDs:
+//   uq-NN     — critério universal (quality-gate.cue)
+//   tq-XXX-NN — critério type-specific (XXX = abreviação do tipo)
+// Abreviações canônicas: adr, cv (canvas), dd (domain-definition),
+// ln (lens), as (artifact-schema), sm (stakeholder-map),
+// tt (task-template), wp (wave-plan).
 #QualityCriterion: {
-	id:          string & !=""
+	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""
 	test:        string & !=""
 	severity:    #Severity

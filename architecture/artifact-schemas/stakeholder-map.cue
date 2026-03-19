@@ -26,7 +26,7 @@ package artifact_schemas
 		}, {
 			id:          "tq-sm-02"
 			description: "Concerns rastreáveis a decisões de design"
-			test:        "Cada concern de cada stakeholder é rastreável a pelo menos uma decisão de design, axioma ou mecanismo do sistema. Se um concern existe mas nenhum artefato o endereça ou reconhece, é gap de cobertura que deve ser declarado. Em fases iniciais (pré-primeiro BC), gaps são esperados — o critério valida que gaps são explícitos, não que são zero."
+			test:        "Cada concern de cada stakeholder é rastreável a pelo menos uma decisão de design, axioma ou mecanismo do sistema. Se um concern não é endereçado por nenhum artefato existente, o rationale do stakeholder deve declarar o gap explicitamente (e.g., 'concern X será endereçado quando BC Y existir'). O critério valida que gaps são explícitos, não que são zero — a ausência de rastreabilidade só é finding quando também é ausência de declaração."
 			severity:    "warn"
 			rationale:   "Concerns não endereçados são riscos silenciosos. Warn porque gaps legítimos existem em fases iniciais, mas devem ser visíveis."
 		}]

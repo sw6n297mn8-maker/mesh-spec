@@ -60,7 +60,7 @@ import "list"
 		}, {
 			id:          "tq-tt-02"
 			description: "Quality gates não redundantes com universalCriteria"
-			test:        "Nenhum quality gate do template repete ou parafraseia um critério já coberto por universalCriteria de quality-gate.cue. Para distinguir: se o gate se aplica a qualquer tipo de artefato, é universal e pertence a quality-gate.cue; se só faz sentido para o tipo de tarefa do template, é especialização legítima."
+			test:        "Para cada quality gate, aplicar duas perguntas: (1) Este gate faz sentido para qualquer tipo de artefato, não apenas para o tipo de tarefa deste template? Se sim, é candidato a universal e não deveria estar aqui. (2) Remover este gate deixaria um gap que nenhum critério universal cobre para este tipo de tarefa? Se não, o gate é redundante. Gate legítimo falha a pergunta 1 e passa a pergunta 2."
 			severity:    "warn"
 			rationale:   "Redundância entre gates e universalCriteria cria ambiguidade sobre qual prevalece e infla o checklist sem agregar cobertura."
 		}]
