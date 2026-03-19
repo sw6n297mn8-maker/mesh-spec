@@ -277,6 +277,32 @@ repoStructure: {
 				]
 				dependsOn: ["schema-conformance"]
 			},
+			{
+				id:        "readme-coevolution"
+				rationale: """
+					O README é o mapa mental do repositório para humanos e agentes
+					novos. Mudanças na topologia, gramática ou governança do repo
+					que não coevoluem com o README criam drift de entendimento.
+					O gate usa o estado atual do filesystem como fonte de
+					verificação — não apenas o delta do PR. Isso resolve drift
+					legado (itens que existiam antes do gate) e não depende de
+					base-ref para correção. Três classes de trigger — estrutural
+					(diretório existente não declarado), tipológico (artifact
+					schema existente não declarado), e de governança (protocolo
+					ou enforcement existente não declarado) — são verificadas
+					deterministicamente contra blocos machine-readable no README.
+					Boundary semântico (mudança de papel de zona sem mudança de
+					arquivo) NÃO é coberto — requer julgamento que bash não faz;
+					mantido como disciplina de agente em config.cue.
+					"""
+				includes: [
+					"Trigger A (estrutural): diretório depth ≤ 2 existente no filesystem (excl. .git/, .github/, cue.mod/) não declarado em bloco repo-structure-paths → FAIL",
+					"Trigger B (tipológico): arquivo .cue existente em architecture/artifact-schemas/ não declarado em bloco repo-artifact-schemas → FAIL",
+					"Trigger C (governança): arquivo existente em governance/*.cue, governance/build-time/*.cue, governance/claude/*.cue (excl. self-reviews/, task-specs/, projections/) ou scripts/ci/ não declarado em bloco repo-governance-protocols → FAIL",
+					"Item declarado em bloco sem correspondente no filesystem → WARN (possível item futuro legítimo ou remoção não refletida)",
+				]
+				dependsOn: []
+			},
 		]
 
 		implementationGuidance: {
@@ -289,6 +315,7 @@ repoStructure: {
 				"adr-consistency":        "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
 				"derived-artifact-sync":  "script que itera derivedArtifacts, executa cada generator, e compara output com path via diff"
 				"self-review-evidence": "scripts/ci/check-self-review.sh — cue vet estrutural + checks relacionais via bash/python; bootstrap exceptions consultadas antes de exigir report"
+				"readme-coevolution":  "scripts/ci/check-readme-coevolution.sh — compara estado atual do filesystem contra 3 blocos machine-readable no README (repo-structure-paths, repo-artifact-schemas, repo-governance-protocols); item existente não declarado = FAIL, item declarado não existente = WARN"
 			}
 		}
 	}

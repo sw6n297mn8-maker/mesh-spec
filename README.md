@@ -272,6 +272,17 @@ mesh-spec/
 │   │   │                                #   CI valida que toda instância conforma com seu schema.
 │   │   │                                #   NÃO são templates — agentes leem o schema + golden
 │   │   │                                #   examples e geram instâncias conformantes.
+│   │   │                                #
+│   │   │                                #   ── Existentes ──
+│   │   ├── adr.cue                      # #ADR
+│   │   ├── domain-definition.cue        # #DomainDefinition
+│   │   ├── lens.cue                     # #Lens
+│   │   ├── quality-criteria.cue         # #QualityCriteria, #QualityCriterion, #Severity
+│   │   ├── stakeholder-map.cue          # #StakeholderMap
+│   │   ├── task-template.cue            # #TaskTemplate
+│   │   ├── wave-plan.cue               # #WavePlan
+│   │   │                                #
+│   │   │                                #   ── Futuros (previstos, ainda não criados) ──
 │   │   ├── canvas.cue                   # #Canvas
 │   │   ├── domain-model.cue             # #DomainModel
 │   │   ├── invariant.cue                # #Invariant
@@ -282,7 +293,6 @@ mesh-spec/
 │   │   ├── workflow.cue                 # #Workflow
 │   │   ├── agent-spec.cue               # #AgentSpec
 │   │   ├── threat-model.cue             # #ThreatModel
-│   │   ├── adr.cue                      # #ADR
 │   │   ├── golden-example.cue           # #GoldenExample
 │   │   ├── anti-pattern.cue             # #AntiPattern
 │   │   ├── failure-mode.cue             # #FailureMode
@@ -345,8 +355,10 @@ mesh-spec/
 │   ╚══════════════════════════════════════════════════════════════╝
 │
 ├── governance/
-│   ├── repo-structure.cue                 # Estrutura válida do repositório (machine-readable).
-│   │                                      #   CI valida que o filesystem conforma.
+│   ├── repo-structure.cue               # Estrutura válida do repositório (machine-readable).
+│   │                                    #   CI valida que o filesystem conforma.
+│   ├── repo-principles.cue              # Princípios operacionais do repositório.
+│   ├── bounded-context-completeness.cue # Critérios de completude por BC.
 │   ├── wave-plan.cue                    # O que entra em cada wave, critérios, dependências.
 │   │                                    #   BCs ordenados por volume de custo de transação
 │   │                                    #   eliminado — o critério fundacional de priorização.
@@ -354,20 +366,21 @@ mesh-spec/
 │   ├── red-team-protocol.cue            # Protocolo de red-teaming: quando executar, escopo,
 │   │                                    #   critérios de severidade, como findings são
 │   │                                    #   incorporados (threat-model.cue por BC, ADRs, invariants).
-│   ├── spec-gap-protocol.cue            # Ciclo de aprendizado runtime → spec: como o runtime
-│   │                                    #   emite spec-gap events, como agentes de governança
-│   │                                    #   (tier Propose) sintetizam o problema, como draft PRs
-│   │                                    #   são propostos, e como a decisão humana (tier Decide)
-│   │                                    #   finaliza o ciclo.
-│   ├── audit-commands.cue               # Protocolos de auditoria como checks executáveis:
-│   │                                    #   boundaries leak? events orphaned? invariantes sem teste?
-│   │                                    #   eventos sem consumidor? dependency cycle detection?
-│   │                                    #   interaction contracts consistentes com context-map
-│   │                                    #   e com event schemas?
-│   ├── build-time/                         # Especificações arquiteturais de build-time.
-│   │   └── work-governance.cue             # Governança de trabalho: coordenação multi-agente,
-│   │                                       #   dual state machine (admission × execution),
-│   │                                       #   event sourcing sobre git.
+│   ├── spec-gap-protocol.cue            # Ciclo de aprendizado runtime → spec.
+│   ├── audit-commands.cue               # Protocolos de auditoria como checks executáveis.
+│   ├── build-time/                      # Especificações arquiteturais de build-time.
+│   │   ├── work-governance.cue          # Governança de trabalho: coordenação multi-agente,
+│   │   │                                #   dual state machine (admission × execution),
+│   │   │                                #   event sourcing sobre git.
+│   │   ├── work-graph.cue              # Grafo de dependências e topologia de work items.
+│   │   ├── quality-gate.cue            # Protocolo de autovalidação pré-proposta:
+│   │   │                               #   critérios universais, severidade, rounds, saída.
+│   │   ├── self-review-report.cue      # Schema de evidência de self-review (#SelfReviewReport).
+│   │   ├── self-review-ci-policy.cue   # Política de enforcement de self-review no CI.
+│   │   ├── self-review-bootstrap-policy.cue # Exceções de bootstrap para self-review.
+│   │   ├── self-reviews/                # Instâncias de self-review reports.
+│   │   ├── task-specs/                  # Specs de work items (instâncias — não protocolos).
+│   │   └── projections/                 # Read models derivados do work graph (instâncias).
 │   └── claude/                          # Configuração do agente que opera neste repositório.
 │       ├── config.cue                   # Source of truth das regras comportamentais do agente.
 │       │                                #   CLAUDE.md é artefato derivado deste arquivo.
@@ -407,7 +420,70 @@ mesh-spec/
         ├── evolve-event.cue            # Prompt-template: como versionar evento com upcaster
         ├── define-observability.cue    # Prompt-template: como especificar contrato de observabilidade
         └── review-invariants.cue       # Prompt-template: como auditar invariantes
+│
+│   ╔══════════════════════════════════════════════════════════════╗
+│   ║  TOOLING OPERACIONAL                                        ║
+│   ║  Scripts de CI e automação. Não contêm spec de domínio.     ║
+│   ╚══════════════════════════════════════════════════════════════╝
+│
+├── scripts/
+│   └── ci/
+│       ├── check-self-review.sh         # Enforcement de self-review evidence.
+│       └── check-readme-coevolution.sh  # Enforcement de coevolução README ↔ repo.
 ```
+
+<!-- BEGIN:repo-structure-paths
+domain/
+strategic/
+strategic/subdomains/
+strategic/domain-stories/
+contexts/
+architecture/
+architecture/adrs/
+architecture/c4/
+architecture/c4/views/
+architecture/artifact-schemas/
+architecture/shared-schemas/
+architecture/cross-context-workflows/
+governance/
+governance/build-time/
+governance/build-time/self-reviews/
+governance/build-time/task-specs/
+governance/build-time/projections/
+governance/claude/
+ai-orchestration/
+ai-orchestration/agent-instructions/
+scripts/
+scripts/ci/
+END:repo-structure-paths -->
+
+<!-- BEGIN:repo-artifact-schemas
+adr.cue
+domain-definition.cue
+lens.cue
+quality-criteria.cue
+stakeholder-map.cue
+task-template.cue
+wave-plan.cue
+END:repo-artifact-schemas -->
+
+<!-- BEGIN:repo-governance-protocols
+governance/bounded-context-completeness.cue
+governance/repo-principles.cue
+governance/repo-structure.cue
+governance/wave-plan.cue
+governance/build-time/quality-gate.cue
+governance/build-time/self-review-bootstrap-policy.cue
+governance/build-time/self-review-ci-policy.cue
+governance/build-time/self-review-report.cue
+governance/build-time/work-governance.cue
+governance/build-time/work-graph.cue
+governance/claude/config.cue
+governance/claude/output.cue
+governance/claude/schema.cue
+scripts/ci/check-self-review.sh
+scripts/ci/check-readme-coevolution.sh
+END:repo-governance-protocols -->
 
 ---
 
