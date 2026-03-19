@@ -1,5 +1,7 @@
 package build_time
 
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+
 // quality-gate.cue — Protocolo de autovalidação pré-proposta.
 //
 // O agente executa este protocolo internamente antes de propor qualquer
@@ -23,8 +25,6 @@ package build_time
 // Tipos fundamentais
 // ═══════════════════════════════════════════════════════════════
 
-#Severity: "fail" | "warn" | "info"
-
 // #ArtifactType é deliberadamente restrito aos artefatos com critérios
 // de qualidade específicos validados na prática. Expandir quando novos
 // tipos entrarem no regime de self-review. A enum é fechada por fase
@@ -39,20 +39,9 @@ package build_time
 	"task-template" |
 	"wave-plan"
 
-#QualityCriterion: {
-	id:          string & !=""
-	description: string & !=""
-	test:        string & !=""
-	severity:    #Severity
-	rationale:   string & !=""
-}
-
-// #QualityCriteria é o bloco reutilizável que cada artifact schema usa
-// em _qualityCriteria após a migração definida no ADR-010.
-#QualityCriteria: {
-	criteria:  [#QualityCriterion, ...#QualityCriterion]
-	rationale: string & !=""
-}
+// #Severity, #QualityCriterion e #QualityCriteria vivem em
+// architecture/artifact-schemas/quality-criteria.cue (package artifact_schemas).
+// Importados via artifact_schemas. Direção: governance → schemas.
 
 #SeverityPolicy: {
 	fail:      string & !=""
@@ -95,7 +84,7 @@ package build_time
 	transparency:       #TransparencyPolicy
 	criteriaResolution: #CriteriaResolution
 	migrationRecord:    #MigrationRecord
-	universalCriteria:  [#QualityCriterion, ...#QualityCriterion]
+	universalCriteria:  [artifact_schemas.#QualityCriterion, ...artifact_schemas.#QualityCriterion]
 	maxRounds:          int & >0
 	stabilityCondition: string & !=""
 	exitOnMaxRounds:    string & !=""
@@ -179,7 +168,7 @@ qualityGate: #QualityGateArtifact & {
 
 	criteriaResolution: {
 		universal:    "Aplicar universalCriteria deste arquivo a todo artefato, independente de tipo."
-		typeSpecific: "Carregar _qualityCriteria do artifact schema correspondente em architecture/artifact-schemas/<tipo>.cue. O campo _qualityCriteria conforma com #QualityCriteria definido neste arquivo."
+		typeSpecific: "Carregar _qualityCriteria do artifact schema correspondente em architecture/artifact-schemas/<tipo>.cue. O campo _qualityCriteria conforma com #QualityCriteria definido em architecture/artifact-schemas/quality-criteria.cue."
 		fallback:     "Se o schema do tipo não tiver _qualityCriteria, aplicar apenas universalCriteria. Ausência de _qualityCriteria em schema existente não é erro — significa que o tipo ainda não entrou no regime de self-review type-specific."
 		rationale: """
 			Colocação de critérios junto ao schema reduz drift entre o que
