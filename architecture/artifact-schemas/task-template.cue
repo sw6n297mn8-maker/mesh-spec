@@ -49,6 +49,23 @@ import "list"
 			allowNested:        false
 		}
 	}
+
+	_qualityCriteria: #QualityCriteria & {
+		criteria: [{
+			id:          "tq-tt-01"
+			description: "Steps verificáveis como concluídos"
+			test:        "Cada step.action descreve uma ação com resultado observável: é possível determinar se o step foi executado ou não. Ações como 'considerar o contexto' ou 'pensar sobre implicações' não são verificáveis — devem ser reformuladas como ações com output concreto (e.g., 'listar implicações no rationale')."
+			severity:    "fail"
+			rationale:   "Templates com steps não verificáveis permitem execução ritual sem substância — o agente 'passa pelos steps' sem produzir resultado observável."
+		}, {
+			id:          "tq-tt-02"
+			description: "Quality gates não redundantes com universalCriteria"
+			test:        "Nenhum quality gate do template repete ou parafraseia um critério já coberto por universalCriteria de quality-gate.cue. Para distinguir: se o gate se aplica a qualquer tipo de artefato, é universal e pertence a quality-gate.cue; se só faz sentido para o tipo de tarefa do template, é especialização legítima."
+			severity:    "warn"
+			rationale:   "Redundância entre gates e universalCriteria cria ambiguidade sobre qual prevalece e infla o checklist sem agregar cobertura."
+		}]
+		rationale: "Task templates governam execução do agente. Critérios garantem que o protocolo é operacional, não cerimonial."
+	}
 }
 
 #PreRead: {
