@@ -121,8 +121,9 @@ repoStructure: {
 			"README.md",
 			"CLAUDE.md",
 			"SESSION-CONTEXT.md",
+			"scripts/",
 		]
-		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md) ou impostos por plataforma (.github/, .gitignore, etc). CI não os classifica contra artifact schemas. CLAUDE.md é adicionalmente governado por derivedArtifacts — sync validado na phase derived-artifact-sync."
+		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md), impostos por plataforma (.github/, .gitignore, etc.), ou tooling operacional de CI (scripts/). scripts/ está fora da classificação por artifact schemas, mas continua sujeito às convenções gerais do repositório. CLAUDE.md é adicionalmente governado por derivedArtifacts — sync validado na phase derived-artifact-sync."
 	}
 
 	pathSegments: {
@@ -264,6 +265,18 @@ repoStructure: {
 				]
 				dependsOn: ["schema-conformance"]
 			},
+			{
+				id:        "self-review-evidence"
+				rationale: "Garante que artefatos governados alterados têm evidência estruturada de autovalidação. Enforcement determinístico complementa a disciplina comportamental instruída em config.cue."
+				includes: [
+					"Para cada artefato governado alterado (matched por artifact_type_for_path), verificar existência de self-review report em governance/build-time/self-reviews/",
+					"Validar reports com cue vet contra #SelfReviewReport (inclui invariante stable↔fail via união discriminada)",
+					"Verificar associação artifactPath↔artefato e artifactType↔tipo esperado",
+					"Verificar consistência roundDetails vs roundsExecuted",
+					"Consultar bootstrap exceptions em governance/build-time/self-review-bootstrap-policy.cue",
+				]
+				dependsOn: ["schema-conformance"]
+			},
 		]
 
 		implementationGuidance: {
@@ -274,7 +287,8 @@ repoStructure: {
 				completeness:          "script que resolve conditions do completeness contra canvas de cada BC"
 				"adr-coverage":        "script que compara diff de architecture/ e governance/ contra ADRs no mesmo PR; parseia affectedArtifacts dos .cue em architecture/adrs/"
 				"adr-consistency":        "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
-				"derived-artifact-sync": "script que itera derivedArtifacts, executa cada generator, e compara output com path via diff"
+				"derived-artifact-sync":  "script que itera derivedArtifacts, executa cada generator, e compara output com path via diff"
+				"self-review-evidence": "scripts/ci/check-self-review.sh — cue vet estrutural + checks relacionais via bash/python; bootstrap exceptions consultadas antes de exigir report"
 			}
 		}
 	}

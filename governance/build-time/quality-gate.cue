@@ -25,21 +25,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // Tipos fundamentais
 // ═══════════════════════════════════════════════════════════════
 
-// #ArtifactType é deliberadamente restrito aos artefatos com critérios
-// de qualidade específicos validados na prática. Expandir quando novos
-// tipos entrarem no regime de self-review. A enum é fechada por fase
-// operacional, não ontologicamente completa.
-#ArtifactType:
-	"adr" |
-	"canvas" |
-	"domain-definition" |
-	"lens" |
-	"artifact-schema" |
-	"stakeholder-map" |
-	"task-template" |
-	"wave-plan"
-
-// #Severity, #QualityCriterion e #QualityCriteria vivem em
+// #ArtifactType, #Severity, #QualityCriterion e #QualityCriteria vivem em
 // architecture/artifact-schemas/quality-criteria.cue (package artifact_schemas).
 // Importados via artifact_schemas. Direção: governance → schemas.
 

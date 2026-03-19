@@ -212,5 +212,39 @@ config: #AgentConfig & {
 				"""#
 			rationale: "Lookup table comportamental; norma canônica vive nos próprios artefatos. Decisões irreversíveis com trigger restrito aos cinco domínios de impacto. Lenses com check de diretório vazio como primeira instrução, referências genéricas ao schema. Governança com autonomia zero por default. Envelopes e reversibilidade como mecanismos complementares."
 		},
+		{
+			title:           "Autovalidação Pré-Proposta"
+			canonicalSource: "governance/build-time/quality-gate.cue"
+			content: #"""
+				Antes de propor qualquer artefato ao founder, o agente deve
+				executar o protocolo de self-review definido em
+				governance/build-time/quality-gate.cue e emitir um relatório
+				estruturado conforme governance/build-time/self-review-report.cue.
+
+				Esta seção não redefine o protocolo. O agente deve resolver
+				critérios, severidades, rounds, condição de saída e regras de
+				transparência exclusivamente a partir do artefato canônico.
+
+				O agente não deve reimplementar, resumir nem simplificar o
+				protocolo por memória. Deve consumi-lo diretamente como fonte
+				de verdade operacional.
+
+				O artefato só pode ser proposto quando:
+				- a condição de saída definida no artefato canônico for satisfeita, e
+				- o relatório estruturado de self-review tiver sido produzido.
+
+				Transparência obrigatória:
+				- Sempre reportar o resultado do self-review ao propor o artefato.
+				- Se houver findings não resolvidos, listá-los explicitamente.
+				- Sob demanda, detalhar as correções realizadas em cada round.
+				"""#
+			rationale: """
+				Ativa governance/build-time/quality-gate.cue como protocolo
+				obrigatório de self-review antes da proposta de artefatos e
+				exige evidência estruturada da execução. Mantém separação entre
+				norma (quality-gate.cue), instrução comportamental (esta seção)
+				e evidência auditável (self-review-report.cue).
+				"""
+		},
 	]
 }
