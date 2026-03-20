@@ -57,4 +57,14 @@ package artifact_schemas
 	severity:    #Severity
 	message:     string & !=""
 	rationale?:  string & !=""
+
+	// Política canônica: finding.severity deve igualar criterion.severity.
+	// CUE não suporta lookup cross-reference por criterionId —
+	// enforcement estrutural desta igualdade não é possível no type system.
+	// Enforcement efetivo: protocolo (tq-srr-04) e CI futuro.
+	_severityInvariant: {
+		rule:        "finding.severity == criterion.severity"
+		enforcement: "Protocolo (tq-srr-04) e CI futuro. CUE não suporta lookup cross-reference por criterionId — enforcement estrutural desta igualdade não é possível no type system."
+		rationale:   "Política canônica declarada no tipo para que tq-srr-04 e CI tenham fonte de verdade única. Não é constraint de compilação — é contrato que o protocolo e tooling impõem."
+	}
 }

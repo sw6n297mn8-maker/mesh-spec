@@ -437,33 +437,30 @@ mesh-spec/
 ```
 
 <!-- BEGIN:repo-structure-paths
-domain/
-strategic/
-strategic/subdomains/
-strategic/domain-stories/
-contexts/
-architecture/
-architecture/adrs/
-architecture/c4/
-architecture/c4/views/
-architecture/artifact-schemas/
-architecture/shared-schemas/
-architecture/cross-context-workflows/
-governance/
-governance/build-time/
-governance/build-time/self-reviews/
-governance/build-time/task-specs/
-governance/build-time/projections/
-governance/claude/
 ai-orchestration/
 ai-orchestration/agent-instructions/
+architecture/
+architecture/adrs/
+architecture/artifact-schemas/
+architecture/c4/
+architecture/cross-context-workflows/
+architecture/shared-schemas/
+contexts/
+domain/
+governance/
+governance/build-time/
+governance/claude/
 scripts/
 scripts/ci/
 scripts/hooks/
+strategic/
+strategic/domain-stories/
+strategic/subdomains/
 END:repo-structure-paths -->
 
 <!-- BEGIN:repo-artifact-schemas
 adr.cue
+artifact-schema.cue
 domain-definition.cue
 lens.cue
 quality-criteria.cue
@@ -474,9 +471,6 @@ END:repo-artifact-schemas -->
 
 <!-- BEGIN:repo-governance-protocols
 governance/bounded-context-completeness.cue
-governance/repo-principles.cue
-governance/repo-structure.cue
-governance/wave-plan.cue
 governance/build-time/quality-gate.cue
 governance/build-time/self-review-bootstrap-policy.cue
 governance/build-time/self-review-ci-policy.cue
@@ -486,8 +480,11 @@ governance/build-time/work-graph.cue
 governance/claude/config.cue
 governance/claude/output.cue
 governance/claude/schema.cue
-scripts/ci/check-self-review.sh
+governance/repo-principles.cue
+governance/repo-structure.cue
+governance/wave-plan.cue
 scripts/ci/check-readme-coevolution.sh
+scripts/ci/check-self-review.sh
 scripts/hooks/pre-commit
 END:repo-governance-protocols -->
 

@@ -99,6 +99,12 @@ _#SelfReviewReportBase: {
 			test:        "summary explica o resultado do self-review de forma substantiva, incluindo natureza do artefato e motivo do status final. Resumos vazios ou genéricos falham."
 			severity:    "warn"
 			rationale:   "O founder deve conseguir entender rapidamente o estado do review sem ler todos os findings."
+		}, {
+			id:          "tq-srr-04"
+			description: "Severity de finding respeita severity do critério"
+			test:        "Para cada finding, o severity declarado é idêntico ao severity do critério referenciado por criterionId. Downgrade (e.g., critério fail reportado como warn) ou upgrade são violação. Fonte de verdade: _severityInvariant em #QualityCriterionFinding."
+			severity:    "fail"
+			rationale:   "Sem este critério, o agente pode declarar 'stable' rebaixando silenciosamente um fail para warn — o mecanismo exato de autoengano que o self-review deve prevenir."
 		}]
 		rationale: "Critérios específicos garantem que o self-review report seja evidência real, não formalidade vazia."
 	}

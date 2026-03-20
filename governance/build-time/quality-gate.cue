@@ -88,7 +88,7 @@ qualityGate: #QualityGateArtifact & {
 		location: "governance/build-time/quality-gate.cue"
 	}
 
-	maxRounds: 3
+	maxRounds: 4
 
 	stabilityCondition: """
 		Nenhum finding com severity 'fail' pendente na última passada,
@@ -108,13 +108,13 @@ qualityGate: #QualityGateArtifact & {
 		"""
 
 	rationale: """
-		3 rounds é o default operacional da fase atual — não verdade
-		permanente. Observação empírica: 3 rounds internos + ~1 round
-		do founder ≈ paridade com os 4-5 rounds de red-team manual.
-		Mais que 3 rounds internos tem retorno decrescente — o agente
-		tende a circular. Artefatos simples podem estabilizar em 1
-		round; artefatos complexos podem precisar de 4. Quando o padrão
-		de uso justificar, considerar maxRounds variável por tipo.
+		4 rounds é o default operacional da fase atual — não verdade
+		permanente. Observação empírica: artefatos de governança e
+		meta-schemas precisam consistentemente de 4 rounds para
+		estabilizar (encontrar + corrigir + confirmar + verificar
+		regressão). Artefatos simples podem estabilizar em 1-2 rounds.
+		Quando o padrão de uso justificar, considerar maxRounds
+		variável por tipo.
 		"""
 
 	severityPolicy: {
