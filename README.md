@@ -437,6 +437,8 @@ mesh-spec/
 ```
 
 <!-- BEGIN:repo-structure-paths
+.claude/
+.claude/hooks/
 ai-orchestration/
 ai-orchestration/agent-instructions/
 architecture/
