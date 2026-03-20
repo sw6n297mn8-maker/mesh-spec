@@ -200,7 +200,7 @@ principles: P11: {
 		Dinheiro só se move quando a operação comprova. Toda transição
 		financeira exige evidência vinculada com integridade criptográfica
 		(CAS, DSSE, Merkle proofs). A cadeia de evidência é tamper-evident
-		em 6 camadas, do hash de conteúdo ao anchor Bitcoin.
+		em 6 camadas, do hash de conteúdo ao anchor externo.
 		"""
 	rationale: """
 		Em cadeias produtivas da construção civil, o gap entre "trabalho
