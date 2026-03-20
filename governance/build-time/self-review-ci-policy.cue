@@ -115,12 +115,16 @@ selfReviewCIPolicy: #SelfReviewCIPolicy & {
 		id:          "ci-sr-06"
 		description: "O artefato principal conforma com seu artifact schema"
 		rationale:   "Self-review não substitui conformidade estrutural do artefato."
+	}, {
+		id:          "ci-sr-07"
+		description: "Round summaries e finding rationales não são genéricos"
+		rationale:   "Complementa tq-srr-05 como segunda camada: o CI valida substantividade dos textos de evidência que o protocolo exige mas o agente pode preencher mecanicamente."
 	}]
 
 	rationale: """
 		Validar apenas existência do report seria insuficiente — reports
 		inválidos, reciclados ou desassociados derrotam o propósito.
-		Os seis checks garantem que cada report é evidência real vinculada
-		ao artefato correto.
+		Os sete checks garantem que cada report é evidência real vinculada
+		ao artefato correto, com conteúdo substantivo.
 		"""
 }

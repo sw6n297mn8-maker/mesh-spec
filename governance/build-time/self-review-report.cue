@@ -15,8 +15,11 @@ import (
 //   1. stable → sem fail findings (garantido pela união discriminada)
 //   2. len(roundDetails) == roundsExecuted (validado pelo CI)
 //   3. stable → último round failCount == 0 (validado pelo CI)
+//   4. stable + roundsExecuted == 1 → singleRoundRationale obrigatório
 //
 // Padrão da união discriminada: mesmo de #ADR (status↔supersededBy).
+// Extensão: stable subdivide-se em >=2 rounds (sem exigência extra)
+// e == 1 round (singleRoundRationale obrigatório).
 
 #SelfReviewStatus: "stable" | "max-rounds-reached"
 
@@ -34,12 +37,19 @@ import (
 	info?: [artifact_schemas.#QualityCriterionFinding, ...artifact_schemas.#QualityCriterionFinding]
 }
 
-// União discriminada por status:
-//   stable            → findings.fail proibido (evidência de estabilização)
-//   max-rounds-reached → findings.fail permitido (evidência de esgotamento)
+// União discriminada por status + roundsExecuted:
+//   stable + >=2 rounds → singleRoundRationale opcional (evidência nos rounds)
+//   stable + 1 round    → singleRoundRationale obrigatório (evidência de revisão real)
+//   max-rounds-reached  → singleRoundRationale opcional
 #SelfReviewReport: _#SelfReviewReportBase & ({
 	status: "stable"
 	findings: {fail?: _|_}
+	roundsExecuted: >=2
+} | {
+	status:              "stable"
+	findings:            {fail?: _|_}
+	roundsExecuted:      1
+	singleRoundRationale: string & !=""
 } | {
 	status: "max-rounds-reached"
 })
@@ -65,6 +75,12 @@ _#SelfReviewReportBase: {
 
 	findings: #SelfReviewFindings
 	summary:  string & !=""
+
+	// Obrigatório quando roundsExecuted == 1 e status == "stable".
+	// Explica por que o artefato estabilizou em um único round —
+	// evidência de que houve revisão real, não bypass.
+	// Enforcement: união discriminada em #SelfReviewReport.
+	singleRoundRationale?: string & !=""
 
 	// Anti-placeholder no ID.
 	reportId: !~"^srr-(tbd|todo|placeholder|temp)$"
@@ -105,6 +121,12 @@ _#SelfReviewReportBase: {
 			test:        "Para cada finding, o severity declarado é idêntico ao severity do critério referenciado por criterionId. Downgrade (e.g., critério fail reportado como warn) ou upgrade são violação. Fonte de verdade: _severityInvariant em #QualityCriterionFinding."
 			severity:    "fail"
 			rationale:   "Sem este critério, o agente pode declarar 'stable' rebaixando silenciosamente um fail para warn — o mecanismo exato de autoengano que o self-review deve prevenir."
+		}, {
+			id:          "tq-srr-05"
+			description: "Round summaries e finding rationales são específicos ao artefato"
+			test:        "Cada roundDetails[].summary e cada finding.rationale (quando presente) contém informação específica sobre o artefato revisado — não frases genéricas como 'tudo conforme', 'sem issues', 'artefato válido'. Teste de substituição: se o texto funciona igualmente para qualquer artefato de qualquer tipo, está genérico demais e falha. Ancoragem mínima: referencia pelo menos um elemento concreto do artefato (ex: tipo, mudança realizada, critério aplicado, estrutura específica avaliada)."
+			severity:    "fail"
+			rationale:   "Rationale genérica em self-review é o mecanismo exato de autoengano com aparência de conformidade — o agente produz texto que satisfaz formato sem evidenciar revisão real."
 		}]
 		rationale: "Critérios específicos garantem que o self-review report seja evidência real, não formalidade vazia."
 	}
