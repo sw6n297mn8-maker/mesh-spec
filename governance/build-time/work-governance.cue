@@ -1,5 +1,7 @@
 package build_time
 
+import "strings"
+
 // Arquitetura de Governança de Trabalho da Mesh
 //
 // Especificação formal do sistema de coordenação de agentes no build-time.
@@ -234,10 +236,24 @@ _#workEventBase: {
 // Autoridade de commands
 // ============================================================
 
+#RoleType: "founder" | "spec-writer"
+
+#DecisionClass: "propose" | "decide"
+
+#EffectClass:
+	"admission" |          // entra ou não entra no backlog
+	"allocation" |         // lease / posse operacional
+	"execution_signal" |   // bloqueio, desbloqueio, progresso operacional
+	"evidence_gated" |     // conclusão validada por prova determinística
+	"destructive" |        // destrói trabalho/estado aceito
+	"topology_mutating"    // altera dependências/grafo
+
 #CommandRight: {
-	command:      #CommandType
-	allowedRoles: [#Role, ...#Role]
-	rationale:    string & !=""
+	command:       #CommandType
+	allowedRoles:  [#RoleType, ...#RoleType]
+	decisionClass: #DecisionClass
+	effectClass:   #EffectClass
+	rationale:     string & strings.MinRunes(1)
 }
 
 // ============================================================
