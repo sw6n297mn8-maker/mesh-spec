@@ -445,6 +445,7 @@ architecture/artifact-schemas/
 architecture/c4/
 architecture/cross-context-workflows/
 architecture/shared-schemas/
+architecture/validation-prompts/
 contexts/
 domain/
 governance/
