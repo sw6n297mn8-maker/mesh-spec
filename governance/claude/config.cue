@@ -129,23 +129,25 @@ config: #AgentConfig & {
 			content: #"""
 				Rodar `cue vet` antes de qualquer commit. Se CUE CLI não estiver disponível, perguntar ao founder como proceder. CUE sintaticamente inválido nunca é commitado.
 
-				Validação semântica é executada com separação de contexto — nunca pelo mesmo agente na mesma sessão que produziu o artefato.
-				Após produzir qualquer artefato CUE, commitar na branch ativa. Verificar se existe validation prompt correspondente em architecture/validation-prompts/.
-				Se existir: NÃO executar na mesma sessão. Instruir o usuário a executar a validação em sessão separada do Claude Code antes de fazer merge (se em branch separada) ou antes de prosseguir com artefatos dependentes (se em main), indicando qual validation prompt usar e contra qual artefato. Formato:
-				  Artefato commitado em [nome da branch]: [path do artefato]
-				  Para validação semântica, execute em nova sessão:
-				    Validar [path do validation prompt] contra [path do artefato]
-				Se não existir: prosseguir sem validação semântica. Não reportar a ausência.
-				Na sessão de validação, o agente:
-				  1. Lê o artefato, o validation prompt, e referências declaradas no validation prompt.
-				  2. Reporta findings categorizados como: pass, warning, fail.
-				  3. Findings fail: reportar com contexto suficiente para que o usuário decida se é erro a corrigir ou tensão legítima a documentar.
-				  4. Findings warning: incluir no output.
-				  5. Findings pass: não mencionar individualmente.
-				Merge (se em branch) ou prosseguimento só após resolução de findings fail ou decisão explícita do usuário de aceitar a tensão.
-				Limitação conhecida: esta validação depende do usuário abrir a sessão separada. Quando o volume justificar, migrar para step automatizado do CI com API key dedicada.
+				Validação semântica deve ocorrer com separação de contexto — por execução isolada, sem acesso ao histórico da sessão que produziu o artefato.
+
+				Após commit local de qualquer artefato CUE na branch ativa, o agente deve:
+				1. Identificar quais arquivos commitados têm validation prompt correspondente em architecture/validation-prompts/ (matching via matchPatterns declarados nos prompts).
+				2. Para cada match, disparar validação semântica em execução isolada com:
+				   - path do artefato commitado
+				   - path do validation prompt correspondente
+				   - leitura do artefato, references e checks definidos no prompt
+				3. Reportar findings ao usuário:
+				   - fail: sempre reportar com contexto suficiente para decisão
+				   - warn: incluir no output
+				   - info: omitir por padrão, detalhar sob demanda
+				4. O fluxo só é considerado concluído após resolução dos findings fail ou decisão explícita do usuário de aceitar a tensão.
+
+				Se não existir validation prompt correspondente, prosseguir sem bloquear e registrar que o tipo ainda não entrou no regime de validação semântica.
+
+				Hooks post-commit podem atuar como safety net para commits feitos fora do fluxo principal, enfileirando validações pendentes para processamento posterior.
 				"""#
-			rationale: "Gate comportamental; previne commits com CUE quebrado. Separação de contexto elimina viés de confirmação. Commitar na branch ativa mantém consistência com seção 2 — gestão de branches é do usuário."
+			rationale: "Gate comportamental; previne commits com CUE quebrado. Execução isolada satisfaz separação de contexto (zero histórico de autoria) sem depender de sessão separada manual. Findings alinhados com vocabulário do sistema (fail/warn/info). Ausência de validation prompt é registrada, não silenciada."
 		},
 		{
 			title:           "Commits"
