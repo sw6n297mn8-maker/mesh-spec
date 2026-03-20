@@ -92,6 +92,29 @@ package artifact_schemas
 			allowNested:        false
 		}
 	}
+
+	_qualityCriteria: #QualityCriteria & {
+		criteria: [{
+			id:          "tq-adr-01"
+			description: "Alternativas consideradas com justificativa de rejeição"
+			test:        "O campo context ou decision menciona pelo menos uma alternativa considerada e explica por que foi rejeitada. Se não havia alternativa real, o rationale explica por quê (e.g., bootstrapping, única opção viável)."
+			severity:    "fail"
+			rationale:   "ADR sem alternativas é declaração, não decisão. O valor do ADR está em registrar o espaço de decisão explorado."
+		}, {
+			id:          "tq-adr-02"
+			description: "Metadata de risco reflete a decisão real"
+			test:        "reversibility e blastRadius são consistentes com o conteúdo de decision e consequences. Não são defaults genéricos — se a decisão afeta múltiplos schemas, blastRadius não é 'local'; se altera contratos persistidos, reversibility não é 'high'."
+			severity:    "fail"
+			rationale:   "Metadata de risco genérica derrota o propósito de governança proporcional — decisões de alto risco recebem mesmo escrutínio que triviais."
+		}, {
+			id:          "tq-adr-03"
+			description: "Paths em affectedArtifacts são reais"
+			test:        "Cada path em affectedArtifacts existe no repositório ou será criado como output direto da decisão registrada. Paths que não existem e não serão criados são referências quebradas."
+			severity:    "fail"
+			rationale:   "affectedArtifacts é entrada para análise de blast radius e CI. Paths fictícios tornam a rastreabilidade ilusória."
+		}]
+		rationale: "ADRs são o registro de decisão do sistema. Critérios garantem que cada ADR captura o espaço de decisão, não apenas o resultado."
+	}
 }
 
 #DecisionClass: "foundational" | "structural" | "local" | "experimental"

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# pre-commit — Hook que garante coevolução README ↔ repo.
+#
+# Fluxo:
+#   1. Roda check-readme-coevolution.sh --fix (regenera blocos machine-readable)
+#   2. Se blocos mudaram, adiciona README.md ao staging
+#   3. Verifica presença textual dos items no README
+#   4. Se presença textual inconsistente → bloqueia commit com mensagem clara
+#
+# Blocos machine-readable são artefatos derivados do filesystem.
+# A árvore visual é autoral — exige escrita humana/agente.
+# O hook auto-corrige o derivável e bloqueia o que exige julgamento.
+#
+# Instalação: git config core.hooksPath scripts/hooks
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT="$REPO_ROOT/scripts/ci/check-readme-coevolution.sh"
+README="$REPO_ROOT/README.md"
+
+# Guarda: README e script devem existir
+if [ ! -f "$README" ]; then
+    echo "FAIL: README.md não encontrado."
+    exit 1
+fi
+
+if [ ! -x "$SCRIPT" ]; then
+    echo "WARN: $SCRIPT não encontrado ou não executável — hook inoperante."
+    exit 0
+fi
+
+# Capturar estado do README antes do fix
+readme_hash_before=$(git hash-object "$README")
+
+# Rodar o check com --fix (a partir da raiz do repo)
+cd "$REPO_ROOT"
+if ! "$SCRIPT" --fix; then
+    echo ""
+    echo "══════════════════════════════════════════════════════════════"
+    echo "  README.md precisa de atualização manual."
+    echo "  Os blocos machine-readable foram atualizados automaticamente."
+    echo "  Adicione as entradas faltantes no texto do README e tente"
+    echo "  novamente."
+    echo "══════════════════════════════════════════════════════════════"
+    exit 1
+fi
+
+# Se README mudou (blocos regenerados), adicionar ao staging
+readme_hash_after=$(git hash-object "$README")
+if [ "$readme_hash_before" != "$readme_hash_after" ]; then
+    git add "$README"
+    echo "README.md atualizado e adicionado ao staging (blocos regenerados)."
+fi

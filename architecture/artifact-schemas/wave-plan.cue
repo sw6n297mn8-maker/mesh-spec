@@ -56,6 +56,23 @@ import "list"
 			allowNested:        false
 		}
 	}
+
+	_qualityCriteria: #QualityCriteria & {
+		criteria: [{
+			id:          "tq-wp-01"
+			description: "Dependências categorizadas corretamente"
+			test:        "Cada entry em dependsOn é necessária para executabilidade, validade estrutural ou correção semântica do output — sua remoção tornaria o output inválido, inconsistente ou semanticamente incorreto. Dependências que servem apenas como contexto ou orientação de modelagem, sem bloquear execução nem invalidar o resultado, devem viver em semanticPrerequisites, não em dependsOn."
+			severity:    "fail"
+			rationale:   "dependsOn e semanticPrerequisites existem como categorias distintas. Colocar dependência de conhecimento em dependsOn serializa trabalho que poderia ser paralelo; colocar dependência estrutural em semanticPrerequisites permite execução com inputs inválidos."
+		}, {
+			id:          "tq-wp-02"
+			description: "Outputs com paths conformes à estrutura do repositório"
+			test:        "Cada output.artifact usa um path que conforma com governance/repo-structure.cue — o diretório destino é uma zona válida e o nome segue as convenções de nomenclatura. Paths inventados que não cabem na estrutura declarada são erro."
+			severity:    "fail"
+			rationale:   "Wave plan é upstream de execução. Paths inválidos propagam erro para task specs e execução, onde o custo de correção é maior."
+		}]
+		rationale: "Wave plan governa a sequência de execução. Critérios garantem que dependências e outputs são operacionais, não especulativos."
+	}
 }
 
 #Wave: {
