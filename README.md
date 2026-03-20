@@ -466,6 +466,7 @@ lens.cue
 quality-criteria.cue
 stakeholder-map.cue
 task-template.cue
+validation-prompt.cue
 wave-plan.cue
 END:repo-artifact-schemas -->
 
@@ -485,6 +486,7 @@ governance/repo-structure.cue
 governance/wave-plan.cue
 scripts/ci/check-readme-coevolution.sh
 scripts/ci/check-self-review.sh
+scripts/hooks/post-commit
 scripts/hooks/pre-commit
 END:repo-governance-protocols -->
 
