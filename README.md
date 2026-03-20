@@ -442,9 +442,11 @@ ai-orchestration/agent-instructions/
 architecture/
 architecture/adrs/
 architecture/artifact-schemas/
+architecture/artifacts/
 architecture/c4/
 architecture/cross-context-workflows/
 architecture/shared-schemas/
+architecture/tension-log/
 architecture/validation-prompts/
 contexts/
 domain/

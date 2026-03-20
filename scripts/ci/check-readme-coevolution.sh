@@ -92,7 +92,7 @@ warn() {
 
 generate_structure_paths() {
     local -a excluded=(".git" ".github" "cue.mod")
-    git ls-tree -d --name-only -r HEAD | while IFS= read -r dir; do
+    git ls-tree -d --name-only -r "$(git write-tree)" | while IFS= read -r dir; do
         local depth
         depth=$(echo "$dir" | tr -cd '/' | wc -c)
         [ "$depth" -gt 1 ] && continue
