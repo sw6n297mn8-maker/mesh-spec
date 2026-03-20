@@ -61,6 +61,23 @@ package artifact_schemas
 			allowNested:        false
 		}
 	}
+
+	_qualityCriteria: #QualityCriteria & {
+		criteria: [{
+			id:          "tq-dd-01"
+			description: "Mecanismos concretos e verificáveis"
+			test:        "Cada mechanism tem description que descreve uma capacidade verificável empiricamente. Teste de substituição: se a description pudesse se aplicar a qualquer sistema financeiro genérico, está abstrata demais. Cada mechanism deve ser ancorado em pelo menos um artefato ou capacidade específica da Mesh."
+			severity:    "fail"
+			rationale:   "Mecanismos abstratos não diferenciam a Mesh. Cada mecanismo deve ser rastreável a uma capacidade concreta do sistema."
+		}, {
+			id:          "tq-dd-02"
+			description: "Fronteiras de escopo testáveis"
+			test:        "Cada entry em inScope e outOfScope define uma fronteira que um observador externo pode verificar: dado um caso concreto, deve ser possível determinar sem ambiguidade se está dentro ou fora do escopo. Entradas como 'coisas relevantes' ou 'aspectos gerais' falham este teste."
+			severity:    "fail"
+			rationale:   "Fronteiras vagas não protegem contra scope creep — que é o risco principal que inScope/outOfScope mitigam."
+		}]
+		rationale: "Domain definition é o artefato fundacional. Critérios garantem que mecanismos são concretos e fronteiras são operacionais, não aspiracionais."
+	}
 }
 
 // ── Tipos de suporte ──

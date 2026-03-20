@@ -51,6 +51,7 @@ repoStructure: #RepoStructure
 	path:      string & !=""
 	source:    string & !=""
 	generator: string & !=""
+	blockId?:  string & !=""
 	rationale: string & !=""
 }
 
@@ -121,8 +122,9 @@ repoStructure: {
 			"README.md",
 			"CLAUDE.md",
 			"SESSION-CONTEXT.md",
+			"scripts/",
 		]
-		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md) ou impostos por plataforma (.github/, .gitignore, etc). CI não os classifica contra artifact schemas. CLAUDE.md é adicionalmente governado por derivedArtifacts — sync validado na phase derived-artifact-sync."
+		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md), impostos por plataforma (.github/, .gitignore, etc.), ou tooling operacional de CI (scripts/). scripts/ está fora da classificação por artifact schemas, mas continua sujeito às convenções gerais do repositório. CLAUDE.md é adicionalmente governado por derivedArtifacts — sync validado na phase derived-artifact-sync."
 	}
 
 	pathSegments: {
@@ -142,8 +144,26 @@ repoStructure: {
 			source:    "governance/claude/config.cue"
 			generator: "cue export ./governance/claude -e output --out text"
 			rationale: "CLAUDE.md é exceção P2 (markdown), mas conteúdo é gerado a partir de config.cue. Edição direta é drift por construção."
+		}, {
+			path:      "README.md"
+			blockId:   "repo-structure-paths"
+			source:    "."
+			generator: "scripts/ci/check-readme-coevolution.sh --block repo-structure-paths"
+			rationale: "Lista de diretórios depth ≤ 2 é materialização do filesystem. Source é raiz do repo porque o scan é transversal."
+		}, {
+			path:      "README.md"
+			blockId:   "repo-artifact-schemas"
+			source:    "architecture/artifact-schemas/"
+			generator: "scripts/ci/check-readme-coevolution.sh --block repo-artifact-schemas"
+			rationale: "Lista de artifact schemas é materialização do conteúdo de architecture/artifact-schemas/."
+		}, {
+			path:      "README.md"
+			blockId:   "repo-governance-protocols"
+			source:    "governance/"
+			generator: "scripts/ci/check-readme-coevolution.sh --block repo-governance-protocols"
+			rationale: "Lista de protocolos de governança é materialização de governance/, governance/build-time/, governance/claude/ e scripts/ci/, scripts/hooks/."
 		}]
-		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. Previne drift entre source e artefato gerado."
+		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. blockId estende o mecanismo para derivação parcial dentro de arquivos com conteúdo misto (autoral + derivado)."
 	}
 
 	responsibilityBoundary: {
@@ -256,11 +276,24 @@ repoStructure: {
 			},
 			{
 				id:        "derived-artifact-sync"
-				rationale: "Garante que artefatos derivados estão em sync com seus sources. Previne drift que causou o incidente de config.cue vs CLAUDE.md."
+				rationale: "Garante que artefatos derivados estão em sync com seus sources. Cobre arquivos inteiros (CLAUDE.md) e blocos dentro de arquivos (README.md blocks) via campo blockId."
 				includes: [
 					"Para cada entrada em derivedArtifacts.artifacts:",
-					"Executar generator e comparar output com path",
-					"Se diff não for vazio, CI falha com mensagem indicando source e comando de regeneração",
+					"Se blockId ausente: executar generator e comparar output com conteúdo integral de path",
+					"Se blockId presente: executar generator e comparar output com conteúdo entre marcadores <!-- BEGIN:{blockId} --> e <!-- END:{blockId} --> em path",
+					"Se diff não for vazio, CI falha com mensagem indicando source, blockId (se aplicável) e comando de regeneração (--fix)",
+				]
+				dependsOn: ["schema-conformance"]
+			},
+			{
+				id:        "self-review-evidence"
+				rationale: "Garante que artefatos governados alterados têm evidência estruturada de autovalidação. Enforcement determinístico complementa a disciplina comportamental instruída em config.cue."
+				includes: [
+					"Para cada artefato governado alterado (matched por artifact_type_for_path), verificar existência de self-review report em governance/build-time/self-reviews/",
+					"Validar reports com cue vet contra #SelfReviewReport (inclui invariante stable↔fail via união discriminada)",
+					"Verificar associação artifactPath↔artefato e artifactType↔tipo esperado",
+					"Verificar consistência roundDetails vs roundsExecuted",
+					"Consultar bootstrap exceptions em governance/build-time/self-review-bootstrap-policy.cue",
 				]
 				dependsOn: ["schema-conformance"]
 			},
@@ -274,7 +307,8 @@ repoStructure: {
 				completeness:          "script que resolve conditions do completeness contra canvas de cada BC"
 				"adr-coverage":        "script que compara diff de architecture/ e governance/ contra ADRs no mesmo PR; parseia affectedArtifacts dos .cue em architecture/adrs/"
 				"adr-consistency":        "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
-				"derived-artifact-sync": "script que itera derivedArtifacts, executa cada generator, e compara output com path via diff"
+				"derived-artifact-sync":  "script que itera derivedArtifacts; para entries sem blockId: executa generator e compara output com path via diff; para entries com blockId: extrai bloco entre marcadores BEGIN/END e compara; --fix regenera e escreve; pre-commit hook executa --fix e auto-stage"
+				"self-review-evidence": "scripts/ci/check-self-review.sh — cue vet estrutural + checks relacionais via bash/python; bootstrap exceptions consultadas antes de exigir report"
 			}
 		}
 	}

@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# post-commit — Hook que detecta artefatos commitados com validation
+# prompt correspondente e enfileira para validação semântica.
+#
+# Fluxo:
+#   1. Lista arquivos alterados no commit
+#   2. Para cada validation prompt, extrai matchPatterns via grep
+#   3. Testa cada arquivo alterado contra cada pattern
+#   4. Escreve matches em .validation-queue (append)
+#   5. Imprime resumo no terminal
+#
+# Queue format (uma linha por match):
+#   <validation-prompt-filename>:<artifact-path>
+#
+# Processamento: comando dedicado (task validate) ou sessão separada
+# do Claude Code consome a queue.
+#
+# Instalação: mesmo mecanismo do pre-commit:
+#   git config core.hooksPath scripts/hooks
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+VP_DIR="$REPO_ROOT/architecture/validation-prompts"
+QUEUE_FILE="$REPO_ROOT/.validation-queue"
+
+# Guard: diretório de validation prompts deve existir
+if [[ ! -d "$VP_DIR" ]]; then
+    exit 0
+fi
+
+# Guard: verificar se há validation prompts
+shopt -s nullglob
+vp_files=("$VP_DIR"/validate-*.cue)
+shopt -u nullglob
+
+if [[ ${#vp_files[@]} -eq 0 ]]; then
+    exit 0
+fi
+
+# Listar arquivos alterados no último commit
+changed_files=$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null || true)
+if [[ -z "$changed_files" ]]; then
+    exit 0
+fi
+
+# Coletar matches
+matches=()
+for vp_file in "${vp_files[@]}"; do
+    vp_name=$(basename "$vp_file")
+
+    # Extrair patterns de matchPatterns do arquivo CUE.
+    # Formato esperado: "^pattern$" (strings entre aspas com ^ e $)
+    # Grep é suficiente porque matchPatterns são regexes simples em
+    # linhas próprias. Se o formato mudar, migrar para cue export.
+    patterns=$(grep -oP '"\^[^"]*\$"' "$vp_file" 2>/dev/null | tr -d '"' || true)
+
+    for pattern in $patterns; do
+        while IFS= read -r changed; do
+            [[ -z "$changed" ]] && continue
+            if echo "$changed" | grep -qP "$pattern" 2>/dev/null; then
+                # Evitar duplicatas na mesma execução
+                entry="$vp_name:$changed"
+                local_dup=false
+                for existing in "${matches[@]+"${matches[@]}"}"; do
+                    if [[ "$existing" == "$entry" ]]; then
+                        local_dup=true
+                        break
+                    fi
+                done
+                if [[ "$local_dup" == false ]]; then
+                    matches+=("$entry")
+                fi
+            fi
+        done <<< "$changed_files"
+    done
+done
+
+if [[ ${#matches[@]} -eq 0 ]]; then
+    exit 0
+fi
+
+# Append para a queue (não sobrescreve runs anteriores)
+{
+    echo "# commit: $(git rev-parse --short HEAD) — $(date -Iseconds)"
+    for match in "${matches[@]}"; do
+        echo "$match"
+    done
+} >> "$QUEUE_FILE"
+
+echo ""
+echo "══════════════════════════════════════════════════════════════"
+echo "  [validation] ${#matches[@]} artefato(s) enfileirado(s) para validação semântica."
+echo "  Queue: .validation-queue"
+echo ""
+for match in "${matches[@]}"; do
+    echo "    $match"
+done
+echo ""
+echo "  Processar: abra nova sessão do Claude Code e execute:"
+echo "    Validar artefatos listados em .validation-queue"
+echo "══════════════════════════════════════════════════════════════"
