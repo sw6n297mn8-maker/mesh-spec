@@ -10,6 +10,7 @@ artifactSchema: build_time.#SelfReviewReport & {
 	artifactType:       "artifact-schema"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
+	executionMode:   "self-reported"
 	generatedAt:     "2026-03-20"
 
 	roundsExecuted: 4

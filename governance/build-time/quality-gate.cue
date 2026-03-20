@@ -59,6 +59,22 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 	rationale: string & !=""
 }
 
+#SubagentRolloutEntry: {
+	artifactType: artifact_schemas.#ArtifactType
+	mode:         #ExecutionMode
+	rationale:    string & !=""
+}
+
+#ExecutionPolicy: {
+	defaultMode:       #ExecutionMode
+	rollout:           [...#SubagentRolloutEntry]
+	inputContract:     string & !=""
+	outputContract:    string & !=""
+	findingEvaluation: string & !=""
+	promptTemplate:    string & !=""
+	rationale:         string & !=""
+}
+
 #QualityGateSchema: {
 	type:     "quality-gate"
 	location: "governance/build-time/quality-gate.cue"
@@ -75,6 +91,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 	stabilityCondition: string & !=""
 	exitOnMaxRounds:    string & !=""
 	deterministicGate:  string & !=""
+	executionPolicy:    #ExecutionPolicy
 	rationale:          string & !=""
 }
 
@@ -106,6 +123,122 @@ qualityGate: #QualityGateArtifact & {
 		cue vet é o primeiro passo de cada round. Se falhar, corrigir
 		sintaxe antes de prosseguir com critérios semânticos.
 		"""
+
+	executionPolicy: {
+		defaultMode: "self-reported"
+
+		rollout: [{
+			artifactType: "artifact-schema"
+			mode:         "isolated-subagent"
+			rationale:    "Critérios type-specific (tq-as-01/02/03) são estruturais e mecânicos — alta confiança de avaliação por sub-agente isolado. Meta-schemas têm maior blast radius na governança."
+		}, {
+			artifactType: "adr"
+			mode:         "isolated-subagent"
+			rationale:    "Critérios type-specific (tq-adr-01/02/03) são objetivos (alternativas? metadata de risco? paths existem?). ADRs são decisões de design — viés de confirmação aqui tem custo alto."
+		}]
+
+		inputContract: """
+			O sub-agente recebe como contexto:
+			1. Path e conteúdo do artefato sendo revisado.
+			2. Path e conteúdo do artifact schema correspondente.
+			3. Critérios aplicáveis: universalCriteria de quality-gate.cue
+			   + _qualityCriteria do artifact schema (se existir).
+			4. Artefatos de referência necessários para avaliar critérios
+			   cross-file (e.g., design-principles.cue para uq-04,
+			   domain-definition.cue para uq-06).
+			5. Findings do round anterior (se round > 1) + artefato
+			   corrigido pelo agente principal.
+			O sub-agente NÃO recebe: histórico da conversa que produziu
+			o artefato, contexto de decisões anteriores, nem instruções
+			do founder sobre o artefato.
+			"""
+
+		outputContract: """
+			O sub-agente retorna uma lista de findings, cada um com:
+			- criterionId: id do critério avaliado (e.g., "uq-01")
+			- severity: idêntica ao severity do critério (sem reclassificação)
+			- message: descrição específica do problema encontrado
+			- rationale: (opcional) contexto adicional
+			Formato: lista estruturada em texto, um finding por bloco.
+			Se nenhum finding, retornar declaração explícita de zero
+			findings com breve justificativa por critério avaliado.
+			"""
+
+		findingEvaluation: """
+			O agente principal NÃO aplica findings cegamente. Para cada
+			finding retornado pelo sub-agente:
+			1. Verificar se o finding é factualmente correto consultando
+			   o artefato e artefatos referenciados.
+			2. Se correto: corrigir o artefato.
+			3. Se incorreto (falso-positivo): rejeitar o finding e
+			   registrá-lo como rejectedFinding no roundDetails.summary
+			   com justificativa. Findings rejeitados são dados de
+			   calibração — medem a taxa de falso-positivo do modelo
+			   de sub-agente.
+			4. Nunca corrigir um artefato para satisfazer um finding
+			   que o agente principal sabe ser incorreto.
+			"""
+
+		promptTemplate: """
+			Você é um sub-agente de revisão de qualidade. Sua tarefa é
+			avaliar um artefato CUE contra critérios de qualidade.
+
+			Você NÃO tem acesso ao histórico da conversa que produziu
+			este artefato. Avalie exclusivamente com base no conteúdo
+			do artefato, no schema e nos critérios fornecidos.
+
+			## Artefato
+			Path: {artifactPath}
+			Leia o arquivo.
+
+			## Schema
+			Path: {artifactSchemaPath}
+			Leia o arquivo.
+
+			## Critérios a avaliar
+			### Universais (de quality-gate.cue)
+			{universalCriteria}
+
+			### Type-specific (de {artifactSchemaPath})
+			{typeSpecificCriteria}
+
+			## Referências obrigatórias
+			Para uq-03 (referências cruzadas): verificar existência dos
+			artefatos referenciados.
+			Para uq-04 (consistência com princípios): ler
+			architecture/design-principles.cue.
+			Para uq-06 (ubiquitous language): ler
+			domain/domain-definition.cue seção glossary (se existir).
+
+			## Findings do round anterior
+			{previousFindings}
+
+			## Instruções
+			1. Leia o artefato e o schema.
+			2. Para cada critério, avalie e produza um finding APENAS
+			   se houver violação. Não produza findings para critérios
+			   que passam.
+			3. Para cada finding, declare:
+			   - criterionId
+			   - severity (DEVE ser idêntica ao severity do critério)
+			   - message (específica ao artefato — falha no teste de
+			     substituição se genérica)
+			   - rationale (opcional, contexto adicional)
+			4. Se zero findings, declare explicitamente com breve
+			   justificativa.
+			"""
+
+		rationale: """
+			Rollout controlado com replacement direto (não shadow mode)
+			para artifact-schema e adr. Dois tipos com critérios mais
+			objetivos calibram qualidade dos findings, taxa de
+			falso-positivo e valor por round. Demais tipos mantêm
+			self-reported até calibração justificar expansão. Evidence
+			trail via roundDetails existente (sem hash de execução —
+			tooling atual não suporta). CI enforcement de executionMode
+			diferido para pós-calibração.
+			"""
+	}
 
 	rationale: """
 		4 rounds é o default operacional da fase atual — não verdade

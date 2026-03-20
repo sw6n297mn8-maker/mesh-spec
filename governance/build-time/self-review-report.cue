@@ -23,6 +23,8 @@ import (
 
 #SelfReviewStatus: "stable" | "max-rounds-reached"
 
+#ExecutionMode: "self-reported" | "isolated-subagent"
+
 #RoundSummary: {
 	round:     int & >=1
 	failCount: int & >=0
@@ -63,6 +65,10 @@ _#SelfReviewReportBase: {
 
 	// Proveniência: identifica o protocolo de self-review seguido.
 	canonicalSource: "governance/build-time/quality-gate.cue"
+
+	// Modo de execução: distingue self-review autorreportado de
+	// execução por sub-agente isolado. Permite auditoria comparativa.
+	executionMode: #ExecutionMode
 
 	generatedAt: string & !=""
 
