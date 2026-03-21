@@ -264,6 +264,13 @@ _#workEventBase: {
 	id:        string & !=""
 	order:     int & >=0
 	rationale: string & !=""
+	// Dependência positiva explícita entre phases.
+	// Se presente, governa readiness: a phase só inicia quando
+	// TODAS as phases listadas estiverem completas.
+	// Se ausente, semântica legada: phase N depende de phase N-1
+	// (barreira sequencial implícita por order).
+	// [] = phase explicitamente independente (sem dependências).
+	dependsOnPhases?: [...string & !=""] | []
 }
 
 #Group: {
