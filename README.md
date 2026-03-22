@@ -477,10 +477,13 @@ END:repo-artifact-schemas -->
 
 <!-- BEGIN:repo-governance-protocols
 governance/bounded-context-completeness.cue
+governance/build-time/command-rights.cue
+governance/build-time/event-validation.cue
 governance/build-time/quality-gate.cue
 governance/build-time/self-review-bootstrap-policy.cue
 governance/build-time/self-review-ci-policy.cue
 governance/build-time/self-review-report.cue
+governance/build-time/task-governance.cue
 governance/build-time/validation-findings-w001.cue
 governance/build-time/work-governance.cue
 governance/build-time/work-graph.cue

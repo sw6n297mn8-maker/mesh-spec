@@ -18,7 +18,7 @@ package build_time
 // Mover este arquivo para outro package exige import explícito.
 
 workGraph: {
-	rationale: "Topologia de execução W001. 4 fases progressivas por dependência estrutural, 7 grupos por natureza de artefato."
+	rationale: "Topologia de execução W001. 4 fases de domínio progressivas por order, 2 fases de governança com dependsOnPhases explícito, 9 grupos por natureza de artefato."
 
 	phases: [#Phase & {
 		id:        "p0-validate-and-bootstrap"
@@ -36,6 +36,16 @@ workGraph: {
 		id:        "p3-tactical-and-validation"
 		order:     3
 		rationale: "Primeiro BC canvas e validation prompts. Convergem dependências de todas as fases anteriores."
+	}, #Phase & {
+		id:              "pg1-governance-enforcement"
+		order:           4
+		dependsOnPhases: []
+		rationale:       "CI validation de work-events e projeções complementares. Independente de phases de domínio — enforcement pode avançar em paralelo com domain work."
+	}, #Phase & {
+		id:              "pg2-governance-robustness"
+		order:           5
+		dependsOnPhases: ["pg1-governance-enforcement"]
+		rationale:       "Extensões de robustez (claim expiration, completion gates, drift detection) que dependem da infraestrutura CI criada em pg1."
 	}]
 
 	groups: [#Group & {
@@ -66,6 +76,14 @@ workGraph: {
 		id:        "g3-validation-prompts"
 		phaseId:   "p3-tactical-and-validation"
 		rationale: "Validation prompts para os artefatos mais críticos da wave."
+	}, #Group & {
+		id:        "g4-governance-ci"
+		phaseId:   "pg1-governance-enforcement"
+		rationale: "CI validation de work-events e projeções de visibilidade."
+	}, #Group & {
+		id:        "g5-governance-robustness"
+		phaseId:   "pg2-governance-robustness"
+		rationale: "Extensões de robustez: claim expiration, completion gates, drift detection."
 	}]
 
 	dependencies: [#ExecutionDependency & {
@@ -146,5 +164,30 @@ workGraph: {
 		dependsOn: []
 		phaseId:   "p3-tactical-and-validation"
 		groupId:   "g3-first-bc"
+	}, #ExecutionDependency & {
+		taskId:    "WI-015"
+		dependsOn: []
+		phaseId:   "pg1-governance-enforcement"
+		groupId:   "g4-governance-ci"
+	}, #ExecutionDependency & {
+		taskId:    "WI-016"
+		dependsOn: []
+		phaseId:   "pg1-governance-enforcement"
+		groupId:   "g4-governance-ci"
+	}, #ExecutionDependency & {
+		taskId: "WI-017"
+		dependsOn: [{taskId: "WI-015", version: 1}]
+		phaseId: "pg2-governance-robustness"
+		groupId: "g5-governance-robustness"
+	}, #ExecutionDependency & {
+		taskId: "WI-018"
+		dependsOn: [{taskId: "WI-015", version: 1}]
+		phaseId: "pg2-governance-robustness"
+		groupId: "g5-governance-robustness"
+	}, #ExecutionDependency & {
+		taskId: "WI-019"
+		dependsOn: [{taskId: "WI-016", version: 1}]
+		phaseId: "pg2-governance-robustness"
+		groupId: "g5-governance-robustness"
 	}]
 }

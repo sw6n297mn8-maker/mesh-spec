@@ -1,5 +1,7 @@
 package build_time
 
+import "strings"
+
 // Arquitetura de Governança de Trabalho da Mesh
 //
 // Especificação formal do sistema de coordenação de agentes no build-time.
@@ -234,10 +236,24 @@ _#workEventBase: {
 // Autoridade de commands
 // ============================================================
 
+#RoleType: "founder" | "spec-writer"
+
+#DecisionClass: "propose" | "decide"
+
+#EffectClass:
+	"admission" |          // entra ou não entra no backlog
+	"allocation" |         // lease / posse operacional
+	"execution_signal" |   // bloqueio, desbloqueio, progresso operacional
+	"evidence_gated" |     // conclusão validada por prova determinística
+	"destructive" |        // destrói trabalho/estado aceito
+	"topology_mutating"    // altera dependências/grafo
+
 #CommandRight: {
-	command:      #CommandType
-	allowedRoles: [#Role, ...#Role]
-	rationale:    string & !=""
+	command:       #CommandType
+	allowedRoles:  [#RoleType, ...#RoleType]
+	decisionClass: #DecisionClass
+	effectClass:   #EffectClass
+	rationale:     string & strings.MinRunes(1)
 }
 
 // ============================================================
@@ -248,6 +264,13 @@ _#workEventBase: {
 	id:        string & !=""
 	order:     int & >=0
 	rationale: string & !=""
+	// Dependência positiva explícita entre phases.
+	// Se presente, governa readiness: a phase só inicia quando
+	// TODAS as phases listadas estiverem completas.
+	// Se ausente, semântica legada: phase N depende de phase N-1
+	// (barreira sequencial implícita por order).
+	// [] = phase explicitamente independente (sem dependências).
+	dependsOnPhases?: [...string & !=""] | []
 }
 
 #Group: {
