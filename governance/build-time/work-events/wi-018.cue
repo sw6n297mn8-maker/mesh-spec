@@ -33,7 +33,7 @@ streams: {
 			actor:       "spec-writer"
 			completionValidation: {
 				validationRunId:      "WI-018-validation-20260322"
-				artifactSnapshotHash: "pending-commit"
+				artifactSnapshotHash: "fca5109b9a8e5bfa9eda1299e9b2dbbfb5375701"
 				gatesPassed:          ["cue-vet", "self-review", "adr-coevolution"]
 			}
 		}]
