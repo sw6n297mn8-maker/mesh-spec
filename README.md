@@ -477,6 +477,7 @@ END:repo-artifact-schemas -->
 
 <!-- BEGIN:repo-governance-protocols
 governance/bounded-context-completeness.cue
+governance/build-time/claim-expiration-validation.cue
 governance/build-time/command-rights.cue
 governance/build-time/event-validation.cue
 governance/build-time/quality-gate.cue
