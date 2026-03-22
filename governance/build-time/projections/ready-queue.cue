@@ -9,8 +9,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 //
 // pg1-governance-enforcement completa (WI-015 + WI-016 completed).
 // pg2-governance-robustness desbloqueada: dependsOnPhases satisfeito.
-// WI-017, WI-018 e WI-019 entram na ready queue (deps individuais
-// também satisfeitas).
+// WI-017 completou — sai da ready queue.
 //
 // Exclusões desta reconstrução:
 // - WI-007: dep WI-012 (unclaimed) não satisfeita
@@ -19,7 +18,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // - WI-010: dep WI-009 (unclaimed) não satisfeita
 
 readyQueueProjection: {
-	rebuiltAt: "2026-03-22T12:30:00Z"
+	rebuiltAt: "2026-03-22T13:00:00Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-011"
 		version:       1
@@ -32,12 +31,6 @@ readyQueueProjection: {
 		title:         "Criar schema #Subdomain"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "high"
-	}, {
-		taskId:        "WI-017"
-		version:       1
-		title:         "Implementar validação CI de claim expiration"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
 	}, {
 		taskId:        "WI-018"
 		version:       1
