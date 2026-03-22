@@ -481,6 +481,7 @@ governance/build-time/claim-expiration-validation.cue
 governance/build-time/command-rights.cue
 governance/build-time/completion-gates.cue
 governance/build-time/event-validation.cue
+governance/build-time/projection-drift.cue
 governance/build-time/quality-gate.cue
 governance/build-time/self-review-bootstrap-policy.cue
 governance/build-time/self-review-ci-policy.cue

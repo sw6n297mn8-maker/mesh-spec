@@ -8,8 +8,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Deletável sem perda (P8). Não é source of truth.
 //
 // pg1-governance-enforcement completa (WI-015 + WI-016 completed).
-// pg2-governance-robustness desbloqueada: dependsOnPhases satisfeito.
-// WI-017 e WI-018 completaram — saem da ready queue.
+// pg2-governance-robustness completa (WI-017 + WI-018 + WI-019 completed).
 //
 // Exclusões desta reconstrução:
 // - WI-007: dep WI-012 (unclaimed) não satisfeita
@@ -18,7 +17,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // - WI-010: dep WI-009 (unclaimed) não satisfeita
 
 readyQueueProjection: {
-	rebuiltAt: "2026-03-22T13:30:00Z"
+	rebuiltAt: "2026-03-22T14:00:00Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-011"
 		version:       1
@@ -31,11 +30,5 @@ readyQueueProjection: {
 		title:         "Criar schema #Subdomain"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "high"
-	}, {
-		taskId:        "WI-019"
-		version:       1
-		title:         "Criar drift-detection entre projeções e events"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
 	}]
 }
