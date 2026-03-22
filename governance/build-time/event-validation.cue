@@ -205,6 +205,10 @@ eventValidationPipeline: {
 //   ev-08, ev-09, ev-10: referência ao claim original, commandId
 //   determinístico, timestamp de expiração.
 //
+// - completionGateValidation.checks (completion-gates.cue)
+//   ev-11: gatesPassed contém gates requeridos pelo template
+//   (ou override por task).
+//
 // Todos os checks compartilham o namespace ev-NN. IDs devem ser
-// únicos na união. CI deve carregar ambos os arquivos e processar
-// a união ordenada por ID.
+// únicos na união. CI deve carregar todos os arquivos de extensão
+// e processar a união ordenada por ID.
