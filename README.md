@@ -466,6 +466,7 @@ END:repo-structure-paths -->
 <!-- BEGIN:repo-artifact-schemas
 adr.cue
 artifact-schema.cue
+canvas.cue
 domain-definition.cue
 lens.cue
 quality-criteria.cue
