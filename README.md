@@ -461,6 +461,10 @@ scripts/hooks/
 strategic/
 strategic/domain-stories/
 strategic/subdomains/
+tests/
+tests/fixtures/
+tools/
+tools/governance/
 END:repo-structure-paths -->
 
 <!-- BEGIN:repo-artifact-schemas
@@ -500,6 +504,7 @@ governance/repo-structure.cue
 governance/wave-plan.cue
 scripts/ci/check-readme-coevolution.sh
 scripts/ci/check-self-review.sh
+scripts/ci/check-subdomains.sh
 scripts/hooks/post-commit
 scripts/hooks/pre-commit
 END:repo-governance-protocols -->
