@@ -471,6 +471,7 @@ domain-definition.cue
 lens.cue
 quality-criteria.cue
 stakeholder-map.cue
+subdomain.cue
 task-template.cue
 validation-prompt.cue
 wave-plan.cue
