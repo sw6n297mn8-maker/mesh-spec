@@ -1,5 +1,7 @@
 package artifact_schemas
 
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+
 // canvas.cue — Artifact schema para Bounded Context Canvas.
 //
 // Define a estrutura válida para o documento raiz de cada BC.
@@ -88,7 +90,7 @@ package artifact_schemas
 	}
 }
 
-#BCClassification: "core-subdomain" | "supporting-subdomain" | "generic-subdomain"
+#BCClassification: shared_types.#SubdomainClassification
 
 #OperationalCapability: {
 	// Referência a cc-NN de domain-definition.cue, quando aplicável.
