@@ -37,6 +37,14 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 	// Classificação estratégica canônica compartilhada.
 	type: shared_types.#SubdomainClassification
 
+	// Status do lifecycle — discriminante da união em #Subdomain.
+	// Constraint de presença/ausência de deprecation é imposto pela
+	// união discriminada em #Subdomain.
+	status: "active" | "deprecated"
+
+	// Dados de deprecação (preenchido apenas quando status == "deprecated").
+	deprecation?: #SubdomainDeprecation
+
 	// Referências a mecanismos canônicos do domain-definition.
 	mechanismRefs?: [...#MechanismRef]
 
