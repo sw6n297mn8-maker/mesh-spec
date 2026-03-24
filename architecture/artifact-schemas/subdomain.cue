@@ -1,58 +1,74 @@
 package artifact_schemas
 
-// subdomain.cue — Artifact schema para Subdomínio.
-//
-// Define a estrutura válida para declaração de subdomínios no
-// mapa estratégico do domínio Mesh. classification reutiliza
-// #BCClassification (canvas.cue) para vocabulário unificado.
-// lifecycle usa união discriminada active/deprecated.
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
 
-#Subdomain: #SubdomainBase & ({
-	lifecycle: {
-		status: "active"
-	}
+// subdomain.cue — Artifact schema para classificação estratégica de subdomínios.
+//
+// Cada subdomínio representa uma partição do espaço de problema,
+// classificada estrategicamente e rastreável ao domain-definition.cue
+// por mecanismo, custo eliminado e capability criada.
+//
+// União discriminada por status:
+//   - status == "active"     → deprecation proibido
+//   - status == "deprecated" → deprecation obrigatório
+
+#Subdomain: #SubdomainCommon & ({
+	status:       "active"
+	deprecation?: _|_
 } | {
-	lifecycle: {
-		status:       "deprecated"
-		supersededBy: string & =~"^[a-z][a-z0-9-]*$"
-		rationale:    string & !=""
-	}
+	status:      "deprecated"
+	deprecation: #SubdomainDeprecation
 })
 
-#SubdomainBase: {
-	// Código lowercase do subdomínio — CI valida que coincide
-	// com o nome do arquivo em domain/subdomains/<code>.cue.
+#SubdomainCommon: {
+	// Código canônico do subdomínio.
+	// Deve coincidir com o nome do arquivo em strategic/subdomains/<code>.cue.
 	code: string & =~"^[a-z][a-z0-9-]*$"
 
 	// Nome legível do subdomínio.
 	name: string & !=""
 
-	// Classificação estratégica — reutiliza #BCClassification (canvas.cue)
-	// para garantir vocabulário unificado entre subdomain e canvas.
-	type: #BCClassification
+	// O que este subdomínio é — qual espaço de problema cobre.
+	definition: string & !=""
 
-	// Propósito do subdomínio — por que existe como unidade separada.
+	// Por que este subdomínio existe como unidade separada.
 	purpose: string & !=""
 
-	// Responsabilidades explicitamente fora deste subdomínio,
-	// com delegação rastreável.
+	// Classificação estratégica canônica compartilhada.
+	type: shared_types.#SubdomainClassification
+
+	// Referências a mecanismos canônicos do domain-definition.
+	mechanismRefs?: [...#MechanismRef]
+
+	// Referências a custos eliminados (ce-NN) do domain-definition.
+	costRefs?: [...#CostRef]
+
+	// Referências a capabilities criadas (cc-NN) do domain-definition.
+	capabilityRefs?: [...#CapabilityRef]
+
+	// Declaração explícita do que este subdomínio NÃO faz.
 	negativeBoundaries: [#NegativeBoundary, ...#NegativeBoundary]
 
-	// Estado do subdomínio — união discriminada em #Subdomain.
-	lifecycle: _
-
-	// Perfil estratégico — opcional por default.
-	// tq-sd-03 exige preenchimento para core-subdomain.
+	// Perfil estratégico — opcional por default; obrigatório para core-subdomain.
 	strategicProfile?: #StrategicProfile
 
+	// Justificativa das escolhas de modelagem.
 	rationale: string & !=""
+
+	// Invariantes estruturais mínimas para core-subdomain.
+	if type == "core-subdomain" {
+		mechanismRefs:  [#MechanismRef, ...#MechanismRef]
+		costRefs:       [#CostRef, ...#CostRef]
+		capabilityRefs: [#CapabilityRef, ...#CapabilityRef]
+		strategicProfile: #StrategicProfile
+	}
 
 	_schema: {
 		location: {
-			canonicalPathRegex: "^domain/subdomains/[a-z][a-z0-9-]*\\.cue$"
+			canonicalPathRegex: "^strategic/subdomains/[a-z][a-z0-9-]*\\.cue$"
 			fileNameRegex:      "^[a-z][a-z0-9-]*\\.cue$"
-			description:        "Declaração de subdomínio no mapa estratégico do domínio Mesh."
-			rationale:          "Subdomínios vivem em domain/subdomains/ porque são artefatos de modelagem estratégica do domínio, não de arquitetura ou governança."
+			description:        "Classificação estratégica de subdomínio com rastreabilidade ao domain-definition."
+			rationale:          "Subdomínios vivem em strategic/subdomains/ como artefatos de classificação estratégica independentes da existência prévia de bounded contexts concretos."
 			cardinality:        "collection"
 			allowNested:        false
 		}
@@ -61,60 +77,101 @@ package artifact_schemas
 	_qualityCriteria: #QualityCriteria & {
 		criteria: [{
 			id:          "tq-sd-01"
-			description: "code coincide com nome do arquivo"
-			test:        "O campo code deve ser idêntico ao nome do arquivo sem extensão .cue. Arquivo commitment-management.cue exige code: \"commitment-management\". Divergência é finding fail."
+			description: "Purpose justifica separação como subdomínio"
+			test:        "Purpose explica por que esta área de domínio é tratada como subdomínio separado e qual responsabilidade é exclusivamente dela. Purpose genérico, intercambiável ou que apenas repete a definition com outras palavras falha."
 			severity:    "fail"
-			rationale:   "Convenção code ↔ filename permite CI e agentes localizarem o subdomínio por code sem índice externo."
+			rationale:   "Sem justificativa de separação, não há critério para governar contorno entre subdomínios."
 		}, {
 			id:          "tq-sd-02"
-			description: "negativeBoundaries identificam delegatário concreto"
-			test:        "Cada entrada em negativeBoundaries tem responsibility descrevendo o que está fora, delegatedTo identificando quem assume (código de subdomínio interno ou nome de sistema externo), e rationale explicando por que a delegação existe. delegatedTo vazio ou genérico ('outro sistema') falha."
+			description: "Rastreabilidade a domain-definition válida"
+			test:        "Cada mechanismRef (mech-*), costRef (ce-NN) e capabilityRef (cc-NN) aponta para IDs existentes em domain/domain-definition.cue. Referência inexistente é finding fail."
 			severity:    "fail"
-			rationale:   "Boundary negativa sem delegatário é declaração de intenção, não constraint verificável. CI pode validar que delegatedTo referencia subdomínio existente ou sistema externo nomeado."
+			rationale:   "Subdomínio sem ligação verificável à tese é classificação decorativa."
 		}, {
 			id:          "tq-sd-03"
-			description: "core-subdomain exige strategicProfile"
-			test:        "Se type == \"core-subdomain\" e strategicProfile está ausente, é finding fail. Para supporting-subdomain e generic-subdomain, ausência de strategicProfile é aceitável."
+			description: "Negative boundaries são explícitas, concretas e atribuídas"
+			test:        "Cada negativeBoundary declara responsabilidade concreta, target explícito e rationale verificável. Fronteiras vagas, sem owner ou com target implícito falham."
 			severity:    "fail"
-			rationale:   "Core subdomains são o diferencial competitivo — sem perfil estratégico explícito, a classificação 'core' é rótulo sem substância."
+			rationale:   "Fronteiras negativas só protegem contra scope creep quando deixam claro o que fica fora e quem assume."
 		}, {
 			id:          "tq-sd-04"
-			description: "purpose justifica separação como subdomínio"
-			test:        "O campo purpose explica por que esta responsabilidade é um subdomínio separado — não apenas o que faz. Purpose que descreve funcionalidade genérica, que poderia ser nome de módulo, ou que se aplicaria igualmente a outro subdomínio, falha."
+			description: "Core exige densidade estratégica mínima"
+			test:        "Se type == 'core-subdomain', strategicProfile deve estar preenchido com complexity e volatility, e o subdomínio deve ter ao menos um mechanismRef, um costRef e um capabilityRef."
 			severity:    "fail"
-			rationale:   "Purpose é o critério de contorno. Sem justificativa de separação, o subdomínio não tem base para aceitar ou rejeitar responsabilidades."
+			rationale:   "Core subdomains concentram diferenciação competitiva. Sem profile e rastreabilidade mínima, a classificação de core não é defensável."
 		}, {
 			id:          "tq-sd-05"
-			description: "Consistência com canvas quando existir"
-			test:        "Se existe canvas em contexts/ cujo BC corresponde a este subdomínio (correspondência por code do subdomínio aparecer no id ou path do canvas), classification do canvas deve ser compatível com type do subdomínio. Divergência é finding warn. Nota: a lógica de correspondência subdomain ↔ canvas depende de implementação no runner — este critério orienta, mas pode não ser verificável automaticamente até o runner formalizar o matching."
-			severity:    "warn"
-			rationale:   "Subdomain e canvas expressam a mesma classificação estratégica em níveis diferentes. Divergência silenciosa é drift — warn porque a correspondência ainda não está formalizada no schema."
+			description: "Type consistente com classification dos canvases associados"
+			test:        "Se existir canvas de bounded context que declare pertencer a este subdomínio, subdomain.type deve ser idêntico a canvas.classification. Divergência é drift entre artefatos estratégicos e operacionais."
+			severity:    "fail"
+			rationale:   "A taxonomia é única e compartilhada. Divergência entre subdomain e canvas indica quebra de single source of truth."
+		}, {
+			id:          "tq-sd-06"
+			description: "Definition delimita espaço de problema"
+			test:        "Definition descreve responsabilidades e questões de negócio cobertas pelo subdomínio, não solução, implementação, tecnologia ou arquitetura."
+			severity:    "fail"
+			rationale:   "Subdomínio é partição do espaço de problema, não da solução."
+		}, {
+			id:          "tq-sd-07"
+			description: "Código do artefato coincide com o filename"
+			test:        "O campo code é idêntico ao nome base do arquivo em strategic/subdomains/<code>.cue. Divergência entre identidade declarada e localização canônica falha."
+			severity:    "fail"
+			rationale:   "Identidade canônica não pode depender de transformação implícita nem de convenção informal."
+		}, {
+			id:          "tq-sd-08"
+			description: "Deprecation é completa quando status é deprecated"
+			test:        "Se status == 'deprecated', deprecation.absorbedBy, deprecation.reason e deprecation.rationale devem estar preenchidos. Se status == 'active', deprecation não pode existir."
+			severity:    "fail"
+			rationale:   "Lifecycle incompleto cria artefatos ambíguos: nem ativos, nem corretamente absorvidos."
 		}]
-		rationale: "Critérios do subdomínio cobrem identidade (code ↔ filename), contorno (purpose, negativeBoundaries com delegação), classificação (strategicProfile para core) e coerência cross-artifact (canvas). Esses são os aspectos que governam decisões de escopo e investimento."
+		rationale: "Critérios cobrem identidade canônica, contorno (definition, purpose, negative boundaries), rastreabilidade à tese (mechanismRefs, costRefs, capabilityRefs), governança estratégica de core e lifecycle."
 	}
 }
 
-// Responsabilidade explicitamente delegada a outro subdomínio ou sistema externo.
+#MechanismRef: string & =~"^mech-[a-z][a-z0-9-]*$"
+#CostRef: string & =~"^ce-[0-9]{2}$"
+#CapabilityRef: string & =~"^cc-[0-9]{2}$"
+
+#SubdomainRef: string & =~"^[a-z][a-z0-9-]*$"
+
+// Sistema externo canônico. Prefixo ext- elimina ambiguidade com subdomínios.
+#ExternalSystemRef: string & =~"^ext-[a-z][a-z0-9-]*$"
+
+#DelegationTarget: {
+	type: "subdomain"
+	ref:  #SubdomainRef
+} | {
+	type: "external-system"
+	ref:  #ExternalSystemRef
+}
+
 #NegativeBoundary: {
-	// O que este subdomínio NÃO faz.
+	// Responsabilidade que este subdomínio explicitamente não possui.
 	responsibility: string & !=""
 
-	// Quem assume esta responsabilidade.
-	// Código de subdomínio interno (lowercase, kebab-case) ou
-	// nome de sistema externo. CI pode validar referência a
-	// subdomínio existente; sistema externo é aceito como string.
-	delegatedTo: string & !=""
+	// Owner explícito da responsabilidade excluída.
+	delegatedTo: #DelegationTarget
 
 	rationale: string & !=""
 }
 
-// Perfil estratégico — justifica investimento diferenciado.
 #StrategicProfile: {
-	// O que torna este subdomínio diferenciador competitivo.
-	differentiator: string & !=""
+	// Complexidade do domínio — governa investimento em modelagem.
+	complexity: "low" | "moderate" | "high"
 
-	// Vantagem competitiva que a Mesh obtém por investir neste subdomínio.
-	competitiveAdvantage: string & !=""
+	// Volatilidade — frequência esperada de mudança nas regras de negócio.
+	volatility: "low" | "moderate" | "high"
 
+	rationale: string & !=""
+}
+
+#SubdomainDeprecation: {
+	// Subdomínio que absorve as responsabilidades.
+	absorbedBy: #SubdomainRef
+
+	// Motivo da deprecação.
+	reason: string & !=""
+
+	// Justificativa da deprecação.
 	rationale: string & !=""
 }
