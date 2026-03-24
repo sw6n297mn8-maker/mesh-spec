@@ -194,3 +194,21 @@ eventValidationPipeline: {
 		rationale: "Stream é indexada por taskId. Versão é parte da identidade (id, version). Misturar versões na mesma stream corrompe identidade."
 	}]
 }
+
+// ── Composição do pipeline efetivo ─────────────────────────────
+//
+// O pipeline efetivo de validação de work-events é a união de
+// eventValidationPipeline.checks (este arquivo) e dos checks de
+// extensões carregadas no mesmo package build_time:
+//
+// - claimExpirationValidation.checks (claim-expiration-validation.cue)
+//   ev-08, ev-09, ev-10: referência ao claim original, commandId
+//   determinístico, timestamp de expiração.
+//
+// - completionGateValidation.checks (completion-gates.cue)
+//   ev-11: gatesPassed contém gates requeridos pelo template
+//   (ou override por task).
+//
+// Todos os checks compartilham o namespace ev-NN. IDs devem ser
+// únicos na união. CI deve carregar todos os arquivos de extensão
+// e processar a união ordenada por ID.

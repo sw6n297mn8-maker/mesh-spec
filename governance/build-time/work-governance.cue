@@ -301,6 +301,25 @@ _#workEventBase: {
 	criticality:   #Criticality
 }
 
+#BlockedItemEntry: {
+	taskId:       string & =~"^WI-[0-9]{3}$"
+	version:      int & >=1
+	title:        string & !=""
+	blockedSince: string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+	reason:       string & !=""
+	blockedBy?:   string & =~"^WI-[0-9]{3}$"
+}
+
+#InProgressEntry: {
+	taskId:         string & =~"^WI-[0-9]{3}$"
+	version:        int & >=1
+	title:          string & !=""
+	claimedBy:      string & !=""
+	claimedAt:      string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+	claimExpiresAt: string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+	criticality:    #Criticality
+}
+
 // ============================================================
 // Stream file
 // ============================================================

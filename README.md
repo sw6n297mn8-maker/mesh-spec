@@ -466,10 +466,12 @@ END:repo-structure-paths -->
 <!-- BEGIN:repo-artifact-schemas
 adr.cue
 artifact-schema.cue
+canvas.cue
 domain-definition.cue
 lens.cue
 quality-criteria.cue
 stakeholder-map.cue
+subdomain.cue
 task-template.cue
 validation-prompt.cue
 wave-plan.cue
@@ -477,8 +479,11 @@ END:repo-artifact-schemas -->
 
 <!-- BEGIN:repo-governance-protocols
 governance/bounded-context-completeness.cue
+governance/build-time/claim-expiration-validation.cue
 governance/build-time/command-rights.cue
+governance/build-time/completion-gates.cue
 governance/build-time/event-validation.cue
+governance/build-time/projection-drift.cue
 governance/build-time/quality-gate.cue
 governance/build-time/self-review-bootstrap-policy.cue
 governance/build-time/self-review-ci-policy.cue
