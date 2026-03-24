@@ -88,6 +88,8 @@ package artifact_schemas
 	}
 }
 
+#BCClassification: "core-subdomain" | "supporting-subdomain" | "generic-subdomain"
+
 #OperationalCapability: {
 	// Referência a cc-NN de domain-definition.cue, quando aplicável.
 	// CI valida que capabilityRef existe em domain-definition.cue se preenchido.
