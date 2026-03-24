@@ -5,8 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 rew: artifact_schemas.#Subdomain & {
 	code:   "rew"
 	name:   "Risk Engine & Risk Observability"
-	status: "active"
-	type:   "core-subdomain"
+	type: "core-subdomain"
 
 	definition: """
 		Modelagem, versionamento e execução de políticas de risco,

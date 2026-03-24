@@ -5,8 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 nim: artifact_schemas.#Subdomain & {
 	code:   "nim"
 	name:   "Network Intelligence & Mechanism Design"
-	status: "active"
-	type:   "core-subdomain"
+	type: "core-subdomain"
 
 	definition: """
 		Inteligência de rede que transforma dados observados no ciclo em

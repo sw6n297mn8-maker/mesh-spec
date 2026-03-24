@@ -5,8 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 fce: artifact_schemas.#Subdomain & {
 	code:   "fce"
 	name:   "Financial Commitment Execution"
-	status: "active"
-	type:   "core-subdomain"
+	type: "core-subdomain"
 
 	definition: """
 		Orquestração da execução financeira de compromissos econômicos —

@@ -5,8 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 ngr: artifact_schemas.#Subdomain & {
 	code:   "ngr"
 	name:   "Network Growth & Reach"
-	status: "active"
-	type:   "core-subdomain"
+	type: "core-subdomain"
 
 	definition: """
 		Crescimento autônomo da rede por topologia econômica. Governa o
