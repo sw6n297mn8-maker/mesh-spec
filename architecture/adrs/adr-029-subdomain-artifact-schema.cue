@@ -9,7 +9,8 @@ adr029: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "accepted"
+	status:        "superseded"
+	supersededBy:  "adr-030"
 
 	context: """
 		Subdomínios são referenciados implicitamente via classification no
