@@ -145,7 +145,7 @@ _qualityCriteria: #QualityCriteria & {
 	crossDependsOn?: [#CrossLensConceptRef, ...#CrossLensConceptRef]
 
 	// Para conceitos operacionais que degradam com o tempo.
-	reviewCadence?: "quarterly" | "semi-annual" | "annual"
+	reviewCadence?: "monthly" | "quarterly" | "semi-annual" | "annual" | "event-driven"
 
 	// Condição para ativação do conceito; se ausente, sempre ativo.
 	appliesWhen?: #NonEmptyString

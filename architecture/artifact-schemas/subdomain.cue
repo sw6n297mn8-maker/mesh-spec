@@ -8,19 +8,10 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 // classificada estrategicamente e rastreável ao domain-definition.cue
 // por mecanismo, custo eliminado e capability criada.
 //
-// União discriminada por status:
-//   - status == "active"     → deprecation proibido
-//   - status == "deprecated" → deprecation obrigatório
+// Subdomínio que deixa de existir é removido do repositório —
+// não existe estado intermediário "deprecated".
 
-#Subdomain: #SubdomainCommon & ({
-	status:       "active"
-	deprecation?: _|_
-} | {
-	status:      "deprecated"
-	deprecation: #SubdomainDeprecation
-})
-
-#SubdomainCommon: {
+#Subdomain: {
 	// Código canônico do subdomínio.
 	// Deve coincidir com o nome do arquivo em strategic/subdomains/<code>.cue.
 	code: string & =~"^[a-z][a-z0-9-]*$"
@@ -36,14 +27,6 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 
 	// Classificação estratégica canônica compartilhada.
 	type: shared_types.#SubdomainClassification
-
-	// Status do lifecycle — discriminante da união em #Subdomain.
-	// Constraint de presença/ausência de deprecation é imposto pela
-	// união discriminada em #Subdomain.
-	status: "active" | "deprecated"
-
-	// Dados de deprecação (preenchido apenas quando status == "deprecated").
-	deprecation?: #SubdomainDeprecation
 
 	// Referências a mecanismos canônicos do domain-definition.
 	mechanismRefs?: [...#MechanismRef]
@@ -65,9 +48,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 
 	// Invariantes estruturais mínimas para core-subdomain.
 	if type == "core-subdomain" {
-		mechanismRefs:  [#MechanismRef, ...#MechanismRef]
-		costRefs:       [#CostRef, ...#CostRef]
-		capabilityRefs: [#CapabilityRef, ...#CapabilityRef]
+		mechanismRefs:    [#MechanismRef, ...#MechanismRef]
+		costRefs:         [#CostRef, ...#CostRef]
+		capabilityRefs:   [#CapabilityRef, ...#CapabilityRef]
 		strategicProfile: #StrategicProfile
 	}
 
@@ -125,14 +108,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 			test:        "O campo code é idêntico ao nome base do arquivo em strategic/subdomains/<code>.cue. Divergência entre identidade declarada e localização canônica falha."
 			severity:    "fail"
 			rationale:   "Identidade canônica não pode depender de transformação implícita nem de convenção informal."
-		}, {
-			id:          "tq-sd-08"
-			description: "Deprecation é completa quando status é deprecated"
-			test:        "Se status == 'deprecated', deprecation.absorbedBy, deprecation.reason e deprecation.rationale devem estar preenchidos. Se status == 'active', deprecation não pode existir."
-			severity:    "fail"
-			rationale:   "Lifecycle incompleto cria artefatos ambíguos: nem ativos, nem corretamente absorvidos."
 		}]
-		rationale: "Critérios cobrem identidade canônica, contorno (definition, purpose, negative boundaries), rastreabilidade à tese (mechanismRefs, costRefs, capabilityRefs), governança estratégica de core e lifecycle."
+		rationale: "Critérios cobrem identidade canônica, contorno (definition, purpose, negative boundaries), rastreabilidade à tese (mechanismRefs, costRefs, capabilityRefs) e governança estratégica de core."
 	}
 }
 
@@ -173,13 +150,3 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 	rationale: string & !=""
 }
 
-#SubdomainDeprecation: {
-	// Subdomínio que absorve as responsabilidades.
-	absorbedBy: #SubdomainRef
-
-	// Motivo da deprecação.
-	reason: string & !=""
-
-	// Justificativa da deprecação.
-	rationale: string & !=""
-}

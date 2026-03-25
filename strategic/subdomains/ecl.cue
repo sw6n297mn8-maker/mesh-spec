@@ -11,8 +11,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 ecl: artifact_schemas.#Subdomain & {
 	code:   "ecl"
 	name:   "Economic Commitment Lifecycle"
-	status: "active"
-	type:   "core-subdomain"
+	type: "core-subdomain"
 
 	definition: """
 		Ciclo de vida completo do compromisso econômico entre organizações em
@@ -132,10 +131,6 @@ ecl: artifact_schemas.#Subdomain & {
 		Contribui para o moat de dados (cada transação gera evidência
 		operacional proprietária) e para dois resultados de negócio: crédito
 		mais barato (recebíveis lastreados em eventos verificados) e governança
-		automática (compliance por construção). Limitação conhecida: subdomain
-		refs nas negativeBoundaries (ctr, fce, rew, log, drc, scf, nim) ainda
-		não existem como artefatos — rastreabilidade cruzada é verificável
-		contra domain-definition.cue mas não contra o grafo completo de
-		subdomínios.
+		automática (compliance por construção).
 		"""
 }
