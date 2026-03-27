@@ -195,4 +195,173 @@ informationEconomics: artifact_schemas.#AnalyticalLens & {
 			appliesWhen:       "a decisão envolve priorização estratégica de coleta, modelagem, disclosure ou produto"
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Quais assimetrias de informação existem entre as partes relevantes, em cada direção?"
+			reveals:   "Mapa explícito de quem sabe o quê, quem não sabe e onde a ignorância pesa."
+			rationale: "Toda análise começa pelo mapa informacional."
+		},
+		{
+			question:  "Qual o custo econômico concreto da ignorância em cada assimetria?"
+			reveals:   "Prioridade real: default inesperado, contratação ruim, atraso, spread excessivo, seleção adversa, churn ou qualificação manual desnecessária."
+			rationale: "Sem custo, a assimetria é só descrição; com custo, vira prioridade."
+		},
+		{
+			question:  "A fusão banco↔supply chain da Mesh elimina, reduz ou não altera essa assimetria?"
+			reveals:   "Mostra onde a tese da Mesh realmente cria vantagem estrutural e onde não cria."
+			rationale: "Nem toda assimetria relevante é resolvida pela fusão."
+		},
+		{
+			question:  "A consequência dominante da assimetria residual é adverse selection, moral hazard, ou ambos?"
+			reveals:   "Classifica a natureza econômica do problema restante."
+			rationale: "Separar seleção ex ante de comportamento ex post evita tratamento errado."
+		},
+		{
+			question:  "Os dados disponíveis são sinal forte, sinal médio ou noise? Qual o custo de imitação pelo tipo ruim?"
+			reveals:   "Hierarquia de qualidade informacional dos dados candidatos."
+			rationale: "Nem toda feature merece entrar em score, matching ou disclosure."
+		},
+		{
+			question:  "A informação relevante pode ser observada diretamente, ou só inferida?"
+			reveals:   "Mostra onde a Mesh está operando sobre fato e onde está operando sobre inferência."
+			rationale: "Inferência forte e observação fraca pedem cautela diferente de observação direta."
+		},
+		{
+			question:  "Quem gera o dado captura seu valor, ou existe externalidade informacional importante?"
+			reveals:   "Identifica onde o flywheel informacional trava por subprovisionamento."
+			rationale: "Sem isso, a rede produz menos informação útil do que precisa."
+		},
+		{
+			question:  "Onde estamos na curva de valor marginal da informação para esse segmento, participante ou produto?"
+			reveals:   "Mostra onde vale investir mais em coleta e onde vale parar."
+			rationale: "Coletar dado sem retorno informacional é custo morto."
+		},
+		{
+			question:  "Há risco de cascata informacional racional ou herding comportamental?"
+			reveals:   "Se a adoção ou rejeição depende de inferência ou de imitação."
+			rationale: "As duas dinâmicas pedem respostas diferentes."
+			appliesWhen: "a decisão envolve adoção, bootstrap, anchor tenant, reputação pública ou saída relevante"
+		},
+		{
+			question:  "Qual o nível ótimo de disclosure para cada direção de informação: comprador sobre fornecedor, fornecedor sobre si mesmo, fornecedor sobre comprador, investidor sobre pool e Mesh sobre regras?"
+			reveals:   "Mostra que disclosure é multidimensional e que o ótimo não é o mesmo para todos."
+			rationale: "A maior assimetria às vezes está na direção menos óbvia."
+		},
+		{
+			question:  "A qualidade do pool está degradando por volume, composição, perda de sinais ou saída seletiva de participantes bons?"
+			reveals:   "Diagnóstico de degradação informacional estrutural, não apenas métrica agregada."
+			rationale: "Pool pode crescer e ainda piorar economicamente."
+			appliesWhen: "há piora de AUROC, churn seletivo, queda de qualidade média ou perda de confiança no score"
+		},
+		{
+			question:  "A Mesh está de fato criando vantagem informacional material aqui, ou apenas acumulando dados sem melhorar decisão?"
+			reveals:   "Teste final de valor econômico da camada informacional."
+			rationale: "A lente precisa fechar verificando se a vantagem informacional existe de verdade."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-ecl-signal-selection"
+			scenario:          "Definir quais variáveis entram no scoring de fornecedores para antecipação."
+			analysis:          "A assimetria central é que comprador, investidor e Mesh querem distinguir qualidade operacional e risco futuro, mas o fornecedor sabe mais sobre sua condição real. Entregas verificadas e pagamentos cruzados são sinais fortes. Certificação setorial é sinal médio. Auto-declaração de capacidade é fraca. A fusão banco↔supply chain gera um tipo de sinal que nem banco nem ERP isolados conseguem produzir."
+			recommendation:    "Priorizar sinais verificáveis, difíceis de imitar e ligados a outcomes reais. Reduzir ou eliminar variáveis declarativas sem verificabilidade. Tornar explícita a hierarquia de sinais usada pelo modelo."
+			principlesApplied: ["ax-07", "dp-08", "dp-09"]
+			assumptions: [
+				"há dados operacionais e financeiros cruzáveis suficientes para construir sinais fortes",
+				"as variáveis escolhidas melhoram de fato o poder preditivo",
+			]
+			rationale: "O exemplo mostra a lente separando informação útil de noise antes do desenho do mecanismo."
+		},
+		{
+			id:                "ex-buyer-data-externality"
+			scenario:          "Compradores pagam via Mesh, mas não confirmam entregas nem qualidade no sistema."
+			analysis:          "O dado financeiro já existe porque a transação passa pela plataforma. O dado operacional depende de ação adicional do comprador. O valor social dessa confirmação é alto, mas o valor privado percebido pelo comprador é baixo. Isso cria externalidade informacional clássica e subprovisionamento de dado crítico."
+			recommendation:    "Tratar confirmação operacional como dado com alto gap entre valor privado e social. Priorizar sua internalização, reduzir fricção de contribuição e desenhar incentivo ou obrigação adequados em outra lente. Antes disso, mapear quem dentro do comprador realmente detém a informação de confirmação."
+			principlesApplied: ["ax-06", "ax-07", "dp-09"]
+			assumptions: [
+				"o comprador realmente possui a informação operacional que falta ao sistema",
+				"a falta de confirmação é relevante para a qualidade da decisão",
+			]
+			rationale: "O exemplo mostra externalidade informacional travando o flywheel."
+		},
+		{
+			id:                "ex-score-disclosure-multidirectional"
+			scenario:          "Decidir quanto da informação de score e histórico deve ser mostrado para compradores, fornecedores e fornecedores sobre compradores."
+			analysis:          "Há três assimetrias distintas, não uma só. Comprador quer distinguir fornecedor. Fornecedor quer entender como melhorar e também quer saber se o comprador é confiável pagador. Transparência total para todos pode gerar gaming e overreaction. Opacidade total mantém spread implícito e custo de coordenação."
+			recommendation:    "Comprador vê score em faixas e histórico resumido; fornecedor vê seu score detalhado e drivers; fornecedor vê confiabilidade de pagamento do comprador em formato simples e economicamente útil. Ajustar disclosure por direção, não aplicar política única."
+			principlesApplied: ["ax-05", "ax-07", "dp-08"]
+			assumptions: [
+				"participantes conseguem interpretar faixas melhor do que números detalhados em contextos externos",
+				"histórico de pagamento do comprador é economicamente relevante para o fornecedor",
+			]
+			rationale: "O exemplo mostra que disclosure ótimo depende da direção da assimetria."
+		},
+	]
+
+	principleIds: ["ax-05", "ax-06", "ax-07", "dp-02", "dp-08", "dp-09"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "feedsInto"
+			context:  "Economia da informação diagnostica a estrutura informacional, a separabilidade dos tipos, a qualidade dos sinais e a existência de externalidades. Mechanism-design usa esse diagnóstico para desenhar menus, regras, incentivos, pricing e disclosure operacional."
+		},
+		{
+			lensId:   "lens-credit-risk"
+			relation: "feedsInto"
+			context:  "A qualidade dos dados e sinais disponíveis determina o teto do poder preditivo do modelo. Economia da informação identifica quais dados têm maior valor marginal para melhorar accuracy."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Economia da informação assume valor e estrutura da informação; behavioral-economics explica quando participantes processam mal, ignoram ou distorcem essa informação."
+		},
+		{
+			lensId:   "lens-commons-collective-action"
+			relation: "complementsWith"
+			context:  "Esta lente identifica externalidades e valor social do dado; commons trata o dado como recurso compartilhado e governa contribuição, acesso e anti-enclosure."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "feedsInto"
+			context:  "O flywheel informacional depende do valor marginal do dado e da internalização de externalidades. Platform-dynamics usa esse diagnóstico para entender data network effects."
+		},
+		{
+			lensId:   "lens-contract-theory"
+			relation: "complementsWith"
+			context:  "Economia da informação avalia o que é informativo e verificável economicamente; contract-theory trata de como isso pode ou não ser contratado, provado e usado em enforcement."
+		},
+	]
+
+	limitations: [
+		{
+			description: "A lente diagnostica a estrutura informacional, mas não desenha o mecanismo concreto de resolução."
+			alternative: "Usar o output desta lente como input para lens-mechanism-design."
+			rationale:   "Diagnóstico e prescrição são camadas diferentes."
+		},
+		{
+			description: "A mesma informação pode ser processada de forma diferente por participantes diferentes."
+			alternative: "Complementar com lens-behavioral-economics e, quando necessário, com lentes de design de interface ou suporte à decisão."
+			rationale:   "Estrutura informacional e processamento psicológico não são a mesma coisa."
+		},
+		{
+			description: "O ótimo econômico de coleta ou disclosure pode colidir com restrições regulatórias."
+			alternative: "Cruzar decisões sensíveis com lens-regulatory-strategy."
+			rationale:   "O que é economicamente desejável nem sempre é juridicamente permitido."
+		},
+		{
+			description: "A fronteira entre cascata racional e herding comportamental é difusa em contextos reais."
+			alternative: "Usar a distinção como heuristic diagnóstica, não como classificação rígida."
+			rationale:   "Mercados reais misturam inferência, reputação, boato e viés."
+		},
+		{
+			description: "Informação adicional nem sempre melhora decisão; pode apenas aumentar ruído ou custo cognitivo."
+			alternative: "Avaliar valor marginal e capacidade real de interpretação antes de ampliar coleta ou transparência."
+			rationale:   "Mais informação não é automaticamente melhor informação."
+		},
+	]
+
+	rationale: "A Mesh é, no núcleo, uma infraestrutura que transforma opacidade econômica em observabilidade útil. A vantagem da fusão banco↔supply chain é informacional: cruzar dados que, separados, não resolvem as assimetrias mais caras da cadeia. Esta lente existe para mapear quem sabe o quê, quanto custa não saber, quais sinais realmente carregam informação, onde há externalidades informacionais, onde disclosure cria valor ou risco, e quando a qualidade do pool está degradando por motivos informacionais. Ela não desenha o mecanismo final; ela decide se há problema informacional, se ele é resolvível, quais dados importam e onde a tese informacional da Mesh realmente gera valor econômico."
 }
