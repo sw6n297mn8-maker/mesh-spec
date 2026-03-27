@@ -226,4 +226,237 @@ supplyChainTheory: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Misturar bootstrap e maturidade plena gera falsa precisão e erro operacional."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "A decisão é rotineira ou excepcional, e o semáforo de saúde da cadeia para fornecedor, comprador e segmento está verde, amarelo ou vermelho?"
+			reveals:   "Define se a análise pode seguir fast path ou exige full path."
+			rationale: "Sem routing, a lente vira pesada demais para uso operacional."
+		},
+		{
+			question:  "O recebível é operacionalmente elegível, considerando tipo de faturamento, boletim, retenção, confirmação real, contestação e formalização?"
+			reveals:   "Separa recebível exigível de recebível apenas aparente."
+			rationale: "Elegibilidade vem antes de qualquer modelagem de risco."
+		},
+		{
+			question:  "A transação é material ou serviço, e em qual classe operacional ela cai?"
+			reveals:   "Define verificabilidade, custo de captura, timing e risco estrutural."
+			rationale: "Material e serviço têm economias de informação diferentes."
+		},
+		{
+			question:  "Qual é o quadrante de criticidade e risco de fornecimento, e houve reclassificação recente?"
+			reveals:   "Mostra prioridade operacional e econômica da transação."
+			rationale: "Kraljic orienta intensidade de atenção e de captura."
+		},
+		{
+			question:  "Qual é o regime de formalidade do fornecedor e existe transmissão trabalhista relevante ao comprador?"
+			reveals:   "Mostra qualidade de dados, elegibilidade e risco jurídico-operacional do sacado."
+			rationale: "Formalidade afeta tanto captura quanto risco."
+		},
+		{
+			question:  "Qual é o gap informacional-físico desta operação e a cobertura de dados atual é suficiente para diagnóstico forte?"
+			reveals:   "Distingue o que está online do que só está disponível por proxy."
+			rationale: "A Mesh precisa saber quando sabe e quando não sabe."
+		},
+		{
+			question:  "Que caminho operacional-financeiro relevante pode transformar esse evento em perda, atraso, dilution ou deterioração de sacado?"
+			reveals:   "Mostra o mecanismo causal a monitorar."
+			rationale: "Risco financeiro sem mecanismo operacional vira caixa preta."
+		},
+		{
+			question:  "Há sinal de bullwhip, concentração de fase ou variação acima do benchmark do segmento?"
+			reveals:   "Mostra se o problema é idiossincrático ou sistêmico."
+			rationale: "Bullwhip exige benchmark relativo e leitura de fase."
+			appliesWhen: "há dados suficientes ou concentração visível"
+		},
+		{
+			question:  "Há sinal de propagação multi-tier e a velocidade provável é rápida, média ou lenta?"
+			reveals:   "Define urgência e abrangência da resposta."
+			rationale: "Falhas multi-tier exigem ação tipificada, não resposta genérica."
+			appliesWhen: "há atraso simultâneo ou categoria crítica afetada"
+		},
+		{
+			question:  "O payment gap real está crescendo e há assimetria de poder ou moral hazard pós-antecipação?"
+			reveals:   "Mostra poder operacional exercido pelo comprador."
+			rationale: "Prazo real importa mais do que prazo escrito."
+			appliesWhen: "há histórico mínimo de pagamentos"
+		},
+		{
+			question:  "O fornecedor está saturado, ocioso ou operando com variabilidade excessiva de lead time ou medição?"
+			reveals:   "Mostra risco upstream de atraso, subcontratação e falha de qualidade."
+			rationale: "Capacidade é leading indicator estrutural."
+		},
+		{
+			question:  "O loop de SCF está quebrando na geração do dado, no uso do dado, na taxa, na atração ou na retenção?"
+			reveals:   "Localiza onde intervir para que operação vire vantagem financeira."
+			rationale: "Sem localizar a quebra, a solução tende a atacar o componente errado."
+		},
+		{
+			question:  "O comportamento observado é sazonal, cíclico ou estruturalmente deteriorado?"
+			reveals:   "Evita confundir ruído previsível com piora real."
+			rationale: "Sazonalidade é parte do domínio, não exceção."
+			appliesWhen: "há variação temporal relevante"
+		},
+		{
+			question:  "A dilution esperada para esse tipo está precificada e calibrada, ou ainda é só prior?"
+			reveals:   "Mostra quão madura é a inferência econômica da Mesh sobre esse fluxo."
+			rationale: "Pricing sem calibração explícita pode parecer preciso e não ser."
+			appliesWhen: "há decisão de precificação, perda esperada ou FIDC"
+		},
+		{
+			question:  "A Mesh está gerando valor de coordenação independente da antecipação?"
+			reveals:   "Mostra se a plataforma está virando infraestrutura operacional ou apenas intermediação financeira."
+			rationale: "Coordenação operacional fortalece retenção e moat."
+			appliesWhen: "há desenho de produto, retenção ou novos módulos"
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-concrete-bullwhip"
+			scenario:          "Três construtoras iniciam obras em São Paulo e o volume do fornecedor de concreto dobra em pouco tempo."
+			analysis:          "A operação é excepcional porque há salto de volume. Como concreto é perecível e ligado à fase estrutural, a combinação entre concentração de fase, capacidade e possível bullwhip importa mais do que o score isolado do fornecedor. O risco real não é o pico em si, mas a queda abrupta posterior quando as obras mudarem de fase."
+			recommendation:    "Tratar o caso como bullwhip potencial, limitar exposição, observar volume versus capacidade, exigir captura síncrona mais forte para o concreto e comunicar a leitura como inferência de fase, não como certeza. A transição futura deve ser modelada no risco de crédito e na projeção de demanda."
+			principlesApplied: ["ax-05", "dp-09"]
+			assumptions: [
+				"há concentração real de compradores em fase estrutural",
+				"o fornecedor expandiu capacidade ou está próximo da saturação",
+			]
+			rationale: "O caso mostra como um pico operacional pode parecer positivo no curto prazo e virar risco financeiro depois."
+		},
+		{
+			id:                "ex-service-progress-billing"
+			scenario:          "Fornecedor de instalação elétrica fatura mensalmente por medição, com aprovação do boletim quinze dias após execução."
+			analysis:          "O recebível é de serviço contínuo, com retenção, medição subjetiva e risco trabalhista potencial. O prazo econômico real é muito maior do que o prazo contratual pós-NF, e a disputa operacional relevante está no intervalo entre execução e aprovação do boletim."
+			recommendation:    "Descontar retenção na elegibilidade, tratar o gap total como variável central, aplicar spread e controles específicos para serviço, e priorizar captura do boletim como dado-chave. O mecanismo contratual e de incentivo para isso deve ser desenhado por outras lentes, mas o gargalo operacional é identificado aqui."
+			principlesApplied: ["ax-05", "ax-07", "dp-02"]
+			assumptions: [
+				"há retenção contratual material",
+				"o boletim ainda não está nativamente capturado pela plataforma",
+			]
+			rationale: "O caso evidencia a diferença entre ver NF e entender o evento econômico real do serviço."
+		},
+		{
+			id:                "ex-tier2-invisible-failure"
+			scenario:          "Três fornecedores de argamassa em uma mesma região atrasam ao mesmo tempo no período chuvoso."
+			analysis:          "O atraso simultâneo sugere problema multi-tier, possivelmente relacionado a cimento ou outra restrição upstream. A sazonalidade pode explicar parte do comportamento, mas a coincidência entre fornecedores independentes muda a hipótese-base."
+			recommendation:    "Distinguir primeiro sazonalidade normal de anomalia, depois tratar o caso como propagação multi-tier potencial, investigando insumo comum, ajustando exposição de dependentes e operando regra explícita de resolução e desescalada se os sinais voltarem ao baseline."
+			principlesApplied: ["ax-05", "dp-05", "dp-09"]
+			assumptions: [
+				"há independência suficiente entre os fornecedores observados",
+				"o atraso não é explicado apenas por calendário ou chuva padrão",
+			]
+			rationale: "O caso mostra como a Mesh pode inferir risco sistêmico antes de ter visibilidade plena de tier 2."
+		},
+	]
+
+	principleIds: ["ax-05", "ax-06", "ax-07", "dp-02", "dp-05", "dp-09"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-credit-risk"
+			relation: "feedsInto"
+			context:  "Esta lente modela mecanismo de transmissão e leading indicators; lens-credit-risk usa isso para PD, LGD, dilution e risco de sacado."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information economics modela assimetria abstrata; esta lente especifica quais dados operacionais reduzem assimetria e quanto custa capturá-los."
+		},
+		{
+			lensId:   "lens-network-theory"
+			relation: "complementsWith"
+			context:  "Network theory ajuda a identificar clusters e conexões; esta lente modela fluxo, propagação e velocidade operacional."
+		},
+		{
+			lensId:   "lens-theory-of-firm"
+			relation: "complementsWith"
+			context:  "Theory of firm trata a fronteira da firma; esta lente trata a cadeia uma vez que essa fronteira já foi assumida."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "complementsWith"
+			context:  "Platform dynamics explica crescimento e retenção agregados; esta lente fornece o valor operacional concreto que pode sustentar esse crescimento."
+		},
+		{
+			lensId:   "lens-commons-collective-action"
+			relation: "complementsWith"
+			context:  "Commons and collective action ajudam a pensar o pool de dados; esta lente define quais dados operacionais valem ser compartilhados e capturados."
+		},
+		{
+			lensId:   "lens-market-design"
+			relation: "complementsWith"
+			context:  "Market design estrutura mercados; esta lente fornece o substrato operacional que muda thickness, matching e risco de execução."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Behavioral economics ajuda a explicar vieses de percepção sobre prazo, atraso e coordenação; esta lente fornece o contexto operacional concreto."
+		},
+		{
+			lensId:   "lens-complex-adaptive-systems"
+			relation: "complementsWith"
+			context:  "Complex adaptive systems ajuda a modelar emergência, atraso e cascata; esta lente ancora isso em materiais, serviços, fases e captura real."
+		},
+		{
+			lensId:   "lens-contract-theory"
+			relation: "complementsWith"
+			context:  "Contract theory desenha cláusulas e mecanismos sobre o contexto operacional; esta lente identifica o gargalo operacional que o contrato precisa formalizar."
+		},
+	]
+
+	limitations: [
+		{
+			description: "No bootstrap, a cobertura de dados operacionais é limitada e muitos alertas ficam offline."
+			alternative: "Usar sequência explícita de bootstrap, ativar métricas por fase e operar proxies com peso reduzido até haver calibração suficiente."
+			rationale:   "Melhor saber que a métrica está offline do que fingir precisão."
+		},
+		{
+			description: "Visibilidade de tier 2 e além é cara e incompleta."
+			alternative: "Usar proxies de atraso simultâneo, criticidade e propagação tipificada, focando nas categorias mais relevantes."
+			rationale:   "Visibilidade total é aspiracional; proxies bem usados já melhoram muito a decisão."
+		},
+		{
+			description: "Sem um ano de dados, baseline sazonal é fraco."
+			alternative: "Usar priors setoriais, thresholds mais frouxos e explicitar incerteza até que a série histórica amadureça."
+			rationale:   "O primeiro ano serve tanto para operar quanto para aprender."
+		},
+		{
+			description: "Coordenação via plataforma pode gerar dependência excessiva do sistema."
+			alternative: "Desenhar coordenação como complemento e ganho de visibilidade, não como substituição total da capacidade operacional local."
+			rationale:   "A Mesh deve fortalecer a cadeia, não virar single point of failure dela."
+		},
+		{
+			description: "Payment gap é tema sensível politicamente e comercialmente."
+			alternative: "Usar benchmarks anônimos, comunicação cuidadosa e comparação contextualizada por tipo e fase."
+			rationale:   "A verdade operacional precisa ser tornada útil sem gerar atrito desnecessário."
+		},
+		{
+			description: "Kraljic estático tende a errar em ambientes mutáveis."
+			alternative: "Combinar classificação inicial com reclassificação contínua em ambas as direções."
+			rationale:   "Criticidade muda e a plataforma precisa acompanhar."
+		},
+		{
+			description: "Informalidade é estrutural e a conversão para formalidade tem custo real."
+			alternative: "Classificar regimes, diferenciar tratamento e priorizar formalização gradual onde houver retorno econômico e redução de risco."
+			rationale:   "Confundir informalidade com mero desvio moral piora a análise."
+		},
+		{
+			description: "Dilution endêmica é difícil de observar cedo e tende a ser maior em serviço."
+			alternative: "Usar priors explícitos por tipo, recalibrar semestralmente e ajustar modelos quando divergência material aparecer."
+			rationale:   "Sem cadência de calibração, o erro se torna estrutural e silencioso."
+		},
+		{
+			description: "O custo de captura varia muito, e nem toda confirmação adicional compensa."
+			alternative: "Investir em captura de forma proporcional ao valor do recebível e à criticidade do item, aceitando NF simples para commodities de baixo impacto."
+			rationale:   "Nem todo dado vale o mesmo custo marginal."
+		},
+		{
+			description: "Cronograma formal de obra costuma ser confidencial, instável ou indisponível."
+			alternative: "Usar fase inferida, capacidade observada e pipeline inferido como proxies operacionais até maturidade maior de compartilhamento."
+			rationale:   "Dados reais disponíveis são mais úteis do que dados ideais indisponíveis."
+		},
+	]
+
+	rationale: "Teoria de Supply Chain, na Mesh, existe para tirar a cadeia produtiva da condição de caixa preta. Materiais e serviços diferem estruturalmente em verificabilidade, disputa, timing e elegibilidade. Retenção, progress billing, informalidade, propagation multi-tier, bullwhip, Kraljic, payment gap e capacidade não são detalhes de operação; são a matéria-prima da leitura de risco e da criação de valor da plataforma. A lente conecta fluxo físico, fluxo informacional e fluxo financeiro, separa o que está online do que ainda está offline no bootstrap, e orienta como a Mesh transforma observação operacional em coordenação, elegibilidade, pricing e vantagem informacional."
 }
