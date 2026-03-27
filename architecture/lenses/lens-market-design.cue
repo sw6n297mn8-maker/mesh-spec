@@ -205,4 +205,183 @@ marketDesign: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Sem métricas separadas por mercado, a empresa confunde sintomas locais com saúde sistêmica."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "A participação é racional para os tipos de participante que a Mesh precisa atrair, considerando custo all-in e outside option real?"
+			reveals:   "Mostra se a restrição de participação já está violada antes de qualquer refinamento de mecanismo."
+			rationale: "Sem participação racional, o mercado falha na origem."
+		},
+		{
+			question:  "Qual dos três mercados está em questão e o gargalo está nele ou em outro mercado interdependente?"
+			reveals:   "Distingue o mercado sintoma do mercado causa."
+			rationale: "Intervir no mercado errado desperdiça esforço e capital."
+		},
+		{
+			question:  "O mercado está thick o suficiente, por lado e por timing?"
+			reveals:   "Mostra se o problema é falta de participantes ativos no momento de clearing."
+			rationale: "Thickness é pré-condição dinâmica de funcionamento."
+		},
+		{
+			question:  "O mercado é safe e percebido como aceitável pelos participantes relevantes?"
+			reveals:   "Mostra se a plataforma sofre de desconfiança, manipulação, repugnance ou conflito de legitimidade."
+			rationale: "Safety é condição de contorno, não otimização tardia."
+		},
+		{
+			question:  "Há congestion e, se houver, quais consequências de mercado a regra atual de alocação está produzindo?"
+			reveals:   "Mostra se a regra atual piora composição, fairness, onboarding ou stability."
+			rationale: "Escassez mal alocada degrada o mercado além da operação do dia."
+		},
+		{
+			question:  "O regime de pricing está correto em nível, diferenciação e dinâmica?"
+			reveals:   "Mostra se a Mesh está cobrando demais, diferenciando de menos ou comprimindo de forma insuficiente ao longo do tempo."
+			rationale: "Pricing ruim pode destruir participação e legitimidade."
+		},
+		{
+			question:  "As regras e interfaces expostas são obviously strategy-proof para os lados com menor sofisticação?"
+			reveals:   "Mostra se o mercado é operacionalmente compreensível."
+			rationale: "Mecanismo incompreensível falha na prática, mesmo sendo bom no abstrato."
+		},
+		{
+			question:  "O timing e o clearing atuais estão calibrados para o valor central do mercado, velocidade ou composição?"
+			reveals:   "Mostra se o desenho atual está sacrificando a dimensão errada."
+			rationale: "Batch e contínuo resolvem problemas diferentes."
+		},
+		{
+			question:  "Qual modo de falha está operando: thinning, congestion, unraveling, unsafe ou repugnance?"
+			reveals:   "Distingue a falha dominante e evita remédio errado."
+			rationale: "Cada modo de falha pede intervenção diferente."
+		},
+		{
+			question:  "Uma intervenção neste mercado cria problema em outro mercado interdependente?"
+			reveals:   "Mostra spillovers entre antecipação, supply chain e funding."
+			rationale: "Os mercados são analiticamente separados, mas operacionalmente acoplados."
+			appliesWhen: "a decisão altera pricing, timing, alocação ou matching"
+		},
+		{
+			question:  "A decisão é fundacional, envolvendo bootstrap, novo segmento, nova região ou novo produto?"
+			reveals:   "Mostra se a decisão é de sequenciamento arquitetônico e não apenas de operação corrente."
+			rationale: "Sequenciamento é decisão de path dependence."
+			appliesWhen: "lançamento ou expansão de mercado"
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-end-of-month-congestion"
+			scenario:          "No fim do mês, a demanda por antecipação excede funding disponível de forma recorrente e parte dos fornecedores migra temporariamente para bancos."
+			analysis:          "O mercado não está thin; ele está congestionado. A regra de alocação atual pode estar criando corrida, medo de escassez e piora de composição. O problema central é de alocação e provisão, não de falta total de participação."
+			recommendation:    "Trocar alocação cega por regra que preserve composição, comunicar disponibilidade de funding, ajustar timing em batchs curtos no pico, reservar espaço para novos e provisionar funding adicional quando o padrão sazonal de congestion for previsível."
+			principlesApplied: ["ax-05", "ax-07", "dp-02"]
+			assumptions: [
+				"há padrão recorrente e não evento isolado",
+				"fornecedores têm outside option bancária real no período",
+			]
+			rationale: "O caso mostra congestion previsível com risco de unraveling e churn evitável."
+		},
+		{
+			id:                "ex-participation-constraint-binding"
+			scenario:          "Após alguns meses, fornecedores de melhor qualidade passam a sair da Mesh para bancos, mesmo sem reclamar de segurança ou produto."
+			analysis:          "A restrição de participação está binding para um subsegmento com outside option forte. O problema não é safety, mas custo all-in efetivo maior do que a alternativa relevante."
+			recommendation:    "Redesenhar pricing e friction especificamente para o subsegmento que a Mesh ainda deseja reter, testando se a compressão de renda informacional faz sentido econômico. Se não fizer, aceitar explicitamente que esse subsegmento não é target competitivo no momento."
+			principlesApplied: ["ax-05", "ax-07", "dp-02"]
+			assumptions: [
+				"o churn é puxado por outside option melhor, não por desconfiança",
+				"há dados suficientes para decompor custo all-in",
+			]
+			rationale: "O caso mostra que nem todo churn é problema de confiança; pode ser restrição econômica binding."
+		},
+		{
+			id:                "ex-dual-role-investor-concern"
+			scenario:          "Investidor questiona se a Mesh pode favorecer uma tranche mais lucrativa para si na alocação das melhores operações."
+			analysis:          "O problema central é safety sob papel dual. O investidor não está questionando apenas retorno; está questionando legitimidade da arquitetura de alocação."
+			recommendation:    "Implementar regra de alocação determinística e auditável, publicar critérios de composição por tranche, manter logs verificáveis e criar mecanismos crescentes de governança externa compatíveis com a fase da empresa."
+			principlesApplied: ["ax-05", "dp-05", "dp-08"]
+			assumptions: [
+				"há múltiplas tranches ou pools com incentivos econômicos distintos",
+				"a preocupação do investidor é racional e não meramente retórica",
+			]
+			rationale: "O caso mostra como o papel dual pode elevar custo de funding se a governança não for crível."
+		},
+	]
+
+	principleIds: ["ax-05", "ax-06", "ax-07", "dp-02", "dp-05", "dp-08"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Mechanism design desenha incentivos e propriedades estratégicas de mecanismos individuais. Esta lente define a estrutura dos mercados, seus gargalos, regras de participação, timing, matching, pricing e sequenciamento."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information economics explica valor e efeito da assimetria informacional. Esta lente modela como a arquitetura do mercado cria, usa e eventualmente comprime rendas baseadas nessa assimetria."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "complementsWith"
+			context:  "Platform dynamics modela chicken-and-egg, massa crítica e crescimento agregado. Esta lente trata thickness, matching e sequenciamento como propriedades de mercado operável."
+		},
+		{
+			lensId:   "lens-credit-risk"
+			relation: "complementsWith"
+			context:  "Credit risk modela risco individual e de carteira. Esta lente modela como estrutura de alocação e participação afeta composição agregada do mercado e, por consequência, risco."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Financial intermediation trata veículo, funding e estrutura econômica. Esta lente trata o mercado de funding como mercado, incluindo thickness, safety e governança de alocação."
+		},
+		{
+			lensId:   "lens-commons-collective-action"
+			relation: "complementsWith"
+			context:  "Commons and collective action ajuda a pensar funding e dados como recursos compartilhados sob congestion e governança. Esta lente traduz isso em estrutura de mercado."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Behavioral economics ajuda a modelar bounded rationality, framing, fairness e repugnance. Esta lente usa isso para safety, OSP e aceitabilidade do mercado."
+		},
+		{
+			lensId:   "lens-complex-adaptive-systems"
+			relation: "complementsWith"
+			context:  "Complex adaptive systems ajuda a explicar emergência, path dependence e unraveling. Esta lente ancora esses fenômenos em estrutura de mercado, regras de clearing e sequencing."
+		},
+	]
+
+	limitations: [
+		{
+			description: "A decomposição em três mercados é ferramenta analítica; na prática, as interdependências podem dominar a dinâmica observada."
+			alternative: "Usar a decomposição para diagnóstico, mas sempre verificar spillovers inter-mercados antes de intervir."
+			rationale:   "Separação ajuda a pensar; acoplamento continua sendo real."
+		},
+		{
+			description: "No bootstrap, mercados podem estar thin demais para justificar market design sofisticado."
+			alternative: "Operar market making administrativo simples até que haja thickness mínima e usar esta lente principalmente para sequenciamento, restrição de participação e condições de lançamento."
+			rationale:   "Mecanismo sofisticado em mercado muito thin gera overhead sem benefício."
+		},
+		{
+			description: "Outside options mudam com concorrência, regulação e evolução do mercado."
+			alternative: "Manter mapa de outside options atualizado periodicamente e usar churn por segmento como sinal de mudança na restrição binding."
+			rationale:   "A restrição de participação é dinâmica."
+		},
+		{
+			description: "O modelo de market making monopolista pressupõe que a Mesh ainda ocupa posição arquitetônica singular em seu nicho."
+			alternative: "Monitorar entrada de concorrentes e, se houver fragmentação real, revisar a lente para cenário de multi-homing, competição de market structure e compressão exógena de renda."
+			rationale:   "A forma de mercado muda se o monopólio arquitetônico deixa de valer."
+		},
+		{
+			description: "Governança crível do papel dual tem custo operacional relevante, sobretudo no bootstrap."
+			alternative: "Implementar compromissos por fases: transparência primeiro, auditabilidade depois, governança externa quando a escala justificar."
+			rationale:   "Confiança institucional também é investimento."
+		},
+		{
+			description: "Participantes de baixa sofisticação podem não responder bem a mecanismos complexos, mesmo quando os incentivos estão corretos."
+			alternative: "Manter complexidade dentro da Mesh e simplificar radicalmente a interface e a regra percebida pelos participantes."
+			rationale:   "OSP é requisito operacional, não detalhe de UX."
+		},
+	]
+
+	rationale: "Market Design, na Mesh, trata dos mercados como sistemas interdependentes: antecipação, supply chain e funding. A lente parte do fato de que a Mesh ocupa posição arquitetônica de market maker administrado, com rendas informacionais restringidas por outside options e legitimidade percebida. A restrição de participação é anterior à espessura; thickness é pré-condição dinâmica; safety é condição de contorno institucional; congestion exige alocação com consequências sistêmicas; pricing precisa ser entendido em nível, diferenciação e dinâmica; matching é a função central do mercado de supply chain; e o sequenciamento de mercados no bootstrap é decisão fundacional, não operacional. A lente existe para impedir que a Mesh trate falhas de mercado como se fossem apenas problemas de mecanismo local, de risco individual ou de crescimento de plataforma."
 }
