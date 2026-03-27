@@ -222,4 +222,227 @@ contractTheory: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Infraestrutura contratual é invisível até falhar; métricas evitam que a falha apareça só tarde demais."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Qual contrato está em jogo e qual é a contraparte relevante?"
+			reveals:   "Define a dinâmica básica do problema contratual."
+			rationale: "Não existe contrato genérico; Mesh↔fornecedor, Mesh↔comprador, Mesh↔investidor e subjacente têm lógicas diferentes."
+		},
+		{
+			question:  "Qual regime de enforcement prevalece na prática: formal-judicial, relacional-bilateral ou privado-institucional?"
+			reveals:   "Mostra qual infraestrutura de cumprimento realmente sustenta o contrato."
+			rationale: "O contrato escrito pode existir, mas o enforcement real pode estar em outra camada."
+		},
+		{
+			question:  "Se o contrato é relacional, as três condições de sustentabilidade estão presentes?"
+			reveals:   "Mostra se o contrato relacional é robusto ou frágil."
+			rationale: "Valor do futuro, outside option pior e detectabilidade do desvio são a base mínima."
+			appliesWhen: "há componente relacional relevante"
+		},
+		{
+			question:  "As variáveis contratuais importantes são verificáveis para o nível de enforcement pretendido?"
+			reveals:   "Expõe o gap entre o que o contrato condiciona e o que ele consegue provar."
+			rationale: "Contrato bom em variável errada é contrato fraco."
+		},
+		{
+			question:  "Quais contingências relevantes não estão cobertas e quem recebe o direito residual de decidir?"
+			reveals:   "Mostra se o vazio contratual está alocado de forma coerente."
+			rationale: "Incompletude sempre existirá; a questão é quem governa o não previsto."
+		},
+		{
+			question:  "Há penalty defaults ou defaults que incentivam revelação da parte mais informada?"
+			reveals:   "Mostra se o contrato usa a assimetria de informação a seu favor."
+			rationale: "Defaults são decisões de design, não acidentes."
+		},
+		{
+			question:  "O contrato subjacente sustenta juridicamente e economicamente o recebível?"
+			reveals:   "Testa a qualidade real do ativo antecipado."
+			rationale: "Recebível depende do subjacente."
+			appliesWhen: "há antecipação, cessão ou análise de elegibilidade"
+		},
+		{
+			question:  "A cessão está perfeita e oponível a terceiros?"
+			reveals:   "Distingue validade inter partes de proteção estrutural real."
+			rationale: "Sem perfection, true sale e prioridade ficam frágeis."
+			appliesWhen: "há cessão ou estrutura com FIDC"
+		},
+		{
+			question:  "O nível de enforcement escolhido é economicamente viável para o valor em risco?"
+			reveals:   "Mostra se o contrato ameaça algo que nunca valerá a pena executar."
+			rationale: "Custo de enforcement faz parte do contrato real."
+		},
+		{
+			question:  "Os remédios são proporcionais, compreensíveis e sustentáveis em contrato de adesão?"
+			reveals:   "Mostra se o contrato sobreviveria a disputa, escrutínio jurídico e percepção de justiça."
+			rationale: "Remédio excessivo ou obscuro destrói enforcement útil."
+		},
+		{
+			question:  "Existe moral hazard relevante de servicer, originador ou pós-antecipação?"
+			reveals:   "Expõe onde o contrato precisa alinhar melhor incentivos."
+			rationale: "Boa parte do risco sistêmico vem de conflito contratual implícito."
+			appliesWhen: "há FIDC, servicing, originação ou cooperação pós-antecipação"
+		},
+		{
+			question:  "Covenants e triggers transferem controle com informação suficiente e calibrada?"
+			reveals:   "Mostra se o trigger discrimina bem e se a parte que recebe o direito sabe usá-lo."
+			rationale: "Transferência de controle sem informação é fonte de erro."
+			appliesWhen: "há covenants, triggers ou rights transfer contingente"
+		},
+		{
+			question:  "O contrato antecipa renegociação e adaptações prováveis?"
+			reveals:   "Mostra se a mudança futura será absorvida por regra ou por barganha improvisada."
+			rationale: "A boa renegociação é desenhada antes de acontecer."
+			appliesWhen: "há relação de médio ou longo prazo"
+		},
+		{
+			question:  "Há menu contratual suficiente para servir heterogeneidade sem abrir arbitragem excessiva?"
+			reveals:   "Mostra se a Mesh está operando one-size-fits-all ou screening contratual viável."
+			rationale: "Heterogeneidade real pede contratos diferentes, mas isso precisa continuar operacionalmente governável."
+			appliesWhen: "há participantes heterogêneos ou desenho de novos templates"
+		},
+		{
+			question:  "Os contratos interdependentes da cadeia estão alinhados entre si?"
+			reveals:   "Expõe desalinhamento sistêmico entre bilaterais."
+			rationale: "Otimização local pode destruir coerência da cadeia."
+		},
+		{
+			question:  "O custo contratual all-in torna essa estrutura economicamente viável para o ticket e o segmento?"
+			reveals:   "Fecha a análise jurídica com a validação econômica real."
+			rationale: "Contrato tecnicamente correto mas economicamente inviável não será adotado."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-informal-receivable"
+			scenario:          "Fornecedor de areia pede antecipação de R$30 mil com base em pedido por WhatsApp e relação recorrente com a construtora."
+			analysis:          "O contrato relevante é Mesh↔fornecedor, apoiado em subjacente frágil. O regime é majoritariamente relacional com reforço privado-institucional inicial. O problema central é elevar verificabilidade sem impor custo contratual que inviabilize o ticket. Também é preciso distinguir inclusão real de seleção adversa contratual."
+			recommendation:    "Usar camada contratual mínima com NF simplificada, confirmação operacional suficiente para enforcement privado, reps acessíveis, perfection sempre que houver cessão, remédios graduais e caminho explícito de migração para camada mais forte conforme histórico e formalização cresçam."
+			principlesApplied: ["ax-03", "ax-07", "dp-02"]
+			assumptions: [
+				"há relação prévia relevante entre comprador e fornecedor",
+				"o custo contratual adicional ainda cabe no ticket",
+			]
+			rationale: "O caso mostra como contrato mínimo viável pode servir inclusão sem fingir robustez jurídica inexistente."
+		},
+		{
+			id:                "ex-covenant-seasonal-trigger"
+			scenario:          "A inadimplência de fevereiro sobe acima do trigger do FIDC em meio a atraso sazonal de obra."
+			analysis:          "O problema é um covenant mal calibrado que transfere controle com pouca discriminação entre ruído sazonal e deterioração real. A variável é verificável, mas o trigger univariado é informacionalmente pobre."
+			recommendation:    "Redesenhar o covenant como composto, incorporar sazonalidade quando material, impor obrigação prévia de informar com dado verificável e escalonar as consequências em vez de acionar suspensão binária imediata."
+			principlesApplied: ["ax-05", "dp-05"]
+			assumptions: [
+				"há histórico mínimo para distinguir sazonalidade de piora estrutural",
+			]
+			rationale: "O caso mostra que trigger ruim não é apenas número ruim; é transferência ruim de controle."
+		},
+		{
+			id:                "ex-anchor-renegotiation"
+			scenario:          "Anchor relevante pede condição especial depois de ganhar outside option com concorrente."
+			analysis:          "Há risco de hold-up, enfraquecimento do commitment inicial e desalinhamento com fairness do resto da base. A proposta concorrente pode nem ser verificável integralmente, mas a mudança de outside option é real."
+			recommendation:    "Evitar exceção puramente discricionária em preço-base, preservar coerência do modelo, usar benefícios contratuais ou operacionais mais defensáveis, renovar em estrutura com compromisso mútuo explícito e reduzir dependência de um único anchor ao longo do tempo."
+			principlesApplied: ["ax-05", "ax-06", "dp-02"]
+			assumptions: [
+				"o anchor representa parcela material do volume",
+				"a concorrência é suficientemente crível para afetar barganha",
+			]
+			rationale: "O caso mostra a interseção entre renegociação, commitment, optionality e alinhamento sistêmico."
+		},
+	]
+
+	principleIds: ["ax-03", "ax-05", "ax-06", "ax-07", "dp-02", "dp-05"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Mechanism design define a arquitetura abstrata do incentivo; esta lente a implementa em cláusulas, defaults, menu, remédios e enforcement."
+		},
+		{
+			lensId:   "lens-theory-of-firm"
+			relation: "complementsWith"
+			context:  "Theory of firm decide fronteira e governance organizacional; esta lente decide direitos, obrigações e enforcement uma vez que a relação foi contratualizada."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Financial intermediation trata o veículo e a estrutura econômica; esta lente trata os termos que fazem a estrutura operar juridicamente e disciplinam o conflito entre partes."
+		},
+		{
+			lensId:   "lens-credit-risk"
+			relation: "complementsWith"
+			context:  "Credit risk mede probabilidade e perda; esta lente define os termos que afetam LGD, cure, dilution, recourse, safra e elegibilidade."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information economics explica assimetria; esta lente transforma assimetria em exigência de verificabilidade, menu, reps e enforcement."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Behavioral economics ajuda a desenhar termos compreensíveis, evitar surpresas destrutivas e calibrar percepção de fairness e confiança."
+		},
+		{
+			lensId:   "lens-commons-collective-action"
+			relation: "complementsWith"
+			context:  "Commons and collective action ajuda a pensar enforcement e reputação institucionalizados; esta lente traduz isso em cláusulas, sanções e private ordering."
+		},
+		{
+			lensId:   "lens-market-design"
+			relation: "complementsWith"
+			context:  "Market design estrutura o mercado; esta lente implementa pricing, commitment, lock-up, menu e restrições em termos contratuais executáveis."
+		},
+		{
+			lensId:   "lens-complex-adaptive-systems"
+			relation: "complementsWith"
+			context:  "Complex adaptive systems ajuda a pensar adaptação, path dependence e coevolução; esta lente traduz isso em renegociação, optionality e cláusulas de adaptação."
+		},
+	]
+
+	limitations: [
+		{
+			description: "Muitos participantes operam com documentação imperfeita ou informalidade relevante."
+			alternative: "Usar menu de formalização progressiva e construir verificabilidade em camadas, em vez de exigir perfeição documental desde o início."
+			rationale:   "Excluir toda informalidade destruiria a tese de acesso e limitaria demais a base servível."
+		},
+		{
+			description: "Enforcement judicial é lento e caro."
+			alternative: "Projetar gradação de enforcement e usar private ordering, protesto e execução econômica antes de depender de ação ordinária."
+			rationale:   "Contrato útil precisa considerar enforcement real, não só enforcement teórico."
+		},
+		{
+			description: "Covenants não antecipam todos os cenários inéditos."
+			alternative: "Usar gatilhos compostos, obrigação de informar, waivers estruturados e mecanismos de interpretação antes da transferência binária de controle."
+			rationale:   "Trigger simples demais vira fonte de ruído e conflito."
+		},
+		{
+			description: "Contratos relacionais são difíceis de medir e o private ordering maduro não existe automaticamente no bootstrap."
+			alternative: "Avaliar periodicamente as condições de sustentabilidade do relacional e construir infraestrutura institucional de forma gradual."
+			rationale:   "Relação histórica ajuda, mas não substitui maturidade institucional real."
+		},
+		{
+			description: "Contratos de adesão podem conter assimetria excessiva de drafting e risco de abusividade."
+			alternative: "Operar linguagem clara, menu compreensível, remédios proporcionais e teste explícito de abusividade antes de deployar termos."
+			rationale:   "Surpresa contratual destrói trust e aumenta risco jurídico."
+		},
+		{
+			description: "Menu contratual pode ser gamificado por arbitragem entre camadas."
+			alternative: "Preferir camada por fornecedor quando necessário e complementar com score individual, caps e monitoramento de safra."
+			rationale:   "Sem isso, screening vira convite à seleção adversa e gaming."
+		},
+		{
+			description: "O marco legal e regulatório pode mudar, especialmente em dados, scoring e cessão."
+			alternative: "Manter cláusulas de adaptação regulatória e revisão periódica da infraestrutura contratual."
+			rationale:   "A robustez contratual da Mesh depende de capacidade de adaptação institucional."
+		},
+		{
+			description: "Contrato tecnicamente correto pode ser economicamente inviável em tickets pequenos."
+			alternative: "Medir custo contratual all-in e simplificar estrutura quando o custo marginal superar o valor econômico da proteção adicional."
+			rationale:   "Viabilidade econômica é o teste final de adoção e utilidade."
+		},
+	]
+
+	rationale: "Teoria de Contratos, na Mesh, existe para transformar relações econômicas imperfeitas em instrumentos operáveis sob verificabilidade limitada, enforcement gradual e regulação brasileira específica. A lente distingue observável de verificável, assume incompletude contratual como dado, trata direitos residuais e defaults como escolhas de design, reconhece a coexistência entre enforcement formal, relacional e institucional, e conecta o recebível ao contrato subjacente que o sustenta. Também integra a infraestrutura legal brasileira de cessão, perfection e LGPD por fluxo, desenha gradação de enforcement e de remédios, trata moral hazard do servicer e do originador, calibra reps por camada, estrutura covenants e renegociação, e usa menu de contratos para servir heterogeneidade sem perder governança. Seu papel é fechar o gap entre mecanismo ideal e contrato real, de forma economicamente viável, juridicamente defensável e operacionalmente usável pela Mesh."
 }
