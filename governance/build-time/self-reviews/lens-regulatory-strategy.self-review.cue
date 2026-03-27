@@ -23,19 +23,18 @@ lensRegulatoryStrategy: build_time.#SelfReviewReport & {
 		failCount: 0
 		warnCount: 0
 		infoCount: 0
-		summary:   "Lente regulatória com 10 conceitos, 8 reasoning steps, 3 exemplos e 3 limitações. Validação contra #AnalyticalLens: estrutura conforme, concept IDs únicos, dependsOn resolvem internamente. uq-01 a uq-08 passam — rationales explicam WHY, conceitos ancorados em mecanismos Mesh (NF, duplicata, FIDC, servicer, cessão, registradora), referências cruzadas válidas, zero placeholders. tq-ln-01 a tq-ln-04 passam — condições testáveis, reasoning protocol específico para análise regulatória, exemplos concretos com cenários Mesh, limitações reais com alternativas."
+		summary:   "Lente regulatória com 10 conceitos, 5 reasoning steps, 2 exemplos e 2 limitações. Versão simplificada pelo founder. Validação contra #AnalyticalLens: estrutura conforme (min 4 reasoning steps, min 2 examples, min 2 limitations), concept IDs únicos, dependsOn resolvem internamente. uq-01 a uq-08 passam — rationales explicam WHY, conceitos ancorados em mecanismos Mesh (NF, duplicata, FIDC, servicer, cessão, registradora), referências cruzadas válidas (ax-01, ax-03, ax-05, dp-04, dp-05), zero placeholders. tq-ln-01 a tq-ln-04 passam — condições testáveis, reasoning protocol focado em enquadramento regulatório, exemplos concretos, limitações reais."
 	}]
 
 	findings: {}
 
-	singleRoundRationale: "Conteúdo fornecido integralmente pelo founder, sem decisões estruturais do agente. Validação verificou conformidade com schema, critérios universais e type-specific — todos passam sem findings. Complexidade do artefato é alta, mas o conteúdo já veio elaborado e completo."
+	singleRoundRationale: "Conteúdo fornecido e simplificado pelo founder. Validação verificou conformidade com schema e critérios — todos passam. Mudança é editorial (simplificação de seções existentes), sem alteração de semântica dos conceitos."
 
 	summary: """
 		Lente de Estratégia Regulatória (lens-regulatory-strategy) com status
-		active. Cobre enquadramento regulatório, capital legal, LGPD, FIDC,
-		tributação, fronteiras de regime e risco correlacionado. 10 conceitos
-		com dependências internas válidas, 8 reasoning steps específicos para
-		análise regulatória, 3 exemplos Mesh concretos, 4 relações com lentes
-		complementares. Zero findings em 1 round.
+		active. 10 conceitos, 5 reasoning steps, 2 exemplos, 5 principleIds,
+		4 relatedLenses, 2 limitações. Versão simplificada pelo founder —
+		reasoning protocol, examples, principleIds e limitations reduzidos.
+		Zero findings em 1 round.
 		"""
 }

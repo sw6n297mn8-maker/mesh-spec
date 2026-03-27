@@ -147,83 +147,50 @@ regulatoryStrategy: artifact_schemas.#AnalyticalLens & {
 
 	reasoningProtocol: [
 		{
-			question:  "Qual atividade concreta está sendo proposta e quais regimes ela aciona?"
-			reveals:   "Mapa inicial de enquadramento a partir do fato operacional."
-			rationale: "A unidade de análise é a atividade real."
+			question:  "Qual atividade real está sendo executada?"
+			reveals:   "Enquadramento regulatório correto"
+			rationale: "Regulação segue o efeito, não o nome"
+		},
+		{
+			question:  "Quais regimes essa atividade aciona?"
+			reveals:   "Mapa regulatório"
+			rationale: "Evita análise parcial"
+		},
+		{
+			question:  "Existe conflito entre regimes?"
+			reveals:   "Pontos de risco"
+			rationale: "Conflitos são onde erros ocorrem"
 		},
 		{
 			question:  "A decisão cruza alguma fronteira de regime?"
-			reveals:   "Se a empresa está entrando em território regulado sem tratar explicitamente."
-			rationale: "Muitos erros vêm de chamar de software algo que produz efeito regulado."
+			reveals:   "Mudança de enquadramento"
+			rationale: "Fronteiras são perigosas"
 		},
 		{
-			question:  "Que módulo de capital legal esta decisão habilita ou fragiliza?"
-			reveals:   "Conexão entre obrigação regulatória e efeito econômico real."
-			rationale: "Regulação importa tanto pelo que proíbe quanto pelo que permite."
-		},
-		{
-			question:  "Existe conflito entre explicabilidade, confidencialidade, retenção ou reporte?"
-			reveals:   "Colisões entre regimes que exigem separação arquitetural."
-			rationale: "Risco surge quando dados estão sob obrigações incompatíveis."
-		},
-		{
-			question:  "O recebível é elegível de fato, considerando ônus, trava e recuperação judicial?"
-			reveals:   "Diferença entre elegibilidade aparente e real."
-			rationale: "O loop quebra quando o ativo falha no enforcement."
-			appliesWhen: "cessão, elegibilidade ou funding"
-		},
-		{
-			question:  "A solução cria dependência estrutural de parceiro, licença ou interpretação frágil?"
-			reveals:   "Lock-ins e fragilidades de trajetória."
-			rationale: "Decisões devem ser tomadas como se a empresa já estivesse em escala."
-			appliesWhen: "bootstrap regulatório ou parceria"
-		},
-		{
-			question:  "No pior cenário regulatório plausível, a solução continua operável e defensável?"
-			reveals:   "Robustez sob estresse regulatório combinado."
-			rationale: "Escolhas devem resistir ao pior caso plausível."
-		},
-		{
-			question:  "Que guardrails e métricas precisam nascer junto com a decisão?"
-			reveals:   "Controles operacionais concretos necessários."
-			rationale: "Governança nasce junto com execução."
+			question:  "No pior cenário regulatório, ainda funciona?"
+			reveals:   "Robustez"
+			rationale: "Projetar para pior caso"
 		},
 	]
 
 	meshExamples: [
 		{
-			id:                "ex-bootstrap-regulatory"
-			scenario:          "A Mesh precisa escolher sua sequência regulatória inicial para operar antecipação de recebíveis."
-			analysis:          "A atividade aciona CVM, registradora, PLD, LGPD e tributação simultaneamente. Escolher apenas pela entrada mais rápida ignora lock-in e compatibilidade futura."
-			recommendation:    "Implementar KYC proporcional, consulta de ônus, separação scoring/compliance e trilha auditável desde o dia 1. Avaliar via de entrada por autonomia e compatibilidade com arquitetura alvo."
-			principlesApplied: ["ax-01", "ax-03", "dp-04"]
-			assumptions: [
-				"existe via regulatória viável de entrada",
-				"a Mesh pretende evoluir para maior autonomia",
-			]
-			rationale: "Decisão regulatória inicial já deve ser feita com mentalidade de estado final."
+			id:             "ex-bootstrap"
+			scenario:       "Definir estrutura regulatória inicial"
+			analysis:       "Decisão envolve múltiplos regimes e trade-offs de autonomia"
+			recommendation: "Escolher caminho que minimize lock-in estrutural"
+			principlesApplied: ["ax-01", "ax-03"]
+			assumptions: ["há múltiplas opções viáveis"]
+			rationale: "Licenciamento define trajetória"
 		},
 		{
-			id:                "ex-sacado-recuperacao"
-			scenario:          "Construtora relevante entra em recuperação judicial após cessão de duplicatas ao FIDC."
-			analysis:          "Cessão melhora posição jurídica, mas não elimina risco econômico do sacado. Problema passa a ser enforcement, concentração e continuidade do funding."
-			recommendation:    "Suspender novas exposições, comunicar gestor e administrador, provisionar conservadoramente e tratar monitoramento de saúde do pagador como controle estrutural."
-			principlesApplied: ["ax-05", "dp-05", "dp-09"]
-			assumptions: [
-				"o fundo está exposto materialmente ao sacado",
-			]
-			rationale: "Qualidade jurídica do recebível não substitui gestão de risco de contraparte."
-		},
-		{
-			id:                "ex-regimes-simultaneos"
-			scenario:          "Fornecedor pequeno contesta taxa e decisão automatizada enquanto cadastro positivo pressiona compartilhamento."
-			analysis:          "Três regimes convergem: compartilhamento informacional, proteção do vulnerável e explicabilidade. O risco aparece na interface operacional."
-			recommendation:    "Separar dados operacionais de crédito, revisar camada contratual para CDC, implementar contestação acessível e garantir explicação de scoring apenas com variáveis explicáveis."
-			principlesApplied: ["ax-07", "dp-05"]
-			assumptions: [
-				"o fornecedor pode ser tratado como parte vulnerável",
-			]
-			rationale: "Robustez real aparece quando múltiplos regimes incidem sobre a mesma operação."
+			id:             "ex-recovery"
+			scenario:       "Sacado entra em recuperação judicial"
+			analysis:       "Formalização não elimina risco econômico"
+			recommendation: "Gerenciar concentração e exposição"
+			principlesApplied: ["ax-05"]
+			assumptions: ["exposição relevante ao sacado"]
+			rationale: "Enforcement real difere do teórico"
 		},
 	]
 
@@ -231,54 +198,22 @@ regulatoryStrategy: artifact_schemas.#AnalyticalLens & {
 		"ax-01",
 		"ax-03",
 		"ax-05",
-		"ax-06",
-		"ax-07",
-		"dp-02",
 		"dp-04",
 		"dp-05",
-		"dp-09",
-	]
-
-	relatedLenses: [
-		{
-			lensId:   "lens-contract-theory"
-			relation: "complementsWith"
-			context:  "Esta lente enquadra limites regulatórios; contract-theory traduz em cláusulas e desenho contratual."
-		},
-		{
-			lensId:   "lens-financial-intermediation"
-			relation: "complementsWith"
-			context:  "Enquadramento regulatório define permissões; financial-intermediation modela viabilidade econômica."
-		},
-		{
-			lensId:   "lens-credit-risk"
-			relation: "complementsWith"
-			context:  "Regulação define elegibilidade e fronteiras; credit-risk traduz em PD, LGD e política de exposição."
-		},
-		{
-			lensId:   "lens-mechanism-design"
-			relation: "complementsWith"
-			context:  "Regulação define limites do observável e exigível; mechanism-design estrutura incentivos dentro desses limites."
-		},
 	]
 
 	limitations: [
 		{
-			description: "Regulação muda frequentemente e parte relevante está em evolução."
-			alternative: "Manter a lente como artefato vivo e operar pelo cenário mais restritivo plausível."
-			rationale:   "O objetivo é robustez decisória sob mudança."
+			description: "Regulação muda constantemente"
+			alternative: "Atualização contínua"
+			rationale:   "Evitar obsolescência"
 		},
 		{
-			description: "Muitas fronteiras dependem de fatos e interpretação jurídica contextual."
-			alternative: "Usar a lente para estruturar hipóteses e escalar para opinião legal formal em decisões críticas."
-			rationale:   "A lente melhora enquadramento, mas não substitui validação especializada."
-		},
-		{
-			description: "Custos regulatórios podem inviabilizar tickets pequenos."
-			alternative: "Usar thresholds, agrupamento e comunicação honesta sobre limites econômicos."
-			rationale:   "Prometer viabilidade universal sem sustentação econômica é erro de produto."
+			description: "Não substitui aconselhamento jurídico"
+			alternative: "Usar como framework"
+			rationale:   "Aumenta qualidade da decisão"
 		},
 	]
 
-	rationale: "Regulação na Mesh não é camada acessória. Ela determina quem opera, quais dados circulam, quais decisões são explicáveis, quais ativos são financiáveis e quais custos inviabilizam promessas de produto. A lente força a empresa a tratar enquadramento regulatório como infraestrutura, não como compliance reativo."
+	rationale: "Esta lente garante que decisões respeitem e utilizem a regulação como parte do sistema, não como restrição externa."
 }
