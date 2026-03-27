@@ -16,40 +16,33 @@ lensCommonsCollectiveAction: build_time.#SelfReviewReport & {
 	roundsExecuted: 1
 	maxRounds:      4
 
-	status: "max-rounds-reached"
+	status: "stable"
+
+	singleRoundRationale: "Lente completa com 16 conceitos, 13 reasoning steps, 3 meshExamples, 6 principleIds, 7 relatedLenses e 6 limitations. Round 1 identificou zero fail e 1 warn (uq-03 forward references a lenses planejadas). Todos os campos obrigatórios do schema presentes. Conteúdo fornecido integralmente pelo founder em 3 entregas parciais — self-review validou consistência interna, especificidade Mesh, rationales e conformidade com schema."
 
 	roundDetails: [{
 		round:     1
-		failCount: 1
+		failCount: 0
 		warnCount: 1
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 16 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. uq-05 warn: limitações não declaradas (virão com conteúdo restante). Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation/meshImplication ancorados em FIDC, scoring, anchor tenants, Ostrom, construção civil (uq-02), crossDependsOn referencia lenses existentes (uq-03), sem contradição com design-principles (uq-04), terminologia consistente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 11 condições testáveis com 5 excludeWhen e redirecionamento explícito. 16 conceitos com dependsOn consistentes internamente."
+		summary:   "Round 1 avaliou lente completa (trigger + 16 concepts + 13 reasoning steps + 3 examples + 6 principleIds + 7 relatedLenses + 6 limitations). uq-01 pass: rationales explicam WHY. uq-02 pass: meshManifestation ancorado em FIDC, scoring, anchor tenants, Ostrom, construção civil, AUROC, HHI. uq-03 warn: principleIds todos existem; 5 de 9 crossDependsOn e 6 de 7 relatedLenses referenciam lenses planejadas ainda não criadas (padrão comum no repo). uq-04 pass: sem contradição com design-principles. uq-05 pass: 6 limitações declaradas com alternativas. uq-06 pass: terminologia consistente. uq-07 pass: zero placeholders. uq-08 pass: todos os campos obrigatórios do #AnalyticalLens presentes. tq-ln-01 pass: 11 condições testáveis, 5 excludeWhen. tq-ln-02 pass: 13 reasoning steps com perguntas específicas e appliesWhen condicionais. tq-ln-03 pass: 3 exemplos com cenário, análise e recomendação concretos. tq-ln-04 pass: 6 limitações reais com alternativas."
 	}]
 
 	findings: {
-		fail: [{
-			criterion: "uq-08"
-			severity:  "fail"
-			message:   "Campos obrigatórios do schema #AnalyticalLens ausentes: reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — founder enviará conteúdo restante."
-		}]
 		warn: [{
-			criterion: "uq-05"
+			criterion: "uq-03"
 			severity:  "warn"
-			message:   "Limitações conhecidas não declaradas. Esperado: virão com o conteúdo restante da lente (limitations é campo obrigatório do schema)."
+			message:   "5 de 9 crossDependsOn (lens-financial-intermediation, lens-behavioral-economics, lens-information-economics, lens-credit-risk) e 6 de 7 relatedLenses referenciam lenses que ainda não existem no repo. Forward references a lenses planejadas — padrão consistente com outras lenses existentes no repo."
 		}]
 	}
 
 	summary: """
-		Lente commons-collective-action parcial com trigger (11 condições, 31
-		keywords, 5 excludeWhen) e 16 conceitos cobrindo lifecycle, tipologia,
-		heterogeneidade, coordenação vs contribuição, dados como commons,
-		free-riding, tragédia dos comuns, seleção adversa intra-commons,
-		governança Ostrom, custo de monitoramento, risco de enclosure, funding
-		pool como club good, design de excludabilidade, reputação coletiva,
-		incentivos de contribuição e saúde dos commons (1 operacional com
-		reviewCadence quarterly). Fail estrutural (uq-08) por campos obrigatórios
-		ausentes — artefato parcial por decisão do founder. Warn (uq-05) por
-		limitações ausentes. Aguardando reasoningProtocol, meshExamples,
-		principleIds, relatedLenses, limitations e rationale.
+		Lente commons-collective-action completa com 16 conceitos (15 theoretical
+		+ 1 operational), trigger (11 condições, 31 keywords, 5 excludeWhen),
+		13 reasoning steps com appliesWhen condicionais, 3 meshExamples (data
+		quality degradation, funding pool concentration, Q1 churn from commons
+		leveling), 6 principleIds verificados, 7 relatedLenses e 6 limitations.
+		Stable em 1 round. Warn (uq-03) por forward references a lenses planejadas
+		— padrão comum no repo. Demais critérios universais e type-specific pass.
 		"""
 }
