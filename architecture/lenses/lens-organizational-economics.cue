@@ -168,4 +168,201 @@ organizationalEconomics: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Métrica em excesso pode se tornar mais um sintoma do problema organizacional em vez de solução."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Que tipo de decisão é esta: automatizável, supervisionável, reservada ou estratégica?"
+			reveals:   "Define a camada correta de autoridade e evita tanto bottleneck artificial quanto delegação prematura."
+			rationale: "Classificação vem antes de execução."
+		},
+		{
+			question:  "Se a decisão for delegada, qual é o failure mode principal e qual é o safety net correspondente?"
+			reveals:   "Expõe risco real antes da delegação e obriga a pensar em pausa, anomaly detection ou revisão."
+			rationale: "Delegar sem failure analysis é aposta organizacional."
+		},
+		{
+			question:  "A capability atual mudou desde a última classificação dessa decisão?"
+			reveals:   "Mostra se há bottleneck artificial ou automação obsoleta."
+			rationale: "A jagged frontier se move; a organização precisa se mover com ela."
+		},
+		{
+			question:  "Existe artefato suficiente, atualizado e localmente útil para suportar essa decisão?"
+			reveals:   "Mostra se a decisão é realmente delegável ou se depende de conhecimento tácito não externalizado."
+			rationale: "Artefato é condição de escala organizacional."
+		},
+		{
+			question:  "Quais complementaridades organizacionais essa mudança afeta?"
+			reveals:   "Distingue mudança local de mudança que exige rollout coordenado."
+			rationale: "Alterações isoladas em sistemas complementares degradam o todo."
+		},
+		{
+			question:  "A alocação atual favorece exploration ou exploitation, e isso combina com a fase macro da empresa?"
+			reveals:   "Expõe distorções de atenção, fuga para novidade ou otimização prematura."
+			rationale: "March sem fase macro vira diagnóstico incompleto."
+			appliesWhen: "alocação de esforço, novo projeto, novo artefato ou novo experimento"
+		},
+		{
+			question:  "O founder está em stress, hyperfocus, fuga para novidade ou fadiga de julgamento?"
+			reveals:   "Mostra distorções de decisão que parecem estratégicas, mas são fisiológicas ou comportamentais."
+			rationale: "O sistema precisa ser robusto também contra erro do próprio founder."
+			appliesWhen: "bloco longo de decisões, domínio ignorado por dias ou decisão crítica sob pressão"
+		},
+		{
+			question:  "A autoridade formal coincide com a autoridade real?"
+			reveals:   "Identifica migração silenciosa de decisão para agentes ou, no sentido oposto, intervenção excessiva do founder."
+			rationale: "Formal e real divergem facilmente em operação IA-first."
+			appliesWhen: "delegação, revisão, inconsistência de outputs ou mudança de processo"
+		},
+		{
+			question:  "A dívida organizacional está crescendo mais rápido que a capacidade de manutenção?"
+			reveals:   "Mostra se a organização está consumindo amanhã para ganhar velocidade ilusória hoje."
+			rationale: "Dívida organizacional compõe de forma silenciosa."
+		},
+		{
+			question:  "O contexto necessário cabe e os cross-triggers relevantes existem?"
+			reveals:   "Mostra se o problema é de conteúdo ausente ou de conteúdo inacessível."
+			rationale: "Em organizações IA-first, contexto é recurso escasso."
+			appliesWhen: "multi-lens, crescimento de artefatos ou outputs inconsistentes"
+		},
+		{
+			question:  "Que cultura essa decisão projeta nos defaults e nas exceções?"
+			reveals:   "Traduz decisão interna em percepção externa de confiança, rigidez, transparência e humanidade."
+			rationale: "Defaults definem marca; exceções definem reputação."
+			appliesWhen: "touchpoints frequentes, edge cases ou mudança em comunicação de decisão"
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-scoring-change-complementarities"
+			scenario:          "O founder quer adicionar variabilidade de lead time ao scoring."
+			analysis:          "A decisão não é só técnica. Ela afeta scoring, pricing, covenants, prompts de validação e artefatos raiz. Se for tratada como ajuste local, cria desalinhamento entre componentes fortemente complementares. Além disso, se vier no meio de fadiga decisória, a calibração piora."
+			recommendation:    "Tratar a mudança como decisão reservada com rollout coordenado. Verificar estabilidade do scoring atual antes de expandi-lo, mapear complementaridades afetadas, usar dual-track ou shadow mode, registrar rationale e calibrar em bloco cognitivo fresco."
+			principlesApplied: ["ax-03", "dp-04", "dp-07"]
+			assumptions: [
+				"a nova variável tem plausibilidade econômica e operacional",
+				"há capacidade de testar o impacto antes de produção plena",
+			]
+			rationale: "O caso mostra que complementaridades e qualidade cognitiva do founder importam tanto quanto a variável em si."
+		},
+		{
+			id:                "ex-delegation-antecipation"
+			scenario:          "A Mesh opera 30 antecipações por dia com revisão do founder em todas e quer escalar para 100."
+			analysis:          "A operação está tratando decisão supervisionável como decisão reservada. Isso cria bottleneck de capacidade, fragmenta atenção e degrada qualidade em blocos grandes. Ao mesmo tempo, certos failure modes ainda exigem proteção adicional, então não basta automatizar tudo."
+			recommendation:    "Reclassificar a maioria das antecipações para fluxo tipo 1 ou 2, com thresholds explícitos de escalação, anomaly detection para padrões catastróficos, blocos fixos de revisão, cap de exceções por bloco e amostragem periódica. Definir também broadcast imediato para categorias anômalas."
+			principlesApplied: ["ax-01", "ax-02", "dp-04"]
+			assumptions: [
+				"a maior parte do volume é suficientemente padronizável",
+				"há dados mínimos para definir thresholds de escalação",
+			]
+			rationale: "Escala exige redesign de autoridade, não apenas mais esforço do founder."
+		},
+		{
+			id:                "ex-drift-detected-reactive"
+			scenario:          "O founder encontra antecipações já processadas com dilution incorreta porque agentes aplicaram regra errada a serviços."
+			analysis:          "O problema pode ser artefato incompleto, trigger ausente, revisão insuficiente ou combinação dos três. Enquanto isso não é diagnosticado, outros agentes podem continuar propagando o mesmo erro."
+			recommendation:    "Broadcastar pausa imediata da categoria afetada, reclassificá-la temporariamente para revisão mais alta, diagnosticar se a falha foi de conteúdo ou carregamento, corrigir artefato e trigger, registrar o incidente em tension-log e comunicar repricing ou absorção de perda com transparência adequada."
+			principlesApplied: ["ax-02", "dp-05", "dp-07"]
+			assumptions: [
+				"há como isolar a categoria afetada sem paralisar toda a operação",
+				"a regra correta pode ser explicitada de forma operacional",
+			]
+			rationale: "Em operação multiagente, latência de correção amplia blast radius rapidamente."
+		},
+	]
+
+	principleIds: ["ax-01", "ax-02", "ax-03", "dp-04", "dp-05", "dp-07"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-theory-of-firm"
+			relation: "complementsWith"
+			context:  "Theory of firm trata a fronteira da firma; esta lente trata a arquitetura interna de autoridade, artefatos, conhecimento e coordenação dentro dessa fronteira."
+		},
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Mechanism design projeta incentivos externos; esta lente trata mecanismos internos como artefatos, thresholds, workflows e regras de supervisão."
+		},
+		{
+			lensId:   "lens-complex-adaptive-systems"
+			relation: "complementsWith"
+			context:  "Complex adaptive systems ajuda a entender adaptação e coevolução do sistema; esta lente traduz isso para desenho organizacional interno, drift e dívida."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Behavioral economics ajusta o modelo para vieses do founder e limitações humanas; esta lente usa esses vieses como restrição interna de desenho organizacional."
+		},
+		{
+			lensId:   "lens-commons-collective-action"
+			relation: "complementsWith"
+			context:  "Esta lente trata artefatos como commons internos; commons and collective action ajuda a pensar manutenção, degradação e free-riding sobre esse acervo."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "complementsWith"
+			context:  "Platform dynamics modela crescimento externo e critical mass; esta lente conecta isso à capacidade interna de sustentar o estágio certo de exploration e exploitation."
+		},
+		{
+			lensId:   "lens-market-design"
+			relation: "complementsWith"
+			context:  "Market design estrutura decisões de mercado; esta lente define quem internamente pode projetar, revisar e operar essas estruturas."
+		},
+		{
+			lensId:   "lens-contract-theory"
+			relation: "complementsWith"
+			context:  "Contract theory trata contratos com terceiros; esta lente trata artefatos internos como contratos incompletos que distribuem autoridade e direitos residuais."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information economics modela assimetria entre agentes econômicos; esta lente modela a assimetria invertida entre founder com conhecimento tácito e agentes com capacidade de processamento."
+		},
+	]
+
+	limitations: [
+		{
+			description: "Economia organizacional aplicada a organizações IA-first ainda é um campo pouco estabilizado."
+			alternative: "Usar os clássicos como base e adaptar empiricamente os mecanismos à prática real da Mesh."
+			rationale:   "A lente é framework de trabalho, não teoria fechada."
+		},
+		{
+			description: "Boa parte da modelagem assume um solo founder como premissa operacional central."
+			alternative: "Quando a organização mudar, reavaliar desenho de autoridade, cadência e divisão de trabalho, preservando o que continua válido nos artefatos."
+			rationale:   "A estrutura futura pode mudar, mas muitos princípios de coordenação e conhecimento permanecem."
+		},
+		{
+			description: "Consistência interagente é difícil de medir diretamente."
+			alternative: "Usar amostragem, incidentes, taxa de escalação e variância observada como proxies operacionais."
+			rationale:   "Medição perfeita custa mais do que a organização comporta no bootstrap."
+		},
+		{
+			description: "Artefato incompleto pode ser pior do que ausência de artefato, porque transmite falsa cobertura."
+			alternative: "Marcar maturidade, manter revisão periódica e não usar artefatos críticos como base de delegação ampla sem validação."
+			rationale:   "Falsa confiança é mais perigosa do que incerteza explícita."
+		},
+		{
+			description: "Vieses do founder resistem a auto-observação estável."
+			alternative: "Converter parte do autocontrole em sistema: gates, caps por bloco, cadência fixa, alertas e critérios explícitos."
+			rationale:   "Sistema robusto é mais confiável do que disciplina subjetiva."
+		},
+		{
+			description: "Context window e capacidades de IA podem mudar rapidamente com a tecnologia."
+			alternative: "Tratar a implementação atual como contingente, preservando princípios mais profundos de conhecimento, autoridade, partição e complementaridade."
+			rationale:   "A forma muda antes dos princípios."
+		},
+		{
+			description: "Artefact-centrism pode se tornar parcialmente obsoleto se agentes ganharem memória persistente melhor."
+			alternative: "Preservar a lógica de knowledge externalization e governança, mesmo que o suporte técnico deixe de ser apenas textual."
+			rationale:   "O meio pode mudar, mas a necessidade de explicitude e auditabilidade permanece."
+		},
+		{
+			description: "Degradação de qualidade do founder não é apenas fadiga simples; inclui carryover emocional e contaminação entre tipos de decisão."
+			alternative: "Separar blocos por tipo, reservar janelas frescas para decisões estratégicas e limitar volume por bloco."
+			rationale:   "Julgamento é recurso finito e contextual, não só tempo disponível."
+		},
+	]
+
+	rationale: "Economia Organizacional, na Mesh, trata da arquitetura interna da decisão. Enquanto theory of firm decide a fronteira, esta lente decide como operar dentro dela quando a organização é IA-first, o founder é gargalo real e agentes têm contexto finito, capability irregular e autoridade real crescente. O foco está em classificar decisões, desenhar autoridade dinâmica, transformar artefatos em memória e escala, coordenar complementaridades, regular exploration e exploitation, reduzir mode-switching destrutivo, conter dívida organizacional e tornar a organização robusta contra erro humano e erro da própria IA. Em uma empresa como a Mesh, organização não é camada administrativa. É parte do mecanismo central de correção operacional, governança e escala."
 }
