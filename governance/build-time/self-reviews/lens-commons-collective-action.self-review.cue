@@ -23,7 +23,7 @@ lensCommonsCollectiveAction: build_time.#SelfReviewReport & {
 		failCount: 1
 		warnCount: 1
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 8 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. uq-05 warn: limitações não declaradas (virão com conteúdo restante). Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation/meshImplication ancorados em FIDC, scoring, anchor tenants, construção civil (uq-02), crossDependsOn referencia lenses existentes (uq-03), sem contradição com design-principles (uq-04), terminologia consistente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 11 condições testáveis com 5 excludeWhen e redirecionamento explícito."
+		summary:   "Round 1 avaliou lente parcial (trigger + 16 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. uq-05 warn: limitações não declaradas (virão com conteúdo restante). Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation/meshImplication ancorados em FIDC, scoring, anchor tenants, Ostrom, construção civil (uq-02), crossDependsOn referencia lenses existentes (uq-03), sem contradição com design-principles (uq-04), terminologia consistente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 11 condições testáveis com 5 excludeWhen e redirecionamento explícito. 16 conceitos com dependsOn consistentes internamente."
 	}]
 
 	findings: {
@@ -41,12 +41,15 @@ lensCommonsCollectiveAction: build_time.#SelfReviewReport & {
 
 	summary: """
 		Lente commons-collective-action parcial com trigger (11 condições, 31
-		keywords, 5 excludeWhen) e 8 conceitos teóricos cobrindo lifecycle,
-		tipologia, heterogeneidade, coordenação vs contribuição, dados como
-		commons, free-riding, tragédia dos comuns e seleção adversa intra-commons.
-		Fail estrutural (uq-08) por campos obrigatórios ausentes — artefato
-		parcial por decisão do founder. Warn (uq-05) por limitações ausentes.
-		Aguardando reasoningProtocol, meshExamples, principleIds, relatedLenses,
-		limitations e rationale.
+		keywords, 5 excludeWhen) e 16 conceitos cobrindo lifecycle, tipologia,
+		heterogeneidade, coordenação vs contribuição, dados como commons,
+		free-riding, tragédia dos comuns, seleção adversa intra-commons,
+		governança Ostrom, custo de monitoramento, risco de enclosure, funding
+		pool como club good, design de excludabilidade, reputação coletiva,
+		incentivos de contribuição e saúde dos commons (1 operacional com
+		reviewCadence quarterly). Fail estrutural (uq-08) por campos obrigatórios
+		ausentes — artefato parcial por decisão do founder. Warn (uq-05) por
+		limitações ausentes. Aguardando reasoningProtocol, meshExamples,
+		principleIds, relatedLenses, limitations e rationale.
 		"""
 }

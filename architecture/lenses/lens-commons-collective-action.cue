@@ -148,5 +148,104 @@ commonsCollectiveAction: artifact_schemas.#AnalyticalLens & {
 				{lensId: "lens-market-design", conceptId: "md-participation-constraints", context: "outside option determina quais bons participantes o commons consegue reter"},
 			]
 		},
+		{
+			id:                "ca-ostrom-governance"
+			name:              "Governança Evolutiva Inspirada em Ostrom"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Commons sustentáveis exigem fronteiras claras, regras proporcionais ao contexto, monitoramento, sanções graduais, resolução de conflitos e, em fases mais maduras, algum grau de participação dos membros na formação das regras. Em commons digitais, esses princípios não são copiados literalmente, mas continuam sendo excelente framework de desenho."
+			meshManifestation: "No bootstrap, a Mesh inevitavelmente define regras unilateralmente. Em crescimento, transparência passa a importar. Em escala, contestação, regras publicadas e algum conselho consultivo tornam-se necessários para que o commons continue legítimo."
+			meshImplication:   "Planejar governança evolutiva. Não instalar participação formal prematuramente, mas também não perpetuar unilateralidade além da fase em que ela é justificável. Monitoramento e sanções precisam escalar; resolução de conflitos precisa ser acessível e confiável."
+			rationale:         "Ostrom continua útil porque o problema central continua sendo governar recurso compartilhado sem destruí-lo."
+			dependsOn:         ["ca-tragedy-of-commons", "ca-commons-lifecycle"]
+		},
+		{
+			id:                "ca-monitoring-cost"
+			name:              "Custo de Monitoramento"
+			nature:            "theoretical"
+			role:              "property"
+			definition:        "Monitoramento não é gratuito e, em commons digitais operados por plataforma, tende a recair desproporcionalmente sobre o operador. Se seu custo cresce mais rápido que a receita ou benefício gerado, a própria plataforma passa a ter incentivo para monitorar menos justamente quando mais escala exige monitorar mais."
+			meshManifestation: "Verificação cruzada, anomaly detection, revisão de exceções, validação documental, detecção de gaming e resolução de conflitos geram custo marginal e custo fixo. Falsos positivos ainda exigem revisão humana."
+			meshImplication:   "Toda regra de governança deve ser avaliada também por custo de monitoramento. Automatizar quando possível, distribuir custo quando viável e tornar visível quando ele é parte estrutural do spread ou da taxa. Monitorar o próprio monitoramento."
+			rationale:         "Commons que depende de monitoramento caro e invisível tende a degradar silenciosamente."
+			dependsOn:         ["ca-ostrom-governance"]
+		},
+		{
+			id:                "ca-enclosure-risk"
+			name:              "Risco de Enclosure"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Enclosure ocorre quando a plataforma privatiza em benefício próprio um recurso cujo valor foi produzido coletivamente. O risco não é apenas econômico, mas institucional: participantes passam a perceber que contribuem para algo que a Mesh pode reconfigurar unilateralmente a seu favor."
+			meshManifestation: "Restringir analytics antes compartilhados, vender dados agregados sem limites claros, mudar scoring unilateralmente, usar dados de uma parte para favorecer outra ou tornar opaco aquilo que antes parecia commons partilhado."
+			meshImplication:   "A Mesh precisa de mecanismos anti-enclosure: política de dados explícita, versionamento de mudanças, portabilidade de dados próprios, transparência sobre o que é exportável e sobre o que permanece dependente do commons, e evolução gradual de participação na governança."
+			rationale:         "O commons morre quando os participantes percebem que produzem valor coletivo que será capturado sem contrapartida."
+			dependsOn:         ["ca-ostrom-governance"]
+			crossDependsOn: [
+				{lensId: "lens-regulatory-strategy", conceptId: "rs-lgpd-operational", context: "portabilidade, uso de dados e limites de captura precisam respeitar LGPD e confiança institucional"},
+			]
+		},
+		{
+			id:                "ca-funding-pool-commons"
+			name:              "Funding Pool como Club Good com Congestion"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "O funding pool é um caso especial de commons: o acesso é altamente excludável, mas o recurso é rival e cada operação altera o risco agregado do conjunto. O principal problema é a externalidade que cada participante impõe ao pool, não apenas a dificuldade de excluir."
+			meshManifestation: "Cada operação adiciona concentração, correlação, risco de seleção adversa e, em casos extremos, potencial de deterioração de confiança do funding como um todo. Em bootstrap, a falta de diversificação torna limites rígidos potencialmente destrutivos."
+			meshImplication:   "Gerir funding pool com pricing de externalidade, monitoramento intensivo, transparência de composição e limites que evoluem com a fase. Em fases iniciais, monitoramento e prêmio de congestion podem ser mais adequados do que limites formais excessivamente rígidos."
+			rationale:         "Racionar apenas por limite ignora que o problema estrutural é a externalidade imposta ao conjunto."
+			dependsOn:         ["ca-resource-typology", "ca-tragedy-of-commons", "ca-commons-lifecycle"]
+			crossDependsOn: [
+				{lensId: "lens-financial-intermediation", conceptId: "fi-run-risk", context: "degradação do pool coletivo pode gerar run ou encarecimento do funding"},
+				{lensId: "lens-credit-risk", conceptId: "cr-concentration-risk", context: "externalidade coletiva do pool se manifesta como concentração e correlação de risco"},
+			]
+		},
+		{
+			id:                "ca-excludability-design"
+			name:              "Design de Excludabilidade"
+			nature:            "theoretical"
+			role:              "method"
+			definition:        "Excludabilidade é a principal ferramenta de governança para bens de clube, mas precisa ser calibrada por fase, segmento e capacidade real de contribuição. Excluir cedo demais pode matar crescimento ou empurrar participantes para informalidade; excluir de menos em escala alimenta free-riding."
+			meshManifestation: "No início, abrir demais pode ser necessário para formar o commons. Depois, acesso a analytics, reputação e scoring coletivo pode ser gradualmente condicionado a participação real e qualidade de contribuição."
+			meshImplication:   "Desenhar camadas progressivas de acesso e benefícios. Nunca excluir por incapacidade digital em segmento que a Mesh sabe que ainda não consegue contribuir de forma ativa. Excluir por ausência real de participação, não por incapacidade estrutural de gerar determinado dado."
+			rationale:         "Excludabilidade é poderosa, mas mal calibrada se torna ferramenta de autossabotagem do commons."
+			dependsOn:         ["ca-free-rider-problem", "ca-ostrom-governance", "ca-commons-lifecycle"]
+		},
+		{
+			id:                "ca-collective-reputation"
+			name:              "Reputação Coletiva"
+			nature:            "theoretical"
+			role:              "property"
+			definition:        "A reputação da rede é um commons porque incidentes locais afetam a percepção do sistema como um todo. Spillovers negativos atingem bons participantes, enquanto boa reputação sistêmica beneficia novos entrantes. Reputação coletiva, portanto, precisa de curation, monitoramento e resposta proporcional a incidentes."
+			meshManifestation: "Fraude não detectada em um fornecedor afeta confiança de investidores e compradores em todo o score. Incidentes bem tratados, com transparência e resposta justa, podem fortalecer confiança sistêmica."
+			meshImplication:   "Tratar curation, detecção precoce e resposta a incidentes como investimentos em commons reputacional, não apenas em gestão de risco pontual. Reter os melhores participantes também é proteger reputação coletiva."
+			rationale:         "Sem commons reputacional, cada incidente corrói mais do que o caso individual sugere."
+			dependsOn:         ["ca-data-as-commons", "ca-adverse-selection-intra-commons"]
+		},
+		{
+			id:                "ca-contribution-incentives"
+			name:              "Incentivos de Contribuição"
+			nature:            "theoretical"
+			role:              "method"
+			definition:        "A forma mais sustentável de resolver ação coletiva é fazer o participante perceber retorno individual claro ao contribuir. Sanção é útil como backstop; norma social ajuda em grupos menores; mas benefício individual visível, simples e próximo no tempo é o mecanismo mais escalável."
+			meshManifestation: "Atualizar documentação melhora score, prioridade ou acesso. Confirmar dados gera analytics melhores. Contribuir para verificação aumenta confiança e reduz fricção futura. Para novos participantes, porém, o retorno pode ser pequeno no início, exigindo subsídio temporal."
+			meshImplication:   "Ligar cada contribuição relevante a um benefício individual visível e rápido. Projetar onboarding e primeiros ciclos com subsídio de contribuição inicial, especialmente para novos participantes, porque cada novo membro vive seu próprio micro-bootstrap dentro do commons."
+			rationale:         "Contribuição coletiva só escala quando parece racional individualmente."
+			dependsOn:         ["ca-free-rider-problem", "ca-excludability-design", "ca-participant-heterogeneity"]
+			crossDependsOn: [
+				{lensId: "lens-mechanism-design", conceptId: "md-incentive-compatibility", context: "o commons precisa de incentivos individuais alinhados, não apenas de boa vontade coletiva"},
+			]
+		},
+		{
+			id:                "ca-mesh-commons-health"
+			name:              "Saúde dos Commons da Mesh"
+			nature:            "operational"
+			role:              "method"
+			reviewCadence:     "quarterly"
+			definition:        "A saúde dos commons deve ser monitorada por tipo de recurso e por fase. Dados, compliance, funding, reputação e monitoramento têm leading indicators próprios, além de métricas de fase, custo de governança, sinais de seleção adversa e percepção de enclosure."
+			meshManifestation: "No bootstrap, indicadores mais relevantes são cobertura de digitalização, existência mínima do commons e contribuição inicial. Em crescimento, surgem free-riding e queda de verificações. Em escala, importam efetividade de sanções, custo de monitoramento, churn seletivo e questionamentos de governança."
+			meshImplication:   "Operar dashboard por commons com thresholds calibráveis e bridges explícitas para outras lenses. Monitorar também o custo de manter o commons saudável, porque esse custo pode se tornar restrição estrutural."
+			rationale:         "Commons degradam silenciosamente se não forem observados como sistema próprio."
+			appliesWhen:       "o commons já existe em alguma escala operacional e sua qualidade precisa ser acompanhada"
+		},
 	]
 }
