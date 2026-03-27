@@ -23,7 +23,7 @@ lensCreditRisk: build_time.#SelfReviewReport & {
 		failCount: 1
 		warnCount: 0
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 7 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em construção civil, FIDC, registradora, Resolução 2.682, cessão, coobrigação, duplicata, NF eletrônica, judiciário (uq-02), sem crossDependsOn neste batch (uq-03 pass), sem contradição com design-principles (uq-04), terminologia consistente — PD, LGD, EAD, EL usados consistentemente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 9 condições testáveis, 4 excludeWhen com redirecionamento."
+		summary:   "Round 1 avaliou lente parcial (trigger + 19 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em construção civil, FIDC, registradora, Resolução 2.682, cessão, coobrigação, duplicata, NF eletrônica, judiciário, HHI, AUROC, PSI, RAROC (uq-02), crossDependsOn referencia sc-multi-tier-propagation, sc-operational-financial-transmission, cas-nonlinearity-tipping, rs-brazil-financial-regime em lenses existentes (uq-03), sem contradição com design-principles (uq-04), terminologia consistente — PD, LGD, EAD, EL, UL usados consistentemente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 9 condições testáveis, 4 excludeWhen. 19 conceitos (18 theoretical + 1 operational) com dependsOn consistentes internamente."
 	}]
 
 	findings: {
@@ -36,9 +36,13 @@ lensCreditRisk: build_time.#SelfReviewReport & {
 
 	summary: """
 		Lente credit-risk parcial com trigger (9 condições, 32 keywords, 4
-		excludeWhen) e 7 conceitos cobrindo definição de default, estrutura
-		jurídica, PD, maturidade, LGD, diluição e fraude. Fail estrutural
-		(uq-08) por campos obrigatórios ausentes — artefato parcial por decisão
-		do founder. Aguardando mais conceitos e demais campos obrigatórios.
+		excludeWhen) e 19 conceitos cobrindo definição de default, estrutura
+		jurídica, PD, maturidade, LGD, diluição, fraude, cure/roll rate, EAD,
+		EL/UL/RAROC, concentração, correlação, pro-ciclicalidade, transmissão
+		operacional→financeira, vintage, stress testing, model risk, provisão
+		regulatória e métricas de saúde (1 operacional com reviewCadence monthly).
+		Fail estrutural (uq-08) por campos obrigatórios ausentes — artefato
+		parcial por decisão do founder. Aguardando reasoningProtocol,
+		meshExamples, principleIds, relatedLenses, limitations e rationale.
 		"""
 }
