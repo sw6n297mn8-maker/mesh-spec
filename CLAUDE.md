@@ -111,10 +111,11 @@ Um commit por mudança lógica coesa. Mensagens em inglês, concisas, referencia
 | Deletar artefato | Verificar quem consome: interaction-contracts.cue, context-dependencies.cue, policies.cue (trigger refs), projections.cue (source refs) |
 | Alterar CLAUDE.md | governance/claude/config.cue (fonte) + README.md (referências cruzadas) |
 | Alterar README.md | governance/repo-structure.cue (para consistência de estrutura) |
-| Criar ou alterar semanticamente artefato em architecture/ ou governance/ | Criar ADR correspondente em architecture/adrs/ no mesmo commit. ADR deve referenciar os paths afetados em affectedArtifacts. |
+| Criar ou alterar semanticamente artefato estrutural em architecture/ ou governance/ | Criar ADR correspondente em architecture/adrs/ no mesmo commit. ADR deve referenciar os paths afetados em affectedArtifacts. |
 
 Classificação de mudanças para fins de ADR:
-  - Semântica: altera significado, política, tipo, relação ou constraint. → exige ADR.
+  - Semântica: altera significado, política, tipo, relação ou constraint de artefatos estruturais (schemas, princípios, protocolos, governance). → exige ADR.
+  - Instanciação: cria instância de um tipo já definido por schema existente (lense, canvas, subdomain, etc.) sem alterar o schema. → não exige ADR. A decisão de design foi registrada no ADR do schema.
   - Editorial: corrige typo, melhora redação sem alterar semântica. → não exige ADR.
   - Mecânica: ajuste de sintaxe CUE detectado por cue vet, reformatação. → não exige ADR.
   - Derivada: regeneração de artefato a partir de source canônico. → não exige ADR.
