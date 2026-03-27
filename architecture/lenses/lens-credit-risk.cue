@@ -258,4 +258,191 @@ creditRisk: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Sem painel operacional unificado, a lente vira teoria sem governança recorrente."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Qual é a estrutura jurídica da antecipação? Cessão definitiva, com coobrigação, desconto ou outra forma funcionalmente equivalente? Haverá registro em registradora?"
+			reveals:   "Determina devedores relevantes, validade econômica da cessão e impacto estrutural em LGD e fraude."
+			rationale: "A análise começa pela forma jurídica da exposição."
+		},
+		{
+			question:  "Como default é definido aqui? Quais buckets de atraso acionam monitoramento, restrição e default formal?"
+			reveals:   "Estabelece o referente de todas as métricas subsequentes."
+			rationale: "Sem referente, o resto da lente fica inconsistente."
+		},
+		{
+			question:  "Quem é o devedor primário e, se houver regresso, qual o devedor secundário econômico? Qual PD realmente importa?"
+			reveals:   "Evita modelar risco do usuário do produto como se fosse automaticamente o risco principal da operação."
+			rationale: "Na antecipação, cliente e risco econômico não são necessariamente o mesmo ator."
+		},
+		{
+			question:  "O prazo do recebível altera materialmente o risco? A maturidade está refletida em PD, spread e limite?"
+			reveals:   "Mostra se a estrutura temporal do risco foi tratada ou achatada indevidamente."
+			rationale: "Prazo é componente básico do risco."
+		},
+		{
+			question:  "Qual a LGD esperada em cenário normal e em downturn? Há registro, confirmação, senioridade ou contestabilidade relevante?"
+			reveals:   "Mostra severidade de perda e sensibilidade à crise."
+			rationale: "PD sem LGD é metade do problema."
+		},
+		{
+			question:  "Existe risco relevante de diluição? Como a EAD real difere da EAD nominal?"
+			reveals:   "Separa erosão comercial da exposição de inadimplência pura."
+			rationale: "Recebível pode perder valor sem default."
+		},
+		{
+			question:  "O recebível é autêntico, único e elegível? Há risco de fraude, conluio ou cessão duplicada?"
+			reveals:   "Se o ativo não existe ou é inválido, o resto do modelo é irrelevante."
+			rationale: "Fraude precede crédito."
+		},
+		{
+			question:  "Qual o padrão de atraso do comprador? Atrasa e cura, ou atrasa e escala?"
+			reveals:   "Distingue atraso endêmico do setor de deterioração verdadeira."
+			rationale: "Evita falsos positivos e falsos negativos."
+		},
+		{
+			question:  "Qual a EAD agregada e o HHI da carteira? A concentração aparente por fornecedor esconde concentração real por comprador?"
+			reveals:   "Detecta risco sistêmico mascarado por diversificação superficial."
+			rationale: "Carteira pequena e concentrada precisa de leitura explícita de concentração."
+		},
+		{
+			question:  "Os defaults são independentes ou correlacionados por macro, setor, comprador crítico ou rede de dependência?"
+			reveals:   "Mostra se o modelo está subestimando perdas de cluster."
+			rationale: "Independência simplista é erro estrutural em supply chain finance."
+		},
+		{
+			question:  "O modelo está pro-cíclico? Existe alguma âncora TTC, floor de PD ou buffer contracíclico?"
+			reveals:   "Mostra se a Mesh vai expandir demais em boom e contrair demais em crise."
+			rationale: "Sem anticíclico, o sistema amplifica o ciclo."
+		},
+		{
+			question:  "O spread cobre EL, custo operacional e custo de capital? O RAROC da operação é positivo e competitivo?"
+			reveals:   "Conecta risco a decisão econômica de alocação."
+			rationale: "Spread alto não implica bom negócio ajustado por risco."
+		},
+		{
+			question:  "Há sinais operacionais que antecedem deterioração financeira? Qual o lead time entre o evento operacional e o risco de crédito?"
+			reveals:   "Expõe a vantagem causal da Mesh sobre financiadores que veem apenas atraso de pagamento."
+			rationale: "É a parte mais estratégica da lente."
+		},
+		{
+			question:  "As safras recentes estão piorando depois de controlar por sazonalidade e ciclo do projeto?"
+			reveals:   "Permite detectar underwriting pior ou composição pior sem confundir com calendário."
+			rationale: "Vintage sem controle setorial induz erro."
+		},
+		{
+			question:  "Sob quais cenários a carteira quebra? O stress test e o stress reverso foram rodados com PD, LGD downturn e EAD estressadas?"
+			reveals:   "Mostra suficiência de reserva ou subordinação frente a cenários plausíveis e extremos."
+			rationale: "É a verificação explícita do pior cenário."
+		},
+		{
+			question:  "O modelo continua válido? População mudou, discriminação caiu ou calibração deteriorou?"
+			reveals:   "Mostra se o risco dominante passou a ser o próprio modelo."
+			rationale: "Model risk cresce silenciosamente se não for monitorado."
+		},
+		{
+			question:  "A provisão e o capital/subordinação atendem ao maior entre exigência regulatória e visão econômica?"
+			reveals:   "Evita tratar capital consumível como se estivesse livre."
+			rationale: "Constraint prudencial é real, não opcional."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-buyer-concentration"
+			scenario:          "A Mesh tem 40 fornecedores ativos, mas 30 vendem para a mesma construtora, que entra em recuperação judicial."
+			analysis:          "Há diversificação aparente por fornecedor e concentração real extrema por comprador. O default de um único nome aciona perdas correlacionadas em grande parte da carteira. A LGD também piora porque a recuperação judicial reduz recuperação esperada e alonga tempo."
+			recommendation:    "Tratar concentração por comprador como métrica primária, rodar cenário obrigatório de default do maior comprador, impor limites progressivos de EAD e usar diversificação de GTM como alavanca de risco, não apenas de crescimento."
+			assumptions: [
+				"a maior parte da EAD realmente está concentrada no comprador em RJ",
+				"a recuperação esperada em RJ é materialmente inferior ao baseline da carteira",
+			]
+			principlesApplied: ["ax-05", "dp-05"]
+			rationale:         "O exemplo mostra como a carteira pode parecer pulverizada e ainda assim estar estruturalmente frágil."
+		},
+		{
+			id:                "ex-dilution-dispute"
+			scenario:          "Fornecedor antecipa R$100 mil e, após a antecipação, o comprador contesta R$35 mil por defeito e glosa parcial."
+			analysis:          "Não houve default do comprador; houve diluição material do recebível. A EAD econômica real era menor do que a nominal e a confirmação inicial não foi suficiente para impedir disputa posterior."
+			recommendation:    "Aplicar haircut por diluição esperada antes da antecipação, monitorar taxa de diluição por par e considerar janela de estabilização ou confirmação mais robusta antes de tratar o recebível como praticamente indisputável."
+			assumptions: [
+				"a contestação é legítima e não simples atraso travestido",
+				"o par já possui ou passará a possuir histórico suficiente para calibrar taxa de diluição",
+			]
+			principlesApplied: ["ax-05", "ax-07", "dp-05"]
+			rationale:         "O exemplo mostra que risco de crédito em recebíveis inclui perda comercial do ativo, não apenas inadimplência."
+		},
+		{
+			id:                "ex-operational-leading-indicator"
+			scenario:          "Os pagamentos do comprador continuam em dia, mas o volume de pedidos cai 45% em 60 dias."
+			analysis:          "Os dados financeiros ainda não sinalizam deterioração, mas os dados operacionais podem estar antecipando crise, encerramento de projeto ou mudança estrutural do comprador. A vantagem da Mesh está em distinguir essas hipóteses antes do atraso financeiro."
+			recommendation:    "Cruzar queda de pedidos com atividade total do comprador na rede, disputas, geografia, estágio da obra e dados públicos. Se confirmado padrão de deterioração ampla, aplicar overlay de PD, restringir novos limites e alertar fornecedores concentrados."
+			assumptions: [
+				"a queda de pedidos não decorre apenas de encerramento natural do projeto",
+				"há dados operacionais suficientes para distinguir causa setorial de causa idiossincrática",
+			]
+			principlesApplied: ["ax-05", "ax-07", "dp-09"]
+			rationale:         "O exemplo mostra a tese central da Mesh: sinais operacionais antecipam risco financeiro."
+		},
+	]
+
+	principleIds: ["ax-05", "ax-07", "dp-05", "dp-08", "dp-09"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Mechanism-design desenha incentivos, menus e regras operacionais do produto; credit-risk avalia se a composição financeira resultante é sustentável. Seleção adversa gerada pelo mecanismo aparece aqui como deterioração de carteira."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information-economics identifica quais sinais e dados realmente melhoram inferência de risco; credit-risk consome esse diagnóstico para PD, overlays e early warning."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Credit-risk trata default e perda; financial-intermediation trata liquidez, funding, vehicle design e maturity mismatch. Uma crise de funding pode amplificar perda de crédito e vice-versa."
+		},
+		{
+			lensId:   "lens-complex-adaptive-systems"
+			relation: "complementsWith"
+			context:  "Credit-risk modela perdas com correlação estimável; CAS complementa com tipping points, não linearidades e mudanças de regime que aparecem em stress e run dynamics."
+		},
+		{
+			lensId:   "lens-supply-chain-theory"
+			relation: "feedsInto"
+			context:  "Supply-chain-theory mapeia dependências operacionais, diluição endêmica e propagação multi-tier; credit-risk traduz isso em correlação, overlays de PD e risco de carteira."
+		},
+		{
+			lensId:   "lens-regulatory-strategy"
+			relation: "complementsWith"
+			context:  "Regulatory-strategy define enquadramento prudencial e estrutura permitida; credit-risk calcula o efeito concreto em provisão, capital e subordinação."
+		},
+	]
+
+	limitations: [
+		{
+			description: "Modelos de crédito dependem de dados históricos e podem falhar em cenários sem precedente."
+			alternative: "Complementar com stress testing histórico, hipotético e reverso, e com leitura CAS para mudança de regime."
+			rationale:   "Todo modelo é retrospectivo em algum grau."
+		},
+		{
+			description: "Relações entre variáveis podem mudar com o mercado, com a geografia ou com a expansão setorial da Mesh."
+			alternative: "Tratar model risk como primeira classe, recalibrar com disciplina e validar por safra, PSI e calibração."
+			rationale:   "Estabilidade estatística não deve ser presumida."
+		},
+		{
+			description: "A lente cobre risco de crédito, não liquidez, risco operacional total ou compliance regulatório integral."
+			alternative: "Combinar com lens-financial-intermediation, lens-regulatory-strategy e guardrails operacionais adequados."
+			rationale:   "A Mesh enfrenta múltiplas dimensões de risco ao mesmo tempo."
+		},
+		{
+			description: "O modelo causal operacional→financeiro é específico por setor."
+			alternative: "Ao expandir para agricultura, energia ou indústria, reconstruir a camada causal em vez de reaproveitar a da construção."
+			rationale:   "A vantagem da Mesh depende de causalidade setorial específica, não genérica."
+		},
+	]
+
+	rationale: "A Mesh antecipa recebíveis na construção civil brasileira. Isso cria exposição de crédito com características próprias: o devedor econômico costuma ser o comprador, não o fornecedor; atraso é endêmico e precisa ser separado de default real; concentração por comprador pode ficar mascarada por pulverização de fornecedores; diluição e fraude são riscos de primeira ordem; correlação de cadeia é alta; e a principal vantagem competitiva da Mesh vem de observar sinais operacionais antes que virem atraso financeiro. Sem esta lente, o agente trata cada antecipação como transação isolada e ignora que o risco verdadeiro emerge na carteira, na estrutura jurídica, na topologia da cadeia, no stress e no consumo de capital."
 }

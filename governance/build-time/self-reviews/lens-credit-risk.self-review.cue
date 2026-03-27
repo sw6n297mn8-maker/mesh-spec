@@ -16,33 +16,32 @@ lensCreditRisk: build_time.#SelfReviewReport & {
 	roundsExecuted: 1
 	maxRounds:      4
 
-	status: "max-rounds-reached"
+	status: "stable"
+
+	singleRoundRationale: "Lente completa com 19 conceitos, 17 reasoning steps, 3 meshExamples, 5 principleIds, 6 relatedLenses e 4 limitations. Round 1 identificou zero fail e 1 warn (uq-03: crossDependsOn rs-brazil-financial-regime não existe em lens-regulatory-strategy — conceito fornecido pelo founder, possivelmente planejado; lens-financial-intermediation é forward reference). Todos os campos obrigatórios do schema presentes. Conteúdo fornecido integralmente pelo founder em 3 entregas parciais."
 
 	roundDetails: [{
 		round:     1
-		failCount: 1
-		warnCount: 0
+		failCount: 0
+		warnCount: 1
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 19 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em construção civil, FIDC, registradora, Resolução 2.682, cessão, coobrigação, duplicata, NF eletrônica, judiciário, HHI, AUROC, PSI, RAROC (uq-02), crossDependsOn referencia sc-multi-tier-propagation, sc-operational-financial-transmission, cas-nonlinearity-tipping, rs-brazil-financial-regime em lenses existentes (uq-03), sem contradição com design-principles (uq-04), terminologia consistente — PD, LGD, EAD, EL, UL usados consistentemente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 9 condições testáveis, 4 excludeWhen. 19 conceitos (18 theoretical + 1 operational) com dependsOn consistentes internamente."
+		summary:   "Round 1 avaliou lente completa (trigger + 19 concepts + 17 reasoning steps + 3 examples + 5 principleIds + 6 relatedLenses + 4 limitations). uq-01 pass: rationales explicam WHY. uq-02 pass: meshManifestation ancorado em construção civil, FIDC, registradora, Resolução 2.682, cessão, coobrigação, duplicata, recuperação judicial, HHI, RAROC, PSI, roll rates. uq-03 warn: principleIds todos existem; sc-multi-tier-propagation, sc-operational-financial-transmission e cas-nonlinearity-tipping existem; rs-brazil-financial-regime NÃO existe em lens-regulatory-strategy (conceitos existentes: rs-legal-capital, rs-regulatory-map, etc.); 1 de 6 relatedLenses (lens-financial-intermediation) é forward reference. uq-04 pass. uq-05 pass: 4 limitações declaradas. uq-06 pass: PD, LGD, EAD, EL, UL, RAROC, HHI usados consistentemente. uq-07 pass. uq-08 pass. tq-ln-01 pass: 9 condições testáveis, 4 excludeWhen. tq-ln-02 pass: 17 reasoning steps específicos cobrindo toda a cadeia de análise. tq-ln-03 pass: 3 exemplos concretos. tq-ln-04 pass: 4 limitações reais com alternativas."
 	}]
 
 	findings: {
-		fail: [{
-			criterion: "uq-08"
-			severity:  "fail"
-			message:   "Campos obrigatórios do schema #AnalyticalLens ausentes: reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — founder enviará conteúdo restante."
+		warn: [{
+			criterion: "uq-03"
+			severity:  "warn"
+			message:   "crossDependsOn em cr-regulatory-provisioning referencia rs-brazil-financial-regime em lens-regulatory-strategy, mas esse conceptId não existe na lente. Conceitos existentes incluem rs-legal-capital, rs-regulatory-map, rs-licensing-strategy. Também: lens-financial-intermediation em relatedLenses é forward reference (arquivo não existe)."
 		}]
 	}
 
 	summary: """
-		Lente credit-risk parcial com trigger (9 condições, 32 keywords, 4
-		excludeWhen) e 19 conceitos cobrindo definição de default, estrutura
-		jurídica, PD, maturidade, LGD, diluição, fraude, cure/roll rate, EAD,
-		EL/UL/RAROC, concentração, correlação, pro-ciclicalidade, transmissão
-		operacional→financeira, vintage, stress testing, model risk, provisão
-		regulatória e métricas de saúde (1 operacional com reviewCadence monthly).
-		Fail estrutural (uq-08) por campos obrigatórios ausentes — artefato
-		parcial por decisão do founder. Aguardando reasoningProtocol,
-		meshExamples, principleIds, relatedLenses, limitations e rationale.
+		Lente credit-risk completa com 19 conceitos (18 theoretical + 1
+		operational monthly), trigger (9 condições, 32 keywords, 4 excludeWhen),
+		17 reasoning steps, 3 meshExamples (buyer concentration, dilution dispute,
+		operational leading indicator), 5 principleIds verificados, 6 relatedLenses
+		e 4 limitations. Stable em 1 round. Warn (uq-03) por rs-brazil-financial-regime
+		inexistente em lens-regulatory-strategy e 1 forward reference em relatedLenses.
 		"""
 }
