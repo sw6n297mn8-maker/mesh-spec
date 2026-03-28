@@ -27,11 +27,11 @@ lensComplexAdaptiveSystems: build_time.#SelfReviewReport & {
 	}]
 
 	findings: {
-		"uq-08": {
-			criterion: "uq-08"
-			severity:  "fail"
-			message:   "Campos obrigatórios ausentes: reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — aguardando conteúdo restante do founder."
-		}
+		fail: [{
+			criterionId: "uq-08"
+			severity:    "fail"
+			message:     "Campos obrigatórios ausentes: reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — aguardando conteúdo restante do founder."
+		}]
 	}
 
 	summary: """
