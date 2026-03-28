@@ -241,4 +241,187 @@ platformDynamics: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Métrica errada faz a plataforma parecer saudável quando está apenas inflando superfície."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "A fricção que a Mesh resolve é realmente alta o suficiente para sustentar uma plataforma, ou estamos chamando de plataforma algo que é apenas serviço melhor embalado?"
+			reveals:   "Se a fricção for baixa em todos os lados, não há base para estratégia de plataforma."
+			rationale: "Este é o gate zero da lente."
+		},
+		{
+			question:  "Em que estágio a Mesh está: pré-launch, bootstrap, growth ou maturity? Quais 2-3 dinâmicas são prioritárias neste estágio?"
+			reveals:   "Reduz escopo analítico ao que realmente importa agora."
+			rationale: "Sem estágio, a análise perde foco."
+		},
+		{
+			question:  "Qual lado tem a dor mais intensa e a fricção mais insuportável hoje? Esse lado deve ser o hook inicial?"
+			reveals:   "Define entry point real em vez de entry point ideológico."
+			rationale: "A dor mais aguda costuma quebrar cold start."
+		},
+		{
+			question:  "Existe single-player mode real? O participante continua usando mesmo sem a rede plenamente formada?"
+			reveals:   "Distingue valor pré-rede de curiosidade passageira."
+			rationale: "Single-player mode falso gera falsa confiança no go-to-market."
+		},
+		{
+			question:  "O problema principal é chicken-and-egg estratégico ou penguin problem operacional? Quem precisa se mover primeiro e quem resiste mesmo depois disso?"
+			reveals:   "Separa direção estratégica de mobilização prática."
+			rationale: "Resolver um não resolve automaticamente o outro."
+		},
+		{
+			question:  "Os efeitos de rede relevantes são locais ou amplos? A massa crítica foi atingida na região e no segmento corretos?"
+			reveals:   "Evita confundir escala agregada com liquidez local real."
+			rationale: "Na Mesh, quase tudo relevante é local antes de ser nacional."
+		},
+		{
+			question:  "O crescimento do lado fornecedor está aumentando valor líquido ou apenas congestionando o mesmo-side effect?"
+			reveals:   "Distingue expansão de valor de expansão destrutiva."
+			rationale: "Mais oferta nem sempre ajuda."
+		},
+		{
+			question:  "O data network effect é real e mensurável? Separadamente: DNE de scoring e DNE de matching."
+			reveals:   "Mostra se há flywheel real ou narrativa de flywheel."
+			rationale: "Toda tese de moat depende disso."
+		},
+		{
+			question:  "A concentração do lado comprador é tolerável? O que acontece se o maior comprador sair ou negociar termos agressivos?"
+			reveals:   "Mapeia fragilidade estrutural e assimetria de poder."
+			rationale: "Concentração de buyer side pode matar a rede inteira."
+		},
+		{
+			question:  "Quem deve ser subsidiado e por quê? A externalidade cruzada justifica esse subsídio?"
+			reveals:   "Força lógica econômica do pricing multi-sided."
+			rationale: "Subsídio sem externalidade é apenas queima de caixa."
+		},
+		{
+			question:  "Há multi-homing relevante? Em quais lados ele é ameaça e em quais é oportunidade?"
+			reveals:   "Evita estratégia uniforme para comportamentos distintos."
+			rationale: "Fornecedor e investidor não multi-home da mesma forma."
+		},
+		{
+			question:  "Existe bypass? Ele é temporário ou estrutural? O que a Mesh perde em cada caso: dados, receita, retenção, ou posição no workflow?"
+			reveals:   "Diagnostica leakage com precisão útil."
+			rationale: "Bypass estrutural exige resposta mais profunda."
+		},
+		{
+			question:  "A governança e a curation estão preservando a qualidade da rede ou apenas maximizando quantidade de participantes?"
+			reveals:   "Identifica se a plataforma está crescendo degradando a si mesma."
+			rationale: "Match ruim destrói confiança de todos os lados."
+		},
+		{
+			question:  "O moat principal é real ou assumido? Se um banco, ERP ou marketplace adjacente entrar, o que exatamente eles não conseguem replicar rápido?"
+			reveals:   "Expõe se a defensibilidade é concreta ou narrativa."
+			rationale: "Moat assumido é uma das crenças mais caras em plataformas."
+		},
+		{
+			question:  "Qual elo mais fraco pode causar unraveling da rede: funding, retenção, bypass, baixa liquidez local, concentração de buyer, ou falha de curation?"
+			reveals:   "Aponta o ponto de quebra mais provável e o mecanismo de mitigação prioritário."
+			rationale: "A rede não quebra por média; quebra pelo elo mais fraco."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:       "ex-construction-bootstrap"
+			scenario: "Lançar a Mesh na construção civil em São Paulo sem participantes iniciais."
+			analysis: "A primeira pergunta não é chicken-and-egg, mas friction threshold. Se a dor mais intensa estiver no crédito do fornecedor e não na qualificação do comprador, o hook inicial deve ser financeiro. Depois, vem a distinção entre direção e mobilização: um anchor buyer pode resolver direção, mas não o penguin problem dos fornecedores. Além disso, o single-player mode do comprador precisa ser testado, não assumido."
+			recommendation: "Validar fricção em ambos os lados antes de escolher a sequência. Se o single-player mode do comprador não retiver, pivotar para hook financeiro do fornecedor. Escolher anchor buyer que tenha autoridade sobre fornecedores substituíveis e usar incentivos financeiros para os fornecedores críticos. Planejar o onboarding como processo de meses, não semanas."
+			assumptions: [
+				"fricção financeira do fornecedor é maior que a de qualificação do comprador",
+				"há anchor buyer disposto a forçar ou incentivar adoção",
+				"São Paulo oferece densidade local suficiente para atingir massa crítica primeiro",
+			]
+			principlesApplied: ["ax-05", "ax-06", "ax-07"]
+			rationale: "Bootstrap correto depende mais de ordem e foco do que de intensidade comercial bruta."
+		},
+		{
+			id:       "ex-dne-validation"
+			scenario: "Após 8 meses, a Mesh tem 150 fornecedores e 5 compradores. Precisar decidir se está construindo moat real ou apenas crescendo cadastro."
+			analysis: "A pergunta central é separar DNE de scoring e DNE de matching. Se AUROC melhora com o volume e supera bureau de forma material, há valor proprietário real. Se taxa de match melhora apenas marginalmente apesar do crescimento da base, o matching ainda não virou flywheel robusto. Se receita por par ativo cai, pode haver bypass, o que enfraquece o DNE por reduzir fluxo recente."
+			recommendation: "Comparar explicitamente scoring Mesh vs baseline externo. Medir taxa de match por segmento e região. Priorizar retenção de volume ativo sobre novos cadastros. Se o cruzamento proprietário não agregar o suficiente, deslocar o investimento de moat para workflow, compliance e embed operacional."
+			assumptions: [
+				"há dados suficientes para medir AUROC com confiança mínima",
+				"matching pode ser medido por taxa de match real e não apenas busca ou cadastro",
+			]
+			principlesApplied: ["ax-05", "dp-09"]
+			rationale: "Plataforma saudável acumula uso valioso, não apenas superfície."
+		},
+		{
+			id:       "ex-expansion-vs-deepening"
+			scenario: "A Mesh já tem presença em São Paulo e precisa decidir entre expandir para Rio de Janeiro ou aprofundar São Paulo."
+			analysis: "A decisão correta depende de local network effects e massa crítica segmentada. Se São Paulo ainda não tem densidade suficiente em segmentos centrais, expandir para RJ significa abrir novo bootstrap antes de consolidar o primeiro. A expansão geográfica só faz sentido quando a praça atual já gera flywheel relativamente autossustentado."
+			recommendation: "Aprofundar São Paulo primeiro até que os segmentos críticos tenham liquidez real e retenção estável. Só abrir RJ se houver bridge concreta — por exemplo, anchor buyer com atuação nas duas regiões — e se a operação atual já suportar dois bootstraps simultâneos sem degradação de qualidade."
+			assumptions: [
+				"São Paulo ainda não atingiu massa crítica uniforme em segmentos importantes",
+				"RJ exigiria bootstrap quase do zero na maior parte das relações",
+			]
+			principlesApplied: ["ax-05", "ax-06", "dp-02"]
+			rationale: "Expandir cedo demais transforma uma rede promissora em duas redes frágeis."
+		},
+	]
+
+	principleIds: ["ax-05", "ax-06", "ax-07", "dp-02", "dp-09"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Platform-dynamics identifica onde estão as dinâmicas e os gargalos da plataforma. Mechanism-design desenha os mecanismos específicos para pricing, retenção, anti-bypass, onboarding e governance."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information-economics ajuda a avaliar se os dados realmente criam DNE proprietário, qual o valor marginal desse dado e onde ele decai mais rápido."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Sem liquidez financeira, a liquidez da plataforma quebra. Funding e plataforma são interdependentes na Mesh."
+		},
+		{
+			lensId:   "lens-credit-risk"
+			relation: "complementsWith"
+			context:  "Buyer concentration em platform-dynamics e concentração de EAD em credit-risk são dimensões complementares do mesmo risco estrutural."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Penguin problem, onboarding, switching cost percebido e adoção inicial são parcialmente comportamentais."
+		},
+		{
+			lensId:   "lens-network-theory"
+			relation: "feedsInto"
+			context:  "Platform-dynamics formula as perguntas de crescimento, massa crítica, concentração e liquidez; network-theory fornece parte das ferramentas topológicas para respondê-las quantitativamente."
+		},
+		{
+			lensId:   "lens-market-design"
+			relation: "complementsWith"
+			context:  "Platform-dynamics trata crescimento, composição e posição competitiva da plataforma. Market-design trata como o mercado dentro da plataforma é estruturado, limpa oferta e demanda e aloca recursos escassos."
+		},
+	]
+
+	limitations: [
+		{
+			description: "A lens assume que a Mesh é ou pode virar plataforma de verdade. Se os efeitos de rede forem fracos, a análise superestima dinâmicas de plataforma."
+			alternative: "Validar empiricamente DNE, massa crítica, retenção e bypass antes de investir pesado em moat de plataforma."
+			rationale:   "Nem todo negócio com múltiplos lados é plataforma defensável."
+		},
+		{
+			description: "Calibração depende fortemente da vertical. Construção civil não generaliza automaticamente para outras cadeias."
+			alternative: "Recalibrar friction threshold, local network effects, buyer concentration e chicken-and-egg em cada vertical nova."
+			rationale:   "O padrão de concentração e coordenação muda por setor."
+		},
+		{
+			description: "A lens não modela regulação como constraint direta."
+			alternative: "Complementar com regulatory-strategy quando LGPD, Bacen, portabilidade ou estrutura regulatória mudarem switching costs e DNE."
+			rationale:   "Regulação pode limitar efeitos de plataforma."
+		},
+		{
+			description: "A capacidade operacional do operador pode ser o gargalo real, independentemente de a dinâmica teórica de plataforma parecer favorável."
+			alternative: "Tratar capacidade como constraint explícita em bootstrap e expansão."
+			rationale:   "Rede cresce na velocidade que pode ser operada sem degradar qualidade."
+		},
+	]
+
+	rationale: "A Mesh não é apenas produto; é potencialmente uma plataforma multi-sided. Esta lente existe para distinguir plataforma real de narrativa de plataforma. Ela começa onde deveria começar: validar se a fricção é suficiente para sustentar coordenação multi-sided. Depois disso, organiza o problema por estágio, separa chicken-and-egg de penguin problem, trata efeitos de rede locais, distingue DNE de scoring e de matching, separa bypass temporário de estrutural, mede concentração do lado comprador, define lógica de subsídio cruzado, interpreta multi-homing por lado, trata curation como parte central da governança e testa se o moat é real ou assumido. O objetivo não é explicar genericamente como plataformas crescem, mas dar à Mesh uma lente operacional para decidir como iniciar, aprofundar, defender e expandir sua rede sem confundir crescimento aparente com plataforma saudável."
 }
