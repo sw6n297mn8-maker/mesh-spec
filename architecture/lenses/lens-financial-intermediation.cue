@@ -94,5 +94,135 @@ financialIntermediation: artifact_schemas.#AnalyticalLens & {
 			dependsOn:         ["fi-funding-structure"]
 			rationale:         "O FIDC molda a carteira tanto quanto a carteira molda o FIDC."
 		},
+		{
+			id:                "fi-true-sale-commingling"
+			name:              "True Sale, Segregação Patrimonial e Commingling"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Para que o veículo seja robusto, os ativos precisam estar efetivamente segregados da Mesh, a cessão precisa ser economicamente e juridicamente defensável, e os fluxos precisam evitar mistura indevida entre caixa operacional e caixa do veículo."
+			meshManifestation: "Se o recebível cedido ao FIDC ainda é disputável em insolvência da Mesh, ou se o dinheiro do comprador transita por contas operacionais antes de chegar ao veículo, o risco estrutural aumenta e a qualidade do funding piora."
+			meshImplication:   "True sale, bankruptcy remoteness e mitigação de commingling devem ser tratados como fundação da estrutura, não como refinamento posterior. Sem isso, rating, custo e confiança do investidor degradam."
+			dependsOn:         ["fi-fidc-structure", "fi-regulatory-vehicle"]
+			rationale:         "Sem segregação jurídica e operacional, a intermediação fica estruturalmente frágil."
+		},
+		{
+			id:                "fi-servicer-risk"
+			name:              "Risco de Servicer e Continuidade Operacional"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Quem origina ou monitora a carteira pode também ser o servicer, mas isso cria risco operacional específico: se o servicer falha, a carteira e o funding sofrem mesmo sem deterioração intrínseca dos ativos."
+			meshManifestation: "A Mesh pode ser excelente em originar e monitorar, mas ainda assim ser percebida como servicer mais frágil do que banco ou operador estabelecido. Para investidores, isso afeta confiança e custo."
+			meshImplication:   "Servicer backup, documentação de processos, separação funcional e continuidade operacional precisam existir cedo. Em estruturas com FIDC, esse risco é parte do produto financeiro, não apenas da operação interna."
+			dependsOn:         ["fi-intermediation-role", "fi-fidc-structure"]
+			rationale:         "Funding de terceiros compra a carteira, mas também compra a capacidade da Mesh de servi-la."
+		},
+		{
+			id:                "fi-maturity-transformation"
+			name:              "Transformação de Maturidade e Maturity Mismatch"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "A intermediação transforma prazos. Quando o funding vence, pode ser resgatado ou precisa ser rolado antes do vencimento econômico dos ativos, surge risco de maturity mismatch."
+			meshManifestation: "Mesmo com recebíveis bons, a Mesh pode entrar em aperto se o funding é mais curto, mais instável ou mais sensível do que a maturidade média da carteira."
+			meshImplication:   "Maturity gap precisa ser monitorado explicitamente. Estruturas de funding que parecem baratas podem carregar fragilidade excessiva se exigem rolagem frequente ou estão expostas a secas de mercado."
+			dependsOn:         ["fi-funding-structure"]
+			rationale:         "A clássica crise do intermediário não é só insolvência; é liquidez insuficiente no tempo errado."
+		},
+		{
+			id:                "fi-liquidity-risk"
+			name:              "Risco de Liquidez"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Risco de não conseguir atender saídas, nova demanda de antecipação ou obrigações do veículo, apesar de a carteira poder ser economicamente boa. Liquidez e crédito são riscos diferentes, com velocidades diferentes."
+			meshManifestation: "A carteira pode estar saudável, mas a demanda por antecipação pode exceder caixa disponível. Ou o mercado pode fechar para novas séries, resgates ou warehouse exatamente quando a demanda aumenta."
+			meshImplication:   "A Mesh precisa modelar buffer de liquidez, janelas de estresse, concentração temporal de vencimentos e política de escassez. Funding congelado por 30, 60 ou 90 dias precisa ser cenário padrão de análise."
+			dependsOn:         ["fi-maturity-transformation", "fi-funding-structure"]
+			rationale:         "Liquidez mata mais rápido do que crédito."
+		},
+		{
+			id:                "fi-run-risk"
+			name:              "Risco de Corrida"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Run risk é a materialização extrema da perda de confiança. Sua forma concreta depende do funding: resgates, não rolagem, impossibilidade de nova série, early termination, ou fuga de fornecedores e parceiros."
+			meshManifestation: "Com equity puro, não há run clássico de funding, mas há run de usuários. Em FIDC aberto, há resgate. Em FIDC fechado, a corrida aparece como secura na próxima emissão. Em warehouse, pode aparecer como saída abrupta do financiador."
+			meshImplication:   "A Mesh precisa mapear run risk específico por estágio e por fonte de funding. A mitigação correta muda conforme a estrutura: lock-up, diversificação, comunicação, protocolo de crise, pipeline alternativo, buffer e confiabilidade operacional."
+			dependsOn:         ["fi-liquidity-risk"]
+			rationale:         "Corrida é dinâmica de confiança, não apenas de números."
+		},
+		{
+			id:                "fi-ramp-up-reinvestment"
+			name:              "Ramp-Up, Reinvestimento e Utilização do Veículo"
+			nature:            "operational"
+			role:              "framework"
+			reviewCadence:     "semi-annual"
+			definition:        "Veículos de funding precisam de pipeline compatível. Originação lenta, sazonalidade ou quebra de pipeline geram ociosidade, que corrói retorno e pode consumir subordinação."
+			meshManifestation: "Na construção civil, sazonalidade e ciclos de projeto afetam geração de recebíveis. Um fundo lançado no momento errado pode carregar caixa quando deveria carregar ativos."
+			meshImplication:   "Dimensionar veículo pelo pipeline sustentável, não pelo pico narrativo. Medir utilização e não relaxar originação para 'encher o fundo'. Caixa ocioso prolongado é sintoma estrutural, não ruído operacional."
+			dependsOn:         ["fi-fidc-structure", "fi-funding-structure"]
+			rationale:         "Funding sem pipeline adequado destrói retorno e incentiva adverse selection."
+		},
+		{
+			id:                "fi-delegated-monitoring"
+			name:              "Monitoramento Delegado"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Investidores aceitam expor capital porque delegam ao intermediário a função de monitorar, detectar deterioração e reagir cedo. Se o monitoramento não for melhor que a outside option, a intermediação perde legitimidade econômica."
+			meshManifestation: "A vantagem da Mesh está em monitorar com dados que combinam operação e dinheiro. Se isso não resultar em detecção mais cedo, melhor discriminação e menos surpresa, o diferencial econômico perante capital externo fica fraco."
+			meshImplication:   "Monitoramento deve ser reportado como capability financiável: detecção precoce, estabilidade do modelo, fraude capturada, qualidade de servicing, integridade do lastro. Funding escalável depende de essa função ser visível e crível."
+			dependsOn:         ["fi-intermediation-role"]
+			rationale:         "Investidores compram capacidade de monitoramento, não só ativos."
+		},
+		{
+			id:                "fi-cost-of-capital"
+			name:              "Custo de Capital e Spread Mínimo Viável"
+			nature:            "operational"
+			role:              "method"
+			reviewCadence:     "quarterly"
+			definition:        "O custo real de capital inclui muito mais do que o custo aparente da tranche sênior ou da linha de funding. Deve incorporar custo da subordinação, custos estruturais, custo de oportunidade do capital retido, tributos, atrito operacional e margem mínima de sustentabilidade."
+			meshManifestation: "Um FIDC com cota sênior aparentemente barata pode continuar economicamente pesado para a Mesh quando se inclui junior retida, estrutura, IOF, tributos, servicing e equity presa."
+			meshImplication:   "O spread mínimo viável precisa ser calculado de forma completa. Decisão de go/no-go sobre antecipação, segmento ou estrutura de funding não pode usar custo parcial. Se o spread mínimo real fica acima da outside option do cliente, o modelo não fecha naquele recorte."
+			dependsOn:         ["fi-funding-structure", "fi-fidc-structure"]
+			rationale:         "Subprecificar custo de capital é forma silenciosa de autossabotagem."
+		},
+		{
+			id:                "fi-capital-allocation"
+			name:              "Alocação de Capital: Operação, Reserva, Crescimento e Subordinação"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "Capital próprio da Mesh disputa quatro usos ao mesmo tempo: suportar operação direta, cobrir buffers e UL, financiar crescimento, e ser retido como first-loss em estruturas escaláveis. Esses usos não são intercambiáveis sem custo."
+			meshManifestation: "Quando a Mesh avança para FIDC, parte do equity deixa de estar disponível para crescimento e passa a ficar presa em subordinação. Isso pode dar a ilusão de escala sem mostrar o custo real de capital comprometido."
+			meshImplication:   "Planejamento de capital deve explicitar quanto fica em operação, quanto em reserva, quanto em growth e quanto em first-loss. Toda rodada ou planejamento de caixa precisa refletir isso com clareza."
+			dependsOn:         ["fi-cost-of-capital", "fi-fidc-structure"]
+			rationale:         "Capital escasso mal alocado compromete funding e execução ao mesmo tempo."
+		},
+		{
+			id:                "fi-funding-fragility"
+			name:              "Fragilidade de Funding e Sequência de Colapso"
+			nature:            "theoretical"
+			role:              "framework"
+			definition:        "O funding pode quebrar por encadeamento: incidente reputacional, covenant breach, pipeline insuficiente, deterioração de servicing, concentração excessiva ou fechamento de mercado. O colapso raramente vem de um fator isolado."
+			meshManifestation: "Uma fraude detectada tarde pode piorar confiança, aumentar spread da próxima série, reduzir capacidade, limitar atendimento de fornecedores, secar dados ativos e enfraquecer o core ao mesmo tempo."
+			meshImplication:   "A Mesh precisa mapear a sequência de unraveling do funding: o que quebra primeiro, com que velocidade, e qual mitigação existe em cada elo. Sem isso, o plano de funding parece robusto até o momento em que deixa de existir."
+			dependsOn:         ["fi-run-risk", "fi-liquidity-risk", "fi-delegated-monitoring"]
+			rationale:         "Funding quebra por cadeia, não apenas por evento único."
+		},
+		{
+			id:                "fi-mesh-funding-map"
+			name:              "Mapa de Funding da Mesh"
+			nature:            "operational"
+			role:              "method"
+			reviewCadence:     "quarterly"
+			definition:        "Artefato vivo que registra estrutura atual de funding, custo real por fonte, subordinação exigida, covenants, buffers, ramp-up, pipeline, run risks específicos, triggers de transição e fragilidades principais."
+			meshManifestation: "O mapa mostra o estágio atual, a próxima estrutura alvo, o lead time para chegar nela, as dependências regulatórias, os thresholds de reavaliação e os pontos de quebra mais prováveis."
+			meshImplication:   "Toda decisão desta lens deve atualizar o funding map. Sem isso, a organização perde memória institucional sobre por que escolheu determinado funding, o que a estrutura exige e quando a decisão precisa ser revista."
+			dependsOn: [
+				"fi-funding-structure",
+				"fi-fidc-structure",
+				"fi-cost-of-capital",
+				"fi-capital-allocation",
+				"fi-funding-fragility",
+			]
+			rationale: "Sem mapa vivo, a intermediação vira sequência de decisões isoladas sem coerência temporal."
+		},
 	]
 }
