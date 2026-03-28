@@ -258,4 +258,187 @@ theoryOfFirm: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Sem boundary map, a lente decide bem uma vez e a organização esquece por que decidiu."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Estamos decidindo fronteira organizacional de verdade, ou apenas preferência técnica local sem impacto de controle, dependência, capacidade ou lock-in?"
+			reveals:   "Se não há componente de fronteira, esta lens não é a correta."
+			rationale: "Evita usar theory-of-firm para qualquer escolha técnica."
+		},
+		{
+			question:  "Qual atividade, ativo ou capacidade está sendo avaliado? Qual é exatamente a unidade de decisão: serviço, dado, modelo, workflow, função regulada, infraestrutura ou capability?"
+			reveals:   "Define escopo analítico preciso."
+			rationale: "Sem unidade de decisão clara, a análise mistura camadas diferentes."
+		},
+		{
+			question:  "Os drivers de internalização são altos? Especificidade, complementaridade com o core e controle sobre direitos residuais."
+			reveals:   "Mostra direção estrutural inicial."
+			rationale: "Drivers decidem a inclinação base da decisão."
+		},
+		{
+			question:  "O mercado consegue preservar a complementaridade necessária com qualidade, latência, completude e acesso suficientes?"
+			reveals:   "Distingue complementaridade resolvida por integração contratual daquela que exige co-localização real."
+			rationale: "Nem toda complementaridade exige build."
+		},
+		{
+			question:  "Quais formas de oportunismo são plausíveis neste caso: hold-up, shirking, adverse selection pré-contratual ou misrepresentation?"
+			reveals:   "Mapeia o risco institucional da relação."
+			rationale: "Sem isso, buy parece mais seguro do que realmente é."
+		},
+		{
+			question:  "A dependência é unilateral ou bilateral? O parceiro também perde algo material se a relação romper?"
+			reveals:   "Ajusta o risco líquido de hold-up."
+			rationale: "Refém mútuo muda a necessidade de defesa."
+		},
+		{
+			question:  "Qual é o switching cost estimado, em tempo, risco operacional e esforço de engenharia? Isso é reversível ou quase irreversível?"
+			reveals:   "Traduz lock-in em custo concreto."
+			rationale: "Sem quantificar troca, lock-in vira abstração."
+		},
+		{
+			question:  "Temos capacidade organizacional real para operar isso internamente com correção, governança e QA suficientes hoje?"
+			reveals:   "Separa desejabilidade estrutural de viabilidade imediata."
+			rationale: "Build sem capacidade é wishful thinking."
+		},
+		{
+			question:  "O volume atual ou projetado atinge escala mínima eficiente? Se não, quando atingiria? O threshold pode ser quantificado?"
+			reveals:   "Evita 'internalizar depois' sem gatilho real."
+			rationale: "Escala é restrição dura."
+		},
+		{
+			question:  "O ambiente institucional favorece mercado, híbrido ou hierarquia aqui? Regulação, enforcement judicial, infraestrutura regulada e poder contratual mudam a resposta?"
+			reveals:   "Ajusta a decisão ao contexto brasileiro real."
+			rationale: "A firma decide dentro de instituições, não fora delas."
+		},
+		{
+			question:  "A atividade está se tornando mais específica com o tempo? Há acúmulo de customizações, dados, processos ou dependência que altere a decisão futura?"
+			reveals:   "Captura lock-in silencioso."
+			rationale: "O que hoje é commodity pode virar ativo quase core."
+		},
+		{
+			question:  "Qual forma de governança é mais adequada agora: mercado, hierarquia ou híbrido? Se híbrido, que tipo de híbrido?"
+			reveals:   "Produz resposta prática em vez de binária simplista."
+			rationale: "Muitas decisões corretas são híbridas."
+		},
+		{
+			question:  "A classificação do DDD é coerente com a decisão? Core está sendo tratado como build ou hybrid sob plano explícito? Generic está sendo comprado?"
+			reveals:   "Faz validação cruzada com o restante do sistema de decisão da Mesh."
+			rationale: "Inconsistência entre fronteira e DDD gera arquitetura incoerente."
+		},
+		{
+			question:  "Qual é a assimetria de erro? O que dói mais: build cedo demais ou buy tarde demais?"
+			reveals:   "Define profundidade de salvaguarda e urgência de revisão."
+			rationale: "Nem todo erro merece o mesmo medo."
+		},
+		{
+			question:  "Qual gatilho quantificado reabrirá esta decisão? Escala, custo, qualidade, dependência, regulação, switching cost, ou degradação de complementaridade?"
+			reveals:   "Transforma decisão em política reavaliável."
+			rationale: "Sem trigger, a decisão apodrece em silêncio."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:       "ex-baas-vs-own-banking"
+			scenario: "Decidir se a camada bancária da Mesh deve ser operada por BaaS na fase inicial ou internalizada cedo."
+			analysis: "Os drivers não apontam para internalização imediata total. Pix e ledger bancário básico têm especificidade relativamente baixa, mas a complementaridade com o core é alta porque dados transacionais alimentam risco, operação e observabilidade econômica da rede. O ponto decisivo não é 'é bancário, então build', mas 'o parceiro entrega dados, timing e controle suficientes para que o core da Mesh funcione sem amputação?'. No bootstrap, as restrições de capacidade e foco ainda pesam muito. O erro de internalizar cedo demais tende a ser recuperável, porém caro; o erro de delegar sem optionality vira lock-in progressivo."
+			recommendation: "Usar BaaS no início, mas com ports and adapters, exportação total de dados, observabilidade própria, contratos de saída reais e trigger explícito de reavaliação. Tratar a camada como buy-now-build-later condicionado a escala, qualidade dos dados e evolução da licença/estrutura regulatória já necessária para antecipação."
+			assumptions: [
+				"BaaS consegue entregar dados e eventos com qualidade suficiente para o core",
+				"a Mesh ainda não tem capacidade operacional para banking completo sem perda de foco",
+				"há arquitetura reversível suficiente para evitar lock-in estrutural",
+			]
+			principlesApplied: ["ax-03", "ax-04", "dp-07"]
+			rationale: "Complementaridade alta com restrições ativas pede híbrido disciplinado, não build impulsivo."
+		},
+		{
+			id:       "ex-supplier-qualification-engine"
+			scenario: "Decidir se qualificação e scoring de fornecedores devem ser terceirizados ou construídos internamente."
+			analysis: "Especificidade, complementaridade e direitos residuais são máximos. A atividade toca diretamente o core da Mesh, acumula dados próprios, molda reputação, risco e matching, e fica melhor justamente pela acumulação local do histórico. Delegar isso a terceiro reduziria controle sobre o principal ativo informacional e enfraqueceria a tese de 'dinheiro e operação no mesmo plano'. As restrições existem, mas são administráveis com IA e forte framework de validação."
+			recommendation: "Internalizar desde cedo. Se algum componente externo for usado, deve ser tooling subordinado, não locus de controle do ativo. O modelo, os dados, o workflow e os artefatos de decisão precisam permanecer sob controle da Mesh."
+			assumptions: [
+				"a Mesh consegue montar regime mínimo de QA e governança sobre o engine",
+				"o custo de operar internamente é suportável frente ao risco existencial de delegar",
+			]
+			principlesApplied: ["ax-03", "ax-07", "dp-08"]
+			rationale: "É caso clássico de build por core + complementaridade + controle."
+		},
+		{
+			id:       "ex-ai-provider-dependency"
+			scenario: "A Mesh usa um único provider de IA para runtime dos agentes e precisa decidir o grau de dependência aceitável."
+			analysis: "A atividade tem complementaridade relevante, especificidade crescente e alta incerteza tecnológica. O provider não é o core da Mesh, mas permeia o modo como a Mesh opera, desenvolve e coordena. Há risco de hold-up, misrepresentation de roadmap, degradação invisível e lock-in em features ou artefatos não portáveis. Por outro lado, treinar ou operar tudo internamente cedo demais é inviável por capacidade e escala."
+			recommendation: "Adotar governança híbrida: interfaces model-agnostic, artefatos portáveis, limitação consciente de dependências provider-specific, benchmarking recorrente, e gatilhos explícitos de reavaliação conforme switching cost cresce ou open-source melhora. Não tratar provider de IA como commodity pura, nem como core interno imediato."
+			assumptions: [
+				"há ganho operacional real em usar provider externo neste estágio",
+				"o custo de optionality adicional é menor que o custo esperado de lock-in mal gerido",
+			]
+			principlesApplied: ["ax-03", "ax-05", "dp-07"]
+			rationale: "É caso típico de híbrido disciplinado com forte investimento em optionality."
+		},
+	]
+
+	principleIds: ["ax-03", "ax-04", "ax-05", "ax-07", "dp-07"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Theory-of-firm decide o que fica dentro da fronteira da Mesh. Mechanism-design desenha as regras do que foi internalizado ou das interações controladas pela Mesh."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information-economics mostra quais ativos informacionais têm valor e quais assimetrias a Mesh resolve. Theory-of-firm decide quem deve controlar esses ativos e onde eles devem residir."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Financial-intermediation avalia estruturas como BaaS, FIDC, SCD e funding do ponto de vista econômico-financeiro. Theory-of-firm avalia se essas camadas devem ser compradas, internalizadas ou hibridizadas."
+		},
+		{
+			lensId:   "lens-regulatory-strategy"
+			relation: "complementsWith"
+			context:  "Regulatory-strategy define o espaço permitido. Theory-of-firm decide a fronteira organizacional dentro desse espaço."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "complementsWith"
+			context:  "Platform-dynamics mostra como a rede cria valor. Theory-of-firm decide quais componentes dessa criação de valor precisam estar sob controle direto da Mesh para que o flywheel seja defensável."
+		},
+		{
+			lensId:   "lens-network-theory"
+			relation: "complementsWith"
+			context:  "Network-theory mostra a topologia e as dependências estruturais da rede. Theory-of-firm usa isso para decidir onde complementaridade e controle precisam ser internalizados."
+		},
+		{
+			lensId:   "lens-supply-chain-theory"
+			relation: "feedsInto"
+			context:  "Supply-chain-theory ajuda a identificar dependências operacionais, complementaridades e pontos de especificidade que alimentam decisões de fronteira."
+		},
+	]
+
+	limitations: [
+		{
+			description: "A lens foca a decisão de fronteira por atividade, o que pode subotimizar o sistema se decisões forem tomadas isoladamente."
+			alternative: "Usar o boundary map como visão agregada e revisar periodicamente interdependências entre decisões."
+			rationale:   "Otimização local pode degradar coerência sistêmica."
+		},
+		{
+			description: "Ela depende de estimativas de custo, capacidade, escala e switching cost que podem ser imprecisas no bootstrap."
+			alternative: "Registrar premissas explicitamente e atrelar a decisão a triggers quantitativos de revisão."
+			rationale:   "No bootstrap, a precisão vem mais do regime de revisão do que da estimativa inicial."
+		},
+		{
+			description: "A hipótese de que IA reduz custos de transação e desloca o limiar de internalização ainda é parcialmente empírica, não garantida."
+			alternative: "Tratar isso como hipótese operacional e revisar a fronteira se a observabilidade e o controle efetivos dos terceiros não melhorarem de fato."
+			rationale:   "IA mal governada não reduz custo institucional; só o desloca de lugar."
+		},
+		{
+			description: "A lens não substitui constraints regulatórias, técnicas ou de arquitetura."
+			alternative: "Usar em conjunto com regulatory-strategy, architecture e financial-intermediation."
+			rationale:   "A melhor fronteira econômica pode ser inviável regulatória ou tecnicamente."
+		},
+	]
+
+	rationale: "A Mesh precisa decidir continuamente o que pertence ao núcleo da firma e o que pode ser coordenado por mercado ou por formas híbridas. Esta lens organiza essa decisão com hierarquia explícita: drivers de internalização — especificidade, complementaridade e direitos residuais; moduladores — frequência, incerteza e oportunismo; restrições — capacidade e escala mínima. Ela adiciona dois pontos especialmente importantes para a Mesh: primeiro, complementaridade entre dinheiro, operação e informação, que torna certas separações destrutivas mesmo quando o ativo não parece altamente específico à primeira vista; segundo, a hipótese de que agentes de IA reduzem custos de transação e deslocam o limiar de internalização, mas apenas quando governados com observabilidade e QA reais. O output da lens não é só build ou buy: é build, buy, híbrido, buy-now-build-later, ou build-core-buy-envelope, sempre com trigger de revisão, switching cost explícito e assimetria de erro registrada no mapa de fronteiras."
 }
