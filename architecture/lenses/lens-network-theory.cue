@@ -202,4 +202,182 @@ networkTheory: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Sem métricas próprias, a lente vira teoria. Com métricas erradas, vira ruído."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Qual decisão concreta motivou esta análise topológica? Credit-risk, platform-dynamics, supply-chain-theory, ou contingência? Que resultado topológico mudaria essa decisão?"
+			reveals:   "Garante que a análise de rede esteja a serviço de uma decisão real e não seja exercício acadêmico."
+			rationale: "Network-theory é lente instrumental."
+		},
+		{
+			question:  "Qual é a cobertura estimada do grafo observado e quão confiáveis são as conclusões nesse nível de cobertura?"
+			reveals:   "Define o grau de confiança e a necessidade de qualificação explícita."
+			rationale: "Evita sobreinterpretação."
+		},
+		{
+			question:  "Qual o tamanho do backbone na janela relevante? A rede já suporta a ferramenta analítica pretendida?"
+			reveals:   "Determina se a ferramenta é prematura, útil ou robusta."
+			rationale: "Ferramenta sofisticada em rede pequena gera falso rigor."
+		},
+		{
+			question:  "A análise deve operar no bipartito completo, na projeção weighted de compradores, ou na projeção weighted de fornecedores?"
+			reveals:   "Escolhe a representação certa para a pergunta."
+			rationale: "A representação errada invalida a análise."
+		},
+		{
+			question:  "Qual camada e qual janela temporal são relevantes? Financeira, operacional, informacional, ou divergência entre elas?"
+			reveals:   "Preserva o sinal que interessa e evita agregação destrutiva."
+			rationale: "Camada e janela mudam causalidade percebida."
+		},
+		{
+			question:  "Quais são as comunidades naturais da rede e o que elas representam economicamente?"
+			reveals:   "Mostra segmentação estrutural: região, tipo de obra, fase, cadeia de valor, sobreposição."
+			rationale: "Comunidade dá contexto às demais métricas."
+		},
+		{
+			question:  "Quais nós são hubs, authorities e bridges? O que cada centralidade significa neste contexto?"
+			reveals:   "Distingue volume, relevância e controle estrutural."
+			rationale: "Nem todo nó grande é estrategicamente o mais importante."
+		},
+		{
+			question:  "Há dependências assimétricas materialmente relevantes entre pares?"
+			reveals:   "Traduz posição topológica em fragilidade econômica."
+			rationale: "Assimetria é um dos outputs mais acionáveis da lente."
+		},
+		{
+			question:  "Existe divergência inter-camada relevante? Em que pares, clusters ou segmentos ela está concentrada?"
+			reveals:   "Captura sinais precoces de deterioração ou stress localizado."
+			rationale: "É o principal diferencial topológico da Mesh."
+		},
+		{
+			question:  "Se o nó ou cluster em questão deteriorar, o fenômeno é bilateral, contágio de rede, correlação, ou combinação dos três?"
+			reveals:   "Define o tipo de contingência e a janela de intervenção."
+			rationale: "A resposta errada vem de diagnóstico topológico impreciso."
+		},
+		{
+			question:  "Qual é a resiliência da rede por tipo de nó e por segmento crítico? Existem SPOFs?"
+			reveals:   "Mostra cenários catastróficos plausíveis e redundâncias insuficientes."
+			rationale: "Rede saudável não é só conectada; é substituível sob choque."
+		},
+		{
+			question:  "A rede está crescendo de forma mais resiliente ou apenas mais concentrada?"
+			reveals:   "Distingue escala real de fragilidade ampliada."
+			rationale: "Crescimento pode piorar estrutura."
+		},
+		{
+			question:  "Qual resultado topológico efetivamente muda a decisão original? Registrar decisão, representação, camada, janela, cobertura, resultado e implicação."
+			reveals:   "Fecha o loop e evita análise ornamental."
+			rationale: "Topologia só importa se altera decisão."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:       "ex-critical-node-detection"
+			scenario: "Mesh com 200 fornecedores e 8 compradores em São Paulo. Identificar vulnerabilidades estruturais."
+			analysis: "Cobertura estimada: 60% do grafo relevante no nicho observado. Representação: projeção weighted de compradores para correlação e bipartito com backbone para centralidade. Comunidades: dois clusters principais por tipo de obra. Comprador A é hub dominante. Fornecedor Z é bridge entre comunidades. 30 fornecedores têm >60% de share em A no grafo observado. Enumeração exaustiva de cenários mostra que A aparece em todas as combinações de remoção que causam perda >50% do backbone."
+			recommendation: "Prioridade máxima de retenção e contingência em A. Diversificar aquisição para fora da comunidade já dominada por A. Monitorar Z como bridge estratégico. Incorporar a centralidade de A e a dependência dos fornecedores relacionados nos alertas de risco e de expansão."
+			assumptions: [
+				"cobertura de 60% baseada em volume comparável ao mercado observável",
+				"backbone com threshold adequado para preservar relações estruturais",
+				"share de dependência calculado apenas sobre grafo observado",
+			]
+			principlesApplied: ["ax-05", "dp-05"]
+			rationale: "Mostra como centralidade, dependência, comunidade e resiliência convergem na mesma conclusão."
+		},
+		{
+			id:       "ex-dual-layer-divergence"
+			scenario: "Comprador Y tem pedidos caindo 35% em 60 dias. Pagamentos seguem em dia."
+			analysis: "Divergência inter-camada tipo 1: operacional degradando com financeira estável. Na projeção de compradores, Y pertence a comunidade com outros compradores residenciais. Na camada operacional, fornecedores compartilhados começam a reduzir atividade. O padrão sugere deterioração futura antes do sinal financeiro explícito."
+			recommendation: "Elevar monitoramento de Y e dos fornecedores dependentes. Rodar simulação de contágio gradual de 30%→50%→80% de deterioração operacional. Alimentar credit-risk com overlay topológico e alertar compradores que compartilham fornecedores críticos caso a degradação continue."
+			assumptions: [
+				"queda operacional não é apenas sazonalidade ou fim natural de projeto",
+				"fornecedores compartilhados são economicamente relevantes no backbone",
+			]
+			principlesApplied: ["ax-05", "ax-07", "dp-09"]
+			rationale: "Formaliza a vantagem da Mesh em detectar deterioração estrutural antes do banco."
+		},
+		{
+			id:       "ex-network-guided-acquisition"
+			scenario: "Decidir quais fornecedores priorizar na aquisição do próximo trimestre."
+			analysis: "Comunidades na projeção weighted de fornecedores mostram massa crítica em estrutura, escassez em instalações e quase ausência em climatização. Um bridge potencial entre instalações e acabamento está ausente. Há SPOF regional em concreto estrutural."
+			recommendation: "Prioridade 1: climatização e hidráulica para fechar lacunas de comunidade. Prioridade 2: fornecedor que conecte instalações e acabamento. Prioridade 3: segundo player relevante em concreto para remover SPOF. Não priorizar mais fornecedores genéricos em estrutura, onde há redundância suficiente."
+			assumptions: [
+				"comunidades identificadas refletem estrutura econômica e não só ruído temporal",
+				"lacunas observadas não são apenas efeito de baixa cobertura",
+			]
+			principlesApplied: ["ax-06", "dp-02", "dp-09"]
+			rationale: "Usa topologia para guiar crescimento qualitativo, não apenas volume."
+		},
+	]
+
+	principleIds: ["ax-05", "ax-06", "ax-07", "dp-02", "dp-05", "dp-09"]
+
+	relatedLenses: [
+		{
+			lensId:  "lens-credit-risk"
+			relation: "feedsInto"
+			context: "Network-theory alimenta credit-risk em correlação estrutural, contágio, dependência assimétrica, concentração real e divergência inter-camada como leading indicator."
+		},
+		{
+			lensId:  "lens-platform-dynamics"
+			relation: "feedsInto"
+			context: "Topologia informa massa crítica por comunidade, hubs de aquisição, bridges de expansão, concentração de crescimento e vulnerabilidades estruturais do lado comprador e fornecedor."
+		},
+		{
+			lensId:  "lens-mechanism-design"
+			relation: "complementsWith"
+			context: "Network-theory identifica vulnerabilidades e externalidades topológicas. Mechanism-design desenha regras que incentivam diversificação, retenção de bridges e mitigação de SPOFs."
+		},
+		{
+			lensId:  "lens-information-economics"
+			relation: "complementsWith"
+			context: "A estrutura multi-layer da rede é informação proprietária. Divergência inter-camada é um dos sinais de maior valor marginal."
+		},
+		{
+			lensId:  "lens-supply-chain-theory"
+			relation: "complementsWith"
+			context: "Supply-chain-theory modela dependências operacionais; network-theory quantifica sua topologia, sobreposição e vulnerabilidade estrutural."
+		},
+		{
+			lensId:  "lens-complex-adaptive-systems"
+			relation: "complementsWith"
+			context: "Network-theory mede estrutura em um dado estado; complex-adaptive-systems modela como essa estrutura evolui, muda de regime e altera canais de contágio ao longo do tempo."
+		},
+	]
+
+	limitations: [
+		{
+			description: "No bootstrap com poucos nós, métricas topológicas são instáveis ou triviais."
+			alternative: "Usar share por par, HHI, dependência qualitativa e enumeração exaustiva simples."
+			rationale:   "Evita falso rigor."
+		},
+		{
+			description: "Cobertura parcial pode distorcer centralidade, dependência e resiliência."
+			alternative: "Qualificar conclusões pela cobertura estimada e tratar como lower bounds quando necessário."
+			rationale:   "Honestidade analítica é parte da governança."
+		},
+		{
+			description: "Snapshots temporais podem capturar relações mortas ou ruído transitório."
+			alternative: "Separar arestas ativas, latentes e encerradas; usar janelas adequadas ao caso."
+			rationale:   "Topologia sem tempo vira arqueologia, não operação."
+		},
+		{
+			description: "Simulações de cascata podem superestimar impacto se assumem ausência de intervenção."
+			alternative: "Simular com e sem intervenção e usar o gap como medida do valor da capacidade de resposta da Mesh."
+			rationale:   "Pior caso puro não é cenário operacional completo."
+		},
+		{
+			description: "Ferramentas bipartite-native são menos maduras e menos acessíveis que algoritmos genéricos."
+			alternative: "Usar projeções weighted como fallback pragmático e documentar a escolha."
+			rationale:   "Projeção correta é melhor que algoritmo incorreto."
+		},
+		{
+			description: "Distribuições de grau em redes econômicas são heavy-tailed; thresholds gaussianos são enganosos."
+			alternative: "Usar percentis, ranks e baselines históricos."
+			rationale:   "Métrica errada gera alerta errado."
+		},
+	]
+
+	rationale: "A Mesh vê a cadeia produtiva como rede viva, não como conjunto de relações isoladas. Esta lente formaliza essa visão: representação bipartita multi-layer, qualificação por cobertura, janelas temporais corretas, backbone estrutural, centralidade bipartite-aware, assortatividade, dependência assimétrica, comunidades, divergência inter-camada, contágio separado em fenômenos distintos, resiliência por tipo de nó, e dinâmica de crescimento por preferential attachment. O objetivo não é mapear a rede por curiosidade, mas transformar topologia em decisão operacional e estratégica."
 }
