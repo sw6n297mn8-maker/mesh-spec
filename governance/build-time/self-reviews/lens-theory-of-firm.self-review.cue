@@ -23,7 +23,7 @@ lensTheoryOfFirm: build_time.#SelfReviewReport & {
 		failCount: 1
 		warnCount: 0
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 5 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em BaaS, providers de IA, registradoras, bureaus, administradores fiduciários, Pix, SLA, modelos calibrados, embeddings, workflows, Mesh AI-native (uq-02), dependsOn internos consistentes (uq-03 pass), sem contradição com design-principles (uq-04), terminologia consistente — custos de transação, coordenação interna, oportunismo, hold-up, especificidade de ativo, especificidade temporal, lock-in, build vs buy (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 13 condições testáveis, 6 excludeWhen."
+		summary:   "Round 1 avaliou lente parcial (trigger + 18 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em BaaS, providers de IA, registradoras, bureaus, administradores fiduciários, Pix, SLA, LGPD, SCD, construção civil, modelos calibrados, embeddings, workflows, Mesh AI-native, cessão, banking (uq-02), dependsOn internos consistentes (uq-03 pass), sem contradição com design-principles (uq-04), terminologia consistente — custos de transação, coordenação interna, oportunismo, hold-up, especificidade, complementaridade, direitos residuais, dependência bilateral, racionalidade limitada, contratos incompletos, governança híbrida, ambiente institucional, escala mínima, capacidade, switching cost, portabilidade, optionality, assimetria de erro, boundary map (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 13 condições testáveis, 6 excludeWhen."
 	}]
 
 	findings: {
@@ -36,9 +36,12 @@ lensTheoryOfFirm: build_time.#SelfReviewReport & {
 
 	summary: """
 		Lente theory-of-firm parcial com trigger (13 condições, 33 keywords,
-		6 excludeWhen) e 5 conceitos cobrindo custos de transação, custos de
-		coordenação interna, oportunismo, especificidade de ativo e
-		especificidade temporal. Fail estrutural (uq-08) por campos
-		obrigatórios ausentes.
+		6 excludeWhen) e 18 conceitos cobrindo custos de transação, coordenação
+		interna, oportunismo, especificidade de ativo e temporal, direitos
+		residuais, complementaridade, hold-up, dependência bilateral,
+		racionalidade limitada, estruturas de governança, ambiente institucional,
+		escala mínima, capacidade, switching cost/portabilidade, assimetria de
+		erro, framework make-or-buy e boundary map operacional. Fail estrutural
+		(uq-08) por campos obrigatórios ausentes.
 		"""
 }
