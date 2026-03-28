@@ -16,34 +16,32 @@ lensBehavioralEconomics: build_time.#SelfReviewReport & {
 	roundsExecuted: 1
 	maxRounds:      4
 
-	status: "max-rounds-reached"
+	status: "stable"
+
+	singleRoundRationale: "Lente completa com 17 conceitos, 14 reasoning steps, 3 meshExamples, 5 principleIds, 6 relatedLenses e 6 limitations. Round 1 identificou zero fail e 1 warn (uq-03: 3 de 6 relatedLenses são forward references). Todos os campos obrigatórios do schema presentes. crossDependsOn referencia cr-cure-roll-rate, cr-operational-transmission e cr-expected-loss que existem em lens-credit-risk. Conteúdo fornecido integralmente pelo founder em 3 entregas parciais."
 
 	roundDetails: [{
 		round:     1
-		failCount: 1
-		warnCount: 0
+		failCount: 0
+		warnCount: 1
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 17 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em construção civil, fornecedores pequenos, DMU de comprador institucional, CFO, procurement, ERP, banco, IA, score, antecipação (uq-02), crossDependsOn referencia cr-cure-roll-rate, cr-operational-transmission e cr-expected-loss em lens-credit-risk que existe (uq-03), sem contradição com design-principles (uq-04), terminologia consistente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 10 condições testáveis, 5 excludeWhen. 17 conceitos (16 theoretical + 1 operational semi-annual) com dependsOn consistentes internamente."
+		summary:   "Round 1 avaliou lente completa (trigger + 17 concepts + 14 reasoning steps + 3 examples + 5 principleIds + 6 relatedLenses + 6 limitations). uq-01 pass: rationales explicam WHY. uq-02 pass: meshManifestation ancorado em construção civil, fornecedores pequenos, DMU, CFO, procurement, ERP, banco, canteiro, IA, score, antecipação. uq-03 warn: principleIds todos existem; crossDependsOn cr-cure-roll-rate, cr-operational-transmission e cr-expected-loss existem em lens-credit-risk; 3 de 6 relatedLenses (lens-platform-dynamics, lens-financial-intermediation, lens-theory-of-firm) são forward references. uq-04 pass. uq-05 pass: 6 limitações com alternativas. uq-06 pass. uq-07 pass. uq-08 pass. tq-ln-01 pass: 10 condições testáveis, 5 excludeWhen. tq-ln-02 pass: 14 reasoning steps com perguntas específicas por viés e por audiência. tq-ln-03 pass: 3 exemplos concretos (onboarding, DMU institucional, comunicação de crise). tq-ln-04 pass: 6 limitações reais incluindo decay de nudges e fronteira ética."
 	}]
 
 	findings: {
-		fail: [{
-			criterion: "uq-08"
-			severity:  "fail"
-			message:   "Campos obrigatórios do schema #AnalyticalLens ausentes: reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — founder enviará conteúdo restante."
+		warn: [{
+			criterion: "uq-03"
+			severity:  "warn"
+			message:   "3 de 6 relatedLenses (lens-platform-dynamics, lens-financial-intermediation, lens-theory-of-firm) são forward references — arquivos não existem ainda no repo. Padrão consistente com outras lenses."
 		}]
 	}
 
 	summary: """
-		Lente behavioral-economics parcial com trigger (10 condições, 36
-		keywords, 5 excludeWhen) e 17 conceitos cobrindo bounded rationality,
-		loss aversion, status quo/inércia/endowment, sunk cost, overconfidence,
-		present bias, reference point adaptation, anchoring/framing, mental
-		accounting, social proof organizacional, regret aversion na DMU,
-		confiança multidimensional, automation/algorithm bias, fairness e
-		reciprocidade, friction/defaults/choice architecture, availability bias
-		e mapa comportamental operacional. Fail estrutural (uq-08) por campos
-		obrigatórios ausentes. Aguardando reasoningProtocol, meshExamples,
-		principleIds, relatedLenses, limitations e rationale.
+		Lente behavioral-economics completa com 17 conceitos (16 theoretical
+		+ 1 operational semi-annual), trigger (10 condições, 36 keywords, 5
+		excludeWhen), 14 reasoning steps, 3 meshExamples (supplier onboarding
+		friction, buyer institutional adoption, crisis communication), 5
+		principleIds verificados, 6 relatedLenses e 6 limitations. Stable em
+		1 round. Warn (uq-03) por 3 forward references em relatedLenses.
 		"""
 }

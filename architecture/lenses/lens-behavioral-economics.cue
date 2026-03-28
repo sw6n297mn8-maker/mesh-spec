@@ -242,4 +242,186 @@ behavioralEconomics: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Sem mapa operacional, a lente fica só como repertório conceitual."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Quem é o participante relevante e, no caso de comprador institucional, quem compõe a DMU? Procurement, financeiro, jurídico, TI, dono ou gerente operacional?"
+			reveals:   "Mostra se a decisão é individual ou distribuída. Em DMU, cada ator tem vieses e incentivos diferentes."
+			rationale: "Intervenção comportamental sem mapear quem decide tende a errar o alvo."
+		},
+		{
+			question:  "O comportamento observado é realmente enviesado ou é adaptação racional ao contexto real do participante, dado o que a Mesh hoje oferece?"
+			reveals:   "Se for ecological rationality, o problema pode ser a oferta e não o viés."
+			rationale: "Evita usar nudges para mascarar proposta de valor insuficiente."
+		},
+		{
+			question:  "Qual é o viés ou barreira dominante aqui: loss aversion, inércia, endowment, sunk cost, overconfidence, present bias, friction, trust deficit, regret aversion, fairness ou overreaction?"
+			reveals:   "Permite escolher intervenção específica em vez de genérica."
+			rationale: "A maior parte das falhas de adoção envolve barreiras compostas; identificar a dominante é o leverage point."
+		},
+		{
+			question:  "Existe interação entre vieses que cria barreira composta? Se uma for removida, qual destrói o maior pedaço da barreira?"
+			reveals:   "Mostra onde agir primeiro quando recurso de design é limitado."
+			rationale: "Nem toda barreira precisa ser atacada ao mesmo tempo."
+		},
+		{
+			question:  "A intervenção adequada é nudge, boost, mudança de processo, ou mudança de proposta de valor? O participante aprovaria a intervenção se soubesse exatamente o que estamos fazendo?"
+			reveals:   "Define o espaço ético e pragmático da intervenção."
+			rationale: "Behavioral design sem limite ético vira manipulação e destrói confiança."
+		},
+		{
+			question:  "A intervenção proposta cria efeitos de segunda ordem? Muda composição de carteira, cria reference point problemático ou gera incentivo adverso em outra lente?"
+			reveals:   "Mostra se o remédio comportamental desloca problema para risco, pricing ou governança."
+			rationale: "Toda intervenção comportamental relevante muda comportamento agregado, não só conversão local."
+		},
+		{
+			question:  "Qual é o reference point atual do participante e como ele mudará se a intervenção der certo?"
+			reveals:   "Evita criar benefício temporário que depois vira perda percebida."
+			rationale: "Especialmente importante para taxas promocionais, pilotos e onboarding assistido."
+		},
+		{
+			question:  "A friction é o problema? Em qual step há abandono? O momento da decisão favorece baixa ou alta carga cognitiva?"
+			reveals:   "Distingue problema de atrito de problema de confiança ou valor."
+			rationale: "Friction é comum e corrigível; deve ser verificada cedo."
+		},
+		{
+			question:  "O default e a arquitetura de escolha estão otimizados? Opt-in, opt-out, recomendação visual, menu curto?"
+			reveals:   "Mostra se a maioria está sendo ajudada ou bloqueada pela própria interface."
+			rationale: "Defaults são alavancas potentes e precisam de controle ético."
+		},
+		{
+			question:  "A informação está apresentada no formato certo para esta audiência? Qual âncora, qual frame e qual conta mental estão sendo ativados?"
+			reveals:   "Distingue falha de conteúdo de falha de apresentação."
+			rationale: "Muitos problemas de adoção são problemas de apresentação, não de economia subjacente."
+		},
+		{
+			question:  "Social proof, herding ou regret aversion da DMU estão travando a decisão? Qual prova social convence cada stakeholder?"
+			reveals:   "Identifica se o bloqueio é reputacional, social ou informacional."
+			rationale: "Em B2B, a decisão raramente é apenas técnica."
+		},
+		{
+			question:  "Qual dimensão de confiança está deficitária: competência, integridade ou continuidade? E há risco de automation bias ou algorithm aversion?"
+			reveals:   "Direciona sinais de confiança e desenho do humano no loop."
+			rationale: "Confiança unidimensional gera respostas erradas."
+		},
+		{
+			question:  "Há risco de overreaction ou availability bias? Existe plano de comunicação pronto por audiência?"
+			reveals:   "Mostra se incidente pequeno pode virar crise comportamental."
+			rationale: "Crise de percepção pode destruir valor antes da crise objetiva."
+		},
+		{
+			question:  "Existe percepção de unfairness relevante? A diferenciação parece mérito, risco ou privilégio arbitrário?"
+			reveals:   "Mostra se pricing ou tratamento diferenciado criará backlash."
+			rationale: "Na construção civil, fairness percebida circula rápido via rede informal."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-supplier-onboarding-friction"
+			scenario:          "Conversão de onboarding do primeiro anchor está em 35% e a maioria abandona no terceiro passo."
+			analysis:          "A hipótese dominante é friction, possivelmente reforçada por present bias e trust deficit. Antes de concluir isso, é preciso verificar se a exigência documental é realmente proporcional para esse fornecedor. Se a exigência é desproporcional, o problema é parcialmente de oferta."
+			recommendation:    "Reduzir passos até a primeira ação de valor, automatizar coleta de documentos, validar em menos de 24 horas e entregar valor no mesmo dia. Só depois testar trust ou overconfidence residual."
+			assumptions: [
+				"o abandono realmente se concentra no passo 3",
+				"parte relevante da documentação pode ser buscada automaticamente",
+			]
+			principlesApplied: ["ax-03", "ax-06", "dp-02"]
+			rationale:         "Mostra aplicação prática da lente em onboarding com hipótese falsificável."
+		},
+		{
+			id:                "ex-buyer-institutional-adoption"
+			scenario:          "Procurement quer adotar a Mesh, mas CFO bloqueia e o gerente que recomendou não quer se expor."
+			analysis:          "Há DMU explícita. Procurement está convencido, mas CFO pode estar em overconfidence ou present bias, enquanto o gerente sofre regret aversion. Se houver sunk cost em ERP existente, isso reforça o bloqueio."
+			recommendation:    "Para CFO, usar boost com benchmark e calculadora de ROI. Para o gerente, converter adoção em piloto reversível e safe-to-fail. Para o ERP existente, framing de complementaridade, não substituição."
+			assumptions: [
+				"há investimento prévio relevante em processo ou sistema existente",
+				"o piloto pode ser desenhado com escopo pequeno e reversível",
+			]
+			principlesApplied: ["ax-05", "ax-06", "dp-02"]
+			rationale:         "Mostra intervenção comportamental diferenciada por stakeholder da DMU."
+		},
+		{
+			id:                "ex-crisis-communication"
+			scenario:          "Um comprador entra em default e a notícia circula rapidamente em canais informais."
+			analysis:          "Availability bias e overreaction dominam. Investidores testam competence e continuity trust. Fornecedores testam continuidade e risco de contágio. Se a Mesh comunicou antes do boato consolidar, controla framing; se não, reage a narrativa já formada."
+			recommendation:    "Comunicar em até 24h com fatos, impacto real, ações tomadas e implicação por audiência. Se o modelo previu, usar isso como prova de competência. Se não previu, admitir erro com plano concreto de correção para evitar algorithm aversion generalizada."
+			assumptions: [
+				"o impacto real da exposição já pode ser quantificado rapidamente",
+				"há canal direto com cada audiência relevante",
+			]
+			principlesApplied: ["ax-05", "dp-05"]
+			rationale:         "Mostra a lente em comunicação de crise, não apenas em onboarding."
+		},
+	]
+
+	principleIds: ["ax-03", "ax-05", "ax-06", "ax-07", "dp-02"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Mechanism-design desenha regras assumindo resposta suficientemente racional; behavioral-economics testa se participantes reais entendem, aceitam e executam o mecanismo."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "complementsWith"
+			context:  "Platform-dynamics modela chicken-and-egg e massa crítica; behavioral-economics explica resistência individual e organizacional à travessia inicial."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Financial-intermediation trata run risk e funding; behavioral-economics explica como medo, disponibilidade e ambiguidade amplificam esses riscos."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information-economics define o que revelar; behavioral-economics define como revelar para que a informação seja processada de forma útil."
+		},
+		{
+			lensId:   "lens-credit-risk"
+			relation: "complementsWith"
+			context:  "Behavioral-economics diagnostica padrões de atraso, reação a score e composição afetada por defaults e nudges; credit-risk traduz isso em provisão, pricing e limite."
+		},
+		{
+			lensId:   "lens-theory-of-firm"
+			relation: "complementsWith"
+			context:  "Theory-of-firm trata bounded rationality contratual e governança; behavioral-economics trata processamento enviesado da informação e risco pessoal dos decisores."
+		},
+	]
+
+	limitations: [
+		{
+			description: "Muitos vieses foram estudados em laboratório ou em contextos diferentes do canteiro e da DMU da construção civil."
+			alternative: "Tratar magnitude como hipótese e validar com dados reais, testes e pesquisa qualitativa."
+			rationale:   "A direção do efeito é útil, mas a intensidade é contextual."
+		},
+		{
+			description: "Nudges não corrigem proposta de valor fraca."
+			alternative: "Sempre testar se a barreira é comportamental ou se a oferta ainda não é competitiva."
+			rationale:   "Behavioral design não substitui product-market fit."
+		},
+		{
+			description: "A lente foca em vieses individuais e organizacionais próximos; não modela cultura de cluster ou dinâmica social mais ampla."
+			alternative: "Complementar com lens-platform-dynamics, lens-complex-adaptive-systems e pesquisa de campo."
+			rationale:   "Muitos efeitos comportamentais são amplificados por dinâmicas sociais maiores."
+		},
+		{
+			description: "A fronteira entre nudge legítimo e manipulação é contextual."
+			alternative: "Aplicar teste de transparência e, na dúvida, preferir boost ou intervenção mais explícita."
+			rationale:   "Manipulação percebida destrói trust mais rápido do que qualquer ganho de conversão compensa."
+		},
+		{
+			description: "A interação humano-IA em B2B de construção civil ainda é pouco documentada empiricamente."
+			alternative: "Monitorar automation bias e algorithm aversion como hipóteses operacionais explícitas no mapa comportamental."
+			rationale:   "AI-native sem observabilidade da interface humano-IA opera com blind spot estrutural."
+		},
+		{
+			description: "Nudges perdem efetividade com repetição e habituação."
+			alternative: "Monitorar decay longitudinal e rotacionar framing, canal ou formato; usar boosts quando possível."
+			rationale:   "Intervenção que funciona no mês 1 pode falhar no mês 12."
+		},
+	]
+
+	rationale: "Mechanism-design presume resposta racional suficiente a regras e incentivos. Esta lente entra quando a resposta real se desvia disso de forma sistemática e previsível. Na Mesh, isso inclui loss aversion, status quo, sunk cost, overconfidence, present bias, reference point adaptation, anchoring, mental accounting, trust multidimensional, proof social em DMUs, regret aversion de recomendadores, fairness e vieses na interação humano-IA. Como a Mesh é AI-native, com humanos no loop e com participantes muito heterogêneos em sofisticação, o espaço entre comportamento idealizado e comportamento real não é detalhe de UX: é parte central da arquitetura do produto, da operação e da governança."
 }
