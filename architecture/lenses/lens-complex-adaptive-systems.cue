@@ -220,27 +220,27 @@ complexAdaptiveSystems: artifact_schemas.#AnalyticalLens & {
 			rationale: "Delays são uma das maiores fontes de erro de gestão sistêmica."
 		},
 		{
-			question:  "Há sinais de proximidade de tipping point ou convergência de indicadores negativos?"
-			reveals:   "Mostra se prevenção imediata é mais importante do que análise incremental."
-			rationale: "Intervenção antes da transição de regime é muito mais barata."
+			question:     "Há sinais de proximidade de tipping point ou convergência de indicadores negativos?"
+			reveals:      "Mostra se prevenção imediata é mais importante do que análise incremental."
+			rationale:    "Intervenção antes da transição de regime é muito mais barata."
 			appliesWhen: "múltiplos indicadores deterioram ao mesmo tempo"
 		},
 		{
-			question:  "A decisão atual cria path dependence material? O custo de reversão em dois anos é alto ou baixo?"
-			reveals:   "Distingue escolhas reversíveis de escolhas que exigem cautela estrutural."
-			rationale: "Bootstrap tem máxima sensibilidade a lock-in."
+			question:     "A decisão atual cria path dependence material? O custo de reversão em dois anos é alto ou baixo?"
+			reveals:      "Distingue escolhas reversíveis de escolhas que exigem cautela estrutural."
+			rationale:    "Bootstrap tem máxima sensibilidade a lock-in."
 			appliesWhen: "a decisão é estrutural ou fundacional"
 		},
 		{
-			question:  "A governança está rígida demais ou flexível demais para o domínio, fase e distribuição de participantes?"
-			reveals:   "Mostra se o sistema está ossificado ou caótico."
-			rationale: "Edge of chaos precisa ser calibrado continuamente."
+			question:     "A governança está rígida demais ou flexível demais para o domínio, fase e distribuição de participantes?"
+			reveals:      "Mostra se o sistema está ossificado ou caótico."
+			rationale:    "Edge of chaos precisa ser calibrado continuamente."
 			appliesWhen: "há fricção com regras, contornos frequentes ou baixa discriminação"
 		},
 		{
-			question:  "Na dimensão crítica, o sistema está frágil, resiliente ou antifrágil?"
-			reveals:   "Mostra a qualidade estrutural da resposta a stress."
-			rationale: "Não basta sobreviver ao cenário médio."
+			question:     "Na dimensão crítica, o sistema está frágil, resiliente ou antifrágil?"
+			reveals:      "Mostra a qualidade estrutural da resposta a stress."
+			rationale:    "Não basta sobreviver ao cenário médio."
 			appliesWhen: "a decisão envolve robustez, shock response ou funding/confiança"
 		},
 		{

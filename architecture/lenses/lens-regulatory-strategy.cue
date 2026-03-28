@@ -1,6 +1,6 @@
 package lenses
 
-import "mesh-spec/architecture/artifact-schemas"
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
 regulatoryStrategy: artifact_schemas.#AnalyticalLens & {
 	id:      "lens-regulatory-strategy"

@@ -1,6 +1,6 @@
 package lenses
 
-import "mesh-spec/architecture/artifact-schemas"
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
 commonsCollectiveAction: artifact_schemas.#AnalyticalLens & {
 	id:      "lens-commons-collective-action"
@@ -248,4 +248,193 @@ commonsCollectiveAction: artifact_schemas.#AnalyticalLens & {
 			appliesWhen:       "o commons já existe em alguma escala operacional e sua qualidade precisa ser acompanhada"
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Em que fase está este commons: formação, crescimento, escala ou maturidade?"
+			reveals:   "A fase determina o problema dominante e a governança adequada."
+			rationale: "Sem identificar fase, a prescrição de governança tende a errar o timing."
+		},
+		{
+			question:  "Qual recurso compartilhado está em jogo: dados, scoring, reputação, compliance ou funding pool?"
+			reveals:   "Tipos diferentes de recurso exigem instrumentos diferentes."
+			rationale: "Classificar o recurso vem antes de escolher a ferramenta."
+		},
+		{
+			question:  "Os participantes diferem em capacidade digital e importância para a qualidade do commons?"
+			reveals:   "Mostra se governança uniforme será destrutiva."
+			rationale: "Commons com heterogeneidade alta exigem desenho diferenciado."
+		},
+		{
+			question:  "A falha observada é de coordenação ou de incentivo?"
+			reveals:   "Coordenação pede facilitação; incentivo pede alinhamento ou sanção."
+			rationale: "Diagnóstico errado aqui costuma gerar punição contraproducente."
+		},
+		{
+			question:  "Qual é a outside option de cada classe de participante relevante?"
+			reveals:   "Determina holding power, risco de churn e necessidade de diferenciação."
+			rationale: "Sem outside option, excludabilidade e incentivos podem ser mal calibrados."
+		},
+		{
+			question:  "A soma das contribuições exigidas por todos os commons é viável para cada classe?"
+			reveals:   "Mostra quando o sistema está exigindo mais do que a atenção e a capacidade reais suportam."
+			rationale: "Custo agregado de contribuição importa mais do que custo isolado."
+			appliesWhen: "múltiplos commons pedem ação do mesmo participante"
+		},
+		{
+			question:  "Existe free-riding e, se existe, qual tipo: consumo sem contribuição, contribuição mínima ou extração desproporcional?"
+			reveals:   "Cada forma pede instrumento diferente."
+			rationale: "Nem todo free-rider é igual."
+			appliesWhen: "fase >= crescimento"
+		},
+		{
+			question:  "O commons está degradando e a causa parece ser realmente de commons, não macro, coorte ou mudança de mix?"
+			reveals:   "Evita prescrever governança para um problema que não é governança."
+			rationale: "Diagnóstico de causa raiz vem antes da intervenção."
+			appliesWhen: "há degradação de métricas ou percepção de queda de qualidade"
+		},
+		{
+			question:  "O design de excludabilidade está adequado à fase, à capacidade dos participantes e ao risco de empurrar gente para fora do sistema?"
+			reveals:   "Mostra se o commons está sendo protegido ou sufocado."
+			rationale: "Excludabilidade é poderosa, mas sensível ao contexto."
+			appliesWhen: "a decisão envolve acesso, tiers, analytics ou score coletivo"
+		},
+		{
+			question:  "Existe seleção adversa intra-commons, especialmente entre perfis de alta qualidade com boa outside option?"
+			reveals:   "Mostra se o commons está expulsando quem mais o sustenta."
+			rationale: "Churn seletivo é mais grave do que churn médio."
+			appliesWhen: "há churn diferenciado por qualidade, porte ou outside option"
+		},
+		{
+			question:  "Existe risco de enclosure pela própria Mesh?"
+			reveals:   "Mostra se a plataforma está corroendo a legitimidade do commons."
+			rationale: "Sem anti-enclosure, confiança institucional é frágil."
+			appliesWhen: "a decisão envolve mudança de regras, uso de dados ou acesso ao valor coletivo"
+		},
+		{
+			question:  "A governança atende o nível apropriado de monitoramento, sanções graduais, resolução de conflito e participação para a fase atual?"
+			reveals:   "Mostra se a arquitetura institucional do commons está madura o suficiente."
+			rationale: "Governança insuficiente ou prematura destrói o commons por vias opostas."
+			appliesWhen: "a decisão é sobre regras, monitoramento ou sanções"
+		},
+		{
+			question:  "Há bridges acionadas com outras lenses, como queda de AUROC, aumento de HHI, queda de completude ou churn seletivo?"
+			reveals:   "Mostra se o problema já migrou de commons para outra dimensão do sistema."
+			rationale: "Commons bem analisado precisa saber quando passar o bastão para outra lente."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-data-quality-degradation"
+			scenario:          "Depois que o commons de dados cresce, a qualidade do score começa a cair junto com a completude de confirmação bilateral."
+			analysis:          "O commons já saiu da fase de formação. Há indício de degradação do recurso compartilhado, mas a causa pode ser coordenação, incentivo ou gaming. Se compradores não confirmam porque o fluxo é ruim, é coordenação. Se não confirmam apesar de fluxo simples, é free-riding. Se auto-relatos divergem de fontes verificáveis, é gaming."
+			recommendation:    "Separar criação e governança do commons. Redesenhar canal de confirmação para o agente real de operação, reforçar peso de dados bilaterais, reduzir peso de auto-relato unilateral e ativar monitoramento de divergência. Se AUROC não estabilizar, acionar lens-credit-risk para recalibração."
+			principlesApplied: ["ax-05", "ax-07", "dp-05", "dp-09"]
+			assumptions: [
+				"a deterioração não foi causada principalmente por macro ou mudança extrema de mix",
+				"há pelo menos uma fonte verificável independente para contraste",
+			]
+			rationale: "O caso mostra commons de dados degradando por mistura de coordenação, free-riding e gaming."
+		},
+		{
+			id:                "ex-funding-pool-concentration"
+			scenario:          "O funding pool depende fortemente de poucos compradores no bootstrap, e limite formal de concentração destruiria o próprio mercado nascente."
+			analysis:          "O funding pool é club good com congestion. O problema não é acesso, mas externalidade. Como o sistema ainda está em formação, governança de escala aplicada cedo demais seria autodestrutiva."
+			recommendation:    "Usar monitoramento intensivo, pricing de congestion e plano explícito de diversificação antes de impor limite rígido de concentração. Comunicar claramente a fase e a trajetória esperada para investidores."
+			principlesApplied: ["ax-05", "ax-07", "dp-05"]
+			assumptions: [
+				"há pipeline plausível de diversificação",
+				"o custo de concentração no bootstrap ainda é administrável com monitoramento forte",
+			]
+			rationale: "O caso mostra a importância de lifecycle e tipologia correta do commons."
+		},
+		{
+			id:                "ex-q1-churn-from-commons-leveling"
+			scenario:          "Perfis de alta qualidade com outside option bancária começam a sair porque o commons nivela demais o benefício entre bons e medianos."
+			analysis:          "O commons está sofrendo seleção adversa intra-commons. A saída não é uniforme: ela afeta os participantes mais valiosos para qualidade do score e reputação da rede. O sistema perde exatamente os perfis que mais sustentam o recurso compartilhado."
+			recommendation:    "Introduzir diferenciação material por qualidade e contribuição, com pricing granular, benefícios exclusivos e monitoramento de churn desagregado por quartil e outside option. Não tratar o problema como churn médio."
+			principlesApplied: ["ax-05", "ax-06", "dp-02"]
+			assumptions: [
+				"a outside option bancária é real para esses perfis",
+				"a diferença atual de benefício entre top quartil e medianos é insuficiente",
+			]
+			rationale: "O caso mostra que commons mal calibrado pode expulsar quem mais o torna valioso."
+		},
+	]
+
+	principleIds: ["ax-03", "ax-05", "ax-06", "ax-07", "dp-05", "dp-09"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Commons identifica o problema de contribuição, free-riding e externalidade; mechanism-design desenha o mecanismo específico de incentivo, monitoramento, verificação e sanção."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "complementsWith"
+			context:  "Information-economics ajuda a modelar valor, externalidade e verificabilidade da informação; commons trata a governança coletiva do recurso informacional."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "complementsWith"
+			context:  "Platform-dynamics modela crescimento e data network effects; commons modela como a qualidade do recurso compartilhado sustenta ou degrada esses efeitos."
+		},
+		{
+			lensId:   "lens-credit-risk"
+			relation: "feedsInto"
+			context:  "Degradação do commons de dados afeta AUROC, model risk e risco de concentração. Commons informa quando credit-risk precisa recalibrar."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Financial-intermediation modela estrutura do FIDC e do funding; commons modela o pool como recurso compartilhado com externalidades e congestion."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Behavioral-economics ajuda a entender fricção, reciprocidade e percepção de justiça; commons usa isso para calibrar contribuição, sanções e legitimidade."
+		},
+		{
+			lensId:   "lens-network-theory"
+			relation: "complementsWith"
+			context:  "Network-theory mede cobertura, blind spots e clusters; commons explica como regras de contribuição e acesso afetam a qualidade do recurso que a rede produz."
+		},
+	]
+
+	limitations: [
+		{
+			description: "No bootstrap, muitos problemas de commons ainda são potenciais e podem parecer prematuros."
+			alternative: "Usar a lente seletivamente no início, principalmente para criação do commons, digitalização e lifecycle, e não para burocratizar governança cedo demais."
+			rationale:   "A infraestrutura do commons nasce cedo, mas a governança pesada não."
+		},
+		{
+			description: "A Mesh governa o commons e ao mesmo tempo explora valor dele."
+			alternative: "Projetar mecanismos anti-enclosure desde cedo e evoluir para participação e contestação conforme a escala cresce."
+			rationale:   "Judge in her own case é risco estrutural, não detalhe operacional."
+		},
+		{
+			description: "Em segmentos informais, pressupor contribuição voluntária de dados digitais pode ser simplesmente falso."
+			alternative: "Tratar digitalização e extração de dados como investimento da Mesh antes de exigir governança ativa de contribuição."
+			rationale:   "Não se governa contribuição de dado que ainda não existe."
+		},
+		{
+			description: "Os princípios de Ostrom foram formulados para commons físicos e locais, não diretamente para commons digitais operados por plataforma."
+			alternative: "Usá-los como framework adaptado, não como transposição literal."
+			rationale:   "A analogia é poderosa, mas não substitui contextualização."
+		},
+		{
+			description: "Métricas de degradação de commons frequentemente têm causas concorrentes fora do commons."
+			alternative: "Sempre separar diagnóstico de causa raiz da prescrição de governança."
+			rationale:   "Sem essa separação, a lente passa a culpar o commons por tudo."
+		},
+		{
+			description: "Monitoramento pode escalar pior do que a receita que o commons gera."
+			alternative: "Automatizar, distribuir custo, explicitar monitoramento como custo estrutural e medir a saúde do próprio monitoramento."
+			rationale:   "Commons mal monitorado degrada silenciosamente justamente quando cresce."
+		},
+	]
+
+	rationale: "A Mesh cria e governa múltiplos commons digitais e financeiros cujo valor depende de contribuição coletiva, confiança institucional e governança progressivamente mais sofisticada. A lente distingue criação do commons de governança do commons; coordenação de incentivo; bens de clube de club goods com congestion; e free-riding de enclosure. Seu núcleo é que recursos compartilhados não são simplesmente 'ativos da plataforma': eles são infraestrutura coletiva cuja qualidade depende de lifecycle, heterogeneidade de participantes, excludabilidade calibrada, monitoramento escalável e proteção contra captura pela própria Mesh."
 }

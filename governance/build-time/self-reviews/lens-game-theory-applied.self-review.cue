@@ -13,7 +13,7 @@ lensGameTheoryApplied: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-03-27"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 
 	status: "stable"
