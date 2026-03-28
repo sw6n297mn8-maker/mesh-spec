@@ -30,7 +30,7 @@ lensNetworkTheory: build_time.#SelfReviewReport & {
 
 	findings: {
 		warn: [{
-			criterion: "uq-03"
+			criterionId: "uq-03"
 			severity:  "warn"
 			message:   "1 de 6 relatedLenses (lens-platform-dynamics) é forward reference — arquivo não existe ainda no repo. Padrão consistente com outras lenses."
 		}]

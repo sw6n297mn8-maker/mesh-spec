@@ -30,7 +30,7 @@ lensCreditRisk: build_time.#SelfReviewReport & {
 
 	findings: {
 		warn: [{
-			criterion: "uq-03"
+			criterionId: "uq-03"
 			severity:  "warn"
 			message:   "crossDependsOn em cr-regulatory-provisioning referencia rs-brazil-financial-regime em lens-regulatory-strategy, mas esse conceptId não existe na lente. Conceitos existentes incluem rs-legal-capital, rs-regulatory-map, rs-licensing-strategy. Também: lens-financial-intermediation em relatedLenses é forward reference (arquivo não existe)."
 		}]

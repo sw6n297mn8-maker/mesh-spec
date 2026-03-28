@@ -30,7 +30,7 @@ lensInformationEconomics: build_time.#SelfReviewReport & {
 
 	findings: {
 		warn: [{
-			criterion: "uq-03"
+			criterionId: "uq-03"
 			severity:  "warn"
 			message:   "2 de 7 crossDependsOn (cr-model-risk em lens-credit-risk, be-bounded-rationality-real em lens-behavioral-economics) e 4 de 6 relatedLenses referenciam lenses que ainda não existem no repo. Forward references a lenses planejadas — padrão consistente com outras lenses existentes."
 		}]

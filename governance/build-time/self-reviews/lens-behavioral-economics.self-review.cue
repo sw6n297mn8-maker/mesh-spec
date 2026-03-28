@@ -30,7 +30,7 @@ lensBehavioralEconomics: build_time.#SelfReviewReport & {
 
 	findings: {
 		warn: [{
-			criterion: "uq-03"
+			criterionId: "uq-03"
 			severity:  "warn"
 			message:   "3 de 6 relatedLenses (lens-platform-dynamics, lens-financial-intermediation, lens-theory-of-firm) são forward references — arquivos não existem ainda no repo. Padrão consistente com outras lenses."
 		}]

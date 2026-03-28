@@ -30,7 +30,7 @@ lensCommonsCollectiveAction: build_time.#SelfReviewReport & {
 
 	findings: {
 		warn: [{
-			criterion: "uq-03"
+			criterionId: "uq-03"
 			severity:  "warn"
 			message:   "5 de 9 crossDependsOn (lens-financial-intermediation, lens-behavioral-economics, lens-information-economics, lens-credit-risk) e 6 de 7 relatedLenses referenciam lenses que ainda não existem no repo. Forward references a lenses planejadas — padrão consistente com outras lenses existentes no repo."
 		}]
