@@ -192,4 +192,185 @@ complexAdaptiveSystems: artifact_schemas.#AnalyticalLens & {
 			rationale:         "Sem fonte única de stocks e delays, CAS vira narrativa solta em vez de disciplina operacional."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "O que motivou invocar CAS? Qual lense componente está produzindo resultado diferente do previsto, comparado a qual contrafactual, e essa divergência excede variância normal?"
+			reveals:   "CAS é justificada quando há surpresa real, não qualquer flutuação."
+			rationale: "Signal versus noise. CAS complementa, não substitui, as outras lenses."
+		},
+		{
+			question:  "Em que timescale a dinâmica principal opera: dias, semanas, meses ou anos?"
+			reveals:   "Timescale determina urgência, cadência de monitoramento e risco de empilhamento de intervenções."
+			rationale: "Dinâmicas em escalas temporais diferentes exigem respostas diferentes."
+		},
+		{
+			question:  "Quais feedback loops estão em jogo sobre os stocks canônicos e qual loop domina no regime atual?"
+			reveals:   "O comportamento observado depende da dominância, não apenas da existência dos loops."
+			rationale: "Intervenção sem diagnóstico de loop dominante tende a atacar sintoma."
+		},
+		{
+			question:  "Participantes estão adaptando comportamento? Há Goodhart, gaming ou prazo de validade expirando nas regras? Existe cascata inter-tipos?"
+			reveals:   "Mostra se a divergência é de adaptação comportamental e qual grupo acelera a degradação."
+			rationale: "CAS precisa checar adaptação como rotina, não só quando o gaming já ficou óbvio."
+		},
+		{
+			question:  "Que delays relevantes se aplicam e a intervenção recente já teve tempo de produzir efeito observável?"
+			reveals:   "Evita falsa atribuição de causalidade, empilhamento prematuro e leitura errada de sucesso ou fracasso."
+			rationale: "Delays são uma das maiores fontes de erro de gestão sistêmica."
+		},
+		{
+			question:     "Há sinais de proximidade de tipping point ou convergência de indicadores negativos?"
+			reveals:      "Mostra se prevenção imediata é mais importante do que análise incremental."
+			rationale:    "Intervenção antes da transição de regime é muito mais barata."
+			appliesWhen: "múltiplos indicadores deterioram ao mesmo tempo"
+		},
+		{
+			question:     "A decisão atual cria path dependence material? O custo de reversão em dois anos é alto ou baixo?"
+			reveals:      "Distingue escolhas reversíveis de escolhas que exigem cautela estrutural."
+			rationale:    "Bootstrap tem máxima sensibilidade a lock-in."
+			appliesWhen: "a decisão é estrutural ou fundacional"
+		},
+		{
+			question:     "A governança está rígida demais ou flexível demais para o domínio, fase e distribuição de participantes?"
+			reveals:      "Mostra se o sistema está ossificado ou caótico."
+			rationale:    "Edge of chaos precisa ser calibrado continuamente."
+			appliesWhen: "há fricção com regras, contornos frequentes ou baixa discriminação"
+		},
+		{
+			question:     "Na dimensão crítica, o sistema está frágil, resiliente ou antifrágil?"
+			reveals:      "Mostra a qualidade estrutural da resposta a stress."
+			rationale:    "Não basta sobreviver ao cenário médio."
+			appliesWhen: "a decisão envolve robustez, shock response ou funding/confiança"
+		},
+		{
+			question:  "O problema está em parâmetro, estrutura de informação, regras, objetivos ou paradigma?"
+			reveals:   "Identifica o leverage point mais adequado."
+			rationale: "Intervenções falham quando atuam no nível errado."
+		},
+		{
+			question:  "Se a intervenção falhar, ela falha por amplificação, adaptação ou delay, e que indicador permitiria detectar isso em 3 a 6 meses?"
+			reveals:   "Transforma pre-mortem em checklist operacional."
+			rationale: "Consequências não-intencionais em CAS seguem poucos mecanismos recorrentes."
+		},
+		{
+			question:  "Dado o regime, timescale e delays, a decisão correta é intervir agora, monitorar com trigger ou esperar?"
+			reveals:   "Fecha a análise com postura operacional clara."
+			rationale: "CAS não serve só para explicar; serve para decidir quando agir."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:                "ex-scoring-goodhart"
+			scenario:          "Após alguns meses, a taxa de entrega 'no prazo' melhora fortemente, enquanto reclamações de qualidade sobem e a relação entre score e default real piora."
+			analysis:          "O sistema passou a otimizar a métrica, não o resultado desejado. A melhoria aparente é compatível com Goodhart temporal. Fornecedores mais sofisticados provavelmente adaptaram primeiro e difundiram a nova norma. O delay entre regra, adaptação e deterioração permitiu uma janela em que a mudança parecia sucesso."
+			recommendation:    "Intervir no nível de regras e estrutura de informação, não apenas em parâmetros. Introduzir sinais independentes de qualidade, integridade cruzada entre prazo e satisfação e cadência de revisão mais curta para regras que afetam participantes sofisticados."
+			principlesApplied: ["ax-03", "ax-05", "dp-05"]
+			assumptions: [
+				"a melhoria de prazo não é explicada por melhoria real de operação",
+				"a reclamação de qualidade é confiável como sinal independente",
+			]
+			rationale: "O caso mostra Goodhart como dinâmica temporal e emergente, não só como falha lógica de métrica."
+		},
+		{
+			id:                "ex-convergence-crisis"
+			scenario:          "AUROC por cohort cai, NPS de fornecedores cai e churn de perfis Q1 sobe ao mesmo tempo, embora métricas agregadas ainda não pareçam catastróficas."
+			analysis:          "Há convergência entre múltiplos indicadores e provável regime de transição. O problema pode estar em loop reforçador de degradação: piores dados, pior score, melhores perfis saindo, dados piores ainda. A composição da rede está mudando e isso altera a própria dinâmica do sistema."
+			recommendation:    "Classificar imediatamente como transição, identificar temporalidade da degradação, agir no leverage point que interrompe o loop reforçador mais crítico e evitar empilhar mudanças antes do delay mínimo relevante."
+			principlesApplied: ["ax-05", "dp-05", "dp-09"]
+			assumptions: [
+				"não houve choque exógeno dominante no mesmo período",
+				"os indicadores desagregados são mais confiáveis do que os agregados para este caso",
+			]
+			rationale: "O caso mostra por que métricas agregadas mascaram transições perigosas."
+		},
+		{
+			id:                "ex-path-dependence-bootstrap"
+			scenario:          "A Mesh precisa escolher entre dois anchors iniciais com perfis setoriais e geográficos diferentes, sabendo que o primeiro anchor moldará scoring, cultura e expansão futura."
+			analysis:          "A decisão ocorre no ponto de máxima path dependence e mínima informação. O anchor escolhido mudará dados disponíveis, velocidade de aprendizagem, composição de participantes e tipo de governança tolerável. Além disso, um anchor com base mais heterogênea exige governança mais calibrada para não excluir participantes válidos por excesso de rigidez."
+			recommendation:    "Escolher o anchor não apenas por ticket ou prestígio, mas por capacidade de acelerar massa crítica, gerar dados generalizáveis, reduzir delays de calibração e manter governança no edge of chaos. Documentar explicitamente as dependências de trajetória criadas e os pontos de recalibração futura."
+			principlesApplied: ["ax-03", "ax-04", "ax-06"]
+			assumptions: [
+				"o primeiro anchor terá efeito desproporcional sobre composição da rede",
+				"há diferença relevante de generalização entre os dois contextos",
+			]
+			rationale: "O caso mostra CAS como ferramenta para decisão fundacional sob alta irreversibilidade."
+		},
+	]
+
+	principleIds: ["ax-03", "ax-04", "ax-05", "dp-05", "dp-07", "dp-09"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-credit-risk"
+			relation: "complementsWith"
+			context:  "Credit-risk modela risco com ferramentas estatísticas e causais locais. CAS complementa quando risco passa a ser produto de loops, delays, composição dinâmica e tipping points."
+		},
+		{
+			lensId:   "lens-platform-dynamics"
+			relation: "complementsWith"
+			context:  "Platform-dynamics modela flywheels, massa crítica e efeitos de rede. CAS complementa tratando mudanças abruptas de regime, dominância de loops, tipping points e delays entre adoção e qualidade sistêmica."
+		},
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Mechanism-design testa incentivos e gamabilidade em estado relativamente estável. CAS complementa com velocidade de adaptação, prazo de validade das regras e difusão de exploits."
+		},
+		{
+			lensId:   "lens-commons-collective-action"
+			relation: "complementsWith"
+			context:  "Commons modela degradação e governança de recursos compartilhados. CAS complementa com tipping points, dominância de loops e delays entre degradação local e crise sistêmica."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Behavioral-economics modela vieses individuais. CAS complementa mostrando como adaptações de um tipo de agente cascata sobre outros tipos e mudam a dinâmica agregada."
+		},
+		{
+			lensId:   "lens-network-theory"
+			relation: "complementsWith"
+			context:  "Network-theory modela topologia e conectividade. CAS complementa com evolução dinâmica da topologia, resiliência sistêmica e propagação não-linear."
+		},
+		{
+			lensId:   "lens-financial-intermediation"
+			relation: "complementsWith"
+			context:  "Financial-intermediation modela estrutura de funding e veículo. CAS complementa com run risk, colapso abrupto de confiança, delays entre composição e yield e fragilidade sistêmica."
+		},
+	]
+
+	limitations: [
+		{
+			description: "CAS é framework de pensamento e diagnóstico, não modelo quantitativo fechado."
+			alternative: "Usar CAS para orientar, classificar e localizar intervenções, deixando quantificação para outras lenses quando apropriado."
+			rationale:   "CAS complementa modelagem quantitativa; não a substitui."
+		},
+		{
+			description: "CAS pode ser usada como desculpa para paralisia, porque 'tudo é complexo'."
+			alternative: "Forçar análise em loops, delays, leverage points e decisão terminal explícita: intervir, monitorar ou esperar."
+			rationale:   "Complexidade não elimina ação; exige ação melhor estruturada."
+		},
+		{
+			description: "No bootstrap, parte da emergência sistêmica ainda é fraca."
+			alternative: "Usar CAS seletivamente no início, sobretudo para path dependence, regime e governança; intensificar uso conforme interdependência sistêmica cresce."
+			rationale:   "Nem todo problema inicial é sistêmico, mas alguns já são irreversivelmente estruturais."
+		},
+		{
+			description: "A hierarquia de leverage points é heurística e pode ser difícil de aplicar com precisão."
+			alternative: "Começar pelo menor nível que plausivelmente resolve e subir apenas quando falhar repetidamente."
+			rationale:   "Evita tanto tuning inútil quanto reformulação prematura de paradigma."
+		},
+		{
+			description: "Pre-mortems nunca antecipam todas as consequências não-intencionais."
+			alternative: "Usar checklist estruturado de amplificação, adaptação e delay, combinado com monitoramento pós-intervenção."
+			rationale:   "Checklist disciplinado é mais robusto do que imaginação livre."
+		},
+		{
+			description: "Delay map é impreciso no bootstrap e só melhora com dados longitudinais."
+			alternative: "Começar com estimates explícitos e recalibrar semestralmente conforme o sistema acumula observações."
+			rationale:   "Estimate imperfeita ainda é melhor do que ignorar delays completamente."
+		},
+	]
+
+	rationale: "Sistemas Adaptativos Complexos é a lente usada quando a Mesh deixa de se comportar como a soma de componentes relativamente estáveis e passa a exibir propriedades sistêmicas próprias. Ela trata emergência, loops, delays, heterogeneidade de agentes, adaptação, Goodhart temporal, tipping points, path dependence, coevolução, fragilidade e calibragem de governança como partes de uma única dinâmica. Seu papel não é substituir as outras lenses, mas explicar quando elas passam a divergir, entram em conflito ou falham em antecipar o comportamento agregado. Operacionalmente, a lente exige stocks canônicos, mapa de delays, classificação de regime, análise de dominância de loops, leverage points e decisão terminal explícita."
 }
