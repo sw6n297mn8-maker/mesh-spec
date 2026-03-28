@@ -23,22 +23,27 @@ lensBehavioralEconomics: build_time.#SelfReviewReport & {
 		failCount: 1
 		warnCount: 0
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger apenas, sem concepts). uq-08 fail: campos obrigatórios concepts, reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass sobre conteúdo presente: rationale do trigger explica WHY (uq-01), ancorado em construção civil brasileira, fornecedores de baixa sofisticação, DMU complexa de compradores institucionais, redes informais de reputação (uq-02), sem referências cruzadas neste batch (uq-03 pass), sem contradição com design-principles (uq-04), terminologia consistente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 10 condições testáveis, 5 excludeWhen com redirecionamento explícito."
+		summary:   "Round 1 avaliou lente parcial (trigger + 17 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em construção civil, fornecedores pequenos, DMU de comprador institucional, CFO, procurement, ERP, banco, IA, score, antecipação (uq-02), crossDependsOn referencia cr-cure-roll-rate, cr-operational-transmission e cr-expected-loss em lens-credit-risk que existe (uq-03), sem contradição com design-principles (uq-04), terminologia consistente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 10 condições testáveis, 5 excludeWhen. 17 conceitos (16 theoretical + 1 operational semi-annual) com dependsOn consistentes internamente."
 	}]
 
 	findings: {
 		fail: [{
 			criterion: "uq-08"
 			severity:  "fail"
-			message:   "Campos obrigatórios do schema #AnalyticalLens ausentes: concepts, reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — founder enviará conteúdo restante."
+			message:   "Campos obrigatórios do schema #AnalyticalLens ausentes: reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — founder enviará conteúdo restante."
 		}]
 	}
 
 	summary: """
 		Lente behavioral-economics parcial com trigger (10 condições, 36
-		keywords, 5 excludeWhen) apenas. Sem concepts ainda. Fail estrutural
-		(uq-08) por campos obrigatórios ausentes — artefato parcial por decisão
-		do founder. Aguardando concepts, reasoningProtocol, meshExamples,
+		keywords, 5 excludeWhen) e 17 conceitos cobrindo bounded rationality,
+		loss aversion, status quo/inércia/endowment, sunk cost, overconfidence,
+		present bias, reference point adaptation, anchoring/framing, mental
+		accounting, social proof organizacional, regret aversion na DMU,
+		confiança multidimensional, automation/algorithm bias, fairness e
+		reciprocidade, friction/defaults/choice architecture, availability bias
+		e mapa comportamental operacional. Fail estrutural (uq-08) por campos
+		obrigatórios ausentes. Aguardando reasoningProtocol, meshExamples,
 		principleIds, relatedLenses, limitations e rationale.
 		"""
 }
