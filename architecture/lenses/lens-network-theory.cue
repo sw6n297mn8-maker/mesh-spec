@@ -194,7 +194,7 @@ networkTheory: artifact_schemas.#AnalyticalLens & {
 			id:                "nt-mesh-network-metrics"
 			name:              "Métricas de Rede Calibradas para a Mesh"
 			nature:            "operational"
-			role:              "metric"
+			role:              "method"
 			reviewCadence:     "quarterly"
 			definition:        "Conjunto de métricas estruturais calibradas para a rede bipartida multi-layer da Mesh: density bipartite, weighted degree por tipo, hub/authority, betweenness bipartite, Gini por tipo, assortativity, share de dependência por par, divergência inter-camada, cobertura estimada, número de SPOFs por segmento, resiliência por tipo."
 			meshManifestation: "Dashboard estrutural da rede, separado dos dashboards de risco e crescimento."

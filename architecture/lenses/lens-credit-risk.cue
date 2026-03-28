@@ -236,7 +236,7 @@ creditRisk: artifact_schemas.#AnalyticalLens & {
 			id:                "cr-regulatory-provisioning"
 			name:              "Provisão Regulatória Brasileira"
 			nature:            "theoretical"
-			role:              "constraint"
+			role:              "framework"
 			definition:        "A provisão regulatória e os requisitos prudenciais criam um piso obrigatório que pode exceder a visão do modelo interno. A lógica econômica da Mesh precisa conviver com regras brasileiras de classificação, provisão e, quando aplicável, estrutura de FIDC."
 			meshManifestation: "Em carteira com atraso endêmico, a provisão regulatória pode se mostrar mais severa que o modelo econômico, consumindo capital e alterando unit economics."
 			meshImplication:   "Calcular provisão regulatória em paralelo ao modelo interno e operar sempre pelo maior requisito. No caso de FIDC, traduzir a lógica de perda e estresse em subordinação e desenho compatíveis com o rating e o regulamento do veículo."
