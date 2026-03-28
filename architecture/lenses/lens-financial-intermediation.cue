@@ -225,4 +225,172 @@ financialIntermediation: artifact_schemas.#AnalyticalLens & {
 			rationale: "Sem mapa vivo, a intermediação vira sequência de decisões isoladas sem coerência temporal."
 		},
 	]
+
+	reasoningProtocol: [
+		{
+			question:  "Qual estrutura regulatória permite a operação atual e qual estrutura será necessária para a próxima fase de funding?"
+			reveals:   "Define o espaço legal e a sequência temporal do funding."
+			rationale: "A estrutura econômica só importa se a estrutura regulatória permitir."
+		},
+		{
+			question:  "Qual é a fonte de funding atual, qual seu custo real, sua capacidade e sua fragilidade específica?"
+			reveals:   "Distingue funding aparente de funding economicamente e operacionalmente sustentável."
+			rationale: "Sem isso, a Mesh trata qualquer funding como equivalente."
+		},
+		{
+			question:  "Se a próxima estrutura é FIDC ou semelhante, quais são subordinação, elegibilidade, covenants, eventos de amortização e requisitos de servicing?"
+			reveals:   "Mostra a verdadeira constraint imposta pelo veículo."
+			rationale: "O veículo define parte do comportamento ótimo da carteira."
+		},
+		{
+			question:  "A estrutura garante segregação patrimonial, true sale e mitigação de commingling com qualidade suficiente para suportar custo de funding competitivo?"
+			reveals:   "Avalia robustez jurídica da intermediação."
+			rationale: "Funding barato exige segurança estrutural, não só narrativa."
+		},
+		{
+			question:  "Qual é o spread mínimo viável com custo completo de capital, subordinação, estrutura, tributos, OpEx e margem?"
+			reveals:   "Mostra se o produto fecha economicamente no segmento e estágio analisados."
+			rationale: "Sem spread mínimo completo, a operação parece mais bonita do que é."
+		},
+		{
+			question:  "Existe pipeline suficiente, previsível e compatível com a utilização do funding pretendido? Há sazonalidade ou ciclos de projeto que distorcem o pipeline?"
+			reveals:   "Separa capacidade nominal de funding de capacidade real de usar o funding bem."
+			rationale: "Funding sem pipeline adequado destrói retorno."
+		},
+		{
+			question:  "Há maturity mismatch? O que acontece se o funding não rolar, atrasar ou encarecer antes de os ativos vencerem?"
+			reveals:   "Torna visível o risco clássico do intermediário solvente porém ilíquido."
+			rationale: "Transformação de maturidade sem mapear o gap é cegueira estrutural."
+		},
+		{
+			question:  "Se a liquidez for escassa, quem antecipa primeiro e por quê? A política é consistente com o veículo, com os covenants e com a sustentabilidade da rede?"
+			reveals:   "Impede improvisação sob escassez."
+			rationale: "Liquidez apertada revela incoerência de política mais rápido do que crescimento normal."
+		},
+		{
+			question:  "Qual é o run risk específico desta estrutura de funding? Como ele se manifesta na prática e quais mitigações já existem?"
+			reveals:   "Traduz 'corrida' para a forma concreta do estágio atual."
+			rationale: "Run risk muda de forma conforme o funding muda."
+		},
+		{
+			question:  "Como o capital próprio está dividido entre operação, reserva, crescimento e subordinação? Essa alocação é consistente com o estágio?"
+			reveals:   "Expõe trade-offs reais que a narrativa de escala costuma esconder."
+			rationale: "Equity preso em first-loss não está disponível para tudo o mais."
+		},
+		{
+			question:  "A Mesh prova, com dados, que seu monitoramento delegado é melhor que a outside option do investidor?"
+			reveals:   "Conecta qualidade do monitoramento ao custo e continuidade do funding."
+			rationale: "Funding escala quando a função de intermediação é confiável, não apenas quando o pitch é bom."
+		},
+		{
+			question:  "Qual a sequência de fragilidade do funding? O que quebra primeiro, qual o segundo efeito, e qual mitigação existe em cada elo?"
+			reveals:   "Mapeia o unraveling antes da crise."
+			rationale: "Funding robusto é aquele cuja sequência de quebra já foi pensada antes."
+		},
+		{
+			question:  "Qual trigger quantitativo reabre esta decisão? Escala, custo, spread, subordinação, utilization, covenant pressure, run indicator ou deterioração do monitoramento?"
+			reveals:   "Transforma a decisão em política reavaliável."
+			rationale: "Sem trigger, a estrutura envelhece até quebrar."
+		},
+	]
+
+	meshExamples: [
+		{
+			id:       "ex-fidc-structuring"
+			scenario: "A Mesh acumulou track record inicial e quer estruturar seu primeiro FIDC para sair da dependência exclusiva de capital próprio."
+			analysis: "A pergunta não é apenas se o FIDC reduz custo da tranche sênior, mas se a estrutura completa fecha. Subordinação retida consome equity, custos estruturais comem spread, pipeline precisa ser sustentável, e elegibilidade pode excluir parte relevante dos recebíveis que o negócio gostaria de originar. Além disso, lançar cedo demais pode aprisionar capital em junior sem gerar capacidade econômica líquida suficiente."
+			recommendation: "Dimensionar o primeiro FIDC de forma conservadora, compatível com o pipeline sustentável e com a capacidade da Mesh de reter subordinação sem asfixiar growth. Validar elegibilidade antes da originação, não depois. Construir o caso econômico com spread mínimo completo e não com custo parcial da tranche sênior."
+			assumptions: [
+				"há pipeline elegível suficiente para utilização estável do veículo",
+				"a Mesh consegue reter a subordinação sem comprometer crescimento crítico",
+				"os custos estruturais e tributários foram modelados integralmente",
+			]
+			principlesApplied: ["ax-03", "ax-04", "ax-05"]
+			rationale: "FIDC bem estruturado escala; FIDC mal dimensionado só redistribui fragilidade."
+		},
+		{
+			id:       "ex-covenant-pressure"
+			scenario: "Um comprador excelente geraria volume adicional muito atrativo, mas sua entrada empurraria a concentração da carteira para perto do limite do veículo."
+			analysis: "O ativo individual pode ser ótimo, mas a estrutura de funding pode não comportar sua entrada sem degradar o veículo. A decisão correta não depende apenas da qualidade do comprador, e sim do efeito marginal sobre concentração, covenants, flexibilidade futura e risco de amortização forçada."
+			recommendation: "Não avaliar a operação apenas por retorno individual. Comparar alternativas: originar parcialmente, alocar fora do veículo, criar série ou funding dedicado, ou crescer a base antes de absorver esse volume. O veículo é constraint de primeira ordem."
+			assumptions: [
+				"o covenant realmente se aproxima do ponto de violação",
+				"há alternativas operacionais fora do veículo ou via funding complementar",
+			]
+			principlesApplied: ["ax-05", "dp-05", "dp-08"]
+			rationale: "Violação estrutural por bom ativo individual continua sendo má decisão de funding."
+		},
+		{
+			id:       "ex-public-fraud-incident"
+			scenario: "Uma fraude detectada em recebível vira notícia pública e a Mesh precisa avaliar o impacto no funding atual e futuro."
+			analysis: "A perda econômica direta pode ser pequena, mas o dano potencial está no canal de confiança. O investidor não reage apenas à perda; reage à percepção sobre a qualidade do monitoramento delegado, do servicing e do controle estrutural do veículo. Dependendo do estágio, a corrida aparece como resgate, não rolagem, spread maior na próxima série ou fuga de usuários."
+			recommendation: "Responder por canal de funding. Explicar materialidade, impacto econômico real, o que o controle detectou, o que foi corrigido e por que o caso prova a capacidade de monitoramento em vez de negá-la. Comunicar cedo e com dados. Tratar o incidente como evento de funding, não apenas de fraude."
+			assumptions: [
+				"a fraude foi detectada pelo monitoramento da Mesh e não por terceiro",
+				"a materialidade econômica direta é baixa em relação ao patrimônio do veículo",
+			]
+			principlesApplied: ["ax-05", "dp-05"]
+			rationale: "Na intermediação, incidente reputacional é também incidente de liquidez futura."
+		},
+	]
+
+	principleIds: ["ax-03", "ax-04", "ax-05", "ax-07", "dp-05", "dp-08"]
+
+	relatedLenses: [
+		{
+			lensId:   "lens-credit-risk"
+			relation: "complementsWith"
+			context:  "Credit-risk avalia perda esperada, concentração e risco de default. Financial-intermediation avalia funding, liquidez, subordinação, custo de capital e continuidade da estrutura que carrega essa carteira."
+		},
+		{
+			lensId:   "lens-mechanism-design"
+			relation: "complementsWith"
+			context:  "Mechanism-design desenha regras de priorização, elegibilidade operacional e alocação em escassez. Financial-intermediation define as constraints reais de funding dentro das quais essas regras precisam operar."
+		},
+		{
+			lensId:   "lens-regulatory-strategy"
+			relation: "complementsWith"
+			context:  "Regulatory-strategy define o que a Mesh pode estruturar e em que sequência. Financial-intermediation decide qual estrutura é economicamente correta dentro desse espaço regulatório."
+		},
+		{
+			lensId:   "lens-behavioral-economics"
+			relation: "complementsWith"
+			context:  "Run risk, confiança de investidores e reação a incidentes têm forte componente comportamental. Financial-intermediation modela a fragilidade estrutural; behavioral-economics modela a dinâmica de confiança."
+		},
+		{
+			lensId:   "lens-information-economics"
+			relation: "feedsInto"
+			context:  "A força do monitoramento delegado depende da qualidade, exclusividade e utilidade da informação gerada pela Mesh. Information-economics ajuda a provar que esse monitoramento merece funding mais barato."
+		},
+		{
+			lensId:   "lens-theory-of-firm"
+			relation: "complementsWith"
+			context:  "Decisões como BaaS vs estrutura própria, servicer backup, administração fiduciária e infraestrutura de fluxo passam por theory-of-firm. Financial-intermediation avalia a estrutura econômica e de liquidez resultante."
+		},
+	]
+
+	limitations: [
+		{
+			description: "A lens é calibrada para a realidade brasileira de antecipação, SCD, cessão e FIDC."
+			alternative: "Ao expandir para outros produtos ou jurisdições, recalibrar veículos, impostos, funding sources e dinâmicas de mercado."
+			rationale:   "A forma institucional da intermediação muda bastante por país e produto."
+		},
+		{
+			description: "Ela não substitui credit-risk; assume que a carteira já está sendo avaliada por lens própria."
+			alternative: "Usar em conjunto com credit-risk sempre que o funding depende da qualidade do ativo."
+			rationale:   "Funding e crédito são dimensões distintas que se acoplam."
+		},
+		{
+			description: "Mercados de funding podem mudar abruptamente e tornar premissas econômicas obsoletas em pouco tempo."
+			alternative: "Usar funding map, triggers trimestrais e stress de liquidez com cenários de congelamento e encarecimento abrupto."
+			rationale:   "Intermediação é altamente sensível a regime de mercado."
+		},
+		{
+			description: "Uma estrutura elegante no papel pode falhar por servicing fraco, pipeline insuficiente ou má disciplina operacional."
+			alternative: "Tratar servicing, ramp-up e monitoramento como parte do produto financeiro, não como execução secundária."
+			rationale:   "Funding ruim muitas vezes nasce de operação ruim, não só de estrutura mal desenhada."
+		},
+	]
+
+	rationale: "A Mesh é intermediário financeiro de fato, não apenas software com feature de antecipação. Isso exige pensar funding, liquidez, custo de capital, veículos, subordinação, maturity mismatch, run risk, servicing, pipeline e fragilidade estrutural como parte do core decisório. Credit-risk responde se a carteira é boa. Financial-intermediation responde se a Mesh consegue carregar essa carteira, em que estrutura, com qual custo real, com qual capital preso, sob quais covenants e com que robustez quando o mercado seca. Em uma empresa AI-native que quer ligar dinheiro e operação no mesmo plano, a qualidade da intermediação não é acessória: ela é a condição para transformar tese em loop econômico sustentável."
 }

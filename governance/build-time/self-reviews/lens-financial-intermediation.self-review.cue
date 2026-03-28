@@ -13,36 +13,34 @@ lensFinancialIntermediation: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-03-28"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 
-	status: "max-rounds-reached"
+	status: "stable"
 
 	roundDetails: [{
 		round:     1
 		failCount: 1
 		warnCount: 0
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 15 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em FIDC, SCD, recebíveis, subordinação, covenants, capital próprio, warehouse, correspondente bancário, IOF, IRRF, cessão, securitização, construção civil, true sale, commingling, servicer, maturity mismatch, run risk, ramp-up, monitoramento delegado, spread mínimo, alocação de capital, fragilidade de funding (uq-02), dependsOn internos consistentes — cadeia coerente de 15 concepts com dependências cruzadas válidas (uq-03), sem contradição com design-principles (uq-04), terminologia consistente — funding, liquidez, intermediação, subordinação, elegibilidade, covenants, maturidade, transformação de risco, monitoramento delegado, veículo regulatório, FIDC, SCD, true sale, bankruptcy remoteness, commingling, servicer, run risk, maturity mismatch, spread mínimo viável, first-loss, warehouse (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 13 condições testáveis, 5 excludeWhen. tq-ln-02 pass: 15 conceitos (>=5), roles válidos (13 framework + 2 method)."
+		summary:   "Round 1 avaliou lente parcial (trigger + 15 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass."
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary:   "Round 2 avaliou lente completa. uq-01 pass: rationales explicam WHY em concepts, reasoningProtocol, meshExamples e limitations. uq-02 pass: meshExamples ancorados em FIDC, subordinação, covenant de concentração, fraude em recebível — cenários específicos da Mesh com decisões concretas de funding e intermediação. uq-03 pass: principleIds (ax-03, ax-04, ax-05, ax-07, dp-05, dp-08) existem; relatedLenses referenciam 6 lenses existentes (credit-risk, mechanism-design, regulatory-strategy, behavioral-economics, information-economics, theory-of-firm); dependsOn internos consistentes entre 15 concepts. uq-04 pass: sem contradição com design-principles. uq-05 pass: 4 limitations declaradas cobrindo calibração brasileira, separação de credit-risk, volatilidade de mercado e risco operacional. uq-06 pass: terminologia consistente — funding, liquidez, subordinação, FIDC, SCD, true sale, commingling, servicer, maturity mismatch, run risk, spread mínimo, covenant, elegibilidade. uq-07 pass: zero placeholders. uq-08 pass: todos os campos obrigatórios presentes — 13 reasoningProtocol steps (>=4), 3 meshExamples (>=2), 6 principleIds, 4 limitations (>=2), rationale. Correção aplicada: assumptions adicionado ao exemplo ex-public-fraud-incident (campo obrigatório no schema). tq-ln-01 pass: 13 condições testáveis, 5 excludeWhen. tq-ln-02 pass: 15 conceitos (>=5), roles válidos (13 framework + 2 method). cue vet pass."
 	}]
 
-	findings: {
-		fail: [{
-			criterionId: "uq-08"
-			severity:    "fail"
-			message:     "Campos obrigatórios do schema #AnalyticalLens ausentes: reasoningProtocol, meshExamples, principleIds, limitations, rationale. Artefato parcial — founder enviará conteúdo restante."
-		}]
-	}
+	findings: {}
 
 	summary: """
-		Lente financial-intermediation parcial com trigger (13 condições,
-		41 keywords, 5 excludeWhen) e 15 conceitos cobrindo papel do
-		intermediário, veículo regulatório, funding por estágio, FIDC,
-		true sale e commingling, servicer risk, maturity transformation,
-		liquidez, run risk, ramp-up e reinvestimento, monitoramento
-		delegado, custo de capital, alocação de capital, fragilidade de
-		funding e funding map operacional. Fail estrutural (uq-08) por
-		campos obrigatórios ausentes — artefato parcial aguardando
-		conteúdo do founder.
+		Lente financial-intermediation completa com trigger (13 condições,
+		41 keywords, 5 excludeWhen), 15 conceitos, 13 passos de reasoning
+		protocol, 3 meshExamples (FIDC structuring, covenant pressure,
+		public fraud incident), 6 principleIds, 6 relatedLenses, 4
+		limitations e rationale. Estabilizada em round 2 após resolução
+		do uq-08 fail do round 1. Correção de schema: assumptions
+		adicionado ao ex-public-fraud-incident. cue vet pass.
 		"""
 }
