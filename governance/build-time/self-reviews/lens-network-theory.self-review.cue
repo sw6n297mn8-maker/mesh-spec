@@ -23,7 +23,7 @@ lensNetworkTheory: build_time.#SelfReviewReport & {
 		failCount: 1
 		warnCount: 0
 		infoCount: 0
-		summary:   "Round 1 avaliou lente parcial (trigger + 7 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em construção civil, construtoras grandes, fornecedores pequenos, grafo bipartito, camadas financeira/operacional/informacional (uq-02), sem crossDependsOn neste batch (uq-03 pass), sem contradição com design-principles (uq-04), terminologia consistente — bipartito, backbone, betweenness, hub/authority usados consistentemente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 12 condições testáveis, 5 excludeWhen."
+		summary:   "Round 1 avaliou lente parcial (trigger + 14 concepts). uq-08 fail: campos obrigatórios reasoningProtocol, meshExamples, principleIds, limitations e rationale ausentes — artefato parcial por decisão do founder. Demais critérios pass: rationales explicam WHY (uq-01), meshManifestation ancorado em construção civil, construtoras grandes, fornecedores pequenos, grafo bipartito, camadas financeira/operacional/informacional, dashboard estrutural (uq-02), sem crossDependsOn neste batch (uq-03 pass), sem contradição com design-principles (uq-04), terminologia consistente — bipartito, backbone, betweenness, hub/authority, contágio, resiliência, divergência inter-camada usados consistentemente (uq-06), zero placeholders (uq-07). tq-ln-01 pass: 12 condições testáveis, 5 excludeWhen."
 	}]
 
 	findings: {
@@ -36,11 +36,13 @@ lensNetworkTheory: build_time.#SelfReviewReport & {
 
 	summary: """
 		Lente network-theory parcial com trigger (12 condições, 33 keywords,
-		5 excludeWhen) e 7 conceitos cobrindo representação em grafo bipartito
+		5 excludeWhen) e 14 conceitos cobrindo representação em grafo bipartito
 		multi-layer, cobertura, janelas temporais, análise bipartida e projeções,
-		backbone extraction, centralidade bipartite-aware e assortatividade.
-		Fail estrutural (uq-08) por campos obrigatórios ausentes — artefato
-		parcial por decisão do founder. Aguardando mais conceitos e demais
-		campos obrigatórios.
+		backbone extraction, centralidade bipartite-aware, assortatividade,
+		dependência assimétrica, community detection, divergência inter-camada,
+		contágio e cascata, resiliência, dinâmica de crescimento e métricas
+		operacionais. Fail estrutural (uq-08) por campos obrigatórios ausentes
+		— artefato parcial por decisão do founder. Aguardando demais campos
+		obrigatórios.
 		"""
 }
