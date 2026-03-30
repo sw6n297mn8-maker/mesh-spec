@@ -11,19 +11,20 @@ scf: artifact_schemas.#Subdomain & {
 		Originação de produtos financeiros sobre recebíveis
 		operacionais — antecipação de recebíveis, reverse
 		factoring, dynamic discounting e capital de giro.
-		Consome recebíveis lastreados produzidos por ECL e
-		decisões de risco de REW. Não governa o lifecycle do
-		compromisso (ECL), não executa pagamentos (FCE), não
+		Consome recebíveis lastreados produzidos pelo commitment
+		lifecycle (INV materializa) e decisões de risco de REW.
+		Não governa o lifecycle do compromisso (CMT), não
+		executa pagamentos (FCE), não
 		modela risco (REW), não formaliza contratos (CTR).
 		"""
 
 	purpose: """
 		Separar originação de produtos financeiros da
-		infraestrutura que a viabiliza. ECL produz recebíveis
+		infraestrutura que a viabiliza. INV materializa recebíveis
 		operacionais, REW precifica, FCE executa — SCF estrutura
 		produtos financeiros consumindo esses três. Sem SCF como
 		unidade separada, a lógica de produto financeiro ficaria
-		distribuída entre ECL (originação), REW (pricing) e FCE
+		distribuída entre CMT+DLV+INV (originação), REW (pricing) e FCE
 		(execução) sem owner canônico.
 		"""
 
@@ -62,7 +63,7 @@ scf: artifact_schemas.#Subdomain & {
 		(antecipação, factoring, desconto dinâmico) são padrões
 		exógenos do mercado financeiro — não proprietários à Mesh.
 		O diferencial proprietário é o lastro em evidência
-		verificável (mech-evidence via ECL) e o pricing baseado em
+		verificável (mech-evidence via DLV) e o pricing baseado em
 		dados observados (mech-network via REW). SCF combina esses
 		diferenciais em produtos que o mercado já conhece —
 		inovação é no lastro, não no produto.

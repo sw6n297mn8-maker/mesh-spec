@@ -12,7 +12,7 @@ fce: artifact_schemas.#Subdomain & {
 		budget allocation, payment lifecycle, settlement e liberação
 		condicional de retenções. Governa a invariante central da fusão:
 		dinheiro só se move quando operação comprova que deve se mover.
-		Não governa o estado do compromisso (ECL), não precifica risco
+		Não governa o estado do compromisso (CMT), não precifica risco
 		(REW), não origina produtos de working capital (SCF) nem executa
 		liquidação física (BKR).
 		"""

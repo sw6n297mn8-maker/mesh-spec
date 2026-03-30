@@ -13,7 +13,7 @@ dgv: artifact_schemas.#Subdomain & {
 		(Dead Simple Signing Envelope), Merkle proofs, políticas
 		de retenção, LGPD e data lineage. Fornece as primitivas
 		de integridade que mech-evidence consome. Não processa
-		transações (ECL, FCE), não modela risco (REW), não
+		transações (CMT, FCE), não modela risco (REW), não
 		captura evidência operacional (LOG).
 		"""
 

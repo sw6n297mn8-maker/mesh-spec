@@ -16,7 +16,7 @@ ngr: artifact_schemas.#Subdomain & {
 		entregues por canais transacionais. Proposta de valor é cálculo
 		baseado em dados observados. Não qualifica participantes (NPM),
 		não computa reputação (NIM), não origina compromissos econômicos
-		(ECL) nem executa pagamentos (FCE).
+		(CMT) nem executa pagamentos (FCE).
 		"""
 
 	purpose: """

@@ -12,7 +12,7 @@ obs: artifact_schemas.#Subdomain & {
 		métricas operacionais, health checks, alertas, tracing
 		distribuído e dashboards. Produz a visibilidade necessária
 		para que agentes e humanos monitorem, diagnostiquem e
-		otimizem operações. Não processa transações (ECL, FCE),
+		otimizem operações. Não processa transações (CMT, FCE),
 		não computa reputação (NIM), não modela risco (REW).
 		"""
 
