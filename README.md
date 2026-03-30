@@ -448,7 +448,9 @@ architecture/artifact-schemas/
 architecture/artifacts/
 architecture/c4/
 architecture/cross-context-workflows/
+architecture/lenses/
 architecture/shared-schemas/
+architecture/shared-types/
 architecture/tension-log/
 architecture/validation-prompts/
 contexts/
