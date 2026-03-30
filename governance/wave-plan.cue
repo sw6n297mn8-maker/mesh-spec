@@ -119,7 +119,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 					artifact: "contexts/cmt/canvas.cue"
 					type:     "create"
 				}]
-				rationale: "Primeiro BC. CMT (Economic Commitment Lifecycle) é o minimum economic loop. Depende de domain-definition (WI-001), subdomínios (WI-007) e canvas schema (WI-011)."
+				rationale: "Primeiro BC. CMT (Commitment Management) é o entry point do commitment lifecycle e o minimum economic loop. Depende de domain-definition (WI-001), subdomínios (WI-007) e canvas schema (WI-011)."
 			}, {
 				id:         "WI-010"
 				title:      "Criar validation prompts fundacionais"
