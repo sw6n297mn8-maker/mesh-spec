@@ -46,9 +46,9 @@ ato: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "ATO consome eventos de compromissos para apuração fiscal; não governa progressão. Fusão inflaria o lifecycle com complexidade tributária específica por jurisdição."
+		rationale: "ATO consome eventos do commitment lifecycle para apuração fiscal; não governa progressão. CMT é owner do estado do compromisso. Fusão inflaria o lifecycle com complexidade tributária específica por jurisdição."
 	}]
 
 	rationale: """

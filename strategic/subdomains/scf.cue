@@ -31,9 +31,9 @@ scf: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "SCF consome recebíveis operacionais produzidos por ECL; não governa como são produzidos. Fusão acoplaria produtos financeiros ao lifecycle operacional — cadências de regulação distintas."
+		rationale: "SCF consome recebíveis produzidos ao longo do commitment lifecycle (INV materializa, CMT governa estado); não governa como são produzidos. Fusão acoplaria produtos financeiros ao lifecycle operacional — cadências de regulação distintas."
 	}, {
 		responsibility: "Execução financeira — pagamentos, settlement, budget."
 		delegatedTo: {

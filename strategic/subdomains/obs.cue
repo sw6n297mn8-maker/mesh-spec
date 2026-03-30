@@ -30,9 +30,9 @@ obs: artifact_schemas.#Subdomain & {
 		responsibility: "Processamento de transações — lifecycle, pagamentos, risco."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "OBS observa; ECL (e demais) executam. Fusão acoplaria instrumentação à lógica de negócio — cada mudança operacional exigiria revisão de observabilidade e vice-versa."
+		rationale: "OBS observa; CMT (e demais) executam. Fusão acoplaria instrumentação à lógica de negócio — cada mudança operacional exigiria revisão de observabilidade e vice-versa."
 	}, {
 		responsibility: "Inteligência de rede — scoring, matching, reputação."
 		delegatedTo: {

@@ -59,9 +59,9 @@ ngr: artifact_schemas.#Subdomain & {
 		responsibility: "Originação de compromissos econômicos — state machine do lifecycle."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "NGR ativa participantes; ECL governa compromissos econômicos. Crescimento da rede é pré-condição para compromissos econômicos, não fase do lifecycle — fusão forçaria o lifecycle a absorver lógica de conversão de contrapartes externas."
+		rationale: "NGR ativa participantes; CMT governa formalização de compromissos econômicos. Crescimento da rede é pré-condição para compromissos econômicos, não fase do lifecycle — fusão forçaria o lifecycle a absorver lógica de conversão de contrapartes externas."
 	}, {
 		responsibility: "Execução de pagamentos — liquidação financeira."
 		delegatedTo: {

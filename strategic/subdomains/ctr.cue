@@ -29,9 +29,9 @@ ctr: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições, fases."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "CTR formaliza termos; ECL governa a progressão do compromisso sob esses termos. Fusão acoplaria evolução de cláusulas contratuais à evolução de fases operacionais — dois eixos de mudança independentes."
+		rationale: "CTR formaliza termos; CMT governa a formalização e o estado do compromisso sob esses termos. Fusão acoplaria evolução de cláusulas contratuais à evolução de fases operacionais — dois eixos de mudança independentes."
 	}, {
 		responsibility: "Execução financeira — pagamentos, settlement, budget."
 		delegatedTo: {

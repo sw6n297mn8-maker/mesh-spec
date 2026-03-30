@@ -40,9 +40,9 @@ dgv: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "DGV garante integridade de dados que ECL consome; não governa progressão do compromisso. Fusão acoplaria decisões criptográficas a decisões de domínio financeiro."
+		rationale: "DGV garante integridade de dados que CMT consome; não governa progressão do compromisso. Fusão acoplaria decisões criptográficas a decisões de domínio financeiro."
 	}, {
 		responsibility: "Auditoria regulatória — reporting, compliance fiscal."
 		delegatedTo: {

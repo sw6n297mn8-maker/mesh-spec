@@ -32,9 +32,9 @@ log: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições, fases."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "dlv"
 		}
-		rationale: "LOG produz evidência; ECL consome como pré-condição. Fusão acoplaria integridade de evidência física à progressão de compromissos econômicos — cadências de evolução distintas por vertical."
+		rationale: "LOG produz evidência; DLV consome como pré-condição para decisão de suficiência. Fusão acoplaria integridade de evidência física à verificação de execução — cadências de evolução distintas por vertical."
 	}, {
 		responsibility: "Execução financeira — pagamentos, settlement."
 		delegatedTo: {

@@ -30,9 +30,9 @@ ntf: artifact_schemas.#Subdomain & {
 		responsibility: "Lógica de domínio — decisão sobre o que comunicar e quando."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "NTF entrega; subdomínios emissores (ECL, FCE, NGR, etc.) decidem conteúdo e timing. Fusão acoplaria infraestrutura de entrega a lógica de negócio — cada novo canal exigiria revisão de regras de domínio."
+		rationale: "NTF entrega; subdomínios emissores (CMT, FCE, NGR, etc.) decidem conteúdo e timing. Fusão acoplaria infraestrutura de entrega a lógica de negócio — cada novo canal exigiria revisão de regras de domínio."
 	}, {
 		responsibility: "Crescimento da rede — detecção e ativação de contrapartes."
 		delegatedTo: {

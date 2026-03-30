@@ -47,9 +47,9 @@ fce: artifact_schemas.#Subdomain & {
 		responsibility: "Estado do compromisso — state machine, transições e elegibilidades do lifecycle."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "FCE consome estados de ECL para decidir quando pagar, mas não governa transições. Fusão acoplaria evolução do lifecycle à evolução da execução financeira."
+		rationale: "FCE consome estados do compromisso (CMT) para decidir quando pagar, mas não governa transições. Fusão acoplaria evolução do lifecycle à evolução da execução financeira."
 	}, {
 		responsibility: "Precificação de risco e elegibilidade — políticas de crédito, limites, pricing."
 		delegatedTo: {

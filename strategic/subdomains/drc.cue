@@ -31,9 +31,9 @@ drc: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — fluxo normal de progressão."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "DRC trata exceções que afetam compromissos; ECL governa o fluxo normal. Fusão misturaria regras de progressão com regras de reversão — lógica de exceção inflaria a state machine do lifecycle."
+		rationale: "DRC trata exceções que afetam compromissos; CMT governa o fluxo normal de formalização e estado. Fusão misturaria regras de progressão com regras de reversão — lógica de exceção inflaria a state machine do lifecycle."
 	}, {
 		responsibility: "Execução de estornos financeiros — movimentação reversa de dinheiro."
 		delegatedTo: {
