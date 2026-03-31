@@ -173,6 +173,19 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"architecture/validation-prompts/*.cue",
 				]
 				rationale: "Schema de validação para validation prompts. Afeta todas as futuras instâncias."
+			}, {
+				id:         "WI-014"
+				title:      "Criar runner de validação para context-map"
+				tshirtSize: "M"
+				dependsOn: ["WI-008", "WI-009", "WI-011"]
+				outputs: [{
+					artifact: "governance/build-time/runners/context-map-runner.cue"
+					type:     "create"
+				}]
+				affects: [
+					"strategic/context-map.cue",
+				]
+				rationale: "Runner valida critérios cross-collection do context-map (unicidade de codes, cobertura de ownership, BCs isolados) que não são enforceáveis pelo type system. Depende de context-map (WI-008), canvas schema (WI-011) e primeiro BC (WI-009) para ter dados reais contra os quais validar."
 			}]
 		}
 	}
