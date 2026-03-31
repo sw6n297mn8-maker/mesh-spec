@@ -280,6 +280,7 @@ mesh-spec/
 │   │   ├── quality-criteria.cue         # #QualityCriteria, #QualityCriterion, #Severity
 │   │   ├── stakeholder-map.cue          # #StakeholderMap
 │   │   ├── task-template.cue            # #TaskTemplate
+│   │   ├── context-map.cue              # #ContextMap
 │   │   ├── cross-context-flow.cue       # #CrossContextFlow
 │   │   ├── wave-plan.cue               # #WavePlan
 │   │   │                                #
@@ -470,6 +471,7 @@ END:repo-structure-paths -->
 adr.cue
 artifact-schema.cue
 canvas.cue
+context-map.cue
 cross-context-flow.cue
 domain-definition.cue
 lens.cue
