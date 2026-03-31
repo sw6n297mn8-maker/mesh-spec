@@ -4,45 +4,35 @@ package artifact_schemas
 //
 // O context map é artefato singleton que documenta a topologia
 // de integração entre bounded contexts e seus padrões de relação.
-// É o SoT de quais BCs existem, quais subdomínios cada um cobre,
-// e como se relacionam (upstream/downstream patterns).
+// É o SoT de quais BCs existem e como se relacionam.
 //
 // Estratégia desta versão:
-// - tq-cm-04 vira regra de tipo por union estrutural de relações válidas
-// - tq-cm-06 vira parcialmente estrutural via mapa explícito de ownership;
-//   a cobertura total ainda depende de unificação/runner
-// - tq-cm-09 vira regra forte quando unificado com o artefato que fornece
-//   os contexts esperados do wave plan
-// - tq-cm-11 vira regra forte quando unificado com o catálogo de flows
-//
-// Princípio:
-// - o que puder ser estado inválido irrepresentável, vira tipo
-// - o que depender de outro artefato, vira contrato de unificação
-// - runner fica só para o restante
+// - Compatibilidade de patterns é regra de tipo (union estrutural)
+// - Ownership de subdomínio é SoT explícito (mapa global obrigatório)
+// - contexts[].subdomains é VISÃO DERIVADA (não fonte primária)
+// - Regras cross-artifact são contratos de unificação
+// - Runner fecha apenas o que não pode ser expresso em tipo
 
 #ContextMap: {
 	code:    string & =~"^[a-z][a-z0-9-]*$"
 	name:    string & !=""
 	purpose: string & !=""
 
-	// Singleton estratégico.
 	topology: "global"
 
 	// BCs participantes.
+	// subdomains aqui são visão derivada do ownership global.
 	contexts: [#ContextEntry, #ContextEntry, ...#ContextEntry]
 
-	// Ownership explícito dos subdomínios no mapa.
-	// Cada chave é um subdomínio e aponta para exatamente um ownerContext.
-	// Isso transforma single-ownership em dado explícito do artefato.
-	subdomainOwnership?: [#SubdomainRef]: #SubdomainOwnership
+	// 🔴 SOURCE OF TRUTH DE OWNERSHIP
+	subdomainOwnership: [#SubdomainRef]: #SubdomainOwnership
 
 	// Relações direcionais entre BCs.
 	relationships: [...#ContextRelationship]
 
-	// Hooks para unificação cross-artifact.
-	// Quando preenchidos por outro artefato, viram constraints reais.
+	// Hooks de unificação cross-artifact
 	expectedContexts?: [...#BoundedContextRef]
-	knownFlows?:       [...#CrossContextFlowRef]
+	declaredFlows?:    [...#CrossContextFlowRef]
 
 	knownLimitations?: [...string]
 	assumptions?:      [...string]
@@ -54,112 +44,155 @@ package artifact_schemas
 			canonicalPathRegex: "^strategic/context-map\\.cue$"
 			fileNameRegex:      "^context-map\\.cue$"
 			description:        "Context map: topologia global de integração entre bounded contexts."
-			rationale:          "Context map vive em strategic/ como visão única das relações entre BCs."
+			rationale:          "Artefato estratégico único (singleton) que governa fronteiras entre BCs."
 			cardinality:        "singleton"
 			allowNested:        false
 		}
 	}
 
 	_qualityCriteria: #QualityCriteria & {
-		criteria: [{
-			id:          "tq-cm-01"
-			description: "Todo bounded context listado em contexts[] é único"
-			test:        "Nenhum context aparece mais de uma vez em contexts[]."
-			severity:    "fail"
-			rationale:   "Duplicata de BC gera ambiguidade estrutural."
-		}, {
-			id:          "tq-cm-02"
-			description: "Todo BC em relationships[] está declarado em contexts[]"
-			test:        "Cada upstream e downstream em relationships[] referencia um context existente em contexts[].context."
-			severity:    "fail"
-			rationale:   "Relação com BC não declarado é referência órfã."
-		}, {
-			id:          "tq-cm-03"
-			description: "Relações não duplicam par upstream-downstream"
-			test:        "Cada par (upstream, downstream) aparece no máximo uma vez."
-			severity:    "fail"
-			rationale:   "Duplicata cria ambiguidade sobre a fronteira."
-		}, {
-			id:          "tq-cm-04"
-			description: "Patterns upstream/downstream são compatíveis por construção do tipo"
-			test:        "relationships[] instancia uma variante válida de #ContextRelationship."
-			severity:    "fail"
-			rationale:   "Compatibilidade não é convenção textual; é enforced pelo union de tipos."
-		}, {
-			id:          "tq-cm-05"
-			description: "Todo context tem ao menos um subdomínio"
-			test:        "Cada contexts[].subdomains contém ao menos um item."
-			severity:    "fail"
-			rationale:   "BC sem subdomínio não tem escopo semântico."
-		}, {
-			id:          "tq-cm-06"
-			description: "Ownership de subdomínio é explícito e unificável"
-			test:        "Se subdomainOwnership estiver preenchido, cada entrada aponta para um único ownerContext. A cobertura total dos subdomínios usados em contexts[] deve ser verificada por unificação/runner."
-			severity:    "fail"
-			rationale:   "Single ownership vira artefato explícito. A cobertura total depende de comparar contexts[].subdomains com as chaves do mapa."
-		}, {
-			id:          "tq-cm-07"
-			description: "Relações simétricas são modeladas como simétricas"
-			test:        "Partnership e Shared Kernel usam variantes próprias do union."
-			severity:    "fail"
-			rationale:   "Evita assimetrias inválidas nesses padrões."
-		}, {
-			id:          "tq-cm-08"
-			description: "Todo BC participa de ao menos uma relação ou tem justificativa"
-			test:        "BC isolado deve ser justificado em rationale/context ou limitations."
-			severity:    "warn"
-			rationale:   "BC isolado pode ser legítimo, mas normalmente indica mapa incompleto."
-		}, {
-			id:          "tq-cm-09"
-			description: "Cobertura esperada pelo wave plan pode ser validada por unificação"
-			test:        "Se expectedContexts estiver preenchido, cada item deve aparecer em contexts[].context."
-			severity:    "fail"
-			rationale:   "Regra preparada para unificação com o artefato que materializa os contexts esperados do wave plan."
-		}, {
-			id:          "tq-cm-10"
-			description: "Toda relação tem identidade canônica própria"
-			test:        "Cada relationships[].code é único e segue regex canônica."
-			severity:    "fail"
-			rationale:   "Permite referência estável a relações."
-		}, {
-			id:          "tq-cm-11"
-			description: "flowRefs podem ser validados por unificação com catálogo de flows"
-			test:        "Se knownFlows estiver preenchido, cada flowRef deve pertencer a knownFlows."
-			severity:    "fail"
-			rationale:   "Regra preparada para unificação cross-artifact com catálogo de CrossContextFlows."
-		}]
-		rationale: "Critérios cobrem integridade estrutural, ownership explícito, compatibilidade de patterns e hooks para unificação cross-artifact."
+		criteria: [
+
+			// --- Estrutura básica ---
+			{
+				id:          "tq-cm-01"
+				description: "Todo BC listado é único"
+				test:        "Nenhum context aparece mais de uma vez."
+				severity:    "fail"
+				rationale:   "Duplicata quebra identidade do BC."
+			},
+
+			{
+				id:          "tq-cm-02"
+				description: "Relações referenciam BCs existentes"
+				test:        "upstream/downstream existem em contexts[]."
+				severity:    "fail"
+				rationale:   "Referência órfã invalida o mapa."
+			},
+
+			{
+				id:          "tq-cm-03"
+				description: "Par upstream/downstream é único"
+				test:        "Nenhum par duplicado."
+				severity:    "fail"
+				rationale:   "Duplicata cria ambiguidade de contrato."
+			},
+
+			// --- Tipo forte ---
+			{
+				id:          "tq-cm-04"
+				description: "Compatibilidade de patterns é garantida por tipo"
+				test:        "relationship instancia variante válida."
+				severity:    "fail"
+				rationale:   "Estado inválido é irrepresentável."
+			},
+
+			// --- Subdomínio ---
+			{
+				id:          "tq-cm-05"
+				description: "Todo BC tem subdomínio"
+				test:        "contexts[].subdomains não vazio."
+				severity:    "fail"
+				rationale:   "BC sem domínio não existe semanticamente."
+			},
+
+			{
+				id:          "tq-cm-06"
+				description: "Ownership de subdomínio é explícito e unificável"
+				test:        "subdomainOwnership define owner único; cobertura total depende de unificação com contexts[]."
+				severity:    "fail"
+				rationale:   "Ownership é SoT explícito; cobertura completa exige validação cross-artifact."
+			},
+
+			// --- Simetria ---
+			{
+				id:          "tq-cm-07"
+				description: "Relações simétricas são estruturalmente simétricas"
+				test:        "Partnership e Shared Kernel usam tipos dedicados."
+				severity:    "fail"
+				rationale:   "Evita modelagem inconsistente."
+			},
+
+			// --- Completude ---
+			{
+				id:          "tq-cm-08"
+				description: "BC participa de ao menos uma relação ou é justificado"
+				test:        "BC isolado requer rationale."
+				severity:    "warn"
+				rationale:   "Evita mapa incompleto."
+			},
+
+			// --- Unificação ---
+			{
+				id:          "tq-cm-09"
+				description: "Contexts esperados podem ser validados por unificação"
+				test:        "expectedContexts ⊆ contexts[]."
+				severity:    "fail"
+				rationale:   "Hook para integração com wave plan."
+			},
+
+			{
+				id:          "tq-cm-10"
+				description: "Toda relação tem identidade única"
+				test:        "code único e válido."
+				severity:    "fail"
+				rationale:   "Permite referência estável."
+			},
+
+			{
+				id:          "tq-cm-11"
+				description: "flowRefs validados por unificação com catálogo"
+				test:        "flowRefs ⊆ declaredFlows."
+				severity:    "fail"
+				rationale:   "Hook para integração com cross-context flows."
+			}]
+
+		rationale: "Separação clara entre validação estrutural (tipo), contratos de unificação e validação operacional (runner)."
 	}
 }
 
+// ==============================
+// CONTEXT ENTRY
+// ==============================
+
 #ContextEntry: {
-	context:    #BoundedContextRef
+	context: #BoundedContextRef
+
+	// ⚠️ VISÃO DERIVADA
+	// Deve ser consistente com subdomainOwnership
 	subdomains: [#SubdomainRef, ...#SubdomainRef]
+
 	rationale?: string & !=""
 }
+
+// ==============================
+// OWNERSHIP
+// ==============================
 
 #SubdomainOwnership: {
 	ownerContext: #BoundedContextRef
 	rationale:    string & !=""
 }
 
+// ==============================
+// RELATIONSHIPS (TIPO FORTE)
+// ==============================
+
 #BaseRelationship: {
-	code:        string & =~"^[a-z][a-z0-9-]*$"
-	upstream:    #BoundedContextRef
-	downstream:  #BoundedContextRef
+	code:       string & =~"^[a-z][a-z0-9-]*$"
+	upstream:   #BoundedContextRef
+	downstream: #BoundedContextRef
 
 	upstreamPattern:   #UpstreamPattern
 	downstreamPattern: #DownstreamPattern
 
 	description?: string & !=""
-	rationale:   string & !=""
+	rationale:    string & !=""
 
 	communicationPattern?: #CommunicationPattern
 	flowRefs?:             [...#CrossContextFlowRef]
 }
 
-// Compatibilidade de patterns vira regra de tipo.
-// Relações inválidas simplesmente não unificam.
 #ContextRelationship:
 	#OHSACLRelationship |
 	#OHSConformistRelationship |
@@ -210,6 +243,10 @@ package artifact_schemas
 	downstreamPattern: "shared-kernel"
 }
 
+// ==============================
+// ENUMS
+// ==============================
+
 #UpstreamPattern:
 	"open-host-service" |
 	"published-language" |
@@ -228,6 +265,10 @@ package artifact_schemas
 	criticality?: "high" | "medium" | "low"
 	notes?: string & !=""
 }
+
+// ==============================
+// REFS
+// ==============================
 
 #BoundedContextRef:   string & =~"^[a-z][a-z0-9-]*$"
 #SubdomainRef:        string & =~"^[a-z][a-z0-9-]*$"
