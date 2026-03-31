@@ -13,7 +13,7 @@ bkr: artifact_schemas.#Subdomain & {
 		a heterogeneidade de protocolos bancários em interface
 		uniforme que FCE consome. Não decide quando nem por que
 		pagar (FCE), não modela risco (REW), não governa o
-		lifecycle do compromisso econômico (ECL).
+		lifecycle do compromisso econômico (CMT).
 		"""
 
 	purpose: """

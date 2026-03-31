@@ -20,6 +20,8 @@ package artifact_schemas
 #ArtifactType:
 	"adr" |
 	"canvas" |
+	"context-map" |
+	"cross-context-flow" |
 	"domain-definition" |
 	"lens" |
 	"artifact-schema" |
@@ -31,10 +33,10 @@ package artifact_schemas
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
 //   tq-XXX-NN — critério type-specific (XXX = abreviação do tipo)
-// Abreviações canônicas: adr, cv (canvas), dd (domain-definition),
-// ln (lens), as (artifact-schema), sd (subdomain),
-// sm (stakeholder-map), tt (task-template), wp (wave-plan),
-// srr (self-review-report).
+// Abreviações canônicas: adr, cv (canvas), cm (context-map), xf (cross-context-flow),
+// dd (domain-definition), ln (lens), as (artifact-schema),
+// sd (subdomain), sm (stakeholder-map), tt (task-template),
+// wp (wave-plan), srr (self-review-report).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

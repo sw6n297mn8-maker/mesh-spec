@@ -12,7 +12,7 @@ drc: artifact_schemas.#Subdomain & {
 		contestações, não conformidades, penalidades e estornos.
 		Governa o fluxo de alegação, evidência, resolução e
 		impacto econômico de reversões. Não governa o fluxo
-		normal do compromisso econômico (ECL), não executa
+		normal do compromisso econômico (CMT), não executa
 		estornos financeiros (FCE), não define cláusulas de
 		penalidade (CTR).
 		"""
@@ -21,7 +21,7 @@ drc: artifact_schemas.#Subdomain & {
 		Separar o fluxo de exceção do fluxo normal. Disputas têm
 		lifecycle próprio (alegação→evidência→resolução→impacto)
 		com regras, prazos e stakeholders distintos do fluxo de
-		compromisso. Sem DRC como unidade separada, ECL absorveria
+		compromisso. Sem DRC como unidade separada, CMT absorveria
 		toda a complexidade de reversões — inflando o core com
 		lógica que é inerentemente excepcional e regulatoriamente
 		pesada.
@@ -31,9 +31,9 @@ drc: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — fluxo normal de progressão."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "DRC trata exceções que afetam compromissos; ECL governa o fluxo normal. Fusão misturaria regras de progressão com regras de reversão — lógica de exceção inflaria a state machine do lifecycle."
+		rationale: "DRC trata exceções que afetam compromissos; CMT governa o fluxo normal de formalização e estado. Fusão misturaria regras de progressão com regras de reversão — lógica de exceção inflaria a state machine do lifecycle."
 	}, {
 		responsibility: "Execução de estornos financeiros — movimentação reversa de dinheiro."
 		delegatedTo: {

@@ -11,9 +11,9 @@ log: artifact_schemas.#Subdomain & {
 		Captura, verificação e gestão de evidência operacional
 		física — rastreamento de carga, entrega, inspeção de
 		qualidade, medição de obra e eventos logísticos. Produz
-		a cadeia de custódia que ECL consome como pré-condição
-		de progressão do compromisso econômico. Não governa o
-		lifecycle do compromisso (ECL), não executa pagamentos
+		a cadeia de custódia que DLV consome como pré-condição
+		de verificação do compromisso econômico. Não governa o
+		lifecycle do compromisso (CMT), não executa pagamentos
 		(FCE), não modela risco (REW).
 		"""
 
@@ -23,8 +23,8 @@ log: artifact_schemas.#Subdomain & {
 		tem complexidade, vocabulário e cadência de evolução
 		próprios — inspeção de qualidade em construção civil é
 		radicalmente diferente de rastreamento de carga em
-		logística. Sem LOG como unidade separada, ECL governaria
-		tanto a progressão do compromisso quanto a integridade
+		logística. Sem LOG como unidade separada, DLV governaria
+		tanto a verificação do compromisso quanto a integridade
 		de evidência física — dois domínios com modelos distintos.
 		"""
 
@@ -32,9 +32,9 @@ log: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições, fases."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "dlv"
 		}
-		rationale: "LOG produz evidência; ECL consome como pré-condição. Fusão acoplaria integridade de evidência física à progressão de compromissos econômicos — cadências de evolução distintas por vertical."
+		rationale: "LOG produz evidência; DLV consome como pré-condição para decisão de suficiência. Fusão acoplaria integridade de evidência física à verificação de execução — cadências de evolução distintas por vertical."
 	}, {
 		responsibility: "Execução financeira — pagamentos, settlement."
 		delegatedTo: {
@@ -55,7 +55,7 @@ log: artifact_schemas.#Subdomain & {
 		LOG é supporting porque a captura de evidência é
 		especializável por vertical (construção, logística, energia)
 		mas não é proprietária — o valor proprietário está na
-		vinculação evidência→compromisso→pagamento (ECL+FCE).
+		vinculação evidência→compromisso→pagamento (DLV+CMT+FCE).
 		LOG contribui diretamente para mech-evidence ao produzir
 		evidência com integridade criptográfica que alimenta
 		o flywheel de crédito lastreado.

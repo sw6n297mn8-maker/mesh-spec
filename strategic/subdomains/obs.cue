@@ -12,7 +12,7 @@ obs: artifact_schemas.#Subdomain & {
 		métricas operacionais, health checks, alertas, tracing
 		distribuído e dashboards. Produz a visibilidade necessária
 		para que agentes e humanos monitorem, diagnostiquem e
-		otimizem operações. Não processa transações (ECL, FCE),
+		otimizem operações. Não processa transações (CMT, FCE),
 		não computa reputação (NIM), não modela risco (REW).
 		"""
 
@@ -30,9 +30,9 @@ obs: artifact_schemas.#Subdomain & {
 		responsibility: "Processamento de transações — lifecycle, pagamentos, risco."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "OBS observa; ECL (e demais) executam. Fusão acoplaria instrumentação à lógica de negócio — cada mudança operacional exigiria revisão de observabilidade e vice-versa."
+		rationale: "OBS observa; CMT (e demais) executam. Fusão acoplaria instrumentação à lógica de negócio — cada mudança operacional exigiria revisão de observabilidade e vice-versa."
 	}, {
 		responsibility: "Inteligência de rede — scoring, matching, reputação."
 		delegatedTo: {

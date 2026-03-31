@@ -14,7 +14,7 @@ nim: artifact_schemas.#Subdomain & {
 		ranking, incentivos, penalidades, recomendações) que governam
 		comportamento na rede. Incorpora sinais exógenos relevantes ao
 		compromisso sem operar monitoramento ambiental como atividade fim.
-		Não origina compromissos econômicos (ECL), não qualifica
+		Não origina compromissos econômicos (CMT), não qualifica
 		participantes (NPM), não precifica risco financeiro (REW) nem
 		executa pagamentos (FCE).
 		"""

@@ -40,9 +40,9 @@ idn: artifact_schemas.#Subdomain & {
 		responsibility: "Lógica de domínio — compromissos, pagamentos, risco."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "IDN garante que operações têm autor identificável; ECL (e demais) implementam a lógica. Separação é pré-condição para dp-10 (responsabilidade jurídica explícita) — cadeia de responsabilidade não pode depender de lógica de negócio."
+		rationale: "IDN garante que operações têm autor identificável; CMT (e demais) implementam a lógica. Separação é pré-condição para dp-10 (responsabilidade jurídica explícita) — cadeia de responsabilidade não pode depender de lógica de negócio."
 	}, {
 		responsibility: "Infraestrutura de plataforma — deploy, networking, runtime."
 		delegatedTo: {

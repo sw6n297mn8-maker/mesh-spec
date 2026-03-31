@@ -12,7 +12,7 @@ ctr: artifact_schemas.#Subdomain & {
 		pedidos de compra, ordens de serviço, cláusulas de
 		retenção e requisitos de garantias. Governa os termos
 		sob os quais compromissos econômicos são firmados. Não
-		governa o lifecycle do compromisso econômico em si (ECL),
+		governa o lifecycle do compromisso econômico em si (CMT),
 		não executa pagamentos (FCE), não avalia risco (REW).
 		"""
 
@@ -21,7 +21,7 @@ ctr: artifact_schemas.#Subdomain & {
 		lifecycle do compromisso econômico. Contratos têm regras,
 		vocabulário e cadência de evolução próprios (cláusulas
 		de SLA, retenção, garantia). Sem CTR como unidade separada,
-		ECL absorveria toda a complexidade contratual — inflando
+		CMT absorveria toda a complexidade contratual — inflando
 		o core com lógica que é supporting por natureza.
 		"""
 
@@ -29,9 +29,9 @@ ctr: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições, fases."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "CTR formaliza termos; ECL governa a progressão do compromisso sob esses termos. Fusão acoplaria evolução de cláusulas contratuais à evolução de fases operacionais — dois eixos de mudança independentes."
+		rationale: "CTR formaliza termos; CMT governa a formalização e o estado do compromisso sob esses termos. Fusão acoplaria evolução de cláusulas contratuais à evolução de fases operacionais — dois eixos de mudança independentes."
 	}, {
 		responsibility: "Execução financeira — pagamentos, settlement, budget."
 		delegatedTo: {
@@ -52,8 +52,8 @@ ctr: artifact_schemas.#Subdomain & {
 		CTR é supporting porque formalização contratual é domínio
 		bem entendido e não proprietário — padrões contratuais de
 		construção civil, logística e energia são exógenos à Mesh.
-		O valor proprietário está no lifecycle (ECL) e na execução
-		financeira (FCE), não na modelagem de contratos. CTR serve
-		como registry canônico que ECL e FCE consomem.
+		O valor proprietário está no commitment lifecycle (CMT) e na
+		execução financeira (FCE), não na modelagem de contratos.
+		CTR serve como registry canônico que CMT e FCE consomem.
 		"""
 }

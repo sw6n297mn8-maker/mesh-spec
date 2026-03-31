@@ -31,9 +31,9 @@ plt: artifact_schemas.#Subdomain & {
 		responsibility: "Lógica de domínio — compromissos, pagamentos, risco, contratos."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "PLT fornece infraestrutura de execução; ECL (e demais) implementam lógica de domínio. Separação é a fronteira fundamental entre plataforma e produto — fusão é anti-pattern universalmente reconhecido."
+		rationale: "PLT fornece infraestrutura de execução; CMT (e demais) implementam lógica de domínio. Separação é a fronteira fundamental entre plataforma e produto — fusão é anti-pattern universalmente reconhecido."
 	}, {
 		responsibility: "Observabilidade e inteligência operacional — métricas, alertas, dashboards."
 		delegatedTo: {

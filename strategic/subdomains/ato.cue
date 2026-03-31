@@ -14,7 +14,7 @@ ato: artifact_schemas.#Subdomain & {
 		financeiros de FCE e produz registros contábeis e fiscais
 		auditáveis. Não executa pagamentos (FCE), não origina
 		produtos financeiros (SCF), não governa o lifecycle do
-		compromisso econômico (ECL).
+		compromisso econômico (CMT).
 		"""
 
 	purpose: """
@@ -46,9 +46,9 @@ ato: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "ATO consome eventos de compromissos para apuração fiscal; não governa progressão. Fusão inflaria o lifecycle com complexidade tributária específica por jurisdição."
+		rationale: "ATO consome eventos do commitment lifecycle para apuração fiscal; não governa progressão. CMT é owner do estado do compromisso. Fusão inflaria o lifecycle com complexidade tributária específica por jurisdição."
 	}]
 
 	rationale: """
@@ -56,7 +56,8 @@ ato: artifact_schemas.#Subdomain & {
 		domínios regulatoriamente determinados, não proprietários.
 		Padrões contábeis (IFRS, CPC) e legislação fiscal são
 		exógenos à Mesh. O valor proprietário da Mesh está na
-		execução financeira (FCE) e no lastreamento (ECL), não
+		execução financeira (FCE) e no commitment lifecycle
+		(CMT+DLV+INV), não
 		nos lançamentos contábeis derivados dessas operações.
 		"""
 }

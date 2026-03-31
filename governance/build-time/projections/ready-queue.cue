@@ -9,25 +9,23 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 //
 // pg1-governance-enforcement completa (WI-015 + WI-016 completed).
 // pg2-governance-robustness completa (WI-017 + WI-018 + WI-019 completed).
+// WI-007 (subdomínios), WI-011 (schema #Canvas) e WI-012 (schema #Subdomain) completed.
 //
 // Exclusões desta reconstrução:
-// - WI-007: dep WI-012 (unclaimed) não satisfeita
-// - WI-008: dep WI-007 (unclaimed) não satisfeita
-// - WI-009: deps WI-007 e WI-011 (unclaimed) não satisfeitas
-// - WI-010: dep WI-009 (unclaimed) não satisfeita
+// - WI-010: dep WI-009 (approved, unclaimed) não satisfeita
 
 readyQueueProjection: {
-	rebuiltAt: "2026-03-22T14:00:00Z"
+	rebuiltAt: "2026-03-28T01:00:00Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
-		taskId:        "WI-011"
+		taskId:        "WI-008"
 		version:       1
-		title:         "Criar schema #Canvas"
+		title:         "Criar strategic/context-map.cue"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "high"
 	}, {
-		taskId:        "WI-012"
+		taskId:        "WI-009"
 		version:       1
-		title:         "Criar schema #Subdomain"
+		title:         "Criar contexts/cmt/canvas.cue — primeiro BC"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "high"
 	}]

@@ -13,7 +13,7 @@ dgv: artifact_schemas.#Subdomain & {
 		(Dead Simple Signing Envelope), Merkle proofs, políticas
 		de retenção, LGPD e data lineage. Fornece as primitivas
 		de integridade que mech-evidence consome. Não processa
-		transações (ECL, FCE), não modela risco (REW), não
+		transações (CMT, FCE), não modela risco (REW), não
 		captura evidência operacional (LOG).
 		"""
 
@@ -40,9 +40,9 @@ dgv: artifact_schemas.#Subdomain & {
 		responsibility: "Lifecycle do compromisso econômico — state machine, transições."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "ecl"
+			ref:  "cmt"
 		}
-		rationale: "DGV garante integridade de dados que ECL consome; não governa progressão do compromisso. Fusão acoplaria decisões criptográficas a decisões de domínio financeiro."
+		rationale: "DGV garante integridade de dados que CMT consome; não governa progressão do compromisso. Fusão acoplaria decisões criptográficas a decisões de domínio financeiro."
 	}, {
 		responsibility: "Auditoria regulatória — reporting, compliance fiscal."
 		delegatedTo: {
