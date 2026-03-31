@@ -57,8 +57,8 @@ adr033: artifact_schemas.#ADR & {
 		completude e consistência da instância.
 		Negativas: (1) Schema significativamente mais complexo — 23 variantes
 		vs 8 aumenta superfície de manutenção. (2) Instâncias existentes do
-		schema anterior são incompatíveis — migração manual necessária (não há
-		instâncias anteriores commitadas, então impacto é zero). (3) External
+		schema anterior são incompatíveis — migração manual necessária (instância strategic/context-map.cue
+		foi construída já no schema evoluído, então impacto de migração é zero). (3) External
 		relationships introduzem #ExternalEndpoint que não é validável contra
 		contexts[] — consistência depende de quality criteria, não de CUE nativo.
 		"""
@@ -72,6 +72,7 @@ adr033: artifact_schemas.#ADR & {
 
 	derivedArtifacts: [
 		"governance/build-time/self-reviews/context-map.self-review.cue",
+		"strategic/context-map.cue",
 	]
 
 	principlesApplied: [
