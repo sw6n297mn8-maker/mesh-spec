@@ -455,6 +455,7 @@ architecture/shared-types/
 architecture/tension-log/
 architecture/validation-prompts/
 contexts/
+contexts/cmt/
 domain/
 governance/
 governance/build-time/
