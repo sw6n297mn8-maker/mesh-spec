@@ -99,4 +99,321 @@ canvas: artifact_schemas.#Canvas & {
 		hasSyncSurface:  true
 		hasAsyncSurface: true
 	}
+
+	// ==============================
+	// COMUNICAÇÃO
+	// ==============================
+
+	communication: {
+		inbound: [{
+			type:            "command-handler"
+			interactionMode: "async"
+			trigger:         "Parte proponente submete proposta de compromisso com termos, partes e escopo."
+			command:         "ProposeCommitment"
+			resultingEvents: ["CommitmentProposed"]
+			// [AJUSTE 3] Explicitar que CommitmentProposed é evento interno.
+			description: "Inicia o ciclo de vida do compromisso. Agente valida completude e referências a termos contratuais (CTR). CommitmentProposed é evento interno do BC — não cruza fronteira. Serve como trigger para workflows internos de negociação e preparação de aceite."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Contraparte confirma aceite do compromisso proposto."
+			command:         "ConfirmCommitmentAcceptance"
+			resultingEvents: ["CommitmentAccepted"]
+			description:     "Gate de aceite mútuo bilateral — invariante central do CMT. Sync porque a contraparte precisa de confirmação imediata."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "rew"
+			event:         "CounterpartyRiskAlertRaised"
+			reaction:      "Sinaliza compromissos ativos com contraparte sob risco elevado. Pode suspender formalização em andamento."
+			description:   "REW retroalimenta CMT com deterioração de risco pós-formalização."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "drc"
+			event:         "DisputeResolved"
+			reaction:      "Atualiza estado do compromisso conforme decisão de disputa — pode cancelar, modificar termos ou manter."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "drc"
+			event:         "CommitmentSuspensionOrdered"
+			reaction:      "Suspende compromisso ativo por determinação de disputa."
+		}, {
+			type:        "query-surface"
+			query:       "QueryCommitmentState"
+			returnType:  "CommitmentState"
+			description: "Expõe estado canônico do compromisso para consulta por BCs downstream."
+		}]
+		outbound: [{
+			type:        "event-publisher"
+			trigger:     "Gate de aceite mútuo bilateral aprovado com sucesso."
+			event:       "CommitmentAccepted"
+			consumers:   ["bdg", "drc"]
+			description: "Sinal canônico de entrada no commitment lifecycle. BDG inicia aprovação orçamentária; DRC registra contexto para disputas futuras."
+		}, {
+			type:        "event-publisher"
+			trigger:     "Transição de estado do compromisso por sinal externo (risco, disputa) ou ação interna (suspensão, cancelamento, reativação)."
+			event:       "CommitmentStateChanged"
+			consumers:   ["drc"]
+			description: "DRC consome para atualizar contexto de disputas com estado corrente do compromisso."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ctr"
+			query:         "QueryContractTerms"
+			purpose:       "Validar que termos referenciados no compromisso existem e estão vigentes em CTR."
+			description:   "CMT consome termos contratuais como pré-condição para formalização. ACL traduz modelo de CTR para linguagem de compromisso."
+		}]
+		rationale: """
+			Inbound: 2 commands (proposta async + aceite bilateral sync),
+			3 event consumers (risco de REW + 2 sinais de disputa de DRC),
+			1 query surface (estado canônico). Outbound: 2 event publishers
+			(CommitmentAccepted para spine do lifecycle + CommitmentStateChanged
+			para DRC), 1 query dependency (termos contratuais de CTR).
+			CommitmentProposed é evento interno — não publicado cross-context.
+			Padrão: CMT é source do commitment lifecycle — publica sinais
+			que desencadeiam toda a cadeia downstream.
+			"""
+	}
+
+	// ==============================
+	// DECISÕES DE NEGÓCIO
+	// ==============================
+
+	businessDecisions: [{
+		id:           "bd-mutual-acceptance"
+		decision:     "Aceite mútuo bilateral é invariante inviolável — nenhum compromisso progride sem confirmação explícita de ambas as partes."
+		rationale:    "Compromissos unilaterais são fonte de disputas e fraude. Aceite bilateral é barreira determinística contra compromissos fraudulentos (dp-08) e garante responsabilidade jurídica identificável (dp-10)."
+		consequences: "Todo compromisso exige duas confirmações explícitas antes de publicar CommitmentAccepted. Aumenta latência de formalização, mas elimina classe inteira de disputas."
+	}, {
+		id:           "bd-commitment-id-origin"
+		decision:     "CommitmentId é gerado exclusivamente em CMT e permeia todos os contexts downstream como fio de rastreabilidade."
+		rationale:    "Sem ponto único de origem, rastreabilidade end-to-end depende de correlação probabilística. CommitmentId canônico garante vínculo determinístico entre compromisso, orçamento, entrega, fatura e pagamento."
+		consequences: "Todos os BCs downstream (BDG, DLV, INV, FCE) devem carregar CommitmentId. Cria acoplamento de dados cross-cutting, mas o custo é justificado pela rastreabilidade."
+	}, {
+		id:           "bd-terms-validation"
+		decision:     "Compromisso só é formalizado se termos contratuais referenciados existem e estão vigentes em CTR."
+		rationale:    "Compromisso sem lastro contratual é risco jurídico. Validação sync contra CTR garante que termos são verificáveis no momento da formalização."
+		// [AJUSTE 4] Consequência em nível de negócio/arquitetura, sem detalhes de implementação.
+		consequences: "Dependência sync de CTR introduz ponto de falha. Estratégia de resiliência (degradação, indisponibilidade) deve ser definida no Architecture Communication Canvas do CMT."
+	}]
+
+	// ==============================
+	// STAKEHOLDERS
+	// ==============================
+
+	stakeholders: [{
+		stakeholderRef:    "sh-01"
+		roleInContext:     "Proponente primário de compromissos — submete propostas vinculadas a contratos de obra."
+		impactDescription: "Formalização automatizada reduz tempo e custo de criação de compromissos. Aceite bilateral protege contra compromissos contestáveis."
+		rationale:         "Construtora é o nó central da cadeia. Sem construtora propondo compromissos, não há fluxo financeiro."
+	}, {
+		stakeholderRef:    "sh-02"
+		roleInContext:     "Contraparte de compromissos — confirma aceite bilateral."
+		impactDescription: "Aceite bilateral dá ao fornecedor garantia formal de que o compromisso é reconhecido por ambas as partes. CommitmentId vincula o compromisso à cadeia downstream de entrega e pagamento."
+		rationale:         "Fornecedor é quem mais sofre com assimetria informacional. Compromisso formal rastreável reduz risco de não-pagamento."
+	}, {
+		stakeholderRef:    "sh-03"
+		roleInContext:     "Consumidor indireto — qualidade do compromisso formalizado determina qualidade do lastro para operações de crédito."
+		impactDescription: "Compromissos com aceite bilateral e rastreabilidade criptográfica melhoram a qualidade e verificabilidade do lastro de recebíveis."
+		rationale:         "IF parceira depende de compromissos bem formalizados para decisão de crédito. Compromisso mal formalizado degrada toda a cadeia."
+	}, {
+		stakeholderRef:    "sh-04"
+		roleInContext:     "Regulador — define envelope operacional para formalização de compromissos vinculados a operações de crédito via SCD."
+		impactDescription: "Rastreabilidade end-to-end de compromissos atende requisitos de transparência e auditabilidade do Bacen."
+		rationale:         "Compliance regulatório é constraint inviolável. CMT deve operar dentro do framework definido pelo Bacen para SCDs."
+	}, {
+		stakeholderRef:    "sh-05"
+		roleInContext:     "Operador primário — processa propostas, valida termos, prepara aceite, monitora risco de compromissos ativos."
+		impactDescription: "Governance scope com boundaries claras de autonomia permite operação eficiente com segurança."
+		rationale:         "Agente IA é operador primário (ax-01). Sem boundaries explícitas, agente opera em zona cinza que compromete auditabilidade."
+	}]
+
+	// ==============================
+	// CUSTOS ELIMINADOS
+	// ==============================
+
+	costsEliminated: [{
+		costRef: "ce-02"
+		contribution: """
+			CMT elimina custo de compliance documental na formalização de
+			compromissos: agentes processam propostas e validam documentação
+			automaticamente, gates determinísticos verificam completude e
+			conformidade antes de aceitar. Processo que hoje leva dias com
+			múltiplos profissionais é reduzido a minutos com verificação
+			determinística.
+			"""
+		rationale: "ce-02 é o custo de transação mais diretamente eliminado por CMT. Agentes processam; gates validam; compliance é automática e auditável."
+	}]
+
+	// ==============================
+	// ANÁLISE DE INCENTIVOS
+	// ==============================
+
+	incentiveAnalysis: {
+		participants: [{
+			stakeholderRef:             "sh-01"
+			participantType:           "proponente"
+			desiredBehavior:           "Submeter propostas de compromisso com termos precisos, escopo claro e documentação completa."
+			correctOperationIncentive: "Compromissos bem formalizados progridem mais rápido no lifecycle — aprovação orçamentária, verificação de entrega e pagamento dependem de dados precisos de formalização."
+			manipulationVector:        "Inflar escopo ou valor do compromisso para obter maior cobertura orçamentária ou antecipação de recebíveis."
+			manipulationCost:          "Compromisso inflado é verificado contra evidência operacional em DLV. Discrepância entre compromisso e execução bloqueia progressão e gera alerta de risco em REW."
+			vsBenefit:                 "Benefício de inflação é limitado ao gap entre compromisso e verificação. Custo inclui bloqueio do commitment lifecycle inteiro, alerta de risco persistente em REW que afeta futuras operações, e potencial disputa em DRC."
+			designResponse:            "Gates determinísticos validam coerência entre termos (CTR), compromisso (CMT) e evidência (DLV). Cadeia de evidência criptográfica (mech-evidence) torna adulteração detectável. CommitmentId vincula compromisso a toda a cadeia downstream — inflação é rastreável end-to-end."
+			rationale:                 "Construtora como proponente tem incentivo para inflar. Design response usa cadeia completa de verificação para tornar manipulação mais cara que operação correta."
+		}, {
+			stakeholderRef:             "sh-02"
+			participantType:           "contraparte"
+			desiredBehavior:           "Confirmar aceite apenas de compromissos cujos termos e escopo foram verificados e são realizáveis."
+			correctOperationIncentive: "Aceite de compromisso realizável garante que entrega será verificável e pagamento será liberado. Aceite de compromisso irrealizável resulta em falha de verificação em DLV e bloqueio de pagamento."
+			manipulationVector:        "Aceitar compromisso com escopo sub-dimensionado para garantir aceite fácil e depois renegociar por excesso de escopo."
+			manipulationCost:          "Compromisso aceito é vinculado a termos de CTR e verificado contra evidência em DLV. Escopo sub-dimensionado é detectado na verificação, bloqueando pagamento e gerando disputa."
+			vsBenefit:                 "Benefício de sub-dimensionamento é aceite rápido. Custo é bloqueio de pagamento, disputa em DRC, e deterioração de score de risco em REW que afeta todas as operações futuras."
+			designResponse:            "Aceite bilateral é gate determinístico — ambas as partes confirmam termos idênticos. Termos são validados contra CTR. CommitmentId vincula aceite à cadeia de verificação downstream."
+			rationale:                 "Fornecedor como contraparte tem incentivo para aceitar rápido. Design response vincula aceite a consequências downstream verificáveis."
+		}]
+		rationale: """
+			Análise foca nos dois participantes diretos do aceite bilateral
+			(proponente e contraparte). Ambos têm vetores de manipulação
+			com custos que excedem benefícios por design: cadeia de evidência
+			criptográfica, gates determinísticos e rastreabilidade end-to-end
+			via CommitmentId tornam manipulação detectável e punível pela
+			própria mecânica do sistema (dp-08).
+			"""
+	}
+
+	// ==============================
+	// OWNERSHIP & GOVERNANCE
+	// ==============================
+
+	ownership: {
+		// [AJUSTE 1] Referência canônica por path — verificável por runner.
+		domainAgentSpec: "contexts/cmt/agents/cmt-primary-agent.cue"
+		governanceScope: {
+			autonomousDecisions: [{
+				id:          "validate-terms-reference"
+				description: "Validar automaticamente que termos contratuais referenciados existem e estão vigentes em CTR."
+				rationale:   "Validação é determinística — não requer julgamento. Agente pode executar autonomamente."
+			}, {
+				id:          "record-commitment-state"
+				description: "Registrar transições de estado do compromisso no Event Log e publicar eventos correspondentes."
+				rationale:   "Registro de fatos é append-only e determinístico. Sem margem para erro de julgamento."
+			}, {
+				id:          "flag-at-risk-commitments"
+				description: "Sinalizar compromissos ativos cuja contraparte recebeu alerta de risco de REW."
+				rationale:   "Sinalização é reação determinística a evento externo. Não altera estado do compromisso — apenas marca para supervisão."
+			}]
+			supervisedDecisions: [{
+				id:          "accept-commitment"
+				description: "Aprovar formalização final do compromisso após gate de aceite bilateral."
+				rationale:   "Aceite cria obrigação financeira. Gate é determinístico, mas a decisão de aceitar deve ser supervisionada até que o autonomy envelope seja expandido com histórico suficiente."
+			}, {
+				id:          "suspend-commitment"
+				description: "Suspender compromisso ativo por sinalização de risco ou disputa."
+				rationale:   "Suspensão afeta todo o commitment lifecycle downstream. Requer julgamento sobre severidade e impacto."
+			}]
+			escalationCriteria: [{
+				id:        "novel-commitment-type"
+				condition: "Tipo de compromisso não previsto nos templates existentes (novo vertical, novo padrão de formalização)."
+				action:    "Escalar ao founder para definição de template e validação de conformidade."
+				rationale: "Tipos novos podem ter invariantes não previstas. Decisão irreversível se compromisso for aceito sob premissas incorretas."
+			}, {
+				id:        "high-value-threshold"
+				condition: "Valor do compromisso excede threshold definido no autonomy envelope."
+				action:    "Escalar ao humano designado para aprovação antes de publicar CommitmentAccepted."
+				rationale: "Compromissos de alto valor têm blast radius financeiro proporcional. Supervisão humana é controle de contenção (conflictResolution nível 2)."
+			}, {
+				id:        "regulatory-ambiguity"
+				condition: "Termos ou estrutura do compromisso caem em zona cinza regulatória não coberta por regras existentes."
+				action:    "Escalar ao compliance officer para parecer antes de prosseguir."
+				rationale: "Integridade legal é constraint inviolável (nível 1). Zona cinza exige julgamento humano especializado."
+			}]
+		}
+		// [AJUSTE 2] Canvas é SoT de domainAgentSpec.
+		// Context map deve replicar este mesmo identificador (path canônico).
+		// Descrição do papel do agente vive no agent spec, não em domainAgentSpec.
+		rationale: """
+			cmt-primary-agent como operador, referenciado por path canônico
+			(contexts/cmt/agents/cmt-primary-agent.cue) — SoT local do BC.
+			O context map replica este identificador para visão global; em
+			caso de drift, o canvas prevalece. 3 decisões autônomas
+			(validação determinística, registro de fatos, sinalização de
+			risco), 2 decisões supervisionadas (aceite de compromisso,
+			suspensão) e 3 critérios de escalação (tipo novo, alto valor,
+			ambiguidade regulatória). Boundaries refletem mech-agent-gate:
+			agente processa, gate valida, supervisão humana para decisões
+			com impacto financeiro irreversível ou ambiguidade regulatória.
+			"""
+	}
+
+	// ==============================
+	// ESTADO EPISTÊMICO
+	// ==============================
+
+	assumptions: [{
+		id:                 "as-cmt-1"
+		assumption:         "Aceite bilateral síncrono é viável para todos os tipos de compromisso no vertical de construção civil."
+		invalidationSignal: "Surgimento de tipo de compromisso onde aceite requer workflow assíncrono multi-step com aprovações intermediárias."
+		rationale:          "Invariante de aceite mútuo assume que confirmação é atômica. Se não for, o modelo de commands precisa evoluir."
+	}, {
+		id:                 "as-cmt-2"
+		assumption:         "CTR como SoT de termos contratuais está disponível com latência aceitável para validação síncrona."
+		invalidationSignal: "Latência de QueryContractTerms consistentemente acima de SLA ou indisponibilidade frequente de CTR."
+		rationale:          "Dependência sync de CTR é ponto de falha. Se CTR não é confiável, CMT precisa de estratégia de resiliência."
+	}, {
+		id:                 "as-cmt-3"
+		assumption:         "Mapeamento 1:1 entre compromisso e CommitmentId é suficiente — não há necessidade de hierarquia de compromissos (master/sub)."
+		invalidationSignal: "Vertical de construção civil demanda compromissos hierárquicos (e.g., contrato guarda-chuva com sub-compromissos por medição)."
+		rationale:          "Hierarquia de compromissos adiciona complexidade significativa ao modelo. Premissa deve ser validada com primeiros clientes."
+	}]
+
+	openQuestions: [{
+		id:        "oq-cmt-1"
+		question:  "Qual o threshold de valor para escalação de aceite de compromisso? Como definir thresholds por vertical?"
+		impact:    "Sem threshold definido, toda decisão de aceite requer supervisão humana, eliminando o benefício de automação."
+		deadline:  "2026-06-01"
+		rationale: "Threshold deve ser calibrado com dados reais de operação. Bloqueante para autonomy envelope completo."
+	}, {
+		id:        "oq-cmt-2"
+		question:  "Como CMT deve tratar compromissos em verticais onde aceite bilateral não é padrão cultural?"
+		impact:    "Se aceite bilateral é barreira de adoção em algum vertical, a invariante central do CMT precisa ser revisitada."
+		rationale: "Mesh planeja expansão multi-vertical. Invariante que funciona na construção civil pode não funcionar em logística ou energia."
+	}]
+
+	// ==============================
+	// MÉTRICAS DE VERIFICAÇÃO
+	// ==============================
+
+	verificationMetrics: [{
+		id:        "commitment-formalization-time"
+		metric:    "Tempo médio entre ProposeCommitment e CommitmentAccepted"
+		target:    "< 4 horas para compromissos standard"
+		rationale: "Mede eficiência do fluxo automatizado vs processo manual (dias)."
+	}, {
+		id:        "bilateral-acceptance-rate"
+		metric:    "Percentual de propostas que atingem aceite bilateral"
+		target:    "> 85% das propostas submetidas"
+		rationale: "Taxa baixa indica problema de qualidade de proposta ou de alinhamento entre partes."
+	}, {
+		id:        "commitment-dispute-rate"
+		metric:    "Percentual de compromissos aceitos que geram disputa em DRC"
+		target:    "< 5% dos compromissos aceitos"
+		rationale: "Taxa alta invalida a premissa de que aceite bilateral elimina disputas de formalização."
+	}]
+
+	rationale: """
+		Canvas do CMT como documento raiz de identidade. CMT é o ponto de
+		entrada do commitment lifecycle e gera CommitmentId — o conceito
+		cross-cutting mais referenciado do sistema. Core porque a
+		formalização de compromissos com aceite mútuo e rastreabilidade é
+		proprietária da Mesh. Execution como archetype primário porque
+		opera gates determinísticos de aceite bilateral. Communication
+		alinhada com context map: inbound de REW (risco) e DRC (disputas),
+		outbound para BDG (lifecycle) e DRC (contexto), query dependency
+		de CTR (termos). CommitmentProposed é evento interno — não cruza
+		fronteira. Governance scope separa decisões determinísticas
+		(autônomas) de decisões com impacto financeiro (supervisionadas).
+		domainAgentSpec referenciado por path canônico — canvas é SoT,
+		context map replica. Incentive analysis demonstra que manipulação
+		por proponente ou contraparte é mais cara que operação correta,
+		por design (mech-evidence + mech-agent-gate + rastreabilidade
+		end-to-end).
+		"""
 }
