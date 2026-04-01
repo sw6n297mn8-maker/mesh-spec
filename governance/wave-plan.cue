@@ -188,5 +188,119 @@ wavePlan: artifact_schemas.#WavePlan & {
 				rationale: "Runner valida critérios cross-collection do context-map (unicidade de codes, cobertura de ownership, BCs isolados) que não são enforceáveis pelo type system. Depende de context-map (WI-008), canvas schema (WI-011) e primeiro BC (WI-009) para ter dados reais contra os quais validar."
 			}]
 		}
+
+		"W001-bc-completeness": {
+			id:    "W001-bc-completeness"
+			title: "BC Completeness — schemas e instâncias para completar o primeiro BC"
+			rationale: "Desbloqueia os artefatos referenciados pelo canvas CMT (glossary, agent-spec, domain-model) e convenções derivadas (API specs, agent governance). Schemas antes de instâncias; domain-model primeiro por ser o mais complexo e estruturante."
+
+			tasks: [{
+				id:         "WI-020"
+				title:      "Criar schema #DomainModel"
+				tshirtSize: "L"
+				dependsOn: []
+				outputs: [{
+					artifact: "architecture/artifact-schemas/domain-model.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/domain-model.cue",
+				]
+				rationale: "Schema para building blocks táticos: events, commands, invariants, VOs, aggregates, entities, policies, domain services, projections, lifecycle. Estruturante para todos os BCs."
+			}, {
+				id:         "WI-021"
+				title:      "Criar schema #Glossary"
+				tshirtSize: "S"
+				dependsOn: []
+				outputs: [{
+					artifact: "architecture/artifact-schemas/glossary.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/glossary.cue",
+				]
+				rationale: "Schema para Ubiquitous Language local de cada BC. Canvas aponta via ubiquitousLanguageRef. Mais simples dos schemas, desbloqueia preenchimento do canvas."
+			}, {
+				id:         "WI-022"
+				title:      "Criar schema #AgentSpec"
+				tshirtSize: "M"
+				dependsOn: []
+				outputs: [{
+					artifact: "architecture/artifact-schemas/agent-spec.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/agents/*.cue",
+				]
+				rationale: "Schema para agent specs. Canvas aponta via ownership.domainAgentSpec. Depende de saber o que o domain model expõe para definir capabilities do agente, mas o schema pode ser criado independentemente."
+			}, {
+				id:         "WI-023"
+				title:      "Criar contexts/cmt/glossary.cue"
+				tshirtSize: "S"
+				dependsOn: ["WI-021"]
+				outputs: [{
+					artifact: "contexts/cmt/glossary.cue"
+					type:     "create"
+				}]
+				rationale: "Primeira instância de glossary. Desbloqueia ubiquitousLanguageRef do canvas CMT. Depende do schema #Glossary (WI-021)."
+			}, {
+				id:         "WI-024"
+				title:      "Criar contexts/cmt/agents/cmt-primary-agent.cue"
+				tshirtSize: "M"
+				dependsOn: ["WI-022"]
+				outputs: [{
+					artifact: "contexts/cmt/agents/cmt-primary-agent.cue"
+					type:     "create"
+				}]
+				rationale: "Primeira instância de agent spec. Desbloqueia ownership.domainAgentSpec do canvas CMT. Depende do schema #AgentSpec (WI-022)."
+			}, {
+				id:         "WI-025"
+				title:      "Criar contexts/cmt/domain-model.cue"
+				tshirtSize: "L"
+				dependsOn: ["WI-020", "WI-023"]
+				outputs: [{
+					artifact: "contexts/cmt/domain-model.cue"
+					type:     "create"
+				}]
+				rationale: "Primeira instância de domain model. Define building blocks táticos do CMT. Depende do schema #DomainModel (WI-020) e glossary CMT (WI-023) para termos canônicos."
+			}, {
+				id:         "WI-026"
+				title:      "Atualizar context-map domainAgentSpec para path canônico"
+				tshirtSize: "S"
+				dependsOn: ["WI-024"]
+				outputs: [{
+					artifact: "strategic/context-map.cue"
+					type:     "update"
+				}]
+				rationale: "Canvas CMT estabeleceu convenção de domainAgentSpec por path canônico (contexts/{bc}/agents/{agent}.cue). Context-map usa ID lógico curto. Alinhar para consistência e verificabilidade por runner."
+			}, {
+				id:         "WI-027"
+				title:      "Definir convenção OpenAPI/AsyncAPI por capability flags"
+				tshirtSize: "M"
+				dependsOn: ["WI-009"]
+				outputs: [{
+					artifact: "architecture/conventions/api-spec-convention.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/api.yaml",
+					"contexts/*/async-api.yaml",
+				]
+				rationale: "Canvas declara hasSyncSurface e hasAsyncSurface. Convenção define como e quando gerar OpenAPI/AsyncAPI specs condicionalmente. Depende de pelo menos um canvas existir (WI-009)."
+			}, {
+				id:         "WI-028"
+				title:      "Criar architecture/agent-governance.md"
+				tshirtSize: "M"
+				dependsOn: ["WI-022"]
+				outputs: [{
+					artifact: "architecture/agent-governance.md"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/agents/*.cue",
+				]
+				rationale: "Políticas transversais de governança de agentes. Canvas referencia via globalGovernanceRef. Depende do schema #AgentSpec (WI-022) para alinhar vocabulário de governance."
+			}]
+		}
 	}
 }
