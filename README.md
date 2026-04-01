@@ -475,6 +475,7 @@ canvas.cue
 context-map.cue
 cross-context-flow.cue
 domain-definition.cue
+domain-model.cue
 lens.cue
 quality-criteria.cue
 stakeholder-map.cue
