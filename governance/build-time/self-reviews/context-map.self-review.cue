@@ -11,9 +11,9 @@ contextMapSchema: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "isolated-subagent"
-	generatedAt:     "2026-03-31T20:00:00Z"
+	generatedAt:     "2026-04-01"
 
-	roundsExecuted: 3
+	roundsExecuted: 4
 	maxRounds:      4
 	status:         "stable"
 
@@ -95,12 +95,29 @@ contextMapSchema: build_time.#SelfReviewReport & {
 			contratos por tipo, completude estratégica, unificação. Zero
 			findings.
 			"""
+	}, {
+		round:     4
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 4 avaliou mudança pontual: #ExternalEndpoint ganhou campo
+			code: #ExternalSystemRef para identidade canônica de sistemas
+			externos. #ExternalSystemRef adicionado como string com regex
+			^ext-[a-z][a-z0-9-]*$ — prefixo ext- distingue de BCs internos.
+			Alinhado com #ContextOrSystemRef no canvas.cue que aceita ambos
+			os padrões. Consistente com a convenção de refs tipados existente
+			(#BoundedContextRef, #SubdomainRef, #DomainLevelTransversalRef).
+			Verificação: (uq-03) #ExternalSystemRef usado apenas em
+			#ExternalEndpoint.code, referência válida. (uq-06) nomenclatura
+			consistente com *Ref pattern. (uq-08) cue vet passa. Zero findings.
+			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		Schema #ContextMap estável no round 3. Rounds 1-2 avaliaram versões
+		Schema #ContextMap estável no round 4. Rounds 1-2 avaliaram versões
 		anteriores (ownership opcional→obrigatório, knownFlows→declaredFlows).
 		Round 3 avaliou evolução substancial: endpoints tipados com union
 		(internal/external), direction explícita, communication com type
@@ -109,7 +126,9 @@ contextMapSchema: build_time.#SelfReviewReport & {
 		(obrigatório em PL, proibido em não-PL), conformistCascadeRisk
 		localizado, external relationships (12 variantes), customer-supplier,
 		domainLevelTransversals, ContextEntry expandido, FeedbackLoop como
-		union discriminado. 14 quality criteria (12 fail, 2 warn). Zero
-		findings em todos os 3 rounds.
+		union discriminado. Round 4: #ExternalEndpoint.code com
+		#ExternalSystemRef (regex ext-*) para identidade canônica de
+		sistemas externos, alinhado com #ContextOrSystemRef do canvas.
+		14 quality criteria (12 fail, 2 warn). Zero findings em 4 rounds.
 		"""
 }

@@ -206,6 +206,7 @@ package artifact_schemas
 
 #ExternalEndpoint: {
 	kind: "external-system"
+	code: #ExternalSystemRef
 	name: string & !=""
 	type: "financial-institution" | "government-authority" | "saas-provider" | "erp" | "other"
 	regulatoryVolatility?: "low" | "medium" | "high"
@@ -603,6 +604,7 @@ package artifact_schemas
 // ==============================
 
 #BoundedContextRef:         string & =~"^[a-z][a-z0-9-]*$"
+#ExternalSystemRef:         string & =~"^ext-[a-z][a-z0-9-]*$"
 #SubdomainRef:              string & =~"^[a-z][a-z0-9-]*$"
 #CrossContextFlowRef:       string & =~"^[a-z][a-z0-9-]*$"
 #DomainLevelTransversalRef: string & =~"^[a-z][a-z0-9-]*$"
