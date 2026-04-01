@@ -22,6 +22,7 @@ package artifact_schemas
 	"canvas" |
 	"context-map" |
 	"cross-context-flow" |
+	"domain-model" |
 	"domain-definition" |
 	"lens" |
 	"artifact-schema" |
@@ -34,7 +35,7 @@ package artifact_schemas
 //   uq-NN     — critério universal (quality-gate.cue)
 //   tq-XXX-NN — critério type-specific (XXX = abreviação do tipo)
 // Abreviações canônicas: adr, cv (canvas), cm (context-map), xf (cross-context-flow),
-// dd (domain-definition), ln (lens), as (artifact-schema),
+// dm (domain-model), dd (domain-definition), ln (lens), as (artifact-schema),
 // sd (subdomain), sm (stakeholder-map), tt (task-template),
 // wp (wave-plan), srr (self-review-report).
 #QualityCriterion: {
