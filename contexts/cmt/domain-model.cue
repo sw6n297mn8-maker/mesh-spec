@@ -51,7 +51,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		name:        "CommitmentProposed"
 		visibility:  "internal"
 		description: "Proposta de compromisso registrada com termos, partes e escopo. Trigger para workflows internos de preparação de aceite."
-		rationale:   "Evento interno — não cruza fronteira. Marca início do lifecycle do compromisso. Consumers internos: preparação de aceite, validação de termos."
+		rationale:   "Interno porque nenhum BC downstream precisa saber que proposta foi criada — apenas que foi aceita (CommitmentAccepted). Mantido interno para não acoplar BDG/DRC a rascunhos que podem nunca ser aceitos (~15% drop rate)."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 			description: "Identificador canônico gerado no momento da proposta."
@@ -96,8 +96,8 @@ domainModel: artifact_schemas.#DomainModel & {
 		}, {
 			kind: "value-object-ref", name: "newState", valueObjectRef: "vo-commitment-state"
 		}, {
-			kind: "domain-type", name: "reason", type: "StateChangeReason"
-			description: "Motivo da transição: risco, disputa, reativação, cancelamento."
+			kind: "value-object-ref", name: "reason", valueObjectRef: "vo-state-change-reason"
+			description: "Causa estruturada da transição: tipo, contexto de origem e descrição."
 		}]
 	}, {
 		code:          "evt-counterparty-risk-signaled"
@@ -148,7 +148,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:        "cmd-propose-commitment"
 		name:        "ProposeCommitment"
 		description: "Proponente submete proposta de compromisso com termos, partes, escopo e referência a termos contratuais de CTR. Async — proponente não espera aceite imediato."
-		rationale:   "Command canônico que inicia o lifecycle. Valida completude e referências a CTR antes de registrar proposta."
+		rationale:   "Separado de cmd-confirm-commitment-acceptance porque proposta e aceite são atos de partes distintas em momentos distintos. Validação de CTR no momento da proposta evita propostas órfãs de lastro contratual."
 		fields: [{
 			kind: "value-object-ref", name: "parties", valueObjectRef: "vo-commitment-parties"
 		}, {
@@ -178,6 +178,16 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "domain-type", name: "riskLevel", type: "RiskLevel"
 		}]
 	}, {
+		code:        "cmd-clear-risk-flag"
+		name:        "ClearRiskFlag"
+		description: "Remove sinalização de risco de compromisso at-risk, retornando ao estado accepted. Decisão autônoma — simétrica com cmd-flag-at-risk."
+		rationale:   "Se sinalizar risco é autonomousDecision, limpar a sinalização quando REW resolve o alerta também é. Simetria operacional: flag e clear são par determinístico. Distinto de cmd-reactivate-commitment que retorna de suspended (estado parado) — at-risk nunca parou."
+		fields: [{
+			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
+		}, {
+			kind: "value-object-ref", name: "reason", valueObjectRef: "vo-state-change-reason"
+		}]
+	}, {
 		code:        "cmd-suspend-commitment"
 		name:        "SuspendCommitment"
 		description: "Suspende compromisso ativo por sinalização de risco ou determinação de disputa. SupervisedDecision — agente recomenda, gate de supervisão humana autoriza."
@@ -185,17 +195,17 @@ domainModel: artifact_schemas.#DomainModel & {
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
-			kind: "domain-type", name: "reason", type: "StateChangeReason"
+			kind: "value-object-ref", name: "reason", valueObjectRef: "vo-state-change-reason"
 		}]
 	}, {
 		code:        "cmd-reactivate-commitment"
 		name:        "ReactivateCommitment"
-		description: "Reativa compromisso suspenso após resolução favorável de disputa ou redução de risco. Retorna ao estado accepted."
-		rationale:   "Transição suspenso → aceito. Necessária para compromissos cuja causa de suspensão foi resolvida. SupervisedDecision implícita — mesma severidade que suspensão."
+		description: "Reativa compromisso suspenso após resolução favorável de disputa ou redução de risco. Retorna ao estado accepted. Exclusivo para transição suspended → accepted."
+		rationale:   "Reativação implica retorno de estado parado — aplica-se apenas a suspended, não a at-risk (que usa cmd-clear-risk-flag). SupervisedDecision — mesma severidade que suspensão."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
-			kind: "domain-type", name: "reason", type: "StateChangeReason"
+			kind: "value-object-ref", name: "reason", valueObjectRef: "vo-state-change-reason"
 		}]
 	}, {
 		code:        "cmd-handle-dispute-resolution"
@@ -216,7 +226,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
-			kind: "domain-type", name: "reason", type: "StateChangeReason"
+			kind: "value-object-ref", name: "reason", valueObjectRef: "vo-state-change-reason"
 		}]
 	}]
 
@@ -297,7 +307,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "primitive", name: "validatedAt", type: "datetime"
 			description: "Timestamp da última validação de vigência contra CTR."
 		}]
-		rationale: "Referência, não cópia — CMT consulta CTR como SoT. Timestamp de validação permite detectar termos potencialmente expirados."
+		rationale: "Referência, não cópia — CMT consulta CTR como SoT. Timestamp de validação permite detectar termos potencialmente expirados. Staleness detectável via comparação de validatedAt com threshold de negócio; versioning de termos é responsabilidade de CTR."
 	}, {
 		code:        "vo-commitment-parties"
 		name:        "CommitmentParties"
@@ -310,6 +320,25 @@ domainModel: artifact_schemas.#DomainModel & {
 			description: "Identificador da organização contraparte."
 		}]
 		rationale: "Value object encapsulando o par bilateral. Garante que proponente e contraparte são sempre declarados juntos — compromisso sem ambos é estruturalmente inválido."
+	}, {
+		code:        "vo-state-change-reason"
+		name:        "StateChangeReason"
+		description: "Causa estruturada de uma transição de estado do compromisso. Torna evt-commitment-state-changed auto-descritivo para consumers sem acoplar a mecanismos internos (event refs, ACL)."
+		fields: [{
+			kind: "primitive", name: "causeType", type: "string"
+			description: "Tipo da causa: risk-signal, risk-cleared, dispute-resolution, dispute-suspension, operational."
+		}, {
+			kind: "primitive", name: "originContext", type: "string"
+			description: "Contexto de origem do sinal: rew, drc, internal."
+		}, {
+			kind: "primitive", name: "description", type: "string"
+			description: "Razão legível da transição para auditoria."
+		}]
+		constraints: [
+			"causeType deve ser um dos: risk-signal, risk-cleared, dispute-resolution, dispute-suspension, operational",
+			"originContext deve ser um dos: rew, drc, internal",
+		]
+		rationale: "Promovido de domain-type opaco para value object estruturado porque consumers de CommitmentStateChanged (especialmente DRC) precisam filtrar transições por causa e origem sem inspecionar payloads opacos. causeType classifica o que aconteceu; originContext diz de onde veio o sinal."
 	}]
 
 	// =============================================
@@ -348,6 +377,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"cmd-propose-commitment",
 			"cmd-confirm-commitment-acceptance",
 			"cmd-flag-at-risk",
+			"cmd-clear-risk-flag",
 			"cmd-suspend-commitment",
 			"cmd-reactivate-commitment",
 			"cmd-cancel-commitment",
@@ -378,6 +408,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-commitment-state",
 			"vo-contract-terms-ref",
 			"vo-commitment-parties",
+			"vo-state-change-reason",
 		]
 
 		lifecycle: {
@@ -428,10 +459,9 @@ domainModel: artifact_schemas.#DomainModel & {
 			}, {
 				from:               "at-risk"
 				to:                 "accepted"
-				triggeredByCommand: "cmd-reactivate-commitment"
+				triggeredByCommand: "cmd-clear-risk-flag"
 				emitsEvents:       ["evt-commitment-state-changed"]
-				guards:            ["inv-reactivation-requires-supervision"]
-				description:       "Risco resolvido — compromisso retorna ao estado aceito após supervisão."
+				description:       "Risco resolvido — sinalização removida, compromisso retorna a accepted. Decisão autônoma, simétrica com cmd-flag-at-risk."
 			}, {
 				from:               "suspended"
 				to:                 "accepted"
@@ -456,7 +486,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			}]
 		}
 
-		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate)."
+		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate). Nota: eventos ACL internos (evt-counterparty-risk-signaled, evt-dispute-resolved-received, evt-suspension-ordered-received) aparecem em emitsEvents por limitação estrutural do schema atual (tq-dm-02), não porque o aggregate os origine semanticamente — são fatos traduzidos pela camada ACL que o aggregate registra no seu event stream."
 	}]
 
 	// =============================================
@@ -510,5 +540,5 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale: "Projeção necessária porque o aggregate é otimizado para escrita (event sourced). Leitura por BCs downstream usa projeção em vez de reconstruir estado do event log."
 	}]
 
-	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 6 events (3 internos ACL + 1 interno + 2 published), 7 commands (2 do fluxo bilateral + 1 dispute routing + 4 de gestão de estado), 7 invariants (aceite bilateral, termos válidos, unicidade de id, partes distintas, supervisão de suspensão/cancelamento/reativação), 4 value objects. Lifecycle com 5 estados e 10 transições — inclui proposed→cancelled e accepted→cancelled. Todas transições supervisionadas têm guards formais. cmd-handle-dispute-resolution encapsula routing multi-outcome dentro do aggregate (resolve limitação schema #Policy). 3 policies conectam sinais ACL a commands. 1 projeção habilita QueryCommitmentState. Alinhado com canvas, glossário, context-map e design principles (P0, P3, P6, P10, P11)."
+	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 6 events (3 internos ACL + 1 interno + 2 published), 8 commands (2 do fluxo bilateral + 1 dispute routing + 2 de risk flag/clear + 3 de gestão de estado), 7 invariants (aceite bilateral, termos válidos, unicidade de id, partes distintas, supervisão de suspensão/cancelamento/reativação), 5 value objects (inclui StateChangeReason estruturado com causeType/originContext). Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. cmd-handle-dispute-resolution encapsula routing multi-outcome dentro do aggregate (resolve limitação schema #Policy). 3 policies conectam sinais ACL a commands. 1 projeção habilita QueryCommitmentState. Alinhado com canvas, glossário, context-map e design principles (P0, P3, P6, P10, P11)."
 }

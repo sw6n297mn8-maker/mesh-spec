@@ -70,12 +70,12 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-commitment-id"
 		name:       "CommitmentId"
 		termEn:     "Commitment ID"
-		definition: "Identificador canônico gerado exclusivamente em CMT no momento da formalização. Permeia todos os contexts downstream (BDG, DLV, INV, FCE) como fio de rastreabilidade end-to-end do commitment lifecycle."
+		definition: "Identificador canônico gerado exclusivamente em CMT no momento da proposta, antes do aceite bilateral. Permeia todos os contexts downstream (BDG, DLV, INV, FCE) como fio de rastreabilidade end-to-end do commitment lifecycle."
 		category:   "value"
-		rationale:  "CommitmentId merece termo canônico separado porque é o conceito cross-cutting mais referenciado do sistema — 5 BCs downstream carregam este identificador. Sem termo explícito, agentes tratam como campo técnico genérico (e.g., 'id', 'reference') perdendo a semântica de ponto único de origem com aceite bilateral como pré-condição."
+		rationale:  "CommitmentId merece termo canônico separado porque é o conceito cross-cutting mais referenciado do sistema — 5 BCs downstream carregam este identificador. Sem termo explícito, agentes tratam como campo técnico genérico (e.g., 'id', 'reference') perdendo a semântica de ponto único de origem em CMT."
 		antiTerms: [{
 			term:          "Número do Pedido"
-			clarification: "Pedidos são unilaterais e podem existir sem aceite bilateral. CommitmentId só existe após formalização com aceite mútuo."
+			clarification: "Pedidos são unilaterais e podem existir sem aceite bilateral. CommitmentId nasce na proposta em CMT — anterior ao aceite, mas dentro do fluxo formal de formalização."
 		}]
 		examples: [{
 			context:  "Rastreabilidade cross-context"
@@ -158,12 +158,12 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-estado-compromisso"
 		name:       "Estado do Compromisso"
 		termEn:     "Commitment State"
-		definition: "Estado canônico do compromisso no seu ciclo de vida: proposto, aceito, suspenso, cancelado. CMT é SoT deste estado — BCs downstream consomem via QueryCommitmentState ou eventos de transição."
+		definition: "Estado canônico do compromisso no seu ciclo de vida: proposto, aceito, em risco, suspenso, cancelado. CMT é SoT deste estado — BCs downstream consomem via QueryCommitmentState ou eventos de transição."
 		category:   "value"
 		rationale:  "Estado como valor tipado garante que transições são explícitas e auditáveis. Sem SoT de estado, BCs downstream operam sobre estado inconsistente."
 		examples: [{
 			context:  "Transições"
-			instance: "Proposto → Aceito (via aceite bilateral). Aceito → Suspenso (via sinal de risco de REW ou disputa de DRC). Suspenso → Aceito (reativação) ou Cancelado (decisão definitiva)."
+			instance: "Proposto → Aceito (via aceite bilateral). Aceito → Em Risco (sinal autônomo de REW). Em Risco → Suspenso (escalação supervisionada) ou Aceito (risco resolvido). Suspenso → Aceito (reativação) ou Cancelado (decisão definitiva)."
 		}]
 		relatedTerms: ["term-compromisso", "term-suspensao-compromisso"]
 		domainModelRefs: ["vo-commitment-state"]
