@@ -12,7 +12,8 @@ package cmt
 // - lens-contractual-and-legal-architecture (secundária):
 //   precisão jurídica de termos que criam obrigações
 //
-// 3 rounds de red team interno + 4 correções do founder, stable.
+// 3 rounds de red team interno + 4 correções do founder + 1 round
+// de red team isolado (5 correções aceitas, 1 rejeitada), stable.
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
@@ -36,6 +37,9 @@ glossary: artifact_schemas.#Glossary & {
 		}, {
 			term:          "Pedido"
 			clarification: "Pedido é unilateral. Compromisso exige aceite bilateral — invariante central do CMT."
+		}, {
+			term:          "Recebível"
+			clarification: "Recebível é ativo financeiro materializado downstream (INV → SCF) a partir de fatura vinculada a entrega verificada. Compromisso é a obrigação bilateral que origina o lifecycle — anterior e distinto do recebível."
 		}]
 		rejectedAlternatives: [{
 			term:   "Acordo"
@@ -62,7 +66,7 @@ glossary: artifact_schemas.#Glossary & {
 		termEn:     "Commitment ID"
 		definition: "Identificador canônico gerado exclusivamente em CMT no momento da formalização. Permeia todos os contexts downstream (BDG, DLV, INV, FCE) como fio de rastreabilidade end-to-end do commitment lifecycle."
 		category:   "value"
-		rationale:  "Ponto único de origem garante vínculo determinístico entre compromisso, orçamento, entrega, fatura e pagamento. Sem CommitmentId canônico, rastreabilidade depende de correlação probabilística."
+		rationale:  "CommitmentId merece termo canônico separado porque é o conceito cross-cutting mais referenciado do sistema — 5 BCs downstream carregam este identificador. Sem termo explícito, agentes tratam como campo técnico genérico (e.g., 'id', 'reference') perdendo a semântica de ponto único de origem com aceite bilateral como pré-condição."
 		antiTerms: [{
 			term:          "Número do Pedido"
 			clarification: "Pedidos são unilaterais e podem existir sem aceite bilateral. CommitmentId só existe após formalização com aceite mútuo."
@@ -96,7 +100,7 @@ glossary: artifact_schemas.#Glossary & {
 			context:  "Fluxo de formalização"
 			instance: "Fornecedor propõe compromisso. Construtora confirma aceite com mesmos termos. Somente após ambos confirmarem, CommitmentAccepted é publicado."
 		}]
-		relatedTerms: ["term-compromisso", "term-contraparte", "term-proponente"]
+		relatedTerms: ["term-compromisso", "term-contraparte", "term-proponente", "term-confirmar-aceite"]
 		domainModelRefs: ["inv-mutual-bilateral-acceptance"]
 	}, {
 		code:       "term-proponente"
@@ -169,7 +173,7 @@ glossary: artifact_schemas.#Glossary & {
 		definition: "Ação canônica que inicia a formalização de um compromisso. Proponente submete proposta contendo termos, partes, escopo e referências a termos contratuais de CTR. Gera evento interno CommitmentProposed que inicia workflows de negociação e preparação de aceite."
 		category:   "command"
 		rationale:  "Command canônico do CMT. CommitmentProposed é evento interno do BC — não cruza fronteira. Proposta pode ser rejeitada ou abandonada; compromisso formalizado só existe após aceite bilateral."
-		relatedTerms: ["term-compromisso", "term-proponente"]
+		relatedTerms: ["term-compromisso", "term-proponente", "term-commitment-proposed"]
 		domainModelRefs: ["cmd-propose-commitment"]
 		layerMapping: {
 			codeTerm: "ProposeCommitment"
@@ -177,12 +181,38 @@ glossary: artifact_schemas.#Glossary & {
 			uiLabel:  "Nova Proposta"
 		}
 	}, {
+		code:       "term-confirmar-aceite"
+		name:       "Confirmar Aceite de Compromisso"
+		termEn:     "Confirm Commitment Acceptance"
+		definition: "Command canônico que completa o gate de aceite mútuo bilateral. Contraparte confirma os mesmos termos propostos pelo proponente. Sync porque a contraparte precisa de confirmação imediata. Resultado: publicação de CommitmentAccepted se invariante bilateral satisfeita."
+		category:   "command"
+		rationale:  "Par direto de ProposeCommitment — sem este command, o aceite bilateral não se completa. Sync por exigência de confirmação imediata à contraparte, diferente de ProposeCommitment que é async."
+		relatedTerms: ["term-aceite-mutuo-bilateral", "term-contraparte", "term-commitment-accepted"]
+		domainModelRefs: ["cmd-confirm-commitment-acceptance"]
+		layerMapping: {
+			codeTerm: "ConfirmCommitmentAcceptance"
+			apiTerm:  "commitments/{id}/acceptance"
+			uiLabel:  "Confirmar Aceite"
+		}
+	}, {
+		code:       "term-commitment-proposed"
+		name:       "CommitmentProposed"
+		termEn:     "Commitment Proposed"
+		definition: "Evento interno do BC publicado após ProposeCommitment ser aceito pelo agente. Trigger para workflows internos de negociação e preparação de aceite. Não cruza fronteira — consumers são exclusivamente internos ao CMT."
+		category:   "event"
+		rationale:  "Distingue 'proposta submetida' de 'proposta aceita bilateralmente' (CommitmentAccepted). Evento interno por design — canvas explicita que não cruza fronteira. Essencial para agentes que geram código do fluxo interno de formalização."
+		relatedTerms: ["term-propor-compromisso", "term-compromisso"]
+		domainModelRefs: ["evt-commitment-proposed"]
+		layerMapping: {
+			codeTerm: "CommitmentProposed"
+		}
+	}, {
 		code:       "term-suspensao-compromisso"
 		name:       "Suspensão de Compromisso"
 		termEn:     "Commitment Suspension"
-		definition: "Interrupção temporária de um compromisso ativo por sinal externo — alerta de risco de contraparte (REW) ou determinação de disputa (DRC). Compromisso suspenso não progride no lifecycle até reativação ou cancelamento."
+		definition: "Interrupção temporária de um compromisso ativo, classificada como supervisedDecision no governance scope do CMT. Disparada por sinal externo — alerta de risco de contraparte (CounterpartyRiskAlertRaised de REW) ou determinação de disputa (CommitmentSuspensionOrdered de DRC). Agente sinaliza e recomenda; gate de supervisão humana (mech-agent-gate) autoriza a suspensão efetiva. Compromisso suspenso não progride no lifecycle até reativação ou cancelamento."
 		category:   "process"
-		rationale:  "Suspensão é processo (envolve avaliação de severidade e decisão supervisionada), não estado instantâneo. Classificado como supervisedDecision no governance scope porque afeta todo o commitment lifecycle downstream."
+		rationale:  "Suspensão é processo supervisionado (não autônomo) porque afeta todo o commitment lifecycle downstream — BDG, DLV, INV e FCE operam sobre estado do compromisso. mech-agent-gate garante que agente nunca suspende unilateralmente: recomenda com base em severidade, humano autoriza. Classificação como process (não estado) porque envolve avaliação de severidade, recomendação do agente e decisão supervisionada."
 		relatedTerms: ["term-estado-compromisso", "term-compromisso"]
 		layerMapping: {
 			codeTerm: "CommitmentSuspension"
@@ -227,5 +257,5 @@ glossary: artifact_schemas.#Glossary & {
 		relatedTerms: ["term-compromisso"]
 	}]
 
-	rationale: "Glossário do CMT cobre os conceitos centrais do commitment lifecycle: a entidade (Compromisso), sua identidade (CommitmentId), a invariante de aceite bilateral, os papéis funcionais (Proponente, Contraparte), os estados e transições, os eventos cross-context, e a dependência de termos contratuais de CTR. domainModelRefs prospectivos vinculam termos aos building blocks táticos previstos (WI-025). Lenses aplicadas: domain-language (bilingual mapping pt-BR/en, term selection criteria, cross-layer consistency) e contractual-legal (precisão jurídica de termos que criam obrigações — especialmente Aceite e Compromisso)."
+	rationale: "Glossário do CMT cobre os conceitos centrais do commitment lifecycle: a entidade (Compromisso), sua identidade (CommitmentId), a invariante de aceite bilateral, os papéis funcionais (Proponente, Contraparte), os commands do fluxo bilateral (ProposeCommitment, ConfirmCommitmentAcceptance), os estados e transições, os eventos internos (CommitmentProposed) e cross-context (CommitmentAccepted, CommitmentStateChanged), e a dependência de termos contratuais de CTR. domainModelRefs prospectivos vinculam termos aos building blocks táticos previstos (WI-025). Lenses aplicadas: domain-language (bilingual mapping pt-BR/en, term selection criteria, cross-layer consistency) e contractual-legal (precisão jurídica de termos que criam obrigações — especialmente Aceite e Compromisso)."
 }
