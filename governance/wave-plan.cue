@@ -289,17 +289,73 @@ wavePlan: artifact_schemas.#WavePlan & {
 				rationale: "Canvas declara hasSyncSurface e hasAsyncSurface. Convenção define como e quando gerar OpenAPI/AsyncAPI specs condicionalmente. Depende de pelo menos um canvas existir (WI-009)."
 			}, {
 				id:         "WI-028"
-				title:      "Criar architecture/agent-governance.md"
+				title:      "Criar architecture/agent-governance.cue"
 				tshirtSize: "M"
 				dependsOn: ["WI-022"]
 				outputs: [{
-					artifact: "architecture/agent-governance.md"
+					artifact: "architecture/agent-governance.cue"
 					type:     "create"
 				}]
 				affects: [
 					"contexts/*/agents/*.cue",
 				]
 				rationale: "Políticas transversais de governança de agentes. Canvas referencia via globalGovernanceRef. Depende do schema #AgentSpec (WI-022) para alinhar vocabulário de governance."
+			}, {
+				id:         "WI-029"
+				title:      "Criar schema #StakeholderMap"
+				tshirtSize: "S"
+				dependsOn: []
+				outputs: [{
+					artifact: "architecture/artifact-schemas/stakeholder-map.cue"
+					type:     "create"
+				}]
+				affects: [
+					"domain/stakeholder-map.cue",
+				]
+				rationale: "Schema para catálogo de stakeholders. Canvas referencia stakeholders via sh-*. Sem schema, refs são unverified pointers."
+			}, {
+				id:         "WI-030"
+				title:      "Criar schema #ArchitectureCommunicationCanvas"
+				tshirtSize: "M"
+				dependsOn: []
+				outputs: [{
+					artifact: "architecture/artifact-schemas/architecture-communication-canvas.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/architecture-communication-canvas.cue",
+				]
+				rationale: "Schema para documentação técnica estruturada por BC: infrastructure transversals, tecnologia de implementação, SLA/availability, conformance tests, decisões técnicas. Complementa o canvas de negócio com perspectiva de implementação."
+			}, {
+				id:         "WI-031"
+				title:      "Criar domain/stakeholder-map.cue"
+				tshirtSize: "M"
+				dependsOn: ["WI-029"]
+				outputs: [{
+					artifact: "domain/stakeholder-map.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/canvas.cue",
+				]
+				rationale: "Instância do catálogo de stakeholders. Desbloqueia refs sh-* no canvas. Depende do schema #StakeholderMap (WI-029)."
+			}, {
+				id:         "WI-032"
+				title:      "Criar runner de validação cross-artifact"
+				tshirtSize: "L"
+				dependsOn: ["WI-020", "WI-021", "WI-022", "WI-011"]
+				outputs: [{
+					artifact: "governance/build-time/runners/cross-artifact-runner.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/*/canvas.cue",
+					"contexts/*/domain-model.cue",
+					"contexts/*/glossary.cue",
+					"contexts/*/agents/*.cue",
+					"strategic/context-map.cue",
+				]
+				rationale: "Runner generalizado que enforça quality criteria cross-artifact além do escopo do context-map runner (WI-014). Cobre integridade referencial canvas↔domain-model (tq-cv-02, tq-cv-04, tq-cv-10, tq-cv-11, tq-cv-12), domain-model↔glossary (tq-dm-11, tq-dm-12), glossary↔canvas (tq-gl-03, tq-gl-04, tq-gl-07), agent-spec↔domain-model (tq-ag-01, tq-ag-02, tq-ag-03). Complementa WI-014 que cobre apenas tq-cm-02."
 			}]
 		}
 	}

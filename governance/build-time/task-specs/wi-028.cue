@@ -2,13 +2,13 @@ package task_specs
 
 taskSpecs: "WI-028": {
 	version:               1
-	title:                 "Criar architecture/agent-governance.md"
+	title:                 "Criar architecture/agent-governance.cue"
 	templateRef:           "tmpl-create-instance@v1"
 	semanticPrerequisites: [
 		"Schema #AgentSpec definido para alinhar vocabulário de governance",
 	]
 	outputs: [{
-		artifact: "architecture/agent-governance.md"
+		artifact: "architecture/agent-governance.cue"
 		type:     "create"
 	}]
 	affects: [
