@@ -356,6 +356,21 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"strategic/context-map.cue",
 				]
 				rationale: "Runner generalizado que enforça quality criteria cross-artifact além do escopo do context-map runner (WI-014). Cobre integridade referencial canvas↔domain-model (tq-cv-02, tq-cv-04, tq-cv-10, tq-cv-11, tq-cv-12), domain-model↔glossary (tq-dm-11, tq-dm-12), glossary↔canvas (tq-gl-03, tq-gl-04, tq-gl-07), agent-spec↔domain-model (tq-ag-01, tq-ag-02, tq-ag-03). Complementa WI-014 que cobre apenas tq-cm-02."
+			}, {
+				id:         "WI-033"
+				title:      "Criar shared-types.cue para tipos utilitários do package artifact_schemas"
+				tshirtSize: "S"
+				dependsOn: []
+				outputs: [{
+					artifact: "architecture/artifact-schemas/shared-types.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/artifact-schemas/agent-spec.cue",
+					"architecture/artifact-schemas/canvas.cue",
+					"architecture/artifact-schemas/architecture-communication-canvas.cue",
+				]
+				rationale: "Tipos utilitários compartilhados (#NonEmptyString, #ChannelCode, refs canônicos) estão espalhados nos arquivos que os introduziram. Centralizar em shared-types.cue elimina dependências conceituais implícitas e facilita descoberta. Migração: mover definições dos arquivos originais, que passam a consumir do shared-types. Candidatos de rollout subsequente: agent-governance.cue, glossary.cue, domain-model.cue, stakeholder-map.cue."
 			}]
 		}
 	}
