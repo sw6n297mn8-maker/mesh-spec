@@ -30,15 +30,16 @@ package artifact_schemas
 	"subdomain" |
 	"stakeholder-map" |
 	"task-template" |
-	"wave-plan"
+	"wave-plan" |
+	"agent-spec"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
 //   tq-XXX-NN — critério type-specific (XXX = abreviação do tipo)
 // Abreviações canônicas: adr, cv (canvas), cm (context-map), xf (cross-context-flow),
 // dm (domain-model), gl (glossary), dd (domain-definition), ln (lens),
-// as (artifact-schema), sd (subdomain), sm (stakeholder-map), tt (task-template),
-// wp (wave-plan), srr (self-review-report).
+// as (artifact-schema), ag (agent-spec), sd (subdomain), sm (stakeholder-map),
+// tt (task-template), wp (wave-plan), srr (self-review-report).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

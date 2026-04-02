@@ -470,6 +470,7 @@ END:repo-structure-paths -->
 
 <!-- BEGIN:repo-artifact-schemas
 adr.cue
+agent-spec.cue
 artifact-schema.cue
 canvas.cue
 context-map.cue

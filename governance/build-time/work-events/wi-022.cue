@@ -16,6 +16,13 @@ streams: {
 			commandId:   "WI-022-approve"
 			timestamp:   "2026-04-01T00:00:00Z"
 			actor:       "founder"
+		}, {
+			eventType:   "task-completed"
+			taskId:      "WI-022"
+			taskVersion: 1
+			commandId:   "WI-022-complete"
+			timestamp:   "2026-04-02T12:00:00Z"
+			actor:       "spec-writer"
 		}]
 	}
 }
