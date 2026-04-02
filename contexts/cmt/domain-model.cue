@@ -138,6 +138,16 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "domain-type", name: "disputeRef", type: "DisputeRef"
 			description: "Referência à disputa que originou a ordem de suspensão."
 		}]
+	}, {
+		code:          "evt-counterparty-risk-cleared"
+		name:          "CounterpartyRiskCleared"
+		visibility:    "internal"
+		sourceContext: "rew"
+		description:   "Tradução ACL de CounterpartyRiskAlertCleared (REW). Alerta de risco previamente sinalizado para contraparte foi resolvido."
+		rationale:     "Par reverso de evt-counterparty-risk-signaled. Evento interno traduzido de sinal externo de REW. Trigger para pol-risk-cleared-clears-flag."
+		fields: [{
+			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
+		}]
 	}]
 
 	// =============================================
@@ -396,6 +406,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-counterparty-risk-signaled",
 			"evt-dispute-resolved-received",
 			"evt-suspension-ordered-received",
+			"evt-counterparty-risk-cleared",
 		]
 
 		protectsInvariants: [
@@ -520,6 +531,13 @@ domainModel: artifact_schemas.#DomainModel & {
 		triggeredByEvent: "evt-dispute-resolved-received"
 		issuesCommand:    "cmd-handle-dispute-resolution"
 		rationale:        "Policy emite command único e honesto — routing multi-outcome (reativar, cancelar, manter) é lógica interna do aggregate que inspeciona o tipo de resolução. Resolve limitação do schema que exige exatamente um issuesCommand por policy."
+	}, {
+		code:             "pol-risk-cleared-clears-flag"
+		name:             "Resolução de Risco Limpa Sinalização"
+		description:      "Quando REW resolve alerta de risco de contraparte (traduzido como evt-counterparty-risk-cleared), emite cmd-clear-risk-flag para retornar compromissos at-risk a accepted."
+		triggeredByEvent: "evt-counterparty-risk-cleared"
+		issuesCommand:    "cmd-clear-risk-flag"
+		rationale:        "Par reverso de pol-risk-signal-flags-commitment. Se sinalização é autônoma, limpeza também é. Simetria operacional: flag e clear são par determinístico com policies simétricas."
 	}]
 
 	// =============================================
@@ -546,5 +564,5 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale: "Projeção necessária porque o aggregate é otimizado para escrita (event sourced). Leitura por BCs downstream usa projeção em vez de reconstruir estado do event log."
 	}]
 
-	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 6 events (3 internos ACL + 1 interno + 2 published), 8 commands (2 do fluxo bilateral + 1 dispute routing + 2 de risk flag/clear + 3 de gestão de estado), 8 invariants (aceite bilateral, termos válidos, unicidade de id, partes distintas, supervisão de suspensão/cancelamento/reativação, terminality de cancelled), 5 value objects (inclui StateChangeReason estruturado com causeType/originContext). Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. cmd-handle-dispute-resolution encapsula routing multi-outcome dentro do aggregate (resolve limitação schema #Policy). 3 policies conectam sinais ACL a commands. 1 projeção habilita QueryCommitmentState. Alinhado com canvas, glossário, context-map e design principles (P0, P3, P6, P10, P11)."
+	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 7 events (4 internos ACL + 1 interno + 2 published), 8 commands (2 do fluxo bilateral + 1 dispute routing + 2 de risk flag/clear + 3 de gestão de estado), 8 invariants (aceite bilateral, termos válidos, unicidade de id, partes distintas, supervisão de suspensão/cancelamento/reativação, terminality de cancelled), 5 value objects (inclui StateChangeReason estruturado com causeType/originContext). Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos com policies simétricas, suspended↔accepted via reactivate supervisionado. cmd-handle-dispute-resolution encapsula routing multi-outcome dentro do aggregate (resolve limitação schema #Policy). 4 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared). 1 projeção habilita QueryCommitmentState. Alinhado com canvas, glossário, context-map e design principles (P0, P3, P6, P10, P11)."
 }
