@@ -9,6 +9,13 @@ streams: {
 			commandId:   "WI-034-propose"
 			timestamp:   "2026-04-02T21:00:00Z"
 			actor:       "spec-writer"
+		}, {
+			eventType:   "task-approved"
+			taskId:      "WI-034"
+			taskVersion: 1
+			commandId:   "WI-034-approve"
+			timestamp:   "2026-04-02T21:10:00Z"
+			actor:       "founder"
 		}]
 	}
 }
