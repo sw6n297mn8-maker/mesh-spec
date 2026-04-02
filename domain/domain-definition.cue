@@ -68,8 +68,9 @@ domainDefinition: {
 			Agentes de IA recomendam e processam informação. Gates determinísticos
 			validam invariantes, thresholds e aprovações antes de autorizar qualquer
 			operação financeira. Gate autoriza; runtime executa. Nenhum agente executa
-			commands financeiros diretamente. A fronteira é declarada em
-			autonomy-policy.cue por bounded context.
+			commands financeiros diretamente. A fronteira é declarada na
+			governança de agentes: architecture/agent-governance.cue (global)
+			e contexts/{bc}/agents/{name}.governance.cue (per-agent envelope).
 			"""
 		thesisConnection: """
 			Permite automação de processos que hoje exigem análise humana (verificação

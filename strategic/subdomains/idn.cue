@@ -15,7 +15,7 @@ idn: artifact_schemas.#Subdomain & {
 		identificável e permissão verificável. Não qualifica
 		participantes para a rede (NPM), não governa autonomia
 		de agentes (domínio dos bounded contexts via
-		autonomy-policy), não processa transações.
+		governance envelope per-agent), não processa transações.
 		"""
 
 	purpose: """

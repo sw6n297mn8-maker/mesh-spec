@@ -184,8 +184,9 @@ principles: P10: {
 		Agentes estocásticos (IA) recomendam. Gates determinísticos validam.
 		Agentes nunca executam commands financeiros diretamente. Todo command
 		com impacto financeiro passa por gate que impõe invariantes,
-		thresholds e aprovações humanas. A fronteira é declarada em
-		autonomy-policy.cue por BC.
+		thresholds e aprovações humanas. A fronteira é declarada na
+		governança de agentes: architecture/agent-governance.cue (global)
+		e contexts/{bc}/agents/{name}.governance.cue (per-agent envelope).
 		"""
 	rationale: """
 		Recomendações de IA são probabilísticas. Execução financeira deve ser
