@@ -211,7 +211,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:        "cmd-handle-dispute-resolution"
 		name:        "HandleDisputeResolution"
 		description: "Processa resolução de disputa recebida de DRC. Aggregate inspeciona tipo de resolução e executa transição apropriada: reativação (cmd-reactivate-commitment), cancelamento (cmd-cancel-commitment) ou manutenção do estado corrente."
-		rationale:   "Command de routing interno que encapsula lógica multi-outcome dentro do aggregate. Resolve a limitação do schema #Policy (um issuesCommand) mantendo a declaração formal honesta."
+		rationale:   "Existe porque #Policy exige exatamente um issuesCommand, mas resolução de disputa é sinal externo com múltiplos outcomes (reativar, cancelar, manter). Routing vive no aggregate porque ele é o consistency boundary que preserva a decisão final — nenhum orchestrator externo decide a transição."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
@@ -269,6 +269,11 @@ domainModel: artifact_schemas.#DomainModel & {
 		name:      "Proponente e Contraparte Distintos"
 		rule:      "Proponente e contraparte de um compromisso devem ser organizações distintas. Auto-compromisso é inválido."
 		rationale: "Compromisso bilateral exige duas partes. Auto-compromisso anularia o propósito do aceite mútuo e abriria vetor de manipulação trivial (dp-08)."
+	}, {
+		code:      "inv-cancelled-is-terminal"
+		name:      "Estado Cancelado é Terminal"
+		rule:      "Nenhum compromisso em estado 'cancelled' aceita commands de reativação, suspensão, sinalização de risco ou aceite. Cancelamento encerra definitivamente o lifecycle."
+		rationale: "State machine já expressa terminality via ausência de transições from: cancelled. Invariant explícito torna a restrição auditável por validação e legível sem interpretar o grafo de transições."
 	}]
 
 	// =============================================
@@ -401,6 +406,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-suspension-requires-supervision",
 			"inv-cancellation-irreversible",
 			"inv-reactivation-requires-supervision",
+			"inv-cancelled-is-terminal",
 		]
 
 		usesValueObjects: [
@@ -540,5 +546,5 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale: "Projeção necessária porque o aggregate é otimizado para escrita (event sourced). Leitura por BCs downstream usa projeção em vez de reconstruir estado do event log."
 	}]
 
-	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 6 events (3 internos ACL + 1 interno + 2 published), 8 commands (2 do fluxo bilateral + 1 dispute routing + 2 de risk flag/clear + 3 de gestão de estado), 7 invariants (aceite bilateral, termos válidos, unicidade de id, partes distintas, supervisão de suspensão/cancelamento/reativação), 5 value objects (inclui StateChangeReason estruturado com causeType/originContext). Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. cmd-handle-dispute-resolution encapsula routing multi-outcome dentro do aggregate (resolve limitação schema #Policy). 3 policies conectam sinais ACL a commands. 1 projeção habilita QueryCommitmentState. Alinhado com canvas, glossário, context-map e design principles (P0, P3, P6, P10, P11)."
+	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 6 events (3 internos ACL + 1 interno + 2 published), 8 commands (2 do fluxo bilateral + 1 dispute routing + 2 de risk flag/clear + 3 de gestão de estado), 8 invariants (aceite bilateral, termos válidos, unicidade de id, partes distintas, supervisão de suspensão/cancelamento/reativação, terminality de cancelled), 5 value objects (inclui StateChangeReason estruturado com causeType/originContext). Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. cmd-handle-dispute-resolution encapsula routing multi-outcome dentro do aggregate (resolve limitação schema #Policy). 3 policies conectam sinais ACL a commands. 1 projeção habilita QueryCommitmentState. Alinhado com canvas, glossário, context-map e design principles (P0, P3, P6, P10, P11)."
 }
