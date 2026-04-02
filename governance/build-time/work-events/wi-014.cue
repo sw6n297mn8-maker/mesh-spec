@@ -1,5 +1,9 @@
 package work_events
 
+// WI-014: task-completed e task-claimed removidos — backfill original
+// registrou conclusão mas o artefato (context-map-runner.cue) nunca
+// foi commitado. Diretório governance/build-time/runners/ não existe.
+// Status real: approved, aguardando execução.
 streams: {
 	"WI-014": {
 		events: [{
@@ -16,26 +20,6 @@ streams: {
 			commandId:   "WI-014-approve-backfill"
 			timestamp:   "2026-03-18T13:19:53Z"
 			actor:       "founder"
-		}, {
-			eventType:      "task-claimed"
-			taskId:         "WI-014"
-			taskVersion:    1
-			commandId:      "WI-014-claim-backfill"
-			timestamp:      "2026-03-18T13:19:53Z"
-			actor:          "spec-writer"
-			claimExpiresAt: "2026-03-18T21:19:53Z"
-		}, {
-			eventType:   "task-completed"
-			taskId:      "WI-014"
-			taskVersion: 1
-			commandId:   "WI-014-complete-backfill"
-			timestamp:   "2026-03-18T13:19:53Z"
-			actor:       "spec-writer"
-			completionValidation: {
-				validationRunId:      "backfill-WI-014"
-				artifactSnapshotHash: "49aeecf609d6371e9020130f097435682cdca8c2"
-				gatesPassed:          ["cue-vet"]
-			}
 		}]
 	}
 }
