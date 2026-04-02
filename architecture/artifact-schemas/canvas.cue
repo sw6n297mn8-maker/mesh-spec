@@ -114,7 +114,7 @@ package artifact_schemas
 		}, {
 			id:          "tq-cv-02"
 			description: "Stakeholder refs apontam para IDs existentes no stakeholder map"
-			test:        "Cada stakeholders[].stakeholderRef corresponde a um id válido em domain/stakeholder-map.cue."
+			test:        "Cada stakeholders[].stakeholderRef corresponde a um code válido em domain/stakeholder-map.cue."
 			severity:    "fail"
 			rationale:   "Referências quebradas a stakeholders tornam a rastreabilidade ilusória."
 		}, {
