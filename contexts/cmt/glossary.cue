@@ -12,8 +12,8 @@ package cmt
 // - lens-contractual-and-legal-architecture (secundária):
 //   precisão jurídica de termos que criam obrigações
 //
-// 3 rounds de red team interno + 4 correções do founder + 1 round
-// de red team isolado (5 correções aceitas, 1 rejeitada), stable.
+// 3 rounds de red team interno + 4 correções do founder + 2 rounds
+// de red team isolado (5+4 correções aceitas, 1+7 rejeitadas), stable.
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
@@ -40,6 +40,12 @@ glossary: artifact_schemas.#Glossary & {
 		}, {
 			term:          "Recebível"
 			clarification: "Recebível é ativo financeiro materializado downstream (INV → SCF) a partir de fatura vinculada a entrega verificada. Compromisso é a obrigação bilateral que origina o lifecycle — anterior e distinto do recebível."
+		}, {
+			term:          "Duplicata"
+			clarification: "Duplicata é título de crédito (instrumento jurídico) emitido contra fatura, vivendo em INV/SCF. Na construção civil brasileira, 'temos um compromisso' é frequentemente usado como sinônimo de 'temos uma duplicata a receber' — são conceitos em stages diferentes do lifecycle."
+		}, {
+			term:          "Medição"
+			clarification: "Medição (boletim de medição de obra) é verificação de entrega que vive em DLV. 'Medição aprovada' não é compromisso aceito — é entrega verificada contra compromisso previamente formalizado."
 		}]
 		rejectedAlternatives: [{
 			term:   "Acordo"
@@ -88,7 +94,7 @@ glossary: artifact_schemas.#Glossary & {
 		termEn:     "Mutual Bilateral Acceptance"
 		definition: "Invariante inviolável do CMT: nenhum compromisso progride no lifecycle sem confirmação explícita de ambas as partes (proponente e contraparte). Gate determinístico que autoriza publicação de CommitmentAccepted."
 		category:   "rule"
-		rationale:  "Classificado como rule (invariant) porque é barreira determinística — não é processo negociável nem estado transitório. dp-08 exige que custos de manipulação excedam benefícios por design; aceite bilateral é a implementação desta exigência em CMT."
+		rationale:  "Classificado como rule (invariant) porque é barreira determinística — não é processo negociável nem estado transitório. dp-08 exige que custos de manipulação excedam benefícios por design; aceite bilateral é a implementação desta exigência em CMT. dp-10 exige responsabilidade jurídica identificável; aceite bilateral garante que ambas as partes são juridicamente identificáveis na formalização."
 		rejectedAlternatives: [{
 			term:   "Aprovação"
 			reason: "Aprovação implica decisão de mérito por autoridade. Aceite bilateral é confirmação mútua — ambas as partes confirmam os mesmos termos."
@@ -173,7 +179,7 @@ glossary: artifact_schemas.#Glossary & {
 		definition: "Ação canônica que inicia a formalização de um compromisso. Proponente submete proposta contendo termos, partes, escopo e referências a termos contratuais de CTR. Gera evento interno CommitmentProposed que inicia workflows de negociação e preparação de aceite."
 		category:   "command"
 		rationale:  "Command canônico do CMT. CommitmentProposed é evento interno do BC — não cruza fronteira. Proposta pode ser rejeitada ou abandonada; compromisso formalizado só existe após aceite bilateral."
-		relatedTerms: ["term-compromisso", "term-proponente", "term-commitment-proposed"]
+		relatedTerms: ["term-compromisso", "term-proponente", "term-commitment-proposed", "term-termos-contratuais"]
 		domainModelRefs: ["cmd-propose-commitment"]
 		layerMapping: {
 			codeTerm: "ProposeCommitment"
