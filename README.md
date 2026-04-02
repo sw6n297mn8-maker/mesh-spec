@@ -476,6 +476,7 @@ context-map.cue
 cross-context-flow.cue
 domain-definition.cue
 domain-model.cue
+glossary.cue
 lens.cue
 quality-criteria.cue
 stakeholder-map.cue
