@@ -128,6 +128,12 @@ canvas: artifact_schemas.#Canvas & {
 			description:   "REW retroalimenta CMT com deterioração de risco pós-formalização."
 		}, {
 			type:          "event-consumer"
+			sourceContext: "rew"
+			event:         "CounterpartyRiskAlertCleared"
+			reaction:      "Remove sinalização de risco de compromissos at-risk cuja contraparte teve alerta resolvido. Retorna a accepted."
+			description:   "REW retroalimenta CMT com resolução de alertas de risco. Par reverso de CounterpartyRiskAlertRaised."
+		}, {
+			type:          "event-consumer"
 			sourceContext: "drc"
 			event:         "DisputeResolved"
 			reaction:      "Atualiza estado do compromisso conforme decisão de disputa — pode cancelar, modificar termos ou manter."
@@ -163,8 +169,8 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 		rationale: """
 			Inbound: 2 commands (proposta async + aceite bilateral sync),
-			3 event consumers (risco de REW + 2 sinais de disputa de DRC),
-			1 query surface (estado canônico). Outbound: 2 event publishers
+			4 event consumers (risco e resolução de risco de REW +
+			2 sinais de disputa de DRC), 1 query surface (estado canônico). Outbound: 2 event publishers
 			(CommitmentAccepted para spine do lifecycle + CommitmentStateChanged
 			para DRC), 1 query dependency (termos contratuais de CTR).
 			CommitmentProposed é evento interno — não publicado cross-context.
@@ -299,6 +305,10 @@ canvas: artifact_schemas.#Canvas & {
 				id:          "flag-at-risk-commitments"
 				description: "Sinalizar compromissos ativos cuja contraparte recebeu alerta de risco de REW."
 				rationale:   "Sinalização é reação determinística a evento externo. Não altera estado do compromisso — apenas marca para supervisão."
+			}, {
+				id:          "clear-risk-flag-commitments"
+				description: "Remover sinalização de risco de compromissos at-risk quando REW resolve alerta de contraparte."
+				rationale:   "Par reverso de flag-at-risk-commitments. Se sinalização é autônoma, resolução também é — reação determinística a evento externo."
 			}]
 			supervisedDecisions: [{
 				id:          "accept-commitment"
@@ -308,6 +318,14 @@ canvas: artifact_schemas.#Canvas & {
 				id:          "suspend-commitment"
 				description: "Suspender compromisso ativo por sinalização de risco ou disputa."
 				rationale:   "Suspensão afeta todo o commitment lifecycle downstream. Requer julgamento sobre severidade e impacto."
+			}, {
+				id:          "cancel-commitment"
+				description: "Cancelar compromisso definitivamente — decisão terminal irreversível."
+				rationale:   "Cancelamento afeta todo o commitment lifecycle downstream e é irreversível. Satisfaz critério de reversibilityThreshold. P10 exige gate humano."
+			}, {
+				id:          "reactivate-commitment"
+				description: "Reativar compromisso suspenso após resolução favorável de disputa ou redução de risco."
+				rationale:   "Reativação restaura obrigações financeiras que foram suspensas por humano — restaurar exige mesmo nível de supervisão. Simétrico com suspend-commitment."
 			}]
 			escalationCriteria: [{
 				id:        "novel-commitment-type"
@@ -333,10 +351,11 @@ canvas: artifact_schemas.#Canvas & {
 			cmt-primary-agent como operador, referenciado por path canônico
 			(contexts/cmt/agents/cmt-primary-agent.cue) — SoT local do BC.
 			O context map replica este identificador para visão global; em
-			caso de drift, o canvas prevalece. 3 decisões autônomas
-			(validação determinística, registro de fatos, sinalização de
-			risco), 2 decisões supervisionadas (aceite de compromisso,
-			suspensão) e 3 critérios de escalação (tipo novo, alto valor,
+			caso de drift, o canvas prevalece. 4 decisões autônomas
+			(validação determinística, registro de fatos, sinalização e
+			resolução de risco), 4 decisões supervisionadas (aceite de
+			compromisso, suspensão, cancelamento, reativação) e 3 critérios
+			de escalação (tipo novo, alto valor,
 			ambiguidade regulatória). Boundaries refletem mech-agent-gate:
 			agente processa, gate valida, supervisão humana para decisões
 			com impacto financeiro irreversível ou ambiguidade regulatória.
@@ -405,11 +424,13 @@ canvas: artifact_schemas.#Canvas & {
 		formalização de compromissos com aceite mútuo e rastreabilidade é
 		proprietária da Mesh. Execution como archetype primário porque
 		opera gates determinísticos de aceite bilateral. Communication
-		alinhada com context map: inbound de REW (risco) e DRC (disputas),
-		outbound para BDG (lifecycle) e DRC (contexto), query dependency
-		de CTR (termos). CommitmentProposed é evento interno — não cruza
-		fronteira. Governance scope separa decisões determinísticas
-		(autônomas) de decisões com impacto financeiro (supervisionadas).
+		alinhada com context map: inbound de REW (risco e resolução de
+		risco) e DRC (disputas), outbound para BDG (lifecycle) e DRC
+		(contexto), query dependency de CTR (termos). CommitmentProposed
+		é evento interno — não cruza fronteira. Governance scope separa
+		decisões determinísticas (autônomas: validação, registro,
+		flag/clear risco) de decisões com impacto financeiro
+		(supervisionadas: aceite, suspensão, cancelamento, reativação).
 		domainAgentSpec referenciado por path canônico — canvas é SoT,
 		context map replica. Incentive analysis demonstra que manipulação
 		por proponente ou contraparte é mais cara que operação correta,

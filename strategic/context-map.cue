@@ -412,10 +412,10 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			upstreamPattern:   "open-host-service-published-language"
 			downstreamPattern: "anti-corruption-layer"
 			publishedLanguage: "Risk score and eligibility model"
-			description:       "REW publica alertas de risco via published language; CMT consome para sinalizar compromissos existentes com contraparte sob risco elevado."
-			rationale:         "REW retroalimenta CMT com sinalização de deterioração de risco em compromissos ativos, permitindo que a gestão de compromissos reaja a mudanças de risco pós-formalização."
+			description:       "REW publica alertas de risco e resolução de alertas via published language; CMT consome para sinalizar e limpar sinalização de compromissos existentes com contraparte sob risco."
+			rationale:         "REW retroalimenta CMT com sinalização de deterioração e resolução de risco em compromissos ativos. Par simétrico: CounterpartyRiskAlertRaised → flag at-risk, CounterpartyRiskAlertCleared → clear risk flag."
 			communication: {type: "async"}
-			events: ["CounterpartyRiskAlertRaised"]
+			events: ["CounterpartyRiskAlertRaised", "CounterpartyRiskAlertCleared"]
 		},
 
 		// --- D. Financial Products & Execution (5) ---
