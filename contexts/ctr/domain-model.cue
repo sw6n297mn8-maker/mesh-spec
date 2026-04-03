@@ -303,10 +303,10 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-lineage"
 		name:        "Lineage"
-		description: "Referência à versão anterior na cadeia de evolução contratual. Null para v1 (primeira versão). Forma cadeia linear: v1→v2→v3."
+		description: "Posição na cadeia de evolução contratual. Para v1, representa origem da cadeia (previousVersion ausente). Para v2+, referencia a versão anterior. Forma cadeia linear: v1→v2→v3."
 		fields: [{
 			kind: "value-object-ref", name: "previousVersion", valueObjectRef: "vo-version-number"
-			description: "Número da versão anterior. Para v1 (primeira versão), o value object vo-lineage não é instanciado — o campo lineage da entity é semanticamente vazio."
+			description: "Número da versão anterior na cadeia. Ausente para v1 — neste caso vo-lineage é instanciado como marcador de origem da cadeia, não como referência."
 		}]
 		rationale: "Value object que materializa glossário term-lineage. inv-lineage-integrity garante integridade da cadeia."
 	}, {
