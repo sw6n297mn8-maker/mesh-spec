@@ -86,7 +86,8 @@ package artifact_schemas
 // precisar de #Principle.
 
 #Mechanism: {
-	id:               string & !=""
+	// Formato slug mech-* alinhado com consumidores (subdomain, cross-context-flow).
+	id:               string & =~"^mech-[a-z][a-z0-9-]*$"
 	name:             string & !=""
 	description:      string & !=""
 	thesisConnection: string & !=""
@@ -122,17 +123,19 @@ package artifact_schemas
 }
 
 #CostEliminated: {
-	id:   string & !=""
+	// Formato numérico ce-NN alinhado com consumidores (canvas, subdomain, stakeholder-map).
+	id:     string & =~"^ce-[0-9]{2}$"
 	cost:   string & !=""
 	bearer: string & !=""
 	// CI valida que referencia um #Mechanism.id existente.
-	mechanismRef:     string & !=""
+	mechanismRef:     string & =~"^mech-[a-z][a-z0-9-]*$"
 	thesisConnection: string & !=""
 	rationale:        string & !=""
 }
 
 #CapabilityCreated: {
-	id:         string & !=""
+	// Formato numérico cc-NN alinhado com consumidores (canvas, subdomain).
+	id:         string & =~"^cc-[0-9]{2}$"
 	capability: string & !=""
 	// CI valida que referencia um #Mechanism.id existente, quando aplicável.
 	// Pode referenciar efeitos emergentes (ex: efeito de rede) que não são

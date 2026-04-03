@@ -5,44 +5,47 @@ package artifact_schemas
 // O context map é artefato singleton que documenta a topologia
 // de integração entre bounded contexts e seus padrões de relação.
 // É o SoT de quais BCs existem, quais subdomínios cada um cobre,
-// e como se relacionam (upstream/downstream patterns).
+// e como se relacionam.
 //
 // Estratégia desta versão:
-// - tq-cm-04 vira regra de tipo por union estrutural de relações válidas
-// - tq-cm-06 vira parcialmente estrutural via mapa explícito de ownership;
-//   a cobertura total ainda depende de unificação/runner
-// - tq-cm-09 vira regra forte quando unificado com o artefato que fornece
-//   os contexts esperados do wave plan
-// - tq-cm-11 vira regra forte quando unificado com o catálogo de flows
-//
-// Princípio:
-// - o que puder ser estado inválido irrepresentável, vira tipo
-// - o que depender de outro artefato, vira contrato de unificação
-// - runner fica só para o restante
+// - combinações inválidas de patterns são irrepresentáveis por union de tipos
+// - ownership explícito de subdomínios é invariante, não feature
+// - published language é obrigatória nos tipos que a exigem e proibida nos demais
+// - conformistCascadeRisk é permitido apenas em variantes conformist
+// - communication e data flows (events/commands/queries) são simétricos por tipo
+// - hooks de unificação permitem validação forte com wave plan e catálogo de flows
+// - feedback loop é union discriminado
+// - relações com externos suportam inbound e outbound
+// - nomes dos tipos refletem os patterns reais, sem semântica enganosa
+// - domainLevelTransversals são artefatos de primeira classe no nível global
+// - campos estratégicos opcionais têm quality gate warn
 
 #ContextMap: {
 	code:    string & =~"^[a-z][a-z0-9-]*$"
 	name:    string & !=""
 	purpose: string & !=""
 
-	// Singleton estratégico.
 	topology: "global"
 
 	// BCs participantes.
 	contexts: [#ContextEntry, #ContextEntry, ...#ContextEntry]
 
-	// Ownership explícito dos subdomínios no mapa.
-	// Cada chave é um subdomínio e aponta para exatamente um ownerContext.
-	// Isso transforma single-ownership em dado explícito do artefato.
-	subdomainOwnership?: [#SubdomainRef]: #SubdomainOwnership
+	// Transversais de domínio como artefatos de primeira classe.
+	// Definição canônica única de shared kernels consumidos por múltiplos BCs.
+	// Cada BC referencia transversais pelo code via domainTransversals.
+	domainLevelTransversals?: [...#DomainLevelTransversal]
 
-	// Relações direcionais entre BCs.
+	// Ownership explícito dos subdomínios no mapa.
+	// O campo é obrigatório; a cobertura total dos subdomínios
+	// usados em contexts[] é validada por runner/unificação (tq-cm-06).
+	subdomainOwnership: [#SubdomainRef]: #SubdomainOwnership
+
+	// Relações entre contexts e/ou sistemas externos.
 	relationships: [...#ContextRelationship]
 
 	// Hooks para unificação cross-artifact.
-	// Quando preenchidos por outro artefato, viram constraints reais.
 	expectedContexts?: [...#BoundedContextRef]
-	knownFlows?:       [...#CrossContextFlowRef]
+	declaredFlows?:    [...#CrossContextFlowRef]
 
 	knownLimitations?: [...string]
 	assumptions?:      [...string]
@@ -69,14 +72,14 @@ package artifact_schemas
 			rationale:   "Duplicata de BC gera ambiguidade estrutural."
 		}, {
 			id:          "tq-cm-02"
-			description: "Todo BC em relationships[] está declarado em contexts[]"
-			test:        "Cada upstream e downstream em relationships[] referencia um context existente em contexts[].context."
+			description: "Todo BC interno em relationships[] está declarado em contexts[]"
+			test:        "Cada endpoint interno em relationships[] referencia um context existente em contexts[].context."
 			severity:    "fail"
 			rationale:   "Relação com BC não declarado é referência órfã."
 		}, {
 			id:          "tq-cm-03"
-			description: "Relações não duplicam par upstream-downstream"
-			test:        "Cada par (upstream, downstream) aparece no máximo uma vez."
+			description: "Relações internas não duplicam o mesmo par source-target"
+			test:        "Cada par (source, target) interno aparece no máximo uma vez em relationships[]."
 			severity:    "fail"
 			rationale:   "Duplicata cria ambiguidade sobre a fronteira."
 		}, {
@@ -94,9 +97,9 @@ package artifact_schemas
 		}, {
 			id:          "tq-cm-06"
 			description: "Ownership de subdomínio é explícito e unificável"
-			test:        "Se subdomainOwnership estiver preenchido, cada entrada aponta para um único ownerContext. A cobertura total dos subdomínios usados em contexts[] deve ser verificada por unificação/runner."
+			test:        "subdomainOwnership é obrigatório. Cada entrada aponta para um único ownerContext. A cobertura total dos subdomínios usados em contexts[] depende de unificação/runner (tq-cm-06)."
 			severity:    "fail"
-			rationale:   "Single ownership vira artefato explícito. A cobertura total depende de comparar contexts[].subdomains com as chaves do mapa."
+			rationale:   "O tipo garante presença; o runner garante completude."
 		}, {
 			id:          "tq-cm-07"
 			description: "Relações simétricas são modeladas como simétricas"
@@ -114,7 +117,7 @@ package artifact_schemas
 			description: "Cobertura esperada pelo wave plan pode ser validada por unificação"
 			test:        "Se expectedContexts estiver preenchido, cada item deve aparecer em contexts[].context."
 			severity:    "fail"
-			rationale:   "Regra preparada para unificação com o artefato que materializa os contexts esperados do wave plan."
+			rationale:   "Regra preparada para unificação com wave plan."
 		}, {
 			id:          "tq-cm-10"
 			description: "Toda relação tem identidade canônica própria"
@@ -124,17 +127,52 @@ package artifact_schemas
 		}, {
 			id:          "tq-cm-11"
 			description: "flowRefs podem ser validados por unificação com catálogo de flows"
-			test:        "Se knownFlows estiver preenchido, cada flowRef deve pertencer a knownFlows."
+			test:        "Se declaredFlows estiver preenchido, cada flowRef deve pertencer a declaredFlows."
 			severity:    "fail"
-			rationale:   "Regra preparada para unificação cross-artifact com catálogo de CrossContextFlows."
+			rationale:   "Regra preparada para unificação cross-artifact."
+		}, {
+			id:          "tq-cm-12"
+			description: "Todo BC tem classificação estratégica completa ou justificativa"
+			test:        "Cada contexts[] declara subdomainType, wardleyEvolution e domainAgentSpec, ou possui rationale explicando ausência."
+			severity:    "warn"
+			rationale:   "Campos estratégicos opcionais suportam preenchimento incremental, mas BC sem classificação limita análise de coupling e investimento."
+		}, {
+			id:          "tq-cm-13"
+			description: "domainTransversals referenciados por BCs existem em domainLevelTransversals"
+			test:        "Cada ref em contexts[].domainTransversals deve corresponder a um domainLevelTransversals[].code."
+			severity:    "fail"
+			rationale:   "Referência a transversal não definido é coupling invisível."
+		}, {
+			id:          "tq-cm-14"
+			description: "Communication e data flows são simétricos por construção de tipo"
+			test:        "Sem communication → sem events/commands/queries; com communication → ao menos um de events/commands/queries. flowRefs (referências a CrossContextFlows) são independentes desta regra."
+			severity:    "fail"
+			rationale:   "Data flows sem communication e communication sem data flows são ambos contratos incompletos. Enforced por tipo."
 		}]
-		rationale: "Critérios cobrem integridade estrutural, ownership explícito, compatibilidade de patterns e hooks para unificação cross-artifact."
+		rationale: "Critérios cobrem integridade estrutural, ownership como invariante, compatibilidade de patterns, contratos explícitos por tipo, completude estratégica e hooks para unificação cross-artifact."
 	}
 }
 
+// ==============================
+// CONTEXTS
+// ==============================
+
 #ContextEntry: {
 	context:    #BoundedContextRef
+	name:       string & !=""
 	subdomains: [#SubdomainRef, ...#SubdomainRef]
+
+	// Classificação estratégica.
+	// Opcionais para suportar preenchimento incremental.
+	// tq-cm-12 alerta quando ausentes sem rationale.
+	subdomainType?:    "core" | "supporting" | "generic"
+	wardleyEvolution?: "genesis" | "custom" | "product" | "commodity"
+	domainAgentSpec?:  string & !=""
+
+	// Referências a transversais definidos em domainLevelTransversals[].code.
+	// tq-cm-13 valida existência.
+	domainTransversals?: [...#DomainLevelTransversalRef]
+
 	rationale?: string & !=""
 }
 
@@ -143,92 +181,431 @@ package artifact_schemas
 	rationale:    string & !=""
 }
 
-#BaseRelationship: {
-	code:        string & =~"^[a-z][a-z0-9-]*$"
-	upstream:    #BoundedContextRef
-	downstream:  #BoundedContextRef
+// Definição canônica de shared kernels de domínio.
+// Artefato de primeira classe: cada transversal tem identidade,
+// lista de tipos e rationale de existência.
+#DomainLevelTransversal: {
+	code:      string & =~"^[a-z][a-z0-9-]*$"
+	name:      string & !=""
+	typeRefs:  [#NonEmptyString, ...#NonEmptyString]
+	rationale: string & !=""
+}
 
-	upstreamPattern:   #UpstreamPattern
-	downstreamPattern: #DownstreamPattern
+// ==============================
+// ENDPOINTS
+// ==============================
+
+#RelationshipEndpoint:
+	#ContextEndpoint |
+	#ExternalEndpoint
+
+#ContextEndpoint: {
+	kind:    "bounded-context"
+	context: #BoundedContextRef
+}
+
+#ExternalEndpoint: {
+	kind: "external-system"
+	code: #ExternalSystemRef
+	name: string & !=""
+	type: "financial-institution" | "government-authority" | "saas-provider" | "erp" | "other"
+	regulatoryVolatility?: "low" | "medium" | "high"
+}
+
+// ==============================
+// RELATIONSHIPS
+// ==============================
+
+#ContextRelationship:
+	#InternalRelationship |
+	#ExternalRelationship
+
+// Ao menos um de events, commands ou queries deve ser não-vazio.
+// Todas as 7 combinações válidas são representadas.
+// Aberto com ... para permitir embedding em structs maiores.
+#FlowPayload:
+	{events: [#NonEmptyString, ...#NonEmptyString], ...} |
+	{commands: [#NonEmptyString, ...#NonEmptyString], ...} |
+	{queries: [#NonEmptyString, ...#NonEmptyString], ...} |
+	{
+		events:   [#NonEmptyString, ...#NonEmptyString]
+		commands: [#NonEmptyString, ...#NonEmptyString]
+		...
+	} |
+	{
+		events:  [#NonEmptyString, ...#NonEmptyString]
+		queries: [#NonEmptyString, ...#NonEmptyString]
+		...
+	} |
+	{
+		commands: [#NonEmptyString, ...#NonEmptyString]
+		queries:  [#NonEmptyString, ...#NonEmptyString]
+		...
+	} |
+	{
+		events:   [#NonEmptyString, ...#NonEmptyString]
+		commands: [#NonEmptyString, ...#NonEmptyString]
+		queries:  [#NonEmptyString, ...#NonEmptyString]
+		...
+	}
+
+// Campos comuns a qualquer relação.
+#_RelationshipCore: {
+	code:      string & =~"^[a-z][a-z0-9-]*$"
+	source:    #RelationshipEndpoint
+	target:    #RelationshipEndpoint
+	direction: #RelationshipDirection
 
 	description?: string & !=""
-	rationale:   string & !=""
+	rationale:    string & !=""
 
-	communicationPattern?: #CommunicationPattern
-	flowRefs?:             [...#CrossContextFlowRef]
+	hotspots?:      [...string]
+	feedbackLoop?:  #FeedbackLoop
+	contextBudget?: "light" | "moderate" | "heavy"
+
+	flowRefs?: [...#CrossContextFlowRef]
+
+	// Open for extension by subtypes.
+	...
 }
 
-// Compatibilidade de patterns vira regra de tipo.
-// Relações inválidas simplesmente não unificam.
-#ContextRelationship:
-	#OHSACLRelationship |
-	#OHSConformistRelationship |
-	#OHSPLACLRelationship |
-	#OHSPLConformistRelationship |
-	#PublishedLanguageACLRelationship |
-	#PublishedLanguageConformistRelationship |
-	#PartnershipRelationship |
-	#SharedKernelRelationship
-
-#OHSACLRelationship: #BaseRelationship & {
-	upstreamPattern:   "open-host-service"
-	downstreamPattern: "anti-corruption-layer"
+// Relação sem communication declarada.
+// Data flows (events/commands/queries) proibidos sem communication.
+#BaseRelationshipWithoutCommunication: #_RelationshipCore & {
+	events?:   _|_
+	commands?: _|_
+	queries?:  _|_
 }
 
-#OHSConformistRelationship: #BaseRelationship & {
-	upstreamPattern:   "open-host-service"
-	downstreamPattern: "conformist"
+// Relação com communication declarada.
+// #FlowPayload garante ao menos um data flow não-vazio.
+// A relação entre communication e data flows é simétrica:
+// sem communication → sem data flows; com communication → ao menos um data flow.
+#BaseRelationshipWithCommunication: #_RelationshipCore & {
+	communication: #CommunicationPattern
+	#FlowPayload
 }
 
-#OHSPLACLRelationship: #BaseRelationship & {
-	upstreamPattern:   "open-host-service-published-language"
-	downstreamPattern: "anti-corruption-layer"
+#BaseRelationship:
+	#BaseRelationshipWithoutCommunication |
+	#BaseRelationshipWithCommunication
+
+#RelationshipDirection:
+	"upstream-downstream" |
+	"mutual-dependency"
+
+// ----------------------------------------
+// Internal BC ↔ Internal BC
+// ----------------------------------------
+
+#InternalRelationship:
+	#InternalOHSACLRelationship |
+	#InternalOHSConformistRelationship |
+	#InternalOHSCustomerSupplierRelationship |
+	#InternalOHSPLACLRelationship |
+	#InternalOHSPLConformistRelationship |
+	#InternalOHSPLCustomerSupplierRelationship |
+	#InternalPublishedLanguageACLRelationship |
+	#InternalPublishedLanguageConformistRelationship |
+	#InternalPublishedLanguageCustomerSupplierRelationship |
+	#InternalPartnershipRelationship |
+	#InternalSharedKernelRelationship
+
+#InternalBaseRelationship: #BaseRelationship & {
+	source: {kind: "bounded-context"}
+	target: {kind: "bounded-context"}
+	direction: "upstream-downstream"
+	upstreamPattern:   #UpstreamPattern
+	downstreamPattern: #DownstreamPattern
 }
 
-#OHSPLConformistRelationship: #BaseRelationship & {
-	upstreamPattern:   "open-host-service-published-language"
-	downstreamPattern: "conformist"
+#InternalSymmetricRelationship: #BaseRelationship & {
+	source: {kind: "bounded-context"}
+	target: {kind: "bounded-context"}
+	direction: "mutual-dependency"
+	upstreamPattern:   #SymmetricPattern
+	downstreamPattern: #SymmetricPattern
 }
 
-#PublishedLanguageACLRelationship: #BaseRelationship & {
-	upstreamPattern:   "published-language"
-	downstreamPattern: "anti-corruption-layer"
+// --- OHS upstream (publishedLanguage proibido) ---
+
+#InternalOHSACLRelationship: #InternalBaseRelationship & {
+	upstreamPattern:    #UpstreamPattern & "open-host-service"
+	downstreamPattern:  #DownstreamPattern & "anti-corruption-layer"
+	publishedLanguage?: _|_
 }
 
-#PublishedLanguageConformistRelationship: #BaseRelationship & {
-	upstreamPattern:   "published-language"
-	downstreamPattern: "conformist"
+#InternalOHSConformistRelationship: #InternalBaseRelationship & {
+	upstreamPattern:    #UpstreamPattern & "open-host-service"
+	downstreamPattern:  #DownstreamPattern & "conformist"
+	publishedLanguage?: _|_
 }
 
-#PartnershipRelationship: #BaseRelationship & {
-	upstreamPattern:   "partnership"
-	downstreamPattern: "partnership"
+#InternalOHSCustomerSupplierRelationship: #InternalBaseRelationship & {
+	upstreamPattern:    #UpstreamPattern & "open-host-service"
+	downstreamPattern:  #DownstreamPattern & "customer-supplier"
+	publishedLanguage?: _|_
 }
 
-#SharedKernelRelationship: #BaseRelationship & {
-	upstreamPattern:   "shared-kernel"
-	downstreamPattern: "shared-kernel"
+// --- OHS+PL upstream (publishedLanguage obrigatório) ---
+
+#InternalOHSPLACLRelationship: #InternalBaseRelationship & {
+	upstreamPattern:   #UpstreamPattern & "open-host-service-published-language"
+	downstreamPattern: #DownstreamPattern & "anti-corruption-layer"
+	publishedLanguage: string & !=""
 }
 
+#InternalOHSPLConformistRelationship: #InternalBaseRelationship & {
+	upstreamPattern:   #UpstreamPattern & "open-host-service-published-language"
+	downstreamPattern: #DownstreamPattern & "conformist"
+	publishedLanguage: string & !=""
+}
+
+#InternalOHSPLCustomerSupplierRelationship: #InternalBaseRelationship & {
+	upstreamPattern:   #UpstreamPattern & "open-host-service-published-language"
+	downstreamPattern: #DownstreamPattern & "customer-supplier"
+	publishedLanguage: string & !=""
+}
+
+// --- PL upstream (publishedLanguage obrigatório) ---
+
+#InternalPublishedLanguageACLRelationship: #InternalBaseRelationship & {
+	upstreamPattern:   #UpstreamPattern & "published-language"
+	downstreamPattern: #DownstreamPattern & "anti-corruption-layer"
+	publishedLanguage: string & !=""
+}
+
+#InternalPublishedLanguageConformistRelationship: #InternalBaseRelationship & {
+	upstreamPattern:   #UpstreamPattern & "published-language"
+	downstreamPattern: #DownstreamPattern & "conformist"
+	publishedLanguage: string & !=""
+}
+
+#InternalPublishedLanguageCustomerSupplierRelationship: #InternalBaseRelationship & {
+	upstreamPattern:   #UpstreamPattern & "published-language"
+	downstreamPattern: #DownstreamPattern & "customer-supplier"
+	publishedLanguage: string & !=""
+}
+
+// --- Symmetric (publishedLanguage proibido) ---
+
+#InternalPartnershipRelationship: #InternalSymmetricRelationship & {
+	upstreamPattern:    #SymmetricPattern & "partnership"
+	downstreamPattern:  #SymmetricPattern & "partnership"
+	publishedLanguage?: _|_
+}
+
+#InternalSharedKernelRelationship: #InternalSymmetricRelationship & {
+	upstreamPattern:    #SymmetricPattern & "shared-kernel"
+	downstreamPattern:  #SymmetricPattern & "shared-kernel"
+	publishedLanguage?: _|_
+}
+
+// ----------------------------------------
+// External System ↔ Internal BC
+// ----------------------------------------
+
+#ExternalRelationship:
+	#ExternalInboundRelationship |
+	#ExternalOutboundRelationship
+
+// --- Inbound: external → internal ---
+
+#ExternalInboundRelationship:
+	#ExternalInboundInterfaceACLRelationship |
+	#ExternalInboundInterfaceConformistRelationship |
+	#ExternalInboundInterfaceCustomerSupplierRelationship |
+	#ExternalInboundPublishedLanguageACLRelationship |
+	#ExternalInboundPublishedLanguageConformistRelationship |
+	#ExternalInboundPLCustomerSupplierRelationship
+
+#ExternalInboundBaseRelationship: #BaseRelationship & {
+	source: {kind: "external-system"}
+	target: {kind: "bounded-context"}
+	direction: "upstream-downstream"
+	upstreamPattern:   #ExternalUpstreamPattern
+	downstreamPattern: #ExternalDownstreamPattern
+}
+
+// Interface inbound non-PL: publishedLanguage proibido.
+// Non-conformist: conformistCascadeRisk proibido.
+
+#ExternalInboundInterfaceACLRelationship: #ExternalInboundBaseRelationship & {
+	upstreamPattern:         #ExternalUpstreamPattern & "external-interface"
+	downstreamPattern:       #ExternalDownstreamPattern & "anti-corruption-layer"
+	publishedLanguage?:      _|_
+	conformistCascadeRisk?:  _|_
+}
+
+#ExternalInboundInterfaceConformistRelationship: #ExternalInboundBaseRelationship & {
+	upstreamPattern:    #ExternalUpstreamPattern & "external-interface"
+	downstreamPattern:  #ExternalDownstreamPattern & "conformist"
+	publishedLanguage?: _|_
+	conformistCascadeRisk?: #ConformistCascadeRisk
+}
+
+#ExternalInboundInterfaceCustomerSupplierRelationship: #ExternalInboundBaseRelationship & {
+	upstreamPattern:         #ExternalUpstreamPattern & "external-interface"
+	downstreamPattern:       #ExternalDownstreamPattern & "customer-supplier"
+	publishedLanguage?:      _|_
+	conformistCascadeRisk?:  _|_
+}
+
+// --- Inbound PL (publishedLanguage obrigatório) ---
+
+#ExternalInboundPublishedLanguageACLRelationship: #ExternalInboundBaseRelationship & {
+	upstreamPattern:        #ExternalUpstreamPattern & "published-language"
+	downstreamPattern:      #ExternalDownstreamPattern & "anti-corruption-layer"
+	publishedLanguage:      string & !=""
+	conformistCascadeRisk?: _|_
+}
+
+#ExternalInboundPublishedLanguageConformistRelationship: #ExternalInboundBaseRelationship & {
+	upstreamPattern:   #ExternalUpstreamPattern & "published-language"
+	downstreamPattern: #ExternalDownstreamPattern & "conformist"
+	publishedLanguage: string & !=""
+	conformistCascadeRisk?: #ConformistCascadeRisk
+}
+
+#ExternalInboundPLCustomerSupplierRelationship: #ExternalInboundBaseRelationship & {
+	upstreamPattern:        #ExternalUpstreamPattern & "published-language"
+	downstreamPattern:      #ExternalDownstreamPattern & "customer-supplier"
+	publishedLanguage:      string & !=""
+	conformistCascadeRisk?: _|_
+}
+
+// --- Outbound: internal → external ---
+// conformistCascadeRisk proibido em todos os outbound.
+
+#ExternalOutboundRelationship:
+	#ExternalOutboundOHSInterfaceRelationship |
+	#ExternalOutboundPLInterfaceRelationship |
+	#ExternalOutboundOHSPLInterfaceRelationship |
+	#ExternalOutboundOHSCustomerSupplierRelationship |
+	#ExternalOutboundPLCustomerSupplierRelationship |
+	#ExternalOutboundOHSPLCustomerSupplierRelationship
+
+#ExternalOutboundBaseRelationship: #BaseRelationship & {
+	source: {kind: "bounded-context"}
+	target: {kind: "external-system"}
+	direction: "upstream-downstream"
+	upstreamPattern:        #ExternalOutboundUpstreamPattern
+	downstreamPattern:      #ExternalOutboundDownstreamPattern
+	conformistCascadeRisk?: _|_
+}
+
+// OHS outbound non-PL: publishedLanguage proibido.
+
+#ExternalOutboundOHSInterfaceRelationship: #ExternalOutboundBaseRelationship & {
+	upstreamPattern:    #ExternalOutboundUpstreamPattern & "open-host-service"
+	downstreamPattern:  #ExternalOutboundDownstreamPattern & "external-interface"
+	publishedLanguage?: _|_
+}
+
+// Outbound PL: publishedLanguage obrigatório.
+
+#ExternalOutboundPLInterfaceRelationship: #ExternalOutboundBaseRelationship & {
+	upstreamPattern:   #ExternalOutboundUpstreamPattern & "published-language"
+	downstreamPattern: #ExternalOutboundDownstreamPattern & "external-interface"
+	publishedLanguage: string & !=""
+}
+
+#ExternalOutboundOHSPLInterfaceRelationship: #ExternalOutboundBaseRelationship & {
+	upstreamPattern:   #ExternalOutboundUpstreamPattern & "open-host-service-published-language"
+	downstreamPattern: #ExternalOutboundDownstreamPattern & "external-interface"
+	publishedLanguage: string & !=""
+}
+
+#ExternalOutboundOHSCustomerSupplierRelationship: #ExternalOutboundBaseRelationship & {
+	upstreamPattern:    #ExternalOutboundUpstreamPattern & "open-host-service"
+	downstreamPattern:  #ExternalOutboundDownstreamPattern & "customer-supplier"
+	publishedLanguage?: _|_
+}
+
+#ExternalOutboundPLCustomerSupplierRelationship: #ExternalOutboundBaseRelationship & {
+	upstreamPattern:   #ExternalOutboundUpstreamPattern & "published-language"
+	downstreamPattern: #ExternalOutboundDownstreamPattern & "customer-supplier"
+	publishedLanguage: string & !=""
+}
+
+#ExternalOutboundOHSPLCustomerSupplierRelationship: #ExternalOutboundBaseRelationship & {
+	upstreamPattern:   #ExternalOutboundUpstreamPattern & "open-host-service-published-language"
+	downstreamPattern: #ExternalOutboundDownstreamPattern & "customer-supplier"
+	publishedLanguage: string & !=""
+}
+
+// ==============================
+// PATTERN ENUMS
+// ==============================
+
+// Internal upstream-downstream: apenas patterns assimétricos.
+// Partnership e shared-kernel passam por #SymmetricPattern.
 #UpstreamPattern:
 	"open-host-service" |
 	"published-language" |
-	"open-host-service-published-language" |
-	"partnership" |
-	"shared-kernel"
+	"open-host-service-published-language"
 
 #DownstreamPattern:
 	"anti-corruption-layer" |
 	"conformist" |
+	"customer-supplier"
+
+#SymmetricPattern:
 	"partnership" |
 	"shared-kernel"
 
+#ExternalUpstreamPattern:
+	"external-interface" |
+	"published-language"
+
+#ExternalDownstreamPattern:
+	"anti-corruption-layer" |
+	"conformist" |
+	"customer-supplier"
+
+#ExternalOutboundUpstreamPattern:
+	"open-host-service" |
+	"published-language" |
+	"open-host-service-published-language"
+
+#ExternalOutboundDownstreamPattern:
+	"external-interface" |
+	"customer-supplier"
+
+// ==============================
+// COMMUNICATION / COUPLING
+// ==============================
+
 #CommunicationPattern: {
-	mode: "events" | "request-reply" | "mixed"
-	criticality?: "high" | "medium" | "low"
-	notes?: string & !=""
+	type: "sync" | "async" | "hybrid"
 }
 
-#BoundedContextRef:   string & =~"^[a-z][a-z0-9-]*$"
-#SubdomainRef:        string & =~"^[a-z][a-z0-9-]*$"
-#CrossContextFlowRef: string & =~"^[a-z][a-z0-9-]*$"
+#FeedbackLoop:
+	#NoFeedbackLoop |
+	#ActiveFeedbackLoop
+
+#NoFeedbackLoop: {
+	exists: false
+}
+
+#ActiveFeedbackLoop: {
+	exists:                true
+	reverseRelationshipId: string & =~"^[a-z][a-z0-9-]*$"
+	loopSemantics:         string & !=""
+}
+
+#ConformistCascadeRisk: {
+	chain:     string & !=""
+	rationale: string & !=""
+}
+
+// ==============================
+// REFS (definição canônica única)
+// ==============================
+
+#BoundedContextRef:         string & =~"^[a-z][a-z0-9-]*$"
+#ExternalSystemRef:         string & =~"^ext-[a-z][a-z0-9-]*$"
+#SubdomainRef:              string & =~"^[a-z][a-z0-9-]*$"
+#CrossContextFlowRef:       string & =~"^[a-z][a-z0-9-]*$"
+#DomainLevelTransversalRef: string & =~"^[a-z][a-z0-9-]*$"
+#NonEmptyString:            string & !=""

@@ -4,7 +4,7 @@ stakeholderMap: {
 	description: "Atores do ecossistema Mesh: participantes da cadeia produtiva da construção civil e entidades regulatórias que interagem com a infraestrutura financeira."
 
 	stakeholders: [{
-		id:              "sh-01"
+		code:            "sh-01"
 		name:            "Construtora"
 		type:            "organization"
 		description:     "Empresa responsável pela execução da obra. Contrata fornecedores, gerencia cronograma e é tomadora de crédito."
@@ -19,7 +19,7 @@ stakeholderMap: {
 		interactsWith: ["sh-02", "sh-03", "sh-05"]
 		rationale:       "É o nó central da cadeia produtiva — sem construtora não há obra, e sem obra não há fluxo financeiro a intermediar."
 	}, {
-		id:              "sh-02"
+		code:            "sh-02"
 		name:            "Fornecedor"
 		type:            "organization"
 		description:     "Empresa que fornece materiais ou serviços à construtora. Possui recebíveis vinculados a medições de obra."
@@ -34,7 +34,7 @@ stakeholderMap: {
 		interactsWith: ["sh-01", "sh-05"]
 		rationale:       "É quem mais sofre com a assimetria informacional — entrega material mas depende de ciclos longos de pagamento sem visibilidade."
 	}, {
-		id:              "sh-03"
+		code:            "sh-03"
 		name:            "Instituição financeira parceira"
 		type:            "organization"
 		description:     "Banco ou fundo que fornece funding para operações de crédito intermediadas pela Mesh."
@@ -49,7 +49,7 @@ stakeholderMap: {
 		interactsWith: ["sh-04", "sh-05"]
 		rationale:       "A Mesh como SCD origina e gerencia crédito, mas pode usar funding externo — o parceiro financeiro viabiliza escala sem capital próprio proporcional."
 	}, {
-		id:              "sh-04"
+		code:            "sh-04"
 		name:            "Bacen"
 		type:            "regulator"
 		description:     "Banco Central do Brasil. Regula SCDs, define requisitos prudenciais, de capital e de reporting."
@@ -63,7 +63,7 @@ stakeholderMap: {
 		]
 		rationale: "Operar como SCD sem conformidade com o Bacen é ilegal. Toda decisão de design deve ser compatível com o framework regulatório vigente."
 	}, {
-		id:              "sh-05"
+		code:            "sh-05"
 		name:            "Agente de IA Mesh"
 		type:            "agent"
 		description:     "Agente autônomo que executa operações dentro dos limites definidos por autonomy envelopes e gates determinísticos."

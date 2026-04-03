@@ -184,10 +184,11 @@ mesh-spec/
 │       ├── agents/
 │       │   └── {agent-slug}.cue         # Spec do agente: capabilities servidas, guardrails,
 │       │                                #   inputs, outputs, dependências, failure modes + rationale
-│       ├── autonomy-policy.cue          # Fronteira estocástico/determinístico: quais commands
-│       │                                #   são gated (exigem validação determinística), quais
-│       │                                #   são os gates, quais agentes alimentam quais gates.
-│       │                                #   Spec → gate tests.
+│       ├── agents/
+│       │   ├── {agent-slug}.governance.cue  # Governance envelope per-agent: lifecycle stage,
+│       │   │                                #   escalation routing, autonomy overrides, blast
+│       │   │                                #   radius caps, drift detection, calibração.
+│       │   │                                #   Schema: architecture/artifact-schemas/agent-governance.cue
 │       │
 │       │   # ── Contratos e Tipos ──
 │       │
@@ -455,6 +456,7 @@ architecture/shared-types/
 architecture/tension-log/
 architecture/validation-prompts/
 contexts/
+contexts/cmt/
 domain/
 governance/
 governance/build-time/
@@ -469,11 +471,15 @@ END:repo-structure-paths -->
 
 <!-- BEGIN:repo-artifact-schemas
 adr.cue
+agent-governance.cue
+agent-spec.cue
 artifact-schema.cue
 canvas.cue
 context-map.cue
 cross-context-flow.cue
 domain-definition.cue
+domain-model.cue
+glossary.cue
 lens.cue
 quality-criteria.cue
 stakeholder-map.cue
@@ -528,7 +534,7 @@ END:repo-governance-protocols -->
 | 10 | Ports & Adapters | contexts/{bc-code}/ports.cue, adapters.cue |
 | 11 | Aplicação / Workflows | contexts/{bc-code}/workflows/*.cue + architecture/cross-context-workflows/ |
 | 12 | Infra | architecture/infrastructure.cue, database-strategy.cue, security.cue |
-| — | Agentes de domínio | contexts/{bc-code}/agents/{agent}.cue + autonomy-policy.cue (fronteira) + architecture/agent-universal-principles.cue (princípios globais) |
+| — | Agentes de domínio | contexts/{bc-code}/agents/{agent}.cue + contexts/{bc-code}/agents/{agent}.governance.cue (envelope) + architecture/agent-governance.cue (global) |
 | — | Contratos de consumo inter-BC | contexts/{bc-code}/schemas/interaction-contracts.cue + architecture/shared-schemas/agent-interaction-envelope.cue (schema base). Ownership segue context-map. |
 | — | Incentive analysis | contexts/{bc-code}/canvas.cue (seção obrigatória do canvas) |
 | — | Threat modeling | contexts/{bc-code}/threat-model.cue + governance/red-team-protocol.cue |
@@ -626,8 +632,8 @@ schemas/*.cue          → validation tests (payloads inválidos → rejeição;
 policies.cue           → integration tests (trigger/condition/action formal → comando executado)
 failure-modes.cue      → chaos tests (trigger/dependency/fallback formais)
 workflows/{wf}.cue     → workflow tests (steps/compensation/timeouts formais)
-threat-model.cue       → adversarial tests (fonte formal: autonomy-policy.cue + invariants.cue)
-autonomy-policy.cue    → gate tests (agente estocástico sem gate → rejeição)
+threat-model.cue       → adversarial tests (fonte formal: agent-governance.cue + invariants.cue)
+{agent}.governance.cue → gate tests (agente estocástico sem gate → rejeição)
 ports.cue              → adapter tests (todo port declarado tem adapter implementado)
 error-taxonomy.cue     → error tests (códigos únicos, categorização consistente)
 interaction-contracts   → contract tests (emissor sem campos obrigatórios → rejeição)
@@ -735,11 +741,11 @@ Esse artefato cobre: idempotência como requisito universal (reprocessar nunca d
 
 ---
 
-## Fronteira Estocástico/Determinístico (Autonomy Policy)
+## Fronteira Estocástico/Determinístico (Agent Governance)
 
 Para um sistema AI-operated que processa transações financeiras, a separação entre recomendação e execução é safety-critical. Agentes estocásticos (IA) nunca emitem comandos financeiros diretamente — eles recomendam. Um gate determinístico valida a recomendação e executa se e somente se ela passa por todas as invariantes.
 
-Cada BC que possui agentes de domínio declara em autonomy-policy.cue: quais commands são gated (exigem validação determinística antes de execução), quais são os gates (invariantes, thresholds, aprovações humanas), e quais agentes estocásticos alimentam quais gates. Sem esse artefato, a separação entre recomendação e execução fica implícita no código, violando o princípio de que tudo é especificado antes de implementado.
+A governança de agentes opera em dois níveis (ADR-037): `architecture/agent-governance.cue` define defaults globais (autonomia, escalation, blast radius, drift detection, auditoria) e cada agente recebe um envelope em `contexts/{bc}/agents/{name}.governance.cue` que especializa esses defaults com lifecycle stage, escalation routing, autonomy overrides e calibração. Sem esses artefatos, a separação entre recomendação e execução fica implícita no código, violando o princípio de que tudo é especificado antes de implementado.
 
 ---
 
@@ -779,7 +785,7 @@ Um BC é considerado "spec-complete" quando:
 - [ ] ports.cue com todas as interfaces do domínio.
 - [ ] agents/{agent}.cue com spec de cada agente de domínio do BC (se aplicável).
 - [ ] schemas/interaction-contracts.cue com contratos de consumo para cada par emissor→receptor, ownership consistente com context-map (se BC consome eventos de outros BCs).
-- [ ] autonomy-policy.cue com fronteira estocástico/determinístico (se BC possui agentes).
+- [ ] agents/{agent}.governance.cue com governance envelope per-agent (se BC possui agentes).
 - [ ] schemas/ com todas as 8 famílias ContractGate aplicáveis ao BC.
 - [ ] anti-patterns.cue com pelo menos 3 restrições em formato estruturado + rationale.
 - [ ] coding-conventions.cue com estrutura de pastas e naming.

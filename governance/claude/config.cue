@@ -4,7 +4,7 @@ package claude
 //   - architecture/artifact-schemas/lens.cue (schema de lenses analíticas)
 //   - architecture/artifact-schemas/autonomy-envelope.cue (schema de envelopes de governança)
 //   - architecture/artifact-schemas/tension-entry.cue (schema de tension-log)
-//   - architecture/artifacts/lenses/ (diretório de lenses)
+//   - architecture/lenses/ (diretório de lenses)
 //   - architecture/artifacts/governance/ (diretório de autonomy envelopes)
 //   - architecture/tension-log/ (diretório de tensões registradas)
 //   - architecture/validation-prompts/ (diretório de prompts de validação semântica)
@@ -195,7 +195,7 @@ config: #AgentConfig & {
 				  → Isto se aplica independentemente de existir autonomy envelope. Envelopes governam ações operacionais. Reversibilidade governa decisões estruturais. São mecanismos complementares.
 				  → Referência completa dos critérios: domain/domain-definition.cue seção foundingPrinciples.conflictResolution.reversibilityThreshold.
 
-				Lenses analíticas (architecture/artifacts/lenses/):
+				Lenses analíticas (architecture/lenses/):
 				  → Se o diretório de lenses estiver vazio, proceder com princípios apenas.
 				  → Para qualquer decisão que não seja trivialmente resolvida pelos princípios, consultar as lenses disponíveis.
 				  → Comparar o tipo de decisão contra os critérios de ativação definidos no schema da lente.

@@ -10,22 +10,12 @@ contextMapSchema: build_time.#SelfReviewReport & {
 	artifactType:       "artifact-schema"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
-	executionMode:   "self-reported"
-	generatedAt:     "2026-03-31T00:00:00Z"
+	executionMode:   "isolated-subagent"
+	generatedAt:     "2026-04-01"
 
-	roundsExecuted: 1
+	roundsExecuted: 4
 	maxRounds:      4
 	status:         "stable"
-
-	singleRoundRationale: """
-		Schema fornecido pelo founder após design com 3 lenses analíticas
-		(DSD, EDA, Domain Language) e 4 rounds de red team na sessão
-		anterior. Versão final incorpora refinamentos estruturais do
-		founder: union de patterns para tq-cm-04/tq-cm-07,
-		subdomainOwnership explícito para tq-cm-06, hooks de unificação
-		para tq-cm-09/tq-cm-11. Todos os critérios universais e
-		type-specific passam na primeira avaliação sem findings.
-		"""
 
 	roundDetails: [{
 		round:     1
@@ -33,58 +23,112 @@ contextMapSchema: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			Round 1 avaliou schema #ContextMap contra critérios universais
-			(uq-01 a uq-08) e type-specific (tq-as-01 a tq-as-03).
-			(uq-01) rationales explicam WHY em todos os 11 quality criteria,
-			nos tipos #SubdomainOwnership, #BaseRelationship e nas 8
-			variantes de relação. (uq-02) schema referencia conceitos
-			Mesh-specific: wave plan, cross-context flows, subdomínios com
-			ownership por BC. (uq-03) reusa #BoundedContextRef (definido em
-			cross-context-flow.cue) e #SubdomainRef (definido em
-			subdomain.cue) — redefinições idênticas no mesmo package,
-			CUE unifica sem conflito; #CrossContextFlowRef definido pela
-			primeira vez neste arquivo. (uq-04) subdomainOwnership reforça
-			P0 (single source of truth); union de patterns alinha com
-			dp-01 (evidência verificável — combinações inválidas não
-			compilam). (uq-05) header documenta que tq-cm-09 e tq-cm-11
-			dependem de unificação cross-artifact; tq-cm-06 declara
-			dependência de runner para cobertura total. (uq-06) terminologia
-			consistente: bounded context, subdomain, upstream/downstream
-			pattern, ownership. (uq-07) zero placeholders. (uq-08)
-			_schema.location completo com todos os campos obrigatórios,
-			_qualityCriteria presente com 11 critérios. (tq-as-01)
-			_schema.location tem canonicalPathRegex, fileNameRegex,
-			description, rationale, cardinality, allowNested. (tq-as-02)
-			todos os 11 critérios têm tests concretos e acionáveis — tq-cm-04
-			verifica instanciação do union, tq-cm-06 verifica ownership
-			explícito com nota sobre cobertura por unificação, tq-cm-09 e
-			tq-cm-11 verificam hooks de unificação quando preenchidos.
-			(tq-as-03) rationale do conjunto cobre 4 eixos: integridade
-			estrutural, ownership explícito, compatibilidade de patterns,
-			hooks para unificação cross-artifact. Zero findings.
+			Round 1 avaliou versão inicial do schema #ContextMap contra
+			critérios universais (uq-01 a uq-08) e type-specific (tq-as-01
+			a tq-as-03). Schema fornecido pelo founder após 3 lenses e 4
+			rounds de red team. subdomainOwnership opcional (com ?), hook
+			knownFlows. Todos os critérios passaram. Zero findings.
+			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 2 avaliou versão refinada pelo founder com 3 mudanças
+			estruturais: (1) subdomainOwnership obrigatório (sem ?) —
+			ownership vira dado estrutural, não opcional de bootstrap;
+			(2) contexts[].subdomains explicitamente marcado como visão
+			derivada do ownership global; (3) knownFlows renomeado para
+			declaredFlows — nome mais preciso que denota ato explícito.
+			Header comment atualizado com estratégia clara: tipo para
+			estados inválidos, unificação para cross-artifact, runner
+			para o restante. Quality criteria mais concisos. Seções com
+			separadores visuais. Verificação: (uq-01) rationales WHY
+			em todos os campos. (uq-02) Mesh-specific via wave plan,
+			ownership por BC, cross-context flows. (uq-03) refs
+			#BoundedContextRef e #SubdomainRef idênticos aos existentes
+			no package. (uq-04) subdomainOwnership obrigatório reforça
+			P0. (uq-05) header documenta fronteira tipo/unificação/runner.
+			(uq-06) terminologia consistente. (uq-07) zero placeholders.
+			(uq-08) _schema.location e _qualityCriteria completos.
+			(tq-as-01) location com todos os campos. (tq-as-02) 11
+			critérios acionáveis. (tq-as-03) rationale cobre separação
+			tipo/unificação/runner. Zero findings.
+			"""
+	}, {
+		round:     3
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 3 avaliou evolução substancial do schema fornecida pelo
+			founder. Mudanças estruturais: (1) endpoints tipados com
+			#RelationshipEndpoint (union #ContextEndpoint | #ExternalEndpoint)
+			substituindo upstream/downstream como refs simples; (2) direction
+			explícita (upstream-downstream | mutual-dependency); (3)
+			#CommunicationPattern mudou de {mode} para {type: sync|async|hybrid};
+			(4) #FlowPayload com events/commands/queries tipados, simetria
+			communication↔data enforced por tipo (tq-cm-14); (5) publishedLanguage
+			obrigatório em variantes PL, proibido em não-PL via _|_; (6)
+			conformistCascadeRisk permitido apenas em conformist; (7)
+			#ExternalRelationship com inbound (6 variantes) e outbound (6
+			variantes); (8) customer-supplier como novo downstream pattern;
+			(9) #DomainLevelTransversal como artefato de primeira classe;
+			(10) #ContextEntry expandido com name, subdomainType?,
+			wardleyEvolution?, domainAgentSpec?, domainTransversals?; (11)
+			#FeedbackLoop como union discriminado; (12) hotspots?,
+			contextBudget? em #_RelationshipCore; (13) 3 novos quality
+			criteria (tq-cm-12 classificação estratégica, tq-cm-13
+			transversais, tq-cm-14 simetria). Avaliação: (uq-01) rationales
+			WHY em todos os 14 critérios e tipos. (uq-02) Mesh-specific via
+			commitment lifecycle, SCF, domainLevelTransversals, ownership.
+			(uq-03) #QualityCriteria em quality-criteria.cue, #BoundedContextRef
+			e #SubdomainRef compatíveis com cross-context-flow.cue e
+			subdomain.cue. (uq-04) ownership obrigatório e union de tipos
+			reforçam P0. (uq-05) header lista 11 decisões de design. (uq-06)
+			terminologia consistente sem sinônimos. (uq-07) zero placeholders.
+			(uq-08) _schema.location e _qualityCriteria completos com 14
+			critérios. (tq-as-01) location com 6 campos. (tq-as-02) 14
+			critérios com tests concretos e verificáveis. (tq-as-03)
+			rationale cobre integridade estrutural, ownership, patterns,
+			contratos por tipo, completude estratégica, unificação. Zero
+			findings.
+			"""
+	}, {
+		round:     4
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 4 avaliou mudança pontual: #ExternalEndpoint ganhou campo
+			code: #ExternalSystemRef para identidade canônica de sistemas
+			externos. #ExternalSystemRef adicionado como string com regex
+			^ext-[a-z][a-z0-9-]*$ — prefixo ext- distingue de BCs internos.
+			Alinhado com #ContextOrSystemRef no canvas.cue que aceita ambos
+			os padrões. Consistente com a convenção de refs tipados existente
+			(#BoundedContextRef, #SubdomainRef, #DomainLevelTransversalRef).
+			Verificação: (uq-03) #ExternalSystemRef usado apenas em
+			#ExternalEndpoint.code, referência válida. (uq-06) nomenclatura
+			consistente com *Ref pattern. (uq-08) cue vet passa. Zero findings.
 			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		Schema #ContextMap estável no round 1. Design orientado pelo
-		founder com 3 lenses e 4 rounds de red team prévios. Inovação
-		principal: compatibilidade de patterns (tq-cm-04) e simetria
-		(tq-cm-07) viram regra de tipo via union estrutural de 8
-		variantes (#OHSACLRelationship, #OHSConformistRelationship,
-		#OHSPLACLRelationship, #OHSPLConformistRelationship,
-		#PublishedLanguageACLRelationship,
-		#PublishedLanguageConformistRelationship,
-		#PartnershipRelationship, #SharedKernelRelationship).
-		subdomainOwnership torna single-ownership explícito e tipável.
-		expectedContexts e knownFlows são hooks para unificação
-		cross-artifact com wave plan e catálogo de flows. 11 critérios
-		de qualidade (9 fail, 2 warn) cobrem integridade referencial,
-		ownership, patterns, identidade de relações e rastreabilidade
-		a flows. Separação honesta entre o que é tipo (patterns,
-		simetria), unificação (ownership total, cobertura wave plan,
-		validade de flowRefs) e runner (unicidade de codes, BCs
-		isolados).
+		Schema #ContextMap estável no round 4. Rounds 1-2 avaliaram versões
+		anteriores (ownership opcional→obrigatório, knownFlows→declaredFlows).
+		Round 3 avaliou evolução substancial: endpoints tipados com union
+		(internal/external), direction explícita, communication com type
+		(sync/async/hybrid), FlowPayload com events/commands/queries tipados
+		e simetria enforced por tipo, publishedLanguage enforced por variante
+		(obrigatório em PL, proibido em não-PL), conformistCascadeRisk
+		localizado, external relationships (12 variantes), customer-supplier,
+		domainLevelTransversals, ContextEntry expandido, FeedbackLoop como
+		union discriminado. Round 4: #ExternalEndpoint.code com
+		#ExternalSystemRef (regex ext-*) para identidade canônica de
+		sistemas externos, alinhado com #ContextOrSystemRef do canvas.
+		14 quality criteria (12 fail, 2 warn). Zero findings em 4 rounds.
 		"""
 }

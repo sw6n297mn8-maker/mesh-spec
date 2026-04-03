@@ -138,7 +138,7 @@ Decisões irreversíveis:
   → Isto se aplica independentemente de existir autonomy envelope. Envelopes governam ações operacionais. Reversibilidade governa decisões estruturais. São mecanismos complementares.
   → Referência completa dos critérios: domain/domain-definition.cue seção foundingPrinciples.conflictResolution.reversibilityThreshold.
 
-Lenses analíticas (architecture/artifacts/lenses/):
+Lenses analíticas (architecture/lenses/):
   → Se o diretório de lenses estiver vazio, proceder com princípios apenas.
   → Para qualquer decisão que não seja trivialmente resolvida pelos princípios, consultar as lenses disponíveis.
   → Comparar o tipo de decisão contra os critérios de ativação definidos no schema da lente.
