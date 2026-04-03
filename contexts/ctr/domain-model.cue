@@ -238,7 +238,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:      "inv-draft-only-mutable"
 		name:      "Apenas Draft Aceita Modificação"
-		rule:      "Somente versões em estado draft aceitam registro de revisão ou alterações. Versões em active, superseded, expired e cancelled são imutáveis."
+		rule:      "Somente versões em estado draft aceitam mutação in-place de seus campos. Versões em active, superseded, expired e cancelled são imutáveis. cmd-register-terms-revision não viola esta invariante: cria nova versão em draft, sem alterar a versão existente."
 		rationale: "Corolário de inv-post-activation-immutability estendido a todos os estados não-draft. Garante que o único ponto de mutação é antes da ativação."
 	}]
 
@@ -306,7 +306,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		description: "Referência à versão anterior na cadeia de evolução contratual. Null para v1 (primeira versão). Forma cadeia linear: v1→v2→v3."
 		fields: [{
 			kind: "value-object-ref", name: "previousVersion", valueObjectRef: "vo-version-number"
-			description: "Número da versão anterior. Ausente para primeira versão."
+			description: "Número da versão anterior. Para v1 (primeira versão), o value object vo-lineage não é instanciado — o campo lineage da entity é semanticamente vazio."
 		}]
 		rationale: "Value object que materializa glossário term-lineage. inv-lineage-integrity garante integridade da cadeia."
 	}, {
@@ -514,6 +514,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-contract-terms-activated",
 			"evt-contract-terms-superseded",
 			"evt-contract-terms-cancelled",
+			"evt-contract-terms-expired",
 		]
 
 		queryCapabilities: [{
