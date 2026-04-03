@@ -391,7 +391,7 @@ canvas: artifact_schemas.#Canvas & {
 	}, {
 		id:                 "as-ctr-2"
 		assumption:         "NPM como SoT de qualificação de participantes está disponível com latência aceitável para validação síncrona."
-		invalidationSignal: "Latência de QueryParticipantQualification consistentemente acima de SLA ou indisponibilidade frequente de NPM."
+		invalidationSignal: "Latência de QueryParticipantStatus consistentemente acima de SLA ou indisponibilidade frequente de NPM."
 		rationale:          "Dependência sync de NPM é ponto de falha. Se NPM não é confiável, CTR precisa de estratégia de resiliência."
 	}, {
 		id:                 "as-ctr-3"
@@ -408,10 +408,10 @@ canvas: artifact_schemas.#Canvas & {
 		rationale: "Threshold deve ser calibrado com dados reais de operação. Bloqueante para autonomy envelope completo."
 	}, {
 		id:        "oq-ctr-2"
-		question:  "CTR deve publicar eventos de expiração proativamente ou consumers devem consultar vigência sob demanda?"
-		impact:    "Padrão push (eventos) vs pull (queries) afeta acoplamento e latência de reação de CMT e SCF."
+		question:  "CTR deve publicar evento ContractTermsExpired proativamente ou consumers devem consultar vigência sob demanda?"
+		impact:    "Push (novo evento outbound) vs pull (consumers consultam QueryContractTerms e filtram por vigência). Afeta acoplamento temporal e latência de reação de CMT e SCF a termos expirados."
 		deadline:  "2026-07-01"
-		rationale: "Decisão de arquitetura de comunicação que afeta 3 BCs downstream. Canvas assume push (eventos) como default."
+		rationale: "Canvas atual não publica evento de expiração — apenas activated, superseded e cancelled. Decisão pendente: adicionar ContractTermsExpired ao outbound (push) ou manter modelo atual onde expiração é detectável apenas por query (pull)."
 	}]
 
 	// ==============================
@@ -449,15 +449,15 @@ canvas: artifact_schemas.#Canvas & {
 		lifecycle financeiro. Specification como archetype primário
 		porque CTR define e expõe Published Language consumida por 3
 		BCs. Communication: 4 commands inbound (register, activate,
-		amend, cancel), 1 event consumer (NPM), 2 query surfaces
-		(termos + cláusulas), 4 event publishers (lifecycle
-		transitions), 1 query dependency (NPM qualificação). Decisões
+		revise, cancel), 2 query surfaces (termos + cláusulas),
+		3 event publishers (activated, superseded, cancelled),
+		1 query dependency (qualificação de partes via NPM). Decisões
 		de negócio: imutabilidade, unicidade de versão active e
 		lifecycle explícito. Governance: registro e validação autônomos;
 		ativação e cancelamento supervisionados. Incentive analysis
 		demonstra que manipulação por registrante ou contraparte é mais
 		cara que operação correta por design: imutabilidade,
-		bilateralidade, rastreabilidade e base jurídica objetiva para
-		disputas (dp-08).
+		versionamento com lineage, rastreabilidade temporal e base
+		jurídica objetiva para disputas (dp-08).
 		"""
 }
