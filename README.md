@@ -486,6 +486,7 @@ quality-criteria.cue
 stakeholder-map.cue
 subdomain.cue
 task-template.cue
+tension-entry.cue
 validation-prompt.cue
 wave-plan.cue
 END:repo-artifact-schemas -->
