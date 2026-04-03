@@ -297,7 +297,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			description: "Data de início da vigência."
 		}, {
 			kind: "primitive", name: "endDate", type: "date"
-			description: "Data de expiração natural. Pode ser indefinida (as-ctr-3)."
+			description: "Data de expiração natural. Obrigatória no modelo atual — as-ctr-3 assume que expiração por data é suficiente. Contratos com prazo indefinido são invalidation signal dessa assumption."
 		}]
 		rationale: "Value object que materializa glossário term-vigencia. Campo que governa expiração automática (pol-detect-expired-terms)."
 	}, {
@@ -433,14 +433,14 @@ domainModel: artifact_schemas.#DomainModel & {
 				triggeredByCommand: "cmd-activate-contract-terms"
 				emitsEvents:       ["evt-contract-terms-activated"]
 				guards:            ["inv-single-active-version", "inv-activation-requires-supervision"]
-				description:       "Ativação supervisionada. Se existir versão active anterior, supersede atomicamente (gera transição active→superseded na mesma transação)."
+				description:       "Ativação supervisionada da versão-alvo (draft→active). Esta transição opera na versão sendo ativada. Se existir versão active anterior no mesmo aggregate, o aggregate coordena atomicamente a transição active→superseded na versão anterior (duas entities distintas mutadas na mesma transação)."
 			}, {
 				from:               "active"
 				to:                 "superseded"
 				triggeredByCommand: "cmd-activate-contract-terms"
 				emitsEvents:       ["evt-contract-terms-superseded"]
 				guards:            ["inv-single-active-version"]
-				description:       "Supersessão automática da versão anterior quando nova versão é ativada. Atômica com draft→active."
+				description:       "Supersessão da versão anteriormente active quando nova versão é ativada. Esta transição opera na versão sendo substituída, coordenada atomicamente pelo aggregate junto com draft→active na versão-alvo. Duas entities distintas (anterior e nova) são mutadas na mesma transação."
 			}, {
 				from:               "active"
 				to:                 "expired"
@@ -464,7 +464,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			}]
 		}
 
-		rationale: "Single aggregate porque contrato+escopo é o único consistency boundary. Versões são entities internas gerenciadas atomicamente. inv-single-active-version exige transacionalidade cross-version. Lifecycle representa state machine per-version: cada versão inicia em draft. cmd-activate-contract-terms dispara duas transições atômicas (draft→active na nova, active→superseded na anterior). NPM validation é sync no processamento de commands de registro — sem evento ACL."
+		rationale: "Single aggregate porque contrato+escopo é o único consistency boundary. Versões são entities internas (ent-terms-version) gerenciadas atomicamente. Cada entity tem lifecycle próprio (mesmo grafo de estados) — o aggregate não tem estado de lifecycle próprio, apenas coordena transições cross-entity. inv-single-active-version exige transacionalidade cross-version. cmd-activate-contract-terms é o caso crítico: o aggregate muta duas entities distintas na mesma transação (draft→active na nova, active→superseded na anterior). NPM validation é sync no processamento de commands de registro — sem evento ACL."
 	}]
 
 	// =============================================
@@ -474,10 +474,10 @@ domainModel: artifact_schemas.#DomainModel & {
 	policies: [{
 		code:             "pol-detect-expired-terms"
 		name:             "Detecção de Termos Expirados"
-		description:      "Ao ativar termos com vigência finita, agenda verificação para data de expiração. Na data, emite cmd-expire-contract-terms. Decisão autônoma — expiração temporal é determinística."
+		description:      "Ao ativar termos com vigência finita, agenda verificação para data de expiração. Na data, emite cmd-expire-contract-terms. O command verifica que a versão ainda está em estado active antes de transicionar — se já foi supersedida ou cancelada, o command é descartado (idempotente). Decisão autônoma — expiração temporal é determinística."
 		triggeredByEvent: "evt-contract-terms-activated"
 		issuesCommand:    "cmd-expire-contract-terms"
-		rationale:        "Canvas autonomous decision: detect-expired-terms. Usa evt-contract-terms-activated como trigger de scheduling: ao ativar termos com endDate, agenda verificação temporal. Expiração não requer julgamento — data de fim atingida é condição binária."
+		rationale:        "Canvas autonomous decision: detect-expired-terms. Usa evt-contract-terms-activated como trigger de scheduling: ao ativar termos com endDate, agenda verificação temporal. Expiração não requer julgamento — data de fim atingida é condição binária. Guard implícito: cmd-expire-contract-terms só transiciona versão em estado active. Versão já supersedida (por nova ativação) ou cancelada é caso de no-op idempotente."
 	}]
 
 	// =============================================
