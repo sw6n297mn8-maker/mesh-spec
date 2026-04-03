@@ -303,12 +303,15 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-lineage"
 		name:        "Lineage"
-		description: "Posição na cadeia de evolução contratual. Para v1, representa origem da cadeia (previousVersion ausente). Para v2+, referencia a versão anterior. Forma cadeia linear: v1→v2→v3."
+		description: "Posição na cadeia de evolução contratual. Para v1, representa origem da cadeia (chainOrigin true, previousVersion ausente). Para v2+, referencia a versão anterior (chainOrigin false, previousVersion preenchido). Forma cadeia linear: v1→v2→v3."
 		fields: [{
+			kind: "primitive", name: "chainOrigin", type: "boolean"
+			description: "True para v1 (origem da cadeia, sem versão anterior). False para v2+ (referencia versão anterior via previousVersion)."
+		}, {
 			kind: "value-object-ref", name: "previousVersion", valueObjectRef: "vo-version-number"
-			description: "Número da versão anterior na cadeia. Ausente para v1 — neste caso vo-lineage é instanciado como marcador de origem da cadeia, não como referência."
+			description: "Número da versão anterior na cadeia. Preenchido apenas quando chainOrigin é false."
 		}]
-		rationale: "Value object que materializa glossário term-lineage. inv-lineage-integrity garante integridade da cadeia."
+		rationale: "Value object que materializa glossário term-lineage. Discriminador chainOrigin torna a distinção entre origem e referência representável no shape, não apenas na descrição. inv-lineage-integrity garante integridade da cadeia."
 	}, {
 		code:        "vo-contract-clause"
 		name:        "ContractClause"
