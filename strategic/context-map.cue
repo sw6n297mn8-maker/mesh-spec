@@ -51,7 +51,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "fce", name: "Financial Commitment Execution", subdomains: ["fce"]
 			subdomainType: "core", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-fce-primary"
-			rationale: "Executa liquidação financeira condicionada a gates de risco e fatura válida. Consome elegibilidade de REW e faturas de INV; interage com BKR para settlement; publica sinais de pagamento para REW e ATO. BC separado: linguagem de liquidação, regras de settlement e integração bancária são distintas de faturamento (INV) e risco (REW)."
+			rationale: "Executa liquidação financeira condicionada a gates de risco e fatura válida. Consome elegibilidade de REW e faturas de INV; publica sinais de pagamento para REW e ATO. BC separado: linguagem de liquidação e regras de settlement são distintas de faturamento (INV) e risco (REW)."
 		},
 		{
 			context: "ngr", name: "Network Growth & Reach", subdomains: ["ngr"]
@@ -69,7 +69,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "rew", name: "Risk Engine & Risk Observability", subdomains: ["rew"]
 			subdomainType: "core", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-rew-primary"
-			rationale: "Avalia risco contínuo de participantes e operações. Consome sinais de NPM, DLV, FCE e NIM; publica scores e elegibilidade como published language para CMT, SCF e FCE. BC separado: linguagem de risco, modelos de scoring e decisões de elegibilidade são distintas de compromissos (CMT) e financiamento (SCF)."
+			rationale: "Avalia risco contínuo de participantes e operações. Consome sinais de múltiplos BCs; publica scores e elegibilidade como published language. BC separado: linguagem de risco, modelos de scoring e decisões de elegibilidade são distintas de compromissos (CMT) e financiamento (SCF)."
 		},
 
 		// --- Supporting (12) ---
@@ -107,7 +107,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "idn", name: "Identity & Access Management", subdomains: ["idn"]
 			subdomainType: "supporting", wardleyEvolution: "commodity"
 			domainAgentSpec: "agt-idn-primary"
-			rationale: "Gerencia identidade, autenticação e autorização. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de identidade e controle de acesso é domínio especializado. Relações individuais omitidas — ver regra de omissão de transversais."
+			rationale: "Gerencia identidade, autenticação e autorização. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de identidade e controle de acesso é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
 			context: "inv", name: "Invoicing", subdomains: ["inv"]
@@ -131,13 +131,13 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "obs", name: "Observability & Operational Intelligence", subdomains: ["obs"]
 			subdomainType: "supporting", wardleyEvolution: "commodity"
 			domainAgentSpec: "agt-obs-primary"
-			rationale: "Fornece observabilidade e inteligência operacional. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de observabilidade e métricas operacionais é domínio especializado. Relações individuais omitidas — ver regra de omissão de transversais."
+			rationale: "Fornece observabilidade e inteligência operacional. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de observabilidade e métricas operacionais é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
 			context: "plt", name: "Platform & Infrastructure Services", subdomains: ["plt"]
 			subdomainType: "supporting", wardleyEvolution: "commodity"
 			domainAgentSpec: "agt-plt-primary"
-			rationale: "Fornece serviços de plataforma e infraestrutura. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de infraestrutura e serviços de plataforma é domínio especializado. Relações individuais omitidas — ver regra de omissão de transversais."
+			rationale: "Fornece serviços de plataforma e infraestrutura. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de infraestrutura e serviços de plataforma é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
 			context: "scf", name: "Supply Chain Finance", subdomains: ["scf"]
@@ -157,13 +157,13 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "ntf", name: "Notifications & Communications", subdomains: ["ntf"]
 			subdomainType: "generic", wardleyEvolution: "commodity"
 			domainAgentSpec: "agt-ntf-primary"
-			rationale: "Fornece notificações e comunicações. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de notificação e canais de comunicação é domínio especializado. Relações individuais omitidas — ver regra de omissão de transversais."
+			rationale: "Fornece notificações e comunicações. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de notificação e canais de comunicação é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
 			context: "str", name: "Storage & Document Management", subdomains: ["str"]
 			subdomainType: "generic", wardleyEvolution: "commodity"
 			domainAgentSpec: "agt-str-primary"
-			rationale: "Fornece armazenamento e gestão documental. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de storage e gestão documental é domínio especializado. Relações individuais omitidas — ver regra de omissão de transversais."
+			rationale: "Fornece armazenamento e gestão documental. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de storage e gestão documental é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 	]
 
@@ -172,29 +172,29 @@ meshContextMap: artifact_schemas.#ContextMap & {
 	// ==============================
 
 	subdomainOwnership: {
-		cmt: {ownerContext: "cmt", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por análise de 19 lenses."}
-		dlv: {ownerContext: "dlv", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por análise de 19 lenses."}
-		fce: {ownerContext: "fce", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por análise de 19 lenses."}
-		ngr: {ownerContext: "ngr", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por análise de 19 lenses."}
-		nim: {ownerContext: "nim", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por análise de 19 lenses."}
-		rew: {ownerContext: "rew", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por análise de 19 lenses."}
+		cmt: {ownerContext: "cmt", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		dlv: {ownerContext: "dlv", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		fce: {ownerContext: "fce", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		ngr: {ownerContext: "ngr", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		nim: {ownerContext: "nim", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		rew: {ownerContext: "rew", rationale: "Subdomínio core com linguagem, regras e invariantes próprias — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 
-		ato: {ownerContext: "ato", rationale: "Subdomínio supporting com linguagem fiscal/contábil própria — BC dedicado por análise de 19 lenses."}
-		bdg: {ownerContext: "bdg", rationale: "Subdomínio supporting com linguagem orçamentária própria — BC dedicado por análise de 19 lenses."}
-		ctr: {ownerContext: "ctr", rationale: "Subdomínio supporting com linguagem contratual própria — BC dedicado por análise de 19 lenses."}
-		dgv: {ownerContext: "dgv", rationale: "Subdomínio supporting com linguagem de governança de dados própria — BC dedicado por análise de 19 lenses."}
-		drc: {ownerContext: "drc", rationale: "Subdomínio supporting com linguagem de disputas e reversões própria — BC dedicado por análise de 19 lenses."}
-		idn: {ownerContext: "idn", rationale: "Subdomínio supporting com linguagem de identidade e acesso própria — BC dedicado por análise de 19 lenses."}
-		inv: {ownerContext: "inv", rationale: "Subdomínio supporting com linguagem fiscal/faturamento própria — BC dedicado por análise de 19 lenses."}
-		log: {ownerContext: "log", rationale: "Subdomínio supporting com linguagem logística e de evidência operacional própria — BC dedicado por análise de 19 lenses."}
-		npm: {ownerContext: "npm", rationale: "Subdomínio supporting com linguagem de gestão de participantes própria — BC dedicado por análise de 19 lenses."}
-		obs: {ownerContext: "obs", rationale: "Subdomínio supporting com linguagem de observabilidade própria — BC dedicado por análise de 19 lenses."}
-		plt: {ownerContext: "plt", rationale: "Subdomínio supporting com linguagem de plataforma e infraestrutura própria — BC dedicado por análise de 19 lenses."}
-		scf: {ownerContext: "scf", rationale: "Subdomínio supporting com linguagem de financiamento de cadeia produtiva própria — BC dedicado por análise de 19 lenses."}
+		ato: {ownerContext: "ato", rationale: "Subdomínio supporting com linguagem fiscal/contábil própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		bdg: {ownerContext: "bdg", rationale: "Subdomínio supporting com linguagem orçamentária própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		ctr: {ownerContext: "ctr", rationale: "Subdomínio supporting com linguagem contratual própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		dgv: {ownerContext: "dgv", rationale: "Subdomínio supporting com linguagem de governança de dados própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		drc: {ownerContext: "drc", rationale: "Subdomínio supporting com linguagem de disputas e reversões própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		idn: {ownerContext: "idn", rationale: "Subdomínio supporting com linguagem de identidade e acesso própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		inv: {ownerContext: "inv", rationale: "Subdomínio supporting com linguagem fiscal/faturamento própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		log: {ownerContext: "log", rationale: "Subdomínio supporting com linguagem logística e de evidência operacional própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		npm: {ownerContext: "npm", rationale: "Subdomínio supporting com linguagem de gestão de participantes própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		obs: {ownerContext: "obs", rationale: "Subdomínio supporting com linguagem de observabilidade própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		plt: {ownerContext: "plt", rationale: "Subdomínio supporting com linguagem de plataforma e infraestrutura própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		scf: {ownerContext: "scf", rationale: "Subdomínio supporting com linguagem de financiamento de cadeia produtiva própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 
-		bkr: {ownerContext: "bkr", rationale: "Subdomínio generic com linguagem de integração bancária própria — BC dedicado por análise de 19 lenses."}
-		ntf: {ownerContext: "ntf", rationale: "Subdomínio generic com linguagem de notificações própria — BC dedicado por análise de 19 lenses."}
-		str: {ownerContext: "str", rationale: "Subdomínio generic com linguagem de armazenamento própria — BC dedicado por análise de 19 lenses."}
+		bkr: {ownerContext: "bkr", rationale: "Subdomínio generic com linguagem de integração bancária própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		ntf: {ownerContext: "ntf", rationale: "Subdomínio generic com linguagem de notificações própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		str: {ownerContext: "str", rationale: "Subdomínio generic com linguagem de armazenamento própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 	}
 
 	// ==============================
@@ -668,6 +668,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		"Relações modelam integrações de domínio entre BCs — integrações técnicas (health checks, service discovery, logging) estão fora do escopo.",
 		"Partnership NGR↔NPM é a única relação simétrica. Eventual necessidade de shared kernel entre outros BCs exigirá revisão.",
 		"Nomes de eventos, commands e queries seguem convenção {QualifiedEntity}{PastParticiple}/{Verb}{QualifiedEntity}/Query{Entity}{Aspect} — nomes canônicos podem ser refinados nos canvas de cada BC.",
+		"Nomes de eventos neste mapa são candidatos canônicos derivados da análise estratégica. Canonização definitiva ocorre nos canvas de cada BC, onde o evento é definido com schema, payload e invariantes. Até lá, nomes como EvidenceRecorded, NetworkBehaviorSignalEmitted e PaymentObligationDefaulted são plausíveis mas não validados cross-artifact.",
 		"domainLevelTransversals não modelados nesta versão — definição de shared kernels de domínio requer análise dos canvas de cada BC, que ainda não existem.",
 	]
 
