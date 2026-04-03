@@ -98,7 +98,8 @@ canvas: artifact_schemas.#Canvas & {
 				Registry versionado de termos contratuais: cada conjunto
 				de termos é imutável após registro. Alterações criam nova
 				versão com lineage explícita. Invariante: exatamente uma
-				versão active por contrato+escopo.
+				versão active por contrato+escopo (e.g., contrato de
+				obra #123 + escopo 'fornecimento de concreto').
 				"""
 			rationale: "Imutabilidade com versionamento é o único modelo que permite reconstrução determinística. Mutação de termos in-place quebraria rastreabilidade end-to-end de compromissos, crédito e disputas."
 		}, {
@@ -131,7 +132,7 @@ canvas: artifact_schemas.#Canvas & {
 			trigger:         "Operador ou agente ativa termos contratuais após validação completa."
 			command:         "ActivateContractTerms"
 			resultingEvents: ["ContractTermsActivated"]
-			description: "Transiciona termos de draft para active. Gate verifica: unicidade de versão active por contrato+escopo, partes qualificadas, cláusulas válidas. ContractTermsActivated é evento publicado."
+			description: "Transiciona termos de draft para active. Interface sync — caller recebe confirmação imediata de vigência. Execução interna pode envolver workflow de aprovação multi-step (e.g., revisão jurídica, compliance) antes da ativação efetiva. Gate verifica: unicidade de versão active por contrato+escopo, partes qualificadas, cláusulas válidas."
 		}, {
 			type:            "command-handler"
 			interactionMode: "async"
@@ -150,7 +151,7 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "query-surface"
 			query:       "QueryContractTerms"
 			returnType:  "ContractTerms"
-			description: "Retorna termos contratuais por ID+versão ou termos active por contrato+escopo. Interface primária consumida por CMT, SCF e DRC."
+			description: "Retorna termos contratuais por ID+versão (version-pinned, preferido para operações já formalizadas) ou pela versão active de um contrato+escopo (para novos compromissos). Interface primária consumida por CMT, SCF e DRC."
 		}, {
 			type:        "query-surface"
 			query:       "QueryContractClauses"
@@ -188,10 +189,13 @@ canvas: artifact_schemas.#Canvas & {
 			cláusulas). Outbound: 3 event publishers (ativação para
 			CMT/SCF, supersession para CMT/SCF/DRC, cancelamento para
 			CMT/DRC), 1 query dependency (qualificação de partes via
-			NPM). Padrão: CTR é upstream puro de dados contratuais —
-			publica termos que governam toda a cadeia downstream.
-			Queries são sync por necessidade de consistência forte
-			(compromisso não pode referenciar termos inválidos).
+			NPM). Padrão: CTR é upstream puro de termos contratuais,
+			com uma única dependência de qualificação em NPM — publica
+			sinais de lifecycle que downstream consome para manter
+			referências válidas. Queries sync são interface principal
+			(registry). hasAsyncSurface é true porque registro e
+			revisão são async (não exigem resposta imediata) e CTR
+			publica eventos de lifecycle consumidos por 3 BCs.
 			"""
 	}
 
