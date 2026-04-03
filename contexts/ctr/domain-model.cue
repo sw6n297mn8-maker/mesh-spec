@@ -58,7 +58,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			description: "Escopo contratual que delimita unicidade."
 		}, {
 			kind: "value-object-ref", name: "lineage", valueObjectRef: "vo-lineage"
-			description: "Referência à versão anterior (null para v1)."
+			description: "Lineage da versão criada. Para v1, chainOrigin=true e previousVersion ausente."
 		}]
 	}, {
 		code:        "evt-contract-terms-activated"
@@ -397,7 +397,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				description: "Período de vigência."
 			}, {
 				kind: "value-object-ref", name: "lineage", valueObjectRef: "vo-lineage"
-				description: "Referência à versão anterior."
+				description: "Lineage desta versão: origem da cadeia para v1, ou referência à versão anterior para v2+."
 			}, {
 				kind: "primitive", name: "activatedAt", type: "datetime"
 				description: "Timestamp de ativação. Null para versões nunca ativadas."
