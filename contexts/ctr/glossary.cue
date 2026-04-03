@@ -26,7 +26,7 @@ glossary: artifact_schemas.#Glossary & {
 		termEn:     "Contract Terms"
 		definition: "Conjunto imutável e versionado de cláusulas, condições e obrigações que governam um contrato entre partes. Entidade central do CTR — cada instância é registrada em draft, ativada, e eventualmente supersedida, expirada ou cancelada. Após ativação, termos são imutáveis: qualquer alteração cria nova versão com lineage explícito."
 		category:   "entity"
-		rationale:  "Conceito central do BC. 'Termos Contratuais' é mais preciso que 'contrato' (instrumento jurídico completo, broader que escopo do CTR) ou 'cláusulas' (sub-unidade dos termos). CTR gerencia termos como entidade versionada, não o contrato como instrumento."
+		rationale:  "Conceito guarda-chuva do BC — aggregate root que agrupa versões por contrato+escopo. O lifecycle (draft→active→superseded→expired→cancelled) vive na Versão de Termos, não no conceito guarda-chuva. 'Termos Contratuais' é mais preciso que 'contrato' (instrumento jurídico completo, broader que escopo do CTR) ou 'cláusulas' (sub-unidade dos termos)."
 		synonyms: ["Termos", "Conjunto de Termos"]
 		antiTerms: [{
 			term:          "Contrato"
@@ -59,8 +59,8 @@ glossary: artifact_schemas.#Glossary & {
 		name:       "Versão de Termos"
 		termEn:     "Terms Version"
 		definition: "Instância imutável e numerada de um conjunto de termos contratuais. Cada versão é snapshot permanente — alterações criam nova versão, nunca modificam a existente. Invariante: exatamente uma versão active por contrato+escopo."
-		category:   "value"
-		rationale:  "Versão como value object garante que consumers (CMT, SCF, DRC) sempre referenciam snapshot específico, nunca 'o contrato' genérico. Sem versionamento explícito, reconstrução temporal é impossível."
+		category:   "entity"
+		rationale:  "Versão é a entidade operacional real do CTR — é ela que tem lifecycle (draft→active→superseded→expired→cancelled), recebe ativação, sofre supersessão e é referenciada por consumers downstream. Termos Contratuais é o conceito guarda-chuva (aggregate root que agrupa versões); Versão de Termos é a unidade que existe no tempo e sofre transições."
 		antiTerms: [{
 			term:          "Revisão"
 			clarification: "Revisão implica modificação do mesmo documento. Em CTR, não há modificação — há criação de nova versão imutável. RegisterTermsRevision é o command, mas o resultado é nova versão, não revisão da existente."
@@ -169,6 +169,7 @@ glossary: artifact_schemas.#Glossary & {
 			clarification: "Atualização implica modificar a versão existente. Em CTR, versões são imutáveis — supersessão cria nova versão que substitui a anterior como active."
 		}]
 		relatedTerms: ["term-versao-de-termos", "term-lineage", "term-estado-de-termos"]
+		domainModelRefs: ["evt-contract-terms-superseded", "inv-single-active-version"]
 		layerMapping: {
 			codeTerm: "Supersession"
 		}
@@ -211,7 +212,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-contraparte-ctr"
 		name:       "Contraparte de Termos"
 		termEn:     "Terms Counterparty"
-		definition: "Parte que confirma termos contratuais registrados pela outra parte, completando o registro bilateral. No vertical de construção civil, tipicamente o fornecedor (sh-02). Contraparte confirma que aceita as condições antes da ativação."
+		definition: "Parte vinculada aos termos contratuais registrados pela outra parte. Pode confirmar, contestar ou ser impactada pela ativação dos termos, conforme fluxo operacional. No vertical de construção civil, tipicamente o fornecedor (sh-02)."
 		category:   "role"
 		rationale:  "Papel funcional no aceite de termos. Distinto de 'contraparte' em CMT porque aqui refere-se à confirmação de termos (base jurídica), não à confirmação de compromisso (obrigação operacional). O fornecedor é contraparte de termos em CTR e pode ser proponente de compromisso em CMT."
 		relatedTerms: ["term-registrante"]
@@ -236,6 +237,7 @@ glossary: artifact_schemas.#Glossary & {
 			instance: "CMT consulta QueryContractTerms para validar referência antes de aceitar compromisso. SCF consulta para avaliar elegibilidade de antecipação. DRC consulta QueryContractClauses para base jurídica de disputa. Todos consomem o mesmo modelo via ACL local."
 		}]
 		relatedTerms: ["term-termos-contratuais"]
+		domainModelRefs: ["agg-contract-terms"]
 	}, {
 		code:       "term-contract-terms-drafted"
 		name:       "ContractTermsDrafted"
