@@ -24,7 +24,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-termos-contratuais"
 		name:       "Termos Contratuais"
 		termEn:     "Contract Terms"
-		definition: "Conjunto imutável e versionado de cláusulas, condições e obrigações que governam um contrato entre partes. Entidade central do CTR — cada instância é registrada em draft, ativada, e eventualmente supersedida, expirada ou cancelada. Após ativação, termos são imutáveis: qualquer alteração cria nova versão com lineage explícito."
+		definition: "Conjunto versionado de cláusulas, condições e obrigações que governam um contrato entre partes. Em CTR, Termos Contratuais constituem o conceito guarda-chuva que agrupa versões imutáveis ao longo do tempo. O lifecycle operacional vive em cada Versão de Termos."
 		category:   "entity"
 		rationale:  "Conceito guarda-chuva do BC — aggregate root que agrupa versões por contrato+escopo. O lifecycle (draft→active→superseded→expired→cancelled) vive na Versão de Termos, não no conceito guarda-chuva. 'Termos Contratuais' é mais preciso que 'contrato' (instrumento jurídico completo, broader que escopo do CTR) ou 'cláusulas' (sub-unidade dos termos)."
 		synonyms: ["Termos", "Conjunto de Termos"]
@@ -70,7 +70,7 @@ glossary: artifact_schemas.#Glossary & {
 			instance: "v1 (active) → RegisterTermsRevision → v2 (draft) → ActivateContractTerms → v2 (active), v1 (superseded). Consumers que referenciavam v1 mantêm referência; novos consumers usam v2."
 		}]
 		relatedTerms: ["term-termos-contratuais", "term-lineage", "term-unicidade-versao-active"]
-		domainModelRefs: ["vo-terms-version"]
+		domainModelRefs: ["ent-terms-version"]
 		layerMapping: {
 			codeTerm: "TermsVersion"
 			apiTerm:  "version"
