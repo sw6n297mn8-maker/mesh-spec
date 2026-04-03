@@ -457,6 +457,7 @@ architecture/tension-log/
 architecture/validation-prompts/
 contexts/
 contexts/cmt/
+contexts/ctr/
 domain/
 governance/
 governance/build-time/
