@@ -535,7 +535,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			upstreamPattern:   "partnership"
 			downstreamPattern: "partnership"
 			description:       "NGR e NPM operam em parceria: NGR direciona crescimento, NPM gerencia ciclo de vida de participantes adquiridos."
-			rationale:         "Relação simétrica — ambos influenciam mutuamente. NGR não é upstream de NPM nem vice-versa; co-evoluem."
+			rationale:         "Relação simétrica — ambos influenciam mutuamente. NGR não é upstream de NPM nem vice-versa; co-evoluem. Partnership não implica shared model nem shared ownership — cada BC mantém linguagem e invariantes próprias."
 			communication: {type: "async"}
 			events: ["NetworkGrowthTargetDefined", "NetworkParticipantOnboarded"]
 		},
