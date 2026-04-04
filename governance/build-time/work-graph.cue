@@ -18,7 +18,7 @@ package build_time
 // Mover este arquivo para outro package exige import explícito.
 
 workGraph: {
-	rationale: "Topologia de execução W001. 4 fases de domínio progressivas por order, 2 fases de governança com dependsOnPhases explícito, 9 grupos por natureza de artefato."
+	rationale: "Topologia de execução W001. 4 fases de domínio progressivas por order, 2 fases de governança com dependsOnPhases explícito, 1 fase de correção ontológica independente, 10 grupos por natureza de artefato."
 
 	phases: [#Phase & {
 		id:        "p0-validate-and-bootstrap"
@@ -46,6 +46,11 @@ workGraph: {
 		order:           5
 		dependsOnPhases: ["pg1-governance-enforcement"]
 		rationale:       "Extensões de robustez (claim expiration, completion gates, drift detection) que dependem da infraestrutura CI criada em pg1."
+	}, #Phase & {
+		id:              "p4-ontology-correction"
+		order:           6
+		dependsOnPhases: []
+		rationale:       "Correção de ontologia raiz: domain-definition incompleto contaminou subdomínios, context map e canvas existentes. Cadeia linear WI-036→037→038→039. Independente de phases de governança — correção de domínio pode avançar em paralelo."
 	}]
 
 	groups: [#Group & {
@@ -84,6 +89,10 @@ workGraph: {
 		id:        "g5-governance-robustness"
 		phaseId:   "pg2-governance-robustness"
 		rationale: "Extensões de robustez: claim expiration, completion gates, drift detection."
+	}, #Group & {
+		id:        "g6-ontology-correction"
+		phaseId:   "p4-ontology-correction"
+		rationale: "Correção de ontologia raiz: domain-definition, subdomínios, context map e canvas. Cadeia linear com dependências explícitas."
 	}]
 
 	dependencies: [#ExecutionDependency & {
@@ -189,5 +198,25 @@ workGraph: {
 		dependsOn: [{taskId: "WI-016", version: 1}]
 		phaseId: "pg2-governance-robustness"
 		groupId: "g5-governance-robustness"
+	}, #ExecutionDependency & {
+		taskId:    "WI-036"
+		dependsOn: []
+		phaseId:   "p4-ontology-correction"
+		groupId:   "g6-ontology-correction"
+	}, #ExecutionDependency & {
+		taskId: "WI-037"
+		dependsOn: [{taskId: "WI-036", version: 1}]
+		phaseId: "p4-ontology-correction"
+		groupId: "g6-ontology-correction"
+	}, #ExecutionDependency & {
+		taskId: "WI-038"
+		dependsOn: [{taskId: "WI-037", version: 1}]
+		phaseId: "p4-ontology-correction"
+		groupId: "g6-ontology-correction"
+	}, #ExecutionDependency & {
+		taskId: "WI-039"
+		dependsOn: [{taskId: "WI-038", version: 1}]
+		phaseId: "p4-ontology-correction"
+		groupId: "g6-ontology-correction"
 	}]
 }
