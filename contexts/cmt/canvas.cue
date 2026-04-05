@@ -306,7 +306,7 @@ canvas: artifact_schemas.#Canvas & {
 			manipulationCost:          "Superfície de detecção: Event Log imutável registra timestamps de recebimento e processamento de cada proposta — desvio estatístico de latência por proponente é detectável por REW. Gates determinísticos (mech-agent-gate) verificam invariantes independentemente do agente — validação enviesada é bloqueada pelo gate, não pelo agente. Toda decisão supervisionada requer aprovação humana — agente não pode escalar autonomamente."
 			vsBenefit:                 "Benefício de favoritismo é retenção de cliente preferencial. Custo: Event Log torna padrão detectável, gates bloqueiam validação enviesada, supervisão humana em decisões críticas elimina margem de ação autônoma, e responsabilidade jurídica recai sobre operador da plataforma (dp-10)."
 			designResponse:            "mech-agent-gate separa processamento (agente) de validação (gate determinístico). Event Log imutável (mech-evidence) cria trail auditável de cada ação do agente com timestamps. Decisões com impacto financeiro são supervisionadas — agente propõe, humano aprova. REW pode monitorar padrões cross-proposta para detectar favoritismo estatístico. Autonomy envelope limita escopo de ação autônoma."
-			rationale:                 "Agente IA como operador tem poder assimétrico sobre o pipeline. Design response usa separação de responsabilidades (agente processa, gate valida, humano aprova) + auditabilidade temporal + envelope de autonomia para tornar manipulação detectável e contida. Risco residual: viés sutil de priorização dentro do envelope autônomo que não viola gates mas degrada fairness — mitigável por monitoramento estatístico em REW quando operacional."
+			rationale:                 "Agente IA como operador tem poder assimétrico sobre o pipeline. Design response usa separação de responsabilidades (agente processa, gate valida, humano aprova) + auditabilidade temporal + envelope de autonomia para tornar manipulação detectável e contida. Risco residual: viés sutil de priorização dentro do envelope autônomo que não viola gates mas degrada fairness. Detecção (Event Log + REW) é necessária mas insuficiente — detecta desvio post-facto sem preveni-lo. Gap estrutural (oq-cmt-4): falta alignment layer proativo — métricas de fairness no agente, penalização automática por desvio estatístico, e feedback loop REW→comportamento do agente que feche o ciclo entre detecção e correção."
 		}, {
 			stakeholderRef:             "sh-01"
 			participantType:           "coalizão-proponente-contraparte"
@@ -316,7 +316,7 @@ canvas: artifact_schemas.#Canvas & {
 			manipulationCost:          "Superfície de detecção: DLV verifica compromisso contra evidência operacional — entrega fictícia não produz evidência verificável (mech-evidence). Conluio sofisticado pode escalar para fabricação de evidência física (comprovantes falsos), mas isso eleva o vetor de manipulação digital para fraude documental criminal — território de dp-10 (responsabilidade jurídica) e potencial tipificação penal, com custo desproporcional ao benefício. REW monitora padrões cross-participante — mesmas partes com compromissos recorrentes de alto valor sem execução proporcional geram alerta. Score de risco deteriora para ambas as partes, afetando todas as operações futuras na plataforma."
 			vsBenefit:                 "Benefício: antecipação de recebível fictício via SCF — valor financeiro imediato. Custo: bloqueio em DLV quando evidência não materializa, alerta em REW que degrada score permanentemente, disputa em DRC com base documental desfavorável (ambos aceitaram termos que não se materializam), e potencial responsabilidade jurídica por fraude (dp-10 — constraint inviolável)."
 			designResponse:            "Aceite bilateral não detecta conluio — mas downstream sim. DLV exige evidência operacional verificável (mech-evidence) que conluio não produz. REW aplica análise cross-participante que detecta padrões anômalos (pares recorrentes, valores atípicos, gaps execução/compromisso). SCF valida elegibilidade contra evidência de execução, não apenas contra compromisso. CommitmentId vincula toda a cadeia — rastreabilidade end-to-end torna a fraude reconstituível para fins jurídicos."
-			rationale:                 "Conluio é o vetor que mais diretamente bypassa o gate de aceite bilateral — design response transfere detecção para downstream (DLV, REW, SCF) onde evidência operacional é inescapável. Risco residual: janela temporal entre CommitmentAccepted e verificação em DLV — se SCF antecipa antes de DLV verificar, o dano financeiro já ocorreu. Mitigação potencial (não implementada): SCF condicionar antecipação a milestone de execução em DLV, não apenas a compromisso aceito."
+			rationale:                 "Conluio é o vetor que mais diretamente bypassa o gate de aceite bilateral — design response transfere detecção para downstream (DLV, REW, SCF) onde evidência operacional é inescapável. Risco residual: janela temporal entre CommitmentAccepted e verificação em DLV — se SCF antecipa antes de DLV verificar, o dano financeiro já ocorreu. Requisito estrutural pendente (oq-cmt-3): SCF deve condicionar elegibilidade de antecipação a milestone de execução verificada em DLV, não apenas a compromisso aceito. Sem este gate, dp-08 é violável por conluio coordenado — o sistema depende de detecção tardia onde o dano financeiro já ocorreu."
 		}, {
 			stakeholderRef:             "sh-01"
 			participantType:           "proponente-sub-threshold"
@@ -325,8 +325,8 @@ canvas: artifact_schemas.#Canvas & {
 			manipulationVector:        "Proponente calibra valor do compromisso logo abaixo do threshold de escalação (oq-cmt-1) para evitar supervisão humana em high-value-threshold. Pode fracionar compromisso grande em múltiplos sub-threshold para manter cada um no envelope autônomo. Precondição: threshold é conhecido ou inferível pelo proponente, e não há detecção de fracionamento."
 			manipulationCost:          "Superfície de detecção: REW pode monitorar padrões de fracionamento — múltiplos compromissos entre mesmas partes em janela temporal curta com valor agregado acima do threshold geram alerta. BDG verifica coerência orçamentária — múltiplos compromissos fracionados para mesmo escopo são detectáveis na agregação. CommitmentId vincula cada compromisso à cadeia, tornando fracionamento rastreável."
 			vsBenefit:                 "Benefício: evitar supervisão humana e obter aprovação autônoma mais rápida. Custo: fracionamento é detectável por análise de padrão em REW e por agregação em BDG, e se detectado, todas as propostas do proponente passam a escalação mandatória — custo de reputação supera benefício de velocidade."
-			designResponse:            "Threshold com detecção de fracionamento: REW monitora valor agregado por par de partes em janela temporal, não apenas valor individual. BDG agrega compromissos por escopo/contrato. Recomendação de design (não implementada): escalação por padrão além de valor — proponente com histórico de propostas recorrentes próximas ao threshold teria threshold efetivo reduzido."
-			rationale:                 "Threshold gaming é inevitável em sistemas com escalação por valor. Design response usa detecção de fracionamento (REW + BDG) + threshold adaptativo por proponente. Risco residual: threshold ainda não definido (oq-cmt-1, deadline 2026-06-01) — enquanto threshold não existe, toda decisão de aceite é supervisionada, o que elimina este vetor temporariamente. Vetor ativa quando threshold for implementado."
+			designResponse:            "Threshold com detecção de fracionamento: REW monitora valor agregado por par de partes em janela temporal, não apenas valor individual. BDG agrega compromissos por escopo/contrato. Gap estrutural pendente (oq-cmt-5): escalação por padrão além de valor deve ser implementada antes ou junto com a definição do threshold (oq-cmt-1). Sem detecção de fracionamento ativa, threshold cria incentivo imediato para gaming."
+			rationale:                 "Threshold gaming é inevitável em sistemas com escalação por valor. Design response usa detecção de fracionamento (REW + BDG) + threshold adaptativo por proponente. Risco residual: threshold ainda não definido (oq-cmt-1, deadline 2026-06-01) — enquanto threshold não existe, toda decisão de aceite é supervisionada, o que elimina este vetor temporariamente. Vetor ativa quando threshold for implementado. Detecção de fracionamento (oq-cmt-5) deve estar operacional antes do threshold — caso contrário, o sistema cria o incentivo e a vulnerabilidade simultaneamente."
 		}]
 		rationale: """
 			Análise cobre 5 participantes em 3 classes de vetor: (a) economic
@@ -455,6 +455,24 @@ canvas: artifact_schemas.#Canvas & {
 		question:  "Como CMT deve tratar compromissos em verticais onde aceite bilateral não é padrão cultural?"
 		impact:    "Se aceite bilateral é barreira de adoção em algum vertical, a invariante central do CMT precisa ser revisitada."
 		rationale: "Mesh planeja expansão multi-vertical. Invariante que funciona na construção civil pode não funcionar em logística ou energia."
+	}, {
+		id:        "oq-cmt-3"
+		question:  "Como condicionar elegibilidade de antecipação em SCF a milestone de execução verificada em DLV, sem degradar latência do pipeline de crédito?"
+		impact:    "Sem este gate, conluio proponente-contraparte pode gerar antecipação de recebível fictício antes que DLV detecte a fraude. dp-08 depende de custo de manipulação exceder benefício — mas na janela pré-DLV o benefício é extraível e o custo ainda não materializou. Maior risco financeiro do sistema hoje."
+		deadline:  "2026-05-15"
+		rationale: "Não é melhoria — é requisito para que dp-08 se sustente no cenário de conluio. Trade-off: gate mais restritivo em SCF reduz velocidade de antecipação; gate ausente cria janela de arbitragem. Prioridade máxima: protege caixa real."
+	}, {
+		id:        "oq-cmt-4"
+		question:  "Como implementar agent alignment layer que vá além de detecção — métricas de fairness, penalização por desvio estatístico e feedback loop REW→comportamento do agente?"
+		impact:    "Sem alignment proativo, o agente pode operar 'no limite do aceitável' dentro do envelope autônomo sem violar nenhum gate, mas degradando fairness sistematicamente. Detecção via Event Log é post-facto — o dano à confiança já ocorreu quando o padrão é detectado."
+		deadline:  "2026-07-01"
+		rationale: "Diferença entre sistema que detecta viés e sistema que previne viés. Detecção é necessária mas não suficiente para dp-08 quando o operador é o próprio agente com poder assimétrico. Aplica-se cross-BC a todo agente primário da Mesh."
+	}, {
+		id:        "oq-cmt-5"
+		question:  "Como implementar detecção de fracionamento (REW + BDG) de forma que esteja operacional antes ou simultaneamente à definição do threshold de escalação (oq-cmt-1)?"
+		impact:    "Threshold sem detecção de fracionamento cria incentivo imediato para gaming. O sistema passaria a ter uma vulnerabilidade conhecida e um incentivo econômico para explorá-la no mesmo momento."
+		deadline:  "2026-06-01"
+		rationale: "Dependência temporal: oq-cmt-5 deve ser resolvido no mesmo timeline de oq-cmt-1. Implementar threshold sem fracionamento detection é pior que não implementar threshold."
 	}]
 
 	// ==============================
@@ -476,6 +494,11 @@ canvas: artifact_schemas.#Canvas & {
 		metric:    "Percentual de compromissos aceitos que geram disputa em DRC"
 		target:    "< 5% dos compromissos aceitos"
 		rationale: "Taxa alta invalida a premissa de que aceite bilateral elimina disputas de formalização."
+	}, {
+		id:        "agent-processing-fairness"
+		metric:    "Coeficiente de variação de latência de processamento por proponente (desvio de tempo entre recebimento e primeiro ato do agente)"
+		target:    "CV < 0.3 entre proponentes com volume comparável"
+		rationale: "Mede fairness operacional do agente. Desvio alto indica favoritismo temporal — sinal de alerta antes que o padrão se consolide."
 	}]
 
 	rationale: """

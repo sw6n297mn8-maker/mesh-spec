@@ -321,7 +321,7 @@ canvas: artifact_schemas.#Canvas & {
 			manipulationCost:          "Superfície de detecção: Event Log imutável registra timestamps de cada operação — desvio de latência por registrante é detectável estatisticamente. Ativação de termos é decisão supervisionada (activate-contract-terms) — agente não pode ativar autonomamente. Publicação de eventos é append-only e determinística — omissão é ausência detectável por consumers via timeout ou reconciliação."
 			vsBenefit:                 "Benefício de favoritismo temporal é vantagem competitiva para registrante preferencial. Custo: ativação supervisionada elimina margem para timing manipulation autônomo, Event Log torna atrasos detectáveis, e consumers detectam ausência de eventos esperados."
 			designResponse:            "Ativação supervisionada (activate-contract-terms) elimina timing manipulation autônomo — agente propõe, humano aprova. Event Log imutável com timestamps (mech-evidence) cria trail auditável. Publicação de eventos é determinística (publish-lifecycle-events é decisão autônoma, mas append-only — omissão é detectável). REW pode monitorar padrões cross-registrante para detectar favoritismo estatístico."
-			rationale:                 "Agente IA como operador de registry tem poder assimétrico sobre timing. Design response mais forte que no CMT: ativação é supervisionada, eliminando o vetor principal. Risco residual: atraso na fase de draft (registro → ativação) que é autônoma — agente pode priorizar processamento de drafts de determinadas partes. Mitigável por SLA de processamento monitorado."
+			rationale:                 "Agente IA como operador de registry tem poder assimétrico sobre timing. Design response mais forte que no CMT: ativação é supervisionada, eliminando o vetor principal. Risco residual: atraso na fase de draft (registro → ativação) que é autônoma — agente pode priorizar processamento de drafts de determinadas partes. Detecção via SLA monitorado é necessária mas insuficiente sem alignment proativo — métricas de fairness de processamento, penalização por desvio, e feedback loop REW→agente (oq-cmt-4 se aplica cross-BC)."
 		}, {
 			stakeholderRef:             "sh-01"
 			participantType:           "registrante-timing"
@@ -331,7 +331,7 @@ canvas: artifact_schemas.#Canvas & {
 			manipulationCost:          "Superfície de detecção: bitemporalidade registra gap entre registro e ativação — ativações com gap mínimo são detectáveis como padrão. REW monitora padrões por registrante — recorrência de ativação just-in-time gera alerta. Contraparte pode contestar termos aceitos sob pressão em DRC, com base documental (timeline de registro → ativação → compromisso)."
 			vsBenefit:                 "Benefício: termos favoráveis aceitos sem escrutínio. Custo: padrão detectável por bitemporalidade + REW, disputas em DRC com timeline documentada que demonstra pressão, e deterioração de score que afeta futuras operações."
 			designResponse:            "Ativação é supervisionada (activate-contract-terms) — humano pode rejeitar ativação com gap suspeito. Bitemporalidade registra data de registro vs data de ativação — gap mínimo é sinal verificável. REW monitora padrões de timing por registrante. DRC tem base objetiva (timeline completa) para avaliar se aceite foi sob pressão. Versão anterior permanece active até nova ser ativada — não há janela sem termos válidos."
-			rationale:                 "Timing attack explora assimetria informacional temporal — registrante sabe quando vai precisar de ativação, contraparte não. Design response usa bitemporalidade + supervisão humana + monitoramento de padrão. Risco residual: primeiro timing attack pode não ser detectado por padrão (falta baseline). Mitigável quando REW tiver histórico suficiente para calibrar alerta."
+			rationale:                 "Timing attack explora assimetria informacional temporal — registrante sabe quando vai precisar de ativação, contraparte não. Design response usa bitemporalidade + supervisão humana + monitoramento de padrão. Risco residual duplo: (1) primeiro timing attack pode não ser detectado por padrão (falta baseline) — mitigável quando REW tiver histórico para calibrar alerta; (2) supervisor humano é vulnerável a pressão contextual legítima (urgência real + perda econômica se não aprovar) — decisão racional sob pressão pode ser subótima (as-ctr-4). Ativação supervisionada é controle necessário mas não suficiente quando o contexto pressiona a aprovação."
 		}]
 		rationale: """
 			Análise cobre 4 participantes em 3 classes de vetor: (a) economic
@@ -433,6 +433,11 @@ canvas: artifact_schemas.#Canvas & {
 		assumption:         "Expiração automática por data é suficiente — não há necessidade de expiração condicional baseada em eventos de negócio."
 		invalidationSignal: "Contratos com prazo indefinido ou prazo condicional a marco de obra (não data fixa)."
 		rationale:          "Expiração temporal é determinística e automatizável. Expiração condicional exigiria integração com BCs de execução (DLV, LOG)."
+	}, {
+		id:                 "as-ctr-4"
+		assumption:         "Supervisor humano decide racionalmente sobre ativação de termos mesmo sob pressão temporal e econômica legítima."
+		invalidationSignal: "Recorrência de disputas em DRC originadas de termos ativados com gap registro-ativação mínimo, indicando que supervisor aprova sob pressão sem revisão adequada."
+		rationale:          "Ativação supervisionada assume que supervisão humana é controle efetivo. Pressão contextual legítima (urgência + perda econômica) pode degradar qualidade da decisão. Se invalidado, considerar cooling-off period mandatório ou dupla aprovação para ativações com gap suspeito."
 	}]
 
 	openQuestions: [{
