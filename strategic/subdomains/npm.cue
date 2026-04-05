@@ -47,6 +47,20 @@ npm: artifact_schemas.#Subdomain & {
 			ref:  "ngr"
 		}
 		rationale: "NPM qualifica quem já pediu entrada; NGR detecta e convida quem ainda não pediu. Fusão misturaria compliance (otimizar segurança) com growth (otimizar conversão) — incentivos opostos."
+	}, {
+		responsibility: "Ciclo de demanda-a-pedido — requisição, aprovação por alçada, composição de demanda, emissão de pedido de compra."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "p2p"
+		}
+		rationale: "NPM qualifica participantes para a rede; P2P governa o ciclo de procurement. Qualificação é pré-condição para participar; procurement é o que o participante faz uma vez qualificado."
+	}, {
+		responsibility: "Seleção estratégica de fornecedores — avaliação comparativa, negociação de termos indicativos, decisão de sourcing."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "ssc"
+		}
+		rationale: "NPM qualifica binariamente (elegível/inelegível); SSC seleciona estrategicamente entre qualificados. Qualificação e seleção têm critérios, profissionais e cadências distintos."
 	}]
 
 	rationale: """

@@ -100,6 +100,13 @@ cmt: artifact_schemas.#Subdomain & {
 			ref:  "drc"
 		}
 		rationale: "Disputas sobre formalização (ex: contraparte contesta aceite) têm lifecycle próprio com prazos, evidência e resolução. Fusão misturaria fluxo normal com fluxo de exceção."
+	}, {
+		responsibility: "Ciclo de demanda e procurement — requisição interna, aprovação, emissão de pedido de compra."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "p2p"
+		}
+		rationale: "CMT formaliza compromissos econômicos bilaterais; P2P governa o ciclo de demanda que origina pedidos de compra. Pedido de compra é sinal de demanda unilateral; compromisso exige aceite mútuo."
 	}]
 
 	strategicProfile: {

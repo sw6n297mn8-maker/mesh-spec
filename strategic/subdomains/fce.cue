@@ -78,6 +78,13 @@ fce: artifact_schemas.#Subdomain & {
 			ref:  "ato"
 		}
 		rationale: "FCE gera eventos com impacto fiscal; ATO registra consequências. Separação permite evolução fiscal independente da execução financeira — regras fiscais mudam por regulação, não por produto."
+	}, {
+		responsibility: "Gestão de tesouraria — posição de caixa, projeção de liquidez, gestão de disponibilidades financeiras."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "tcm"
+		}
+		rationale: "FCE executa pagamentos; TCM consolida posição e projeção de liquidez. FCE utiliza informações de disponibilidade fornecidas por TCM para otimizar execução, sem assumir gestão de posição de caixa."
 	}]
 
 	strategicProfile: {

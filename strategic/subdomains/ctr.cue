@@ -46,6 +46,13 @@ ctr: artifact_schemas.#Subdomain & {
 			ref:  "drc"
 		}
 		rationale: "CTR define cláusulas de penalidade e retenção; DRC orquestra a resolução quando essas cláusulas são invocadas. Separação mantém formalização desacoplada de execução de exceções."
+	}, {
+		responsibility: "Seleção estratégica de fornecedores — avaliação comparativa, negociação de termos indicativos, decisão de sourcing."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "ssc"
+		}
+		rationale: "CTR formaliza termos contratuais vinculantes; SSC negocia condições preliminares e parâmetros de acordo. Negociação preliminar (SSC) precede formalização contratual (CTR) — cadências e profissionais distintos."
 	}]
 
 	rationale: """

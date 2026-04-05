@@ -63,6 +63,20 @@ bdg: artifact_schemas.#Subdomain & {
 			ref:  "drc"
 		}
 		rationale: "Disputas sobre orçamento (ex: alocação contestada, comprometimento excedido) têm lifecycle de exceção com prazos e resolução próprios. Fusão misturaria controle orçamentário rotineiro com fluxo de exceção."
+	}, {
+		responsibility: "Gestão do ciclo de procurement — requisição, aprovação de compras por alçada, composição de demanda."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "p2p"
+		}
+		rationale: "BDG aprova comprometimento orçamentário; P2P aprova fluxo de procurement por alçada de compras. Gates distintos — BDG verifica se há budget, P2P verifica se a requisição segue política de compras."
+	}, {
+		responsibility: "Gestão de tesouraria — posição de caixa, projeção de liquidez, gestão de disponibilidades."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "tcm"
+		}
+		rationale: "BDG controla comprometimento orçamentário (prospectivo); TCM consolida posição de caixa (efetiva). Empresa pode ter orçamento sem caixa ou caixa sem orçamento — dois instrumentos complementares com cadências distintas."
 	}]
 
 	rationale: """
