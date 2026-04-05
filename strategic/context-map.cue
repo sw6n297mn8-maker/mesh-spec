@@ -44,19 +44,19 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "cmt", name: "Commitment Management", subdomains: ["cmt"]
 			subdomainType: "core", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-cmt-primary"
-			rationale: "Formaliza compromissos econômicos entre organizações com aceite bilateral. Consome termos (CTR) e sinais de risco (REW); publica compromissos para BDG e DRC. BC separado: linguagem de compromisso, gates de confirmação e invariantes de aceite mútuo são distintos de termos (CTR) e risco (REW)."
+			rationale: "Formaliza compromissos econômicos entre organizações com aceite bilateral, a partir de sinais upstream de procurement (P2P) e sourcing (SSC) e sob termos contratuais de CTR. Consome sinais de risco (REW); publica compromissos para BDG, TCM e DRC. BC separado: linguagem de compromisso, gates de confirmação e invariantes de aceite mútuo são distintos de termos (CTR), risco (REW) e procurement (P2P)."
 		},
 		{
 			context: "dlv", name: "Delivery & Verification", subdomains: ["dlv"]
 			subdomainType: "core", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-dlv-primary"
-			rationale: "Verifica execução de compromissos contra critérios acordados. Consome evidência de LOG com integridade de DGV; publica verificação para INV, REW, NIM e DRC. BC separado: linguagem de verificação e suficiência de evidência é distinta de logística (LOG) e faturamento (INV)."
+			rationale: "Verifica execução de compromissos contra critérios acordados. Consome evidência de LOG com integridade de IDC; publica verificação para INV, REW, NIM e DRC. BC separado: linguagem de verificação e suficiência de evidência é distinta de logística (LOG) e faturamento (INV)."
 		},
 		{
 			context: "fce", name: "Financial Commitment Execution", subdomains: ["fce"]
 			subdomainType: "core", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-fce-primary"
-			rationale: "Executa liquidação financeira condicionada a gates de risco e fatura válida. Consome elegibilidade de REW e faturas de INV; publica sinais de pagamento para REW e ATO. BC separado: linguagem de liquidação e regras de settlement são distintas de faturamento (INV) e risco (REW)."
+			rationale: "Executa liquidação financeira condicionada a gates de risco e fatura válida, com disponibilidade informada por TCM e settlement via BKR. Consome elegibilidade de REW e faturas de INV; publica sinais de pagamento para REW, ATO e TCM. BC separado: linguagem de liquidação e regras de settlement são distintas de faturamento (INV), risco (REW), tesouraria (TCM) e rails bancários (BKR)."
 		},
 		{
 			context: "ngr", name: "Network Growth & Reach", subdomains: ["ngr"]
