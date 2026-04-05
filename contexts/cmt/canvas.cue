@@ -297,14 +297,52 @@ canvas: artifact_schemas.#Canvas & {
 			vsBenefit:                 "Benefício de sub-dimensionamento é aceite rápido. Custo é bloqueio de pagamento, disputa em DRC, e deterioração de score de risco em REW que afeta todas as operações futuras."
 			designResponse:            "Aceite bilateral é gate determinístico — ambas as partes confirmam termos idênticos. Termos são validados contra CTR. CommitmentId vincula aceite à cadeia de verificação downstream."
 			rationale:                 "Fornecedor como contraparte tem incentivo para aceitar rápido. Design response vincula aceite a consequências downstream verificáveis."
+		}, {
+			stakeholderRef:             "sh-05"
+			participantType:           "operador-plataforma"
+			desiredBehavior:           "Processar propostas de compromisso com imparcialidade, validar termos sem favoritismo e preparar aceite bilateral sem omissão seletiva."
+			correctOperationIncentive: "Operação imparcial mantém confiança de ambas as partes na plataforma. Favoritismo detectado degrada credibilidade da Mesh como intermediário neutro e pode gerar responsabilidade jurídica (dp-10)."
+			manipulationVector:        "Favoritismo na ordenação de processamento (priorizar propostas de determinado proponente), omissão seletiva (não processar ou atrasar propostas de fornecedores específicos), ou enviesamento na preparação de aceite (apresentar informação de forma que favoreça aprovação para cliente preferencial). Precondição: agente com acesso irrestrito ao pipeline de propostas e poder de priorização dentro do envelope autônomo."
+			manipulationCost:          "Superfície de detecção: Event Log imutável registra timestamps de recebimento e processamento de cada proposta — desvio estatístico de latência por proponente é detectável por REW. Gates determinísticos (mech-agent-gate) verificam invariantes independentemente do agente — validação enviesada é bloqueada pelo gate, não pelo agente. Toda decisão supervisionada requer aprovação humana — agente não pode escalar autonomamente."
+			vsBenefit:                 "Benefício de favoritismo é retenção de cliente preferencial. Custo: Event Log torna padrão detectável, gates bloqueiam validação enviesada, supervisão humana em decisões críticas elimina margem de ação autônoma, e responsabilidade jurídica recai sobre operador da plataforma (dp-10)."
+			designResponse:            "mech-agent-gate separa processamento (agente) de validação (gate determinístico). Event Log imutável (mech-evidence) cria trail auditável de cada ação do agente com timestamps. Decisões com impacto financeiro são supervisionadas — agente propõe, humano aprova. REW pode monitorar padrões cross-proposta para detectar favoritismo estatístico. Autonomy envelope limita escopo de ação autônoma."
+			rationale:                 "Agente IA como operador tem poder assimétrico sobre o pipeline. Design response usa separação de responsabilidades (agente processa, gate valida, humano aprova) + auditabilidade temporal + envelope de autonomia para tornar manipulação detectável e contida. Risco residual: viés sutil de priorização dentro do envelope autônomo que não viola gates mas degrada fairness — mitigável por monitoramento estatístico em REW quando operacional."
+		}, {
+			stakeholderRef:             "sh-01"
+			participantType:           "coalizão-proponente-contraparte"
+			desiredBehavior:           "Proponente e contraparte formalizam compromissos que refletem transações econômicas reais, com escopo e valores verificáveis."
+			correctOperationIncentive: "Compromissos reais progridem pelo lifecycle inteiro até liquidação. Compromissos fictícios ou inflados são detectados na verificação de entrega (DLV) e bloqueiam pagamento."
+			manipulationVector:        "Proponente (sh-01) e contraparte (sh-02) coordenam aceite bilateral de compromisso inflado ou fictício para gerar recebível antecipável via SCF. Aceite mútuo é satisfeito por design — ambos confirmam termos idênticos deliberadamente inflados. Precondição: ambas as partes aceitam risco coordenado e a cadeia downstream de verificação tem latência suficiente para extrair valor antes da detecção."
+			manipulationCost:          "Superfície de detecção: DLV verifica compromisso contra evidência operacional — entrega fictícia não produz evidência verificável (mech-evidence). Conluio sofisticado pode escalar para fabricação de evidência física (comprovantes falsos), mas isso eleva o vetor de manipulação digital para fraude documental criminal — território de dp-10 (responsabilidade jurídica) e potencial tipificação penal, com custo desproporcional ao benefício. REW monitora padrões cross-participante — mesmas partes com compromissos recorrentes de alto valor sem execução proporcional geram alerta. Score de risco deteriora para ambas as partes, afetando todas as operações futuras na plataforma."
+			vsBenefit:                 "Benefício: antecipação de recebível fictício via SCF — valor financeiro imediato. Custo: bloqueio em DLV quando evidência não materializa, alerta em REW que degrada score permanentemente, disputa em DRC com base documental desfavorável (ambos aceitaram termos que não se materializam), e potencial responsabilidade jurídica por fraude (dp-10 — constraint inviolável)."
+			designResponse:            "Aceite bilateral não detecta conluio — mas downstream sim. DLV exige evidência operacional verificável (mech-evidence) que conluio não produz. REW aplica análise cross-participante que detecta padrões anômalos (pares recorrentes, valores atípicos, gaps execução/compromisso). SCF valida elegibilidade contra evidência de execução, não apenas contra compromisso. CommitmentId vincula toda a cadeia — rastreabilidade end-to-end torna a fraude reconstituível para fins jurídicos."
+			rationale:                 "Conluio é o vetor que mais diretamente bypassa o gate de aceite bilateral — design response transfere detecção para downstream (DLV, REW, SCF) onde evidência operacional é inescapável. Risco residual: janela temporal entre CommitmentAccepted e verificação em DLV — se SCF antecipa antes de DLV verificar, o dano financeiro já ocorreu. Mitigação potencial (não implementada): SCF condicionar antecipação a milestone de execução em DLV, não apenas a compromisso aceito."
+		}, {
+			stakeholderRef:             "sh-01"
+			participantType:           "proponente-sub-threshold"
+			desiredBehavior:           "Submeter compromissos com valores que refletem o escopo real da transação, independentemente de thresholds de escalação."
+			correctOperationIncentive: "Valores precisos garantem orçamento adequado em BDG e verificação proporcional em DLV. Valores artificialmente reduzidos geram insuficiência orçamentária e discrepância na verificação."
+			manipulationVector:        "Proponente calibra valor do compromisso logo abaixo do threshold de escalação (oq-cmt-1) para evitar supervisão humana em high-value-threshold. Pode fracionar compromisso grande em múltiplos sub-threshold para manter cada um no envelope autônomo. Precondição: threshold é conhecido ou inferível pelo proponente, e não há detecção de fracionamento."
+			manipulationCost:          "Superfície de detecção: REW pode monitorar padrões de fracionamento — múltiplos compromissos entre mesmas partes em janela temporal curta com valor agregado acima do threshold geram alerta. BDG verifica coerência orçamentária — múltiplos compromissos fracionados para mesmo escopo são detectáveis na agregação. CommitmentId vincula cada compromisso à cadeia, tornando fracionamento rastreável."
+			vsBenefit:                 "Benefício: evitar supervisão humana e obter aprovação autônoma mais rápida. Custo: fracionamento é detectável por análise de padrão em REW e por agregação em BDG, e se detectado, todas as propostas do proponente passam a escalação mandatória — custo de reputação supera benefício de velocidade."
+			designResponse:            "Threshold com detecção de fracionamento: REW monitora valor agregado por par de partes em janela temporal, não apenas valor individual. BDG agrega compromissos por escopo/contrato. Recomendação de design (não implementada): escalação por padrão além de valor — proponente com histórico de propostas recorrentes próximas ao threshold teria threshold efetivo reduzido."
+			rationale:                 "Threshold gaming é inevitável em sistemas com escalação por valor. Design response usa detecção de fracionamento (REW + BDG) + threshold adaptativo por proponente. Risco residual: threshold ainda não definido (oq-cmt-1, deadline 2026-06-01) — enquanto threshold não existe, toda decisão de aceite é supervisionada, o que elimina este vetor temporariamente. Vetor ativa quando threshold for implementado."
 		}]
 		rationale: """
-			Análise foca nos dois participantes diretos do aceite bilateral
-			(proponente e contraparte). Ambos têm vetores de manipulação
-			com custos que excedem benefícios por design: cadeia de evidência
-			criptográfica, gates determinísticos e rastreabilidade end-to-end
-			via CommitmentId tornam manipulação detectável e punível pela
-			própria mecânica do sistema (dp-08).
+			Análise cobre 5 participantes em 3 classes de vetor: (a) economic
+			manipulation — proponente infla valor (sh-01), contraparte sub-
+			dimensiona escopo (sh-02), coalizão infla para arbitragem via SCF
+			(sh-01+sh-02); (b) governance bypass — proponente fraciona
+			compromisso para evitar threshold de escalação (sh-01); (c) agent
+			misalignment — operador plataforma com favoritismo ou omissão
+			seletiva (sh-05). Todos os vetores têm custos que excedem
+			benefícios por design: cadeia de evidência criptográfica, gates
+			determinísticos, rastreabilidade end-to-end via CommitmentId,
+			monitoramento cross-participante em REW e supervisão humana para
+			decisões com impacto financeiro (dp-08). Riscos residuais
+			declarados: janela temporal pré-DLV para conluio, viés sutil
+			dentro do envelope autônomo, threshold gaming ativável apenas
+			quando oq-cmt-1 for definido.
 			"""
 	}
 

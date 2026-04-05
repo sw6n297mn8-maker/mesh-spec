@@ -312,15 +312,41 @@ canvas: artifact_schemas.#Canvas & {
 			vsBenefit:                 "Benefício de aceite apressado é velocidade de formalização. Custo é vinculação a termos desfavoráveis com base documental irrefutável em disputa."
 			designResponse:            "Imutabilidade cria consequência permanente do aceite. Versionamento com lineage documenta exatamente o que foi aceito e quando. DRC tem base objetiva. REW penaliza disputas recorrentes."
 			rationale:                 "Fornecedor como contraparte tem incentivo para aceitar rápido. Design response vincula aceite a consequências documentadas e permanentes."
+		}, {
+			stakeholderRef:             "sh-05"
+			participantType:           "operador-plataforma"
+			desiredBehavior:           "Registrar termos submetidos com imparcialidade, gerenciar lifecycle sem favoritismo temporal e publicar eventos de lifecycle para todos os consumers sem seletividade."
+			correctOperationIncentive: "Operação imparcial mantém confiança de ambas as partes e de consumers downstream (CMT, SCF, DRC, ITC). Favoritismo detectado degrada credibilidade da plataforma como registry neutro e pode gerar responsabilidade jurídica (dp-10)."
+			manipulationVector:        "Atrasar seletivamente processamento de drafts para favorecer determinado registrante (criando janela onde concorrente não pode referenciar termos), omitir publicação de evento de lifecycle para consumer específico, ou priorizar registro de determinadas partes sobre outras. Precondição: agente controla timing de processamento na fase draft (autônoma) e publicação de eventos."
+			manipulationCost:          "Superfície de detecção: Event Log imutável registra timestamps de cada operação — desvio de latência por registrante é detectável estatisticamente. Ativação de termos é decisão supervisionada (activate-contract-terms) — agente não pode ativar autonomamente. Publicação de eventos é append-only e determinística — omissão é ausência detectável por consumers via timeout ou reconciliação."
+			vsBenefit:                 "Benefício de favoritismo temporal é vantagem competitiva para registrante preferencial. Custo: ativação supervisionada elimina margem para timing manipulation autônomo, Event Log torna atrasos detectáveis, e consumers detectam ausência de eventos esperados."
+			designResponse:            "Ativação supervisionada (activate-contract-terms) elimina timing manipulation autônomo — agente propõe, humano aprova. Event Log imutável com timestamps (mech-evidence) cria trail auditável. Publicação de eventos é determinística (publish-lifecycle-events é decisão autônoma, mas append-only — omissão é detectável). REW pode monitorar padrões cross-registrante para detectar favoritismo estatístico."
+			rationale:                 "Agente IA como operador de registry tem poder assimétrico sobre timing. Design response mais forte que no CMT: ativação é supervisionada, eliminando o vetor principal. Risco residual: atraso na fase de draft (registro → ativação) que é autônoma — agente pode priorizar processamento de drafts de determinadas partes. Mitigável por SLA de processamento monitorado."
+		}, {
+			stakeholderRef:             "sh-01"
+			participantType:           "registrante-timing"
+			desiredBehavior:           "Submeter termos com antecedência suficiente para revisão adequada pela contraparte e pelos consumers downstream."
+			correctOperationIncentive: "Termos ativados após revisão adequada evitam disputas em DRC e aceleram formalização de compromissos em CMT. Termos ativados sem revisão geram contestação, suspensão e custo jurídico."
+			manipulationVector:        "Registrante solicita ativação de termos just-in-time antes de compromisso urgente em CMT, criando pressão temporal sobre o supervisor humano que deve aprovar ativação. Contraparte (sh-02) aceita sob pressão porque alternativa é atrasar compromisso e perder oportunidade. Precondição: urgência legítima de compromisso, contraparte com poder de barganha inferior, e supervisor sob pressão temporal que aceita sem verificar adequadamente a posição da contraparte."
+			manipulationCost:          "Superfície de detecção: bitemporalidade registra gap entre registro e ativação — ativações com gap mínimo são detectáveis como padrão. REW monitora padrões por registrante — recorrência de ativação just-in-time gera alerta. Contraparte pode contestar termos aceitos sob pressão em DRC, com base documental (timeline de registro → ativação → compromisso)."
+			vsBenefit:                 "Benefício: termos favoráveis aceitos sem escrutínio. Custo: padrão detectável por bitemporalidade + REW, disputas em DRC com timeline documentada que demonstra pressão, e deterioração de score que afeta futuras operações."
+			designResponse:            "Ativação é supervisionada (activate-contract-terms) — humano pode rejeitar ativação com gap suspeito. Bitemporalidade registra data de registro vs data de ativação — gap mínimo é sinal verificável. REW monitora padrões de timing por registrante. DRC tem base objetiva (timeline completa) para avaliar se aceite foi sob pressão. Versão anterior permanece active até nova ser ativada — não há janela sem termos válidos."
+			rationale:                 "Timing attack explora assimetria informacional temporal — registrante sabe quando vai precisar de ativação, contraparte não. Design response usa bitemporalidade + supervisão humana + monitoramento de padrão. Risco residual: primeiro timing attack pode não ser detectado por padrão (falta baseline). Mitigável quando REW tiver histórico suficiente para calibrar alerta."
 		}]
 		rationale: """
-			Análise foca nos dois participantes diretos do registro
-			de termos (registrante e contraparte). Ambos têm vetores
-			de manipulação com custos que excedem benefícios por design:
-			imutabilidade impede reescrita, versionamento com lineage
-			torna adulteração detectável, bilateralidade distribui
-			responsabilidade, DRC tem base jurídica objetiva para
-			resolver disputas (dp-08).
+			Análise cobre 4 participantes em 3 classes de vetor: (a) economic
+			manipulation — registrante envia termos enviesados (sh-01),
+			contraparte aceita sem revisão (sh-02); (b) governance bypass —
+			registrante explora timing de ativação para pressionar contraparte
+			(sh-01); (c) agent misalignment — operador plataforma com
+			favoritismo temporal ou omissão seletiva (sh-05). Todos os vetores
+			têm custos que excedem benefícios por design: imutabilidade impede
+			reescrita, versionamento com lineage torna adulteração detectável,
+			bitemporalidade registra timing, supervisão humana para ativação e
+			cancelamento, bilateralidade distribui responsabilidade, DRC tem
+			base jurídica objetiva (dp-08). Riscos residuais declarados: viés
+			de priorização na fase draft (autônoma), primeiro timing attack
+			sem baseline para detecção.
 			"""
 	}
 
