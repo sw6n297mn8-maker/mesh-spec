@@ -18,7 +18,7 @@ package build_time
 // Mover este arquivo para outro package exige import explícito.
 
 workGraph: {
-	rationale: "Topologia de execução W001. 4 fases de domínio progressivas por order, 2 fases de governança com dependsOnPhases explícito, 1 fase de correção ontológica independente, 10 grupos por natureza de artefato."
+	rationale: "Topologia de execução W001. 4 fases de domínio progressivas por order, 2 fases de governança com dependsOnPhases explícito, 1 fase de correção ontológica independente, 13 grupos por natureza de artefato. Fase tática (p3) subdivide em 5 grupos: first-bc, validation-prompts, tactical-schemas, tactical-instances, tactical-integration — separando tipo, instância e wiring."
 
 	phases: [#Phase & {
 		id:        "p0-validate-and-bootstrap"
@@ -82,6 +82,18 @@ workGraph: {
 		phaseId:   "p3-tactical-and-validation"
 		rationale: "Validation prompts para os artefatos mais críticos da wave."
 	}, #Group & {
+		id:        "g3-tactical-schemas"
+		phaseId:   "p3-tactical-and-validation"
+		rationale: "Schemas táticos derivados do primeiro BC canvas. Dependem de canvas como input para design do shape — dependência de descoberta, não apenas formal."
+	}, #Group & {
+		id:        "g3-tactical-instances"
+		phaseId:   "p3-tactical-and-validation"
+		rationale: "Instâncias táticas: glossários, agent specs, domain models, stakeholder maps. Materializam artefatos concretos sobre schemas definidos."
+	}, #Group & {
+		id:        "g3-tactical-integration"
+		phaseId:   "p3-tactical-and-validation"
+		rationale: "Wiring e validação cross-artifact: alinhamento de refs no context-map, runners de validação, correções de canvas e envelopes de governança."
+	}, #Group & {
 		id:        "g4-governance-ci"
 		phaseId:   "pg1-governance-enforcement"
 		rationale: "CI validation de work-events e projeções de visibilidade."
@@ -136,6 +148,21 @@ workGraph: {
 		phaseId:   "p0-validate-and-bootstrap"
 		groupId:   "g0-schemas"
 	}, #ExecutionDependency & {
+		taskId:    "WI-021"
+		dependsOn: []
+		phaseId:   "p0-validate-and-bootstrap"
+		groupId:   "g0-schemas"
+	}, #ExecutionDependency & {
+		taskId: "WI-029"
+		dependsOn: [{taskId: "WI-004", version: 1}]
+		phaseId: "p0-validate-and-bootstrap"
+		groupId: "g0-schemas"
+	}, #ExecutionDependency & {
+		taskId: "WI-030"
+		dependsOn: [{taskId: "WI-004", version: 1}]
+		phaseId: "p0-validate-and-bootstrap"
+		groupId: "g0-schemas"
+	}, #ExecutionDependency & {
 		taskId:    "WI-001"
 		dependsOn: []
 		phaseId:   "p1-domain-identity"
@@ -173,6 +200,66 @@ workGraph: {
 		dependsOn: []
 		phaseId:   "p3-tactical-and-validation"
 		groupId:   "g3-first-bc"
+	}, #ExecutionDependency & {
+		taskId: "WI-020"
+		dependsOn: [{taskId: "WI-009", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-schemas"
+	}, #ExecutionDependency & {
+		taskId: "WI-022"
+		dependsOn: [{taskId: "WI-009", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-schemas"
+	}, #ExecutionDependency & {
+		taskId: "WI-027"
+		dependsOn: [{taskId: "WI-009", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-schemas"
+	}, #ExecutionDependency & {
+		taskId: "WI-023"
+		dependsOn: [{taskId: "WI-009", version: 1}, {taskId: "WI-021", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-024"
+		dependsOn: [{taskId: "WI-009", version: 1}, {taskId: "WI-022", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-025"
+		dependsOn: [{taskId: "WI-020", version: 1}, {taskId: "WI-023", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-028"
+		dependsOn: [{taskId: "WI-022", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-031"
+		dependsOn: [{taskId: "WI-029", version: 1}, {taskId: "WI-001", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-026"
+		dependsOn: [{taskId: "WI-024", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-integration"
+	}, #ExecutionDependency & {
+		taskId: "WI-032"
+		dependsOn: [{taskId: "WI-020", version: 1}, {taskId: "WI-021", version: 1}, {taskId: "WI-022", version: 1}, {taskId: "WI-025", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-integration"
+	}, #ExecutionDependency & {
+		taskId: "WI-034"
+		dependsOn: [{taskId: "WI-009", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-integration"
+	}, #ExecutionDependency & {
+		taskId: "WI-035"
+		dependsOn: [{taskId: "WI-024", version: 1}, {taskId: "WI-028", version: 1}]
+		phaseId: "p3-tactical-and-validation"
+		groupId: "g3-tactical-integration"
 	}, #ExecutionDependency & {
 		taskId:    "WI-015"
 		dependsOn: []
@@ -216,6 +303,11 @@ workGraph: {
 	}, #ExecutionDependency & {
 		taskId: "WI-039"
 		dependsOn: [{taskId: "WI-038", version: 1}]
+		phaseId: "p4-ontology-correction"
+		groupId: "g6-ontology-correction"
+	}, #ExecutionDependency & {
+		taskId: "WI-040"
+		dependsOn: [{taskId: "WI-037", version: 1}]
 		phaseId: "p4-ontology-correction"
 		groupId: "g6-ontology-correction"
 	}]
