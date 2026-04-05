@@ -8,8 +8,8 @@ package strategic
 //
 // v2: reconstruído sobre ontologia expandida (WI-037). Mudanças
 // estruturais: IDN+DGV fundidos em IDC; 6 novos BCs (P2P, SSC,
-// ITC, TCM, INS, IDC); macrofluxo canônico estendido para
-// P2P→SSC→CTR→CMT; spine financeiro inclui TCM e INS.
+// ITC, TCM, INS, IDC); macrofluxo expandido para incluir
+// P2P, SSC e CTR upstream de CMT; spine financeiro inclui TCM e INS.
 //
 // Convenção de nomenclatura dos data flows:
 // - Eventos: {QualifiedEntity}{PastParticiple}
@@ -44,7 +44,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "cmt", name: "Commitment Management", subdomains: ["cmt"]
 			subdomainType: "core", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-cmt-primary"
-			rationale: "Formaliza compromissos econômicos entre organizações com aceite bilateral, a partir de sinais upstream de procurement (P2P) e sourcing (SSC) e sob termos contratuais de CTR. Consome sinais de risco (REW); publica compromissos para BDG, TCM e DRC. BC separado: linguagem de compromisso, gates de confirmação e invariantes de aceite mútuo são distintos de termos (CTR), risco (REW) e procurement (P2P)."
+			rationale: "Formaliza compromissos econômicos entre organizações com aceite bilateral, a partir de sinais upstream de procurement (P2P), eventualmente informados por sourcing estratégico (SSC), e sob termos contratuais de CTR. Consome sinais de risco (REW); publica compromissos para BDG, TCM e DRC. BC separado: linguagem de compromisso, gates de confirmação e invariantes de aceite mútuo são distintos de termos (CTR), risco (REW) e procurement (P2P)."
 		},
 		{
 			context: "dlv", name: "Delivery & Verification", subdomains: ["dlv"]
@@ -908,7 +908,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		lifecycle (5), cadeia de evidência (3), risco e inteligência (8),
 		produtos financeiros e execução (5), fiscal e contábil (3),
 		crescimento de rede (1), gestão contratual (3), disputas (4),
-		procurement e sourcing (4, inclui macrofluxo P2P→SSC→CTR→CMT),
+		procurement e sourcing (4, inclui fluxos upstream P2P, SSC e CTR antes de CMT),
 		comércio exterior (3, ITC como hub entre CTR, LOG e ATO),
 		tesouraria e caixa (3, TCM como visão consolidada de
 		liquidez com feedback loop implícito fce→tcm→fce),
