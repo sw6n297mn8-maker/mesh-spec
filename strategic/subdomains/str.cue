@@ -33,9 +33,9 @@ str: artifact_schemas.#Subdomain & {
 		responsibility: "Integridade criptográfica — CAS, DSSE, Merkle proofs."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "dgv"
+			ref:  "idc"
 		}
-		rationale: "STR persiste bytes; DGV verifica integridade. Separação permite trocar tecnologia de storage sem alterar primitivas criptográficas — storage é commodity, verificação é constraint de domínio."
+		rationale: "STR persiste bytes; IDC verifica integridade. Separação permite trocar tecnologia de storage sem alterar primitivas criptográficas — storage é commodity, verificação é constraint de domínio."
 	}, {
 		responsibility: "Compliance documental — verificação, qualificação, IQF."
 		delegatedTo: {

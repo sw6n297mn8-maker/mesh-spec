@@ -49,6 +49,13 @@ ato: artifact_schemas.#Subdomain & {
 			ref:  "cmt"
 		}
 		rationale: "ATO consome eventos do commitment lifecycle para apuração fiscal; não governa progressão. CMT é owner do estado do compromisso. Fusão inflaria o lifecycle com complexidade tributária específica por jurisdição."
+	}, {
+		responsibility: "Compliance de comércio exterior — licenças, desembaraço aduaneiro, classificação tarifária."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "itc"
+		}
+		rationale: "ATO processa obrigações fiscais derivadas de importações/exportações; ITC governa o processo de compliance de comércio exterior. Impostos de importação são consequência fiscal (ATO); habilitação e desembaraço são processo aduaneiro (ITC)."
 	}]
 
 	rationale: """

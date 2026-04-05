@@ -11,29 +11,36 @@ package domain
 
 domainDefinition: {
 	name:    "Mesh"
-	tagline: "Infraestrutura financeira lastreada em evidência e operada por IA para cadeias produtivas B2B"
+	tagline: "Sistema operacional do ciclo de compromissos econômicos em cadeias produtivas B2B — onde operação e dinheiro são primitivas nativas"
 
 	coreThesis: {
 		statement: """
-			Cadeias produtivas B2B operam com custos de transação desproporcionais
-			porque a informação necessária para decisões financeiras — evidência de
-			execução, compliance documental, histórico de performance — é fragmentada,
-			opaca e não-verificável. A Mesh elimina esses custos construindo
-			infraestrutura financeira onde operações são lastreadas em evidência
-			criptograficamente verificável, processadas por agentes de IA com gates
-			determinísticos, e registradas em fontes de verdade imutáveis. O resultado
-			é crédito mais barato, liberação mais rápida e risco mensurável — não
-			estimado.
+			Cadeias produtivas B2B operam com uma separação estrutural entre
+			operação, logística e dinheiro — cada etapa vive em sistema
+			diferente, com linguagem diferente, sob governança diferente.
+			O resultado: custos de transação desproporcionais, ciclos de
+			pagamento longos, crédito caro e decisões baseadas em informação
+			fragmentada. A Mesh elimina essa separação — não por integração
+			de sistemas legados, mas porque evidência criptograficamente
+			verificável, agentes de IA com gates determinísticos e fontes
+			de verdade imutáveis são primitivas nativas do ciclo econômico
+			inteiro, da demanda interna ao pagamento, do strategic sourcing
+			à repercussão fiscal. Quatro resultados: crédito mais barato,
+			governança contínua por dados transacionais, cadeias que se
+			organizam sob governança e execução integrada.
 			"""
 		rationale: """
-			A tese não é "digitalizar processos existentes" — é eliminar a assimetria
-			informacional que torna os processos caros. Quando evidência é verificável
-			e processamento é determinístico, o custo de confiança cai a ponto de
-			viabilizar operações que hoje são economicamente inviáveis. A construção
-			civil brasileira é a vertical inicial — escolhida por concentrar os
-			maiores custos de transação informacional e a menor digitalização de
-			processos de crédito — mas o padrão econômico é transversal a qualquer
-			cadeia produtiva B2B com evidência de execução verificável.
+			A tese não é "digitalizar processos existentes" nem apenas
+			"infraestrutura financeira" — é eliminar a separação estrutural
+			entre quem opera e quem financia. Quando demanda, strategic
+			sourcing, compromisso, execução, liquidação e repercussão vivem
+			no mesmo sistema com evidência verificável, o custo de confiança
+			cai a ponto de viabilizar crédito mais barato, governança
+			contínua e cadeias que se auto-organizam sob governança. A
+			construção civil brasileira é a vertical inicial — escolhida
+			por concentrar os maiores custos de transação informacional e
+			a menor digitalização — mas o padrão é transversal a qualquer
+			cadeia produtiva B2B.
 			"""
 	}
 
@@ -578,34 +585,73 @@ domainDefinition: {
 	}
 
 	inScope: [{
-		description: "Operações financeiras em cadeias produtivas B2B com evidência de execução verificável"
-		rationale:   "O padrão econômico da Mesh funciona em qualquer cadeia onde liberação financeira depende de comprovação de execução. Construção civil brasileira é a vertical inicial — escolhida por concentrar os maiores custos de transação informacional."
+		description: "Ciclo econômico inter-organizacional em cadeias produtivas B2B — da demanda interna à repercussão fiscal, quando envolve compromisso econômico entre organizações participantes da rede"
+		rationale:   "Princípio de fronteira: tudo que é inter-organizacional e gera compromisso econômico está dentro; tudo que é intra-organizacional ou não gera compromisso está fora. Sem esta fronteira, escopo infla para ERP genérico."
 	}, {
-		description: "Operações de crédito direto via SCD regulada pelo Bacen"
-		rationale:   "SCD é o veículo regulatório que permite operação própria sem dependência de parceiro bancário."
+		description: "Demanda interna e procure-to-pay: requisição, aprovações por alçada, rastreabilidade de demanda até compromisso"
+		rationale:   "Sem visibilidade sobre a demanda que origina o compromisso, a Mesh não consegue rastrear o ciclo econômico desde a origem nem alimentar inteligência de rede sobre padrões de consumo."
 	}, {
-		description: "Gestão de compromissos financeiros (commitments) ao longo do ciclo produtivo"
-		rationale:   "Commitment management é o core domain — orquestra a relação entre evidência de execução e fluxo financeiro."
+		description: "Strategic sourcing e category management: cotação estruturada, equalização TCO, spend analysis, seleção de fornecedores"
+		rationale:   "Sem strategic sourcing, decisões de fornecedor acontecem fora da rede e a Mesh perde o dado mais valioso para NIM: como e por que um fornecedor foi escolhido."
 	}, {
-		description: "Verificação de evidência de execução vinculada a operações financeiras"
-		rationale:   "Evidência é o mecanismo que elimina assimetria informacional — sem ela, a tese não funciona."
+		description: "Qualificação, homologação e compliance contínuo de participantes — KYB (Know Your Business), IQF, gestão documental"
+		rationale:   "Qualificação é pré-condição de participação na rede e input de risco. Sem compliance contínuo, a rede aceita participantes que degradam confiança sistêmica."
 	}, {
-		description: "Compliance regulatório (KYC/AML, LGPD, reporting Bacen) como constraint nativo"
-		rationale:   "Compliance não é feature — é pré-condição de operação. Internalizado no design, não adicionado como camada."
+		description: "Formalização contratual: contratos, framework agreements, ordens de serviço, monitoramento de SLAs"
+		rationale:   "Termos contratuais são a base jurídica sob a qual compromissos são firmados. SLA monitoring fecha o gap entre contrato formalizado e execução real."
+	}, {
+		description: "Logística como dimensão do compromisso e como atividade fim: rastreabilidade, evidência operacional, transporte"
+		rationale:   "Logística não é apenas fonte de evidência — é atividade econômica com compromissos, faturamento e liquidação próprios. Excluí-la fragmenta o ciclo."
+	}, {
+		description: "Comércio exterior: freight forwarding, despacho aduaneiro, documentação de comex"
+		rationale:   "Cadeias produtivas B2B com componente internacional geram compromissos e repercussões fiscais sob regulação aduaneira específica que não pode ser tratada como extensão do doméstico."
+	}, {
+		description: "Operações de crédito e financiamento via SCD regulada pelo Bacen: antecipação de recebíveis, reverse factoring, capital de giro, preparação de ativos para mercado de capitais"
+		rationale:   "SCD é o veículo regulatório próprio. Stack de funding expandido porque compromissos econômicos geram múltiplos instrumentos financeiros além de antecipação simples."
+	}, {
+		description: "Tesouraria corporativa informada pelos compromissos: posição de caixa, projeção de fluxo, estratégia de liquidez"
+		rationale:   "Sem tesouraria, cada liquidação é evento isolado sem visão de posição corporativa. Compromissos sob governança da Mesh são o input primário para projeção de fluxo."
+	}, {
+		description: "Proteção e transferência de risco: seguro garantia, seguro de carga, performance bonds"
+		rationale:   "Compromissos econômicos geram exposição que precisa de instrumentos de proteção. Seguros afetam pricing de crédito e elegibilidade — excluí-los deixa o modelo de risco incompleto."
+	}, {
+		description: "Verificação de execução: entrega, medição, aceite técnico, vendas ao consumidor final como ponto terminal do ciclo"
+		rationale:   "Execução operacional gera a evidência que lastreia o ciclo financeiro (mech-evidence). Venda ao consumidor final fecha o ciclo do compromisso e liquida o recebível."
+	}, {
+		description: "Compliance regulatório (KYC/AML, LGPD, reporting Bacen) e repercussão fiscal/contábil (inteligência fiscal, NF-e, obrigações acessórias)"
+		rationale:   "Compliance é constraint inviolável (nível 1 de conflictResolution). Repercussão fiscal é consequência de toda operação na Mesh — não feature, mas primitiva."
 	}]
 
 	outOfScope: [{
-		description: "Execução operacional das cadeias produtivas (gestão de produção, logística, compras)"
-		rationale:   "A Mesh opera sobre a camada financeira das cadeias, não sobre a execução operacional. Integra com sistemas de gestão operacional, não os substitui. Na construção: não faz gestão de canteiro, cronograma de obra ou compra de materiais."
+		description: "Gestão de produção e manufatura (chão de fábrica, linha de montagem, formulação)"
+		rationale:   "A Mesh opera sobre o ciclo econômico entre organizações, não sobre a transformação física de insumos em produtos. Na construção: não faz gestão de canteiro nem cronograma de obra."
 	}, {
 		description: "Banking as a Service genérico (contas digitais, cartões, pagamentos de varejo)"
-		rationale:   "A Mesh não é banco digital genérico. O veículo SCD serve exclusivamente operações de crédito vinculadas a cadeias produtivas B2B."
+		rationale:   "A Mesh não é banco digital genérico. O veículo SCD serve operações de crédito vinculadas a cadeias produtivas B2B."
 	}, {
-		description: "Marketplace de fornecedores ou insumos"
-		rationale:   "A Mesh conecta participantes pela operação financeira, não pela transação comercial. Não intermedia compra e venda de produtos ou serviços."
+		description: "Marketplace de SKUs ou catálogo de produtos"
+		rationale:   "A Mesh conecta participantes por capacidade, confiança e histórico de rede — não por catálogo. SSC opera por equalização TCO e strategic sourcing, não por listagem de produtos."
 	}, {
-		description: "Gestão contábil ou fiscal das empresas participantes"
-		rationale:   "A Mesh gera informação que alimenta contabilidade dos participantes, mas não é sistema contábil. Cada empresa mantém sua própria contabilidade."
+		description: "CRM, gestão de leads e funil de vendas"
+		rationale:   "Relação comercial pré-rede e gestão de pipeline de vendas estão fora. A Mesh entra quando há intenção de formalizar compromisso econômico inter-organizacional."
+	}, {
+		description: "Funções corporativas internas: RH, comunicação interna, gestão de ativos fixos, gestão de projetos (Gantt)"
+		rationale:   "Operações intra-organizacionais sem relação direta com compromissos econômicos entre organizações. Teste de fronteira: se não gera compromisso inter-organizacional, está fora."
+	}, {
+		description: "Gestão contábil interna das empresas participantes"
+		rationale:   "A Mesh gera lançamentos e inteligência fiscal para os participantes, mas não substitui o sistema contábil de cada empresa. ATO opera sobre as operações da Mesh, não sobre a contabilidade geral."
+	}, {
+		description: "E-commerce B2C e crédito PF genérico"
+		rationale:   "Mesh opera em cadeias B2B. Vendas ao consumidor final são in-scope apenas como ponto terminal do ciclo de compromisso B2B, não como plataforma de e-commerce."
+	}, {
+		description: "Infraestrutura de mercado regulada: câmara de compensação, securitizadora, registradora"
+		rationale:   "A Mesh origina e gerencia ativos (recebíveis, crédito), mas não opera como infraestrutura de mercado regulada. Pode preparar ativos para cessão a securitizadora, mas não é securitizadora."
+	}, {
+		description: "Serviços profissionais especializados: consultoria tributária, auditoria externa, assessoria jurídica"
+		rationale:   "A Mesh gera inteligência fiscal e evidência auditável, mas não substitui o julgamento profissional especializado. Consome outputs desses serviços quando necessário."
+	}, {
+		description: "Data-as-a-service e BI genérico"
+		rationale:   "Dados acumulados pela Mesh são moat interno (mech-network, dp-09), não produto externo. Participantes acessam dados sobre suas próprias operações; modelos de scoring e precificação consomem dados agregados internamente. Decisão estratégica: monetizar dados indiretamente via crédito mais barato e governança melhor — não diretamente via venda de dados ou analytics."
 	}]
 
 	notIdentity: [{
@@ -628,10 +674,10 @@ domainDefinition: {
 		rationale:   "Confusão com fintech de crédito ignora o diferencial central: lastreamento em evidência. Sem ele, a Mesh seria apenas mais uma originadora."
 	}, {
 		id:          "ni-04"
-		notThis:     "Plataforma de gestão operacional com módulo financeiro"
-		whyConfused: "A Mesh integra com dados operacionais (execução, logística, qualidade) e processa pagamentos vinculados, o que parece um ERP com módulo financeiro."
-		distinction: "A Mesh não gerencia operação — consome evidência operacional para tomar decisões financeiras. Sistemas de gestão operacional são fontes de dados, não concorrentes. A Mesh opera na camada financeira, não na camada operacional."
-		rationale:   "Confusão com gestão operacional leva a escopo inflado e competição desnecessária com ERPs estabelecidos. Na construção: Sienge, Construmanager são fontes, não concorrentes."
+		notThis:     "ERP ou plataforma de gestão operacional interna"
+		whyConfused: "A Mesh inclui P2P, strategic sourcing, logística e execução, o que parece um ERP verticalizado para cadeias produtivas."
+		distinction: "A Mesh opera o ciclo econômico entre organizações — não a gestão interna de cada empresa. P2P, sourcing e logística existem na Mesh enquanto dimensões do compromisso econômico inter-organizacional, não como módulos de gestão interna. Um ERP gerencia a operação de uma empresa; a Mesh gerencia o ciclo econômico da rede."
+		rationale:   "Com o escopo expandido, a confusão com ERP se torna mais provável. A distinção é: inter-organizacional (Mesh) vs intra-organizacional (ERP). Na construção: Sienge gerencia a obra da construtora; a Mesh gerencia os compromissos entre construtora, fornecedores e financiadores."
 	}]
 
 	antiThesis: [{

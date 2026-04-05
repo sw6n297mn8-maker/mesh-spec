@@ -63,6 +63,13 @@ nim: artifact_schemas.#Subdomain & {
 			ref:  "ext-monitoring-systems"
 		}
 		rationale: "NIM incorpora sinais exógenos mas não opera infraestrutura de monitoramento. Internalizar monitoramento acoplaria evolução da inteligência de rede à gestão de hardware e sensores — domínios com complexidade e cadência de evolução radicalmente diferentes."
+	}, {
+		responsibility: "Seleção estratégica de fornecedores — avaliação, negociação, decisão de sourcing."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "ssc"
+		}
+		rationale: "NIM produz scoring, matching e ranking como inputs para decisões de sourcing; SSC consome esses inputs e toma a decisão de seleção. Matching algorítmico não é decisão de sourcing — é insumo."
 	}]
 
 	strategicProfile: {

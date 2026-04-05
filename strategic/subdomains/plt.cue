@@ -45,9 +45,9 @@ plt: artifact_schemas.#Subdomain & {
 		responsibility: "Gestão de identidade e autenticação — login, tokens, permissões."
 		delegatedTo: {
 			type: "subdomain"
-			ref:  "idn"
+			ref:  "idc"
 		}
-		rationale: "PLT fornece infraestrutura de rede e deploy; IDN governa identidade e acesso. Fusão acoplaria decisões de segurança a decisões de infraestrutura — blast radius e stakeholders distintos."
+		rationale: "PLT fornece infraestrutura de rede e deploy; IDC governa identidade e acesso. Fusão acoplaria decisões de segurança a decisões de infraestrutura — blast radius e stakeholders distintos."
 	}]
 
 	rationale: """

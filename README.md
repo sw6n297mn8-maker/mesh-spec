@@ -457,6 +457,7 @@ architecture/tension-log/
 architecture/validation-prompts/
 contexts/
 contexts/cmt/
+contexts/ctr/
 domain/
 governance/
 governance/build-time/
@@ -485,6 +486,7 @@ quality-criteria.cue
 stakeholder-map.cue
 subdomain.cue
 task-template.cue
+tension-entry.cue
 validation-prompt.cue
 wave-plan.cue
 END:repo-artifact-schemas -->
