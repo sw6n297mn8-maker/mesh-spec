@@ -9,7 +9,8 @@ package strategic
 // v2: reconstruído sobre ontologia expandida (WI-037). Mudanças
 // estruturais: IDN+DGV fundidos em IDC; 6 novos BCs (P2P, SSC,
 // ITC, TCM, INS, IDC); macrofluxo expandido para incluir
-// P2P, SSC e CTR upstream de CMT; spine financeiro inclui TCM e INS.
+// P2P, SSC e CTR upstream de CMT; spine financeiro ampliado com TCM
+// e capacidades adjacentes de transferência de risco via INS.
 //
 // Convenção de nomenclatura dos data flows:
 // - Eventos: {QualifiedEntity}{PastParticiple}
