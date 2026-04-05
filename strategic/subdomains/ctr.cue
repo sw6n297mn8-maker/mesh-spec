@@ -8,21 +8,28 @@ ctr: artifact_schemas.#Subdomain & {
 	type: "supporting-subdomain"
 
 	definition: """
-		Formalização e gestão do ciclo de vida de contratos,
-		pedidos de compra, ordens de serviço, cláusulas de
+		Formalização e gestão do ciclo de vida de instrumentos
+		contratuais — contratos-quadro, contratos de
+		fornecimento e termos contratuais aplicáveis a pedidos
+		de compra, ordens de serviço, SLAs, cláusulas de
 		retenção e requisitos de garantias. Governa os termos
 		sob os quais compromissos econômicos são firmados. Não
-		governa o lifecycle do compromisso econômico em si (CMT),
-		não executa pagamentos (FCE), não avalia risco (REW).
+		governa o lifecycle do compromisso econômico em si
+		(CMT), não executa pagamentos (FCE), não avalia risco
+		(REW), não gerencia instrumentos de proteção de risco
+		(INS), não governa o ciclo de procurement (P2P).
 		"""
 
 	purpose: """
 		Separar a complexidade de formalização contratual do
-		lifecycle do compromisso econômico. Contratos têm regras,
-		vocabulário e cadência de evolução próprios (cláusulas
-		de SLA, retenção, garantia). Sem CTR como unidade separada,
-		CMT absorveria toda a complexidade contratual — inflando
-		o core com lógica que é supporting por natureza.
+		lifecycle do compromisso econômico. Instrumentos
+		contratuais têm regras, vocabulário e cadência de
+		evolução próprios — contratos-quadro definem condições
+		gerais entre partes, SLAs definem níveis de serviço,
+		e cláusulas específicas governam retenção e garantias.
+		Sem CTR como unidade separada, CMT absorveria toda a
+		complexidade contratual — inflando o core com lógica
+		que é supporting por natureza.
 		"""
 
 	negativeBoundaries: [{
@@ -31,7 +38,7 @@ ctr: artifact_schemas.#Subdomain & {
 			type: "subdomain"
 			ref:  "cmt"
 		}
-		rationale: "CTR formaliza termos; CMT governa a formalização e o estado do compromisso sob esses termos. Fusão acoplaria evolução de cláusulas contratuais à evolução de fases operacionais — dois eixos de mudança independentes."
+		rationale: "CTR formaliza termos contratuais; CMT instancia e governa o lifecycle do compromisso sob esses termos. Fusão acoplaria evolução de cláusulas contratuais à evolução de fases operacionais — dois eixos de mudança independentes."
 	}, {
 		responsibility: "Execução financeira — pagamentos, settlement, budget."
 		delegatedTo: {
@@ -53,6 +60,27 @@ ctr: artifact_schemas.#Subdomain & {
 			ref:  "ssc"
 		}
 		rationale: "CTR formaliza termos contratuais vinculantes; SSC negocia condições preliminares e parâmetros de acordo. Negociação preliminar (SSC) precede formalização contratual (CTR) — cadências e profissionais distintos."
+	}, {
+		responsibility: "Instrumentos de proteção de risco — apólices, seguro garantia, performance bonds."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "ins"
+		}
+		rationale: "CTR formaliza contratos comerciais; INS gerencia instrumentos de proteção emitidos por seguradoras. Apólice não é cláusula contratual — é instrumento jurídico independente."
+	}, {
+		responsibility: "Execução de compliance de comércio exterior — desembaraço aduaneiro, licenças de importação, habilitação RADAR."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "itc"
+		}
+		rationale: "CTR formaliza termos contratuais incluindo condições de comércio exterior como cláusula; ITC executa o compliance aduaneiro. Formalização contratual e execução aduaneira são processos com cadências e profissionais distintos."
+	}, {
+		responsibility: "Ciclo de procurement — requisição, aprovação, emissão de pedido de compra."
+		delegatedTo: {
+			type: "subdomain"
+			ref:  "p2p"
+		}
+		rationale: "CTR governa termos contratuais aplicáveis a pedidos de compra; P2P governa o ciclo de procurement que os emite. Termos contratuais (CTR) precedem e condicionam o pedido (P2P), mas emissão e aprovação são processo de compras."
 	}]
 
 	rationale: """
@@ -61,6 +89,7 @@ ctr: artifact_schemas.#Subdomain & {
 		construção civil, logística e energia são exógenos à Mesh.
 		O valor proprietário está no commitment lifecycle (CMT) e na
 		execução financeira (FCE), não na modelagem de contratos.
-		CTR serve como registry canônico que CMT e FCE consomem.
+		CTR serve como registry canônico de termos contratuais que
+		CMT e FCE consomem.
 		"""
 }
