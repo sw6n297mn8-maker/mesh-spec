@@ -82,7 +82,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "ato", name: "Accounting & Tax Operations", subdomains: ["ato"]
 			subdomainType: "supporting", wardleyEvolution: "product"
 			domainAgentSpec: "agt-ato-primary"
-			rationale: "Registra lançamentos fiscais e contábeis derivados de operações financeiras. Consome eventos de INV, FCE e SCF em modo conformist. BC separado: linguagem fiscal/contábil e regulação tributária brasileira são distintas de faturamento (INV) e liquidação (FCE)."
+			rationale: "Registra lançamentos fiscais e contábeis derivados de operações de faturamento, liquidação financeira, supply chain finance e comércio exterior. Consome eventos de INV, FCE, SCF e ITC em modo conformist. BC separado: linguagem fiscal/contábil e regulação tributária brasileira e aduaneira são distintas de faturamento (INV), liquidação (FCE), financiamento (SCF) e comércio exterior (ITC)."
 		},
 		{
 			context: "bdg", name: "Budget & Approval", subdomains: ["bdg"]
