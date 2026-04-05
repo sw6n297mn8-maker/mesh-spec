@@ -851,10 +851,10 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "IDC fornece identidade verificável e resultado de verificação KYC/AML; NPM consome como pré-condição para onboarding e qualificação de participantes."
-			rationale:         "Identidade verificável é pré-condição de onboarding — NPM não qualifica sem identidade. Relação semanticamente diferenciada: NPM depende de verificação de identidade de forma distinta dos demais BCs que consomem autenticação genérica. ACL porque NPM traduz resultado de verificação para linguagem de qualificação de participante."
+			description:       "IDC fornece identidade verificável e evidências base de verificação de identidade; NPM consome como pré-condição para onboarding e qualificação de participantes."
+			rationale:         "Identidade verificável é pré-condição de onboarding — NPM não qualifica sem identidade. Relação semanticamente diferenciada: NPM depende de verificação de identidade de forma distinta dos demais BCs que consomem autenticação genérica. ACL porque NPM traduz resultado de verificação para linguagem de qualificação de participante. Compliance material (KYC/AML) é responsabilidade de NPM — IDC fornece apenas a verificação de identidade base."
 			communication: {type: "hybrid"}
-			events: ["IdentityVerified", "KycAmlCheckCompleted"]
+			events: ["IdentityVerified", "IdentityVerificationCompleted"]
 			queries: ["QueryIdentityVerificationStatus"]
 		},
 	]
@@ -885,7 +885,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		"Relações modelam integrações de domínio entre BCs — integrações técnicas (health checks, service discovery, logging) estão fora do escopo.",
 		"Partnership NGR↔NPM é a única relação simétrica. Eventual necessidade de shared kernel entre outros BCs exigirá revisão.",
 		"Nomes de eventos, commands e queries seguem convenção {QualifiedEntity}{PastParticiple}/{Verb}{QualifiedEntity}/Query{Entity}{Aspect} — nomes canônicos podem ser refinados nos canvas de cada BC.",
-		"Nomes de eventos neste mapa são candidatos canônicos derivados da análise estratégica. Canonização definitiva ocorre nos canvas de cada BC, onde o evento é definido com schema, payload e invariantes. Até lá, nomes são plausíveis mas não validados cross-artifact.",
+		"Os nomes de eventos, commands e queries neste mapa são candidatos canônicos estratégicos. Validação definitiva depende dos canvas e domain models de cada BC, onde cada data flow é definido com schema, payload e invariantes.",
 		"domainLevelTransversals não modelados nesta versão — definição de shared kernels de domínio requer análise dos canvas de cada BC, que ainda não existem.",
 		"INS→CMT não modelada nesta versão — não há evento de INS que mude estado de compromisso de forma semanticamente forte. Se canvas do CMT revelar CoverageRequirementBreached ou CoverageAttachedToCommitment, a relação entra.",
 		"IDC→CMT e IDC→FCE não modeladas — assinatura/autorização verificável é consumida como transversal genérica por ambos. Se canvas revelar requisito criptográfico específico diferenciado do consumo genérico, relação entra.",
@@ -896,7 +896,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		"BCs transversais (ntf, str, plt, obs) são consumidos como primitivas técnicas por todos os BCs de domínio. IDC tem relações explícitas com LOG, DLV e NPM por semântica diferenciada. A ausência de relações explícitas para demais BCs não significa ausência de dependência — significa que a dependência é uniforme e cross-cutting. Ver regra de omissão em knownLimitations.",
 		"As relações modeladas refletem o Wave 0 da Mesh com ontologia expandida (WI-037). Evolução da rede pode introduzir novas relações ou alterar padrões existentes.",
 		"Padrões conformist (ATO←INV, ATO←FCE, ATO←SCF, ATO←ITC, LOG←IDC, DLV←IDC) refletem decisão consciente: o custo de ACL não se justifica quando a linguagem downstream é extensão direta da upstream.",
-		"Macrofluxo canônico estendido: P2P→SSC→CTR→CMT→BDG→DLV→INV→FCE. O spine antigo (CMT→BDG→DLV→INV→FCE) inicia no meio — o fluxo real começa na demanda interna (P2P) e decisão de sourcing (SSC).",
+		"Macrofluxo canônico estendido: P2P→SSC→CTR→CMT→BDG→DLV→INV→FCE. O spine antigo (CMT→BDG→DLV→INV→FCE) inicia no meio — o fluxo real começa na demanda interna (P2P) e decisão de sourcing (SSC). O macrofluxo não é linear rígido: P2P→CMT direto existe para compras spot sem contrato-quadro prévio; SSC→CTR→CMT é o caminho quando há sourcing estratégico e formalização contratual. A coexistência das duas relações reflete bifurcação real por tipo de instrumento, não redundância.",
 		"INS intermedia entre rede Mesh e seguradoras externas — nunca subscreve risco. A existência de instrumento de proteção não elimina o risco subjacente nem garante indenização automática.",
 	]
 
