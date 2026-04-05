@@ -77,7 +77,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		name:        "CommitmentAccepted"
 		visibility:  "published"
 		description: "Gate de aceite mútuo bilateral aprovado com sucesso. Sinal canônico de entrada no commitment lifecycle — BDG inicia aprovação orçamentária, DRC registra contexto para disputas futuras, TCM projeta obrigação futura na posição de caixa."
-		rationale:   "Evento cross-context mais importante do CMT. Publicado para BDG e DRC conforme context-map (cmt-to-bdg, cmt-to-drc). Nome segue convenção Entity+PastParticiple."
+		rationale:   "Evento cross-context mais importante do CMT. Publicado para BDG, DRC e TCM conforme context-map (cmt-to-bdg, cmt-to-drc, cmt-to-tcm). Nome segue convenção Entity+PastParticiple."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
