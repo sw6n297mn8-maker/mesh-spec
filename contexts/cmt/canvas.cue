@@ -3,7 +3,9 @@ package cmt
 // canvas.cue — Bounded Context Canvas: Commitment Management.
 // Instância de #Canvas (architecture/artifact-schemas/canvas.cue).
 //
-// CMT é o ponto de entrada do commitment lifecycle.
+// CMT é o ponto de formalização do commitment lifecycle.
+// Recebe sinais upstream de P2P (pedido de compra spot) e de CTR
+// (termos ativados via sourcing estratégico SSC→CTR→CMT).
 // CommitmentId nasce aqui e permeia todos os contexts downstream.
 //
 // 3 rounds de red team + 4 ajustes do founder.
@@ -143,6 +145,24 @@ canvas: artifact_schemas.#Canvas & {
 			event:         "CommitmentSuspensionOrdered"
 			reaction:      "Suspende compromisso ativo por determinação de disputa."
 		}, {
+			type:          "event-consumer"
+			sourceContext: "p2p"
+			event:         "PurchaseOrderEmitted"
+			reaction:      "Inicia formalização de compromisso econômico bilateral a partir de pedido de compra. Agente traduz pedido (demanda unilateral) para proposta de compromisso (bilateral) via ACL."
+			description:   "P2P é upstream — pedido de compra precede compromisso no macrofluxo spot."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "ctr"
+			event:         "ContractTermsActivated"
+			reaction:      "Habilita referência a novos termos em compromissos futuros. Agente atualiza pool de termos disponíveis para formalização."
+			description:   "CTR publica lifecycle de termos; CMT reage para manter referências válidas."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "ctr"
+			event:         "ContractTermsSuperseded"
+			reaction:      "Sinaliza que termos referenciados por compromissos existentes foram superseded. Compromissos existentes mantêm referência snapshot; novos compromissos devem usar versão active."
+			description:   "CTR publica supersession; CMT reage para garantir que novos compromissos referenciam termos vigentes."
+		}, {
 			type:        "query-surface"
 			query:       "QueryCommitmentState"
 			returnType:  "CommitmentState"
@@ -152,14 +172,14 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "event-publisher"
 			trigger:     "Gate de aceite mútuo bilateral aprovado com sucesso."
 			event:       "CommitmentAccepted"
-			consumers:   ["bdg", "drc"]
-			description: "Sinal canônico de entrada no commitment lifecycle. BDG inicia aprovação orçamentária; DRC registra contexto para disputas futuras."
+			consumers:   ["bdg", "drc", "tcm"]
+			description: "Sinal canônico de entrada no commitment lifecycle. BDG inicia aprovação orçamentária; DRC registra contexto para disputas futuras; TCM projeta obrigação futura na posição de caixa."
 		}, {
 			type:        "event-publisher"
 			trigger:     "Transição de estado do compromisso por sinal externo (risco, disputa) ou ação interna (suspensão, cancelamento, reativação)."
 			event:       "CommitmentStateChanged"
-			consumers:   ["drc"]
-			description: "DRC consome para atualizar contexto de disputas com estado corrente do compromisso."
+			consumers:   ["drc", "tcm"]
+			description: "DRC consome para atualizar contexto de disputas com estado corrente do compromisso. TCM atualiza projeções de caixa."
 		}, {
 			type:          "query-dependency"
 			targetContext: "ctr"
@@ -169,13 +189,16 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 		rationale: """
 			Inbound: 2 commands (proposta async + aceite bilateral sync),
-			4 event consumers (risco e resolução de risco de REW +
-			2 sinais de disputa de DRC), 1 query surface (estado canônico). Outbound: 2 event publishers
-			(CommitmentAccepted para spine do lifecycle + CommitmentStateChanged
-			para DRC), 1 query dependency (termos contratuais de CTR).
+			7 event consumers (risco e resolução de risco de REW +
+			2 sinais de disputa de DRC + pedido de compra de P2P +
+			2 sinais de lifecycle de termos de CTR), 1 query surface
+			(estado canônico). Outbound: 2 event publishers
+			(CommitmentAccepted para BDG/DRC/TCM + CommitmentStateChanged
+			para DRC/TCM), 1 query dependency (termos contratuais de CTR).
 			CommitmentProposed é evento interno — não publicado cross-context.
-			Padrão: CMT é source do commitment lifecycle — publica sinais
-			que desencadeiam toda a cadeia downstream.
+			Padrão: CMT recebe upstream de procurement/sourcing (P2P, CTR)
+			e publica sinais que desencadeiam cadeia downstream do
+			commitment lifecycle, incluindo projeção de caixa (TCM).
 			"""
 	}
 
@@ -419,22 +442,24 @@ canvas: artifact_schemas.#Canvas & {
 
 	rationale: """
 		Canvas do CMT como documento raiz de identidade. CMT é o ponto de
-		entrada do commitment lifecycle e gera CommitmentId — o conceito
-		cross-cutting mais referenciado do sistema. Core porque a
-		formalização de compromissos com aceite mútuo e rastreabilidade é
-		proprietária da Mesh. Execution como archetype primário porque
-		opera gates determinísticos de aceite bilateral. Communication
-		alinhada com context map: inbound de REW (risco e resolução de
-		risco) e DRC (disputas), outbound para BDG (lifecycle) e DRC
-		(contexto), query dependency de CTR (termos). CommitmentProposed
-		é evento interno — não cruza fronteira. Governance scope separa
-		decisões determinísticas (autônomas: validação, registro,
-		flag/clear risco) de decisões com impacto financeiro
-		(supervisionadas: aceite, suspensão, cancelamento, reativação).
-		domainAgentSpec referenciado por path canônico — canvas é SoT,
-		context map replica. Incentive analysis demonstra que manipulação
-		por proponente ou contraparte é mais cara que operação correta,
-		por design (mech-evidence + mech-agent-gate + rastreabilidade
-		end-to-end).
+		formalização do commitment lifecycle — recebe upstream de P2P
+		(spot) e CTR (sourcing estratégico via SSC→CTR→CMT) — e gera
+		CommitmentId, o conceito cross-cutting mais referenciado do
+		sistema. Core porque a formalização de compromissos com aceite
+		mútuo e rastreabilidade é proprietária da Mesh. Execution como
+		archetype primário porque opera gates determinísticos de aceite
+		bilateral. Communication alinhada com context map v2: inbound de
+		P2P (pedido de compra), CTR (lifecycle de termos), REW (risco e
+		resolução de risco) e DRC (disputas); outbound para BDG
+		(lifecycle), DRC (contexto) e TCM (projeção de caixa); query
+		dependency de CTR (termos). CommitmentProposed é evento interno —
+		não cruza fronteira. Governance scope separa decisões
+		determinísticas (autônomas: validação, registro, flag/clear risco)
+		de decisões com impacto financeiro (supervisionadas: aceite,
+		suspensão, cancelamento, reativação). domainAgentSpec referenciado
+		por path canônico — canvas é SoT, context map replica. Incentive
+		analysis demonstra que manipulação por proponente ou contraparte é
+		mais cara que operação correta, por design (mech-evidence +
+		mech-agent-gate + rastreabilidade end-to-end).
 		"""
 }

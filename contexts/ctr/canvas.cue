@@ -6,7 +6,9 @@ package ctr
 // CTR é o registry canônico de termos contratuais. Termos são imutáveis
 // e versionados — qualquer alteração cria nova versão. Lifecycle
 // explícito (draft → active → superseded → expired → cancelled).
-// CMT, SCF e DRC consomem CTR como SoT de validade jurídica.
+// Recebe upstream de SSC (decisão de sourcing estratégico inicia
+// registro de contrato-quadro). CMT, SCF, DRC e ITC consomem CTR
+// como SoT de validade jurídica.
 //
 // Lenses aplicadas:
 // - lens-contractual-and-legal-architecture (primária):
@@ -148,6 +150,12 @@ canvas: artifact_schemas.#Canvas & {
 			resultingEvents: ["ContractTermsCancelled"]
 			description: "Transiciona termos para cancelled — estado terminal. Supervisionado por irreversibilidade e impacto em compromissos ativos downstream."
 		}, {
+			type:          "event-consumer"
+			sourceContext: "ssc"
+			event:         "SourcingDecisionMade"
+			reaction:      "Inicia registro de contrato-quadro fundamentado na decisão de sourcing. Agente traduz decisão de sourcing para linguagem contratual via ACL."
+			description:   "SSC é upstream — decisão de sourcing estratégico é gatilho para formalização contratual. Contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P)."
+		}, {
 			type:        "query-surface"
 			query:       "QueryContractTerms"
 			returnType:  "ContractTerms"
@@ -162,8 +170,8 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "event-publisher"
 			trigger:     "Termos contratuais ativados com sucesso."
 			event:       "ContractTermsActivated"
-			consumers:   ["cmt", "scf"]
-			description: "Sinal de novos termos disponíveis. CMT pode referenciar em novos compromissos. SCF atualiza condições de elegibilidade."
+			consumers:   ["cmt", "scf", "itc"]
+			description: "Sinal de novos termos disponíveis. CMT pode referenciar em novos compromissos. SCF atualiza condições de elegibilidade. ITC consome para governar operações de comex sob termos formalizados."
 		}, {
 			type:        "event-publisher"
 			trigger:     "Versão de termos superseded por nova versão ativada."
@@ -185,17 +193,18 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 		rationale: """
 			Inbound: 4 commands (registro async + ativação sync + revisão
-			async + cancelamento sync), 2 query surfaces (termos e
-			cláusulas). Outbound: 3 event publishers (ativação para
-			CMT/SCF, supersession para CMT/SCF/DRC, cancelamento para
-			CMT/DRC), 1 query dependency (qualificação de partes via
-			NPM). Padrão: CTR é upstream puro de termos contratuais,
-			com uma única dependência de qualificação em NPM — publica
-			sinais de lifecycle que downstream consome para manter
-			referências válidas. Queries sync são interface principal
-			(registry). hasAsyncSurface é true porque registro e
-			revisão são async (não exigem resposta imediata) e CTR
-			publica eventos de lifecycle consumidos por 3 BCs.
+			async + cancelamento sync), 1 event consumer (decisão de
+			sourcing de SSC), 2 query surfaces (termos e cláusulas).
+			Outbound: 3 event publishers (ativação para CMT/SCF/ITC,
+			supersession para CMT/SCF/DRC, cancelamento para CMT/DRC),
+			1 query dependency (qualificação de partes via NPM). Padrão:
+			CTR recebe upstream de SSC (sourcing estratégico inicia
+			contrato-quadro) e é upstream puro de termos contratuais para
+			4 BCs (CMT, SCF, DRC, ITC), com uma única dependência de
+			qualificação em NPM. Queries sync são interface principal
+			(registry). hasAsyncSurface é true porque registro e revisão
+			são async, CTR consome evento de SSC, e publica eventos de
+			lifecycle consumidos por 4 BCs.
 			"""
 	}
 
@@ -443,13 +452,16 @@ canvas: artifact_schemas.#Canvas & {
 		Canvas do CTR como documento raiz de identidade. CTR é o
 		registry canônico de termos contratuais da Mesh — fundação
 		jurídica sobre a qual CMT formaliza compromissos, SCF precifica
-		antecipações e DRC resolve disputas. Supporting porque
-		formalização contratual é domínio entendido; product porque
-		nenhuma solução existente integra versionamento imutável com
-		lifecycle financeiro. Specification como archetype primário
-		porque CTR define e expõe Published Language consumida por 3
-		BCs. Communication: 4 commands inbound (register, activate,
-		revise, cancel), 2 query surfaces (termos + cláusulas),
+		antecipações, DRC resolve disputas e ITC governa operações de
+		comex. Recebe upstream de SSC — contrato-quadro nasce de
+		sourcing estratégico, não de execução de compra. Supporting
+		porque formalização contratual é domínio entendido; product
+		porque nenhuma solução existente integra versionamento imutável
+		com lifecycle financeiro. Specification como archetype primário
+		porque CTR define e expõe Published Language consumida por 4
+		BCs. Communication alinhada com context map v2: 4 commands
+		inbound (register, activate, revise, cancel), 1 event consumer
+		(SSC sourcing decision), 2 query surfaces (termos + cláusulas),
 		3 event publishers (activated, superseded, cancelled),
 		1 query dependency (qualificação de partes via NPM). Decisões
 		de negócio: imutabilidade, unicidade de versão active e
