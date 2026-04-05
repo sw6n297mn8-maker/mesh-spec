@@ -1,10 +1,15 @@
 package strategic
 
-// context-map.cue — Context Map da Mesh.
+// context-map.cue — Context Map da Mesh (v2).
 // Instância de #ContextMap (architecture/artifact-schemas/context-map.cue).
 //
-// Singleton que documenta a topologia de integração entre os 21
-// bounded contexts da Mesh e seus 32 relacionamentos.
+// Singleton que documenta a topologia de integração entre os 25
+// bounded contexts da Mesh e seus relacionamentos.
+//
+// v2: reconstruído sobre ontologia expandida (WI-037). Mudanças
+// estruturais: IDN+DGV fundidos em IDC; 6 novos BCs (P2P, SSC,
+// ITC, TCM, INS, IDC); macrofluxo canônico estendido para
+// P2P→SSC→CTR→CMT; spine financeiro inclui TCM e INS.
 //
 // Convenção de nomenclatura dos data flows:
 // - Eventos: {QualifiedEntity}{PastParticiple}
@@ -30,7 +35,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 	topology: "global"
 
 	// ==============================
-	// CONTEXTS (21 BCs — 1:1 com subdomínios)
+	// CONTEXTS (25 BCs — 1:1 com subdomínios)
 	// ==============================
 
 	contexts: [
@@ -72,7 +77,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			rationale: "Avalia risco contínuo de participantes e operações. Consome sinais de múltiplos BCs; publica scores e elegibilidade como published language. BC separado: linguagem de risco, modelos de scoring e decisões de elegibilidade são distintas de compromissos (CMT) e financiamento (SCF)."
 		},
 
-		// --- Supporting (12) ---
+		// --- Supporting (16) ---
 		{
 			context: "ato", name: "Accounting & Tax Operations", subdomains: ["ato"]
 			subdomainType: "supporting", wardleyEvolution: "product"
@@ -89,13 +94,13 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "ctr", name: "Contract & Terms Registry", subdomains: ["ctr"]
 			subdomainType: "supporting", wardleyEvolution: "product"
 			domainAgentSpec: "agt-ctr-primary"
-			rationale: "Registra e expõe termos contratuais como published language. Publica eventos de lifecycle para CMT, SCF e DRC; consome qualificação de NPM. BC separado: linguagem contratual, versionamento imutável e lifecycle de termos são distintos de compromisso (CMT) e disputa (DRC)."
+			rationale: "Formalização e gestão de lifecycle de instrumentos contratuais — contratos-quadro, contratos de fornecimento e termos contratuais aplicáveis a pedidos de compra, ordens de serviço, SLAs, cláusulas de retenção e exigências de garantia. Registry canônico de termos contratuais que CMT e FCE consomem. Publica eventos de lifecycle para CMT, SCF, DRC e ITC; consome qualificação de NPM e decisões de SSC. BC separado: linguagem contratual, versionamento imutável e lifecycle de termos são distintos de compromisso (CMT), disputa (DRC) e sourcing (SSC)."
 		},
 		{
-			context: "dgv", name: "Data Governance & Verification", subdomains: ["dgv"]
+			context: "idc", name: "Identity & Data Governance", subdomains: ["idc"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-dgv-primary"
-			rationale: "Fornece primitivas de verificação criptográfica e governança de dados. Consumido por LOG e DLV em modo conformist. BC separado: linguagem de integridade de dados e verificação criptográfica é primitiva transversal distinta de logística (LOG) e verificação de entrega (DLV)."
+			domainAgentSpec: "agt-idc-primary"
+			rationale: "Gestão de identidade, autenticação, autorização, governança de dados e integridade criptográfica. Unifica identidade e primitivas de verificação criptográfica (CAS, DSSE, Merkle proofs) sob único owner — quem fez o quê, com qual permissão, e a evidência está íntegra. Substitui antigos IDN e DGV. Relações individuais modeladas apenas quando semanticamente diferenciadas (LOG, DLV, NPM); demais BCs consomem IDC como transversal."
 		},
 		{
 			context: "drc", name: "Disputes, Reversals & Corrections", subdomains: ["drc"]
@@ -104,10 +109,16 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			rationale: "Avalia e resolve disputas referenciando compromissos, evidência e termos. Consome de CMT, DLV e CTR; publica decisões para FCE e CMT. BC separado: linguagem de disputa, processo de resolução e reversão são distintos de compromisso (CMT) e execução financeira (FCE)."
 		},
 		{
-			context: "idn", name: "Identity & Access Management", subdomains: ["idn"]
-			subdomainType: "supporting", wardleyEvolution: "commodity"
-			domainAgentSpec: "agt-idn-primary"
-			rationale: "Gerencia identidade, autenticação e autorização. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de identidade e controle de acesso é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
+			context: "ins", name: "Insurance & Risk Transfer", subdomains: ["ins"]
+			subdomainType: "supporting", wardleyEvolution: "product"
+			domainAgentSpec: "agt-ins-primary"
+			rationale: "Governa instrumentos de proteção e transferência de risco: seguro garantia, seguro de carga, performance bonds e outros instrumentos emitidos por seguradoras e garantidores. BC separado: linguagem securitária (apólice, sinistro, prêmio, franquia, endosso, cobertura), profissionais (corretores, underwriters) e regime regulatório (SUSEP, IRB) são distintos de precificação de risco (REW) e originação financeira (SCF). INS intermedia — não subscreve."
+		},
+		{
+			context: "itc", name: "International Trade & Customs", subdomains: ["itc"]
+			subdomainType: "supporting", wardleyEvolution: "product"
+			domainAgentSpec: "agt-itc-primary"
+			rationale: "Governa operações de comércio exterior: freight forwarding, desembaraço aduaneiro, documentação comex e compliance aduaneiro. BC separado: linguagem de comex (BL, AWB, DI, Incoterms, NCM), profissionais (despachantes, freight forwarders) e regime regulatório (legislação aduaneira, Siscomex, câmbio) são distintos de logística doméstica (LOG) e execução financeira (FCE)."
 		},
 		{
 			context: "inv", name: "Invoicing", subdomains: ["inv"]
@@ -119,13 +130,19 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "log", name: "Logistics & Operational Evidence", subdomains: ["log"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-log-primary"
-			rationale: "Registra evidência operacional com rastreabilidade de cadeia produtiva. Consome integridade de DGV; publica evidência para DLV. BC separado: linguagem logística e rastreabilidade operacional são distintas de verificação de entrega (DLV) e governança de dados (DGV)."
+			rationale: "Captura, registro e gestão de evidência operacional: rastreamento de carga, inspeção de qualidade, medição de obra, atividades de prestação de serviço e eventos de campo. Produz cadeia de custódia registrada que DLV consome. Consome integridade de IDC; publica evidência para DLV. BC separado: linguagem de evidência operacional e rastreabilidade são distintas de verificação de compromisso (DLV) e governança de dados (IDC)."
 		},
 		{
 			context: "npm", name: "Network Participant Management", subdomains: ["npm"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-npm-primary"
 			rationale: "Gerencia ciclo de vida de participantes da rede. Publica eventos para REW, NIM e CTR; opera em parceria com NGR. BC separado: linguagem de participante, onboarding e qualificação são distintos de risco (REW) e growth (NGR)."
+		},
+		{
+			context: "p2p", name: "Procure-to-Pay", subdomains: ["p2p"]
+			subdomainType: "supporting", wardleyEvolution: "product"
+			domainAgentSpec: "agt-p2p-primary"
+			rationale: "Governa ciclo interno de demanda-compra: requisição, aprovação, emissão de pedido de compra para fornecedores participantes. BC separado: linguagem de procurement (requisição, autorização, pedido de compra), profissionais (compradores, requisitantes técnicos) e cadência de evolução (políticas corporativas) são distintos de compromisso econômico (CMT) e sourcing estratégico (SSC)."
 		},
 		{
 			context: "obs", name: "Observability & Operational Intelligence", subdomains: ["obs"]
@@ -140,10 +157,22 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			rationale: "Fornece serviços de plataforma e infraestrutura. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de infraestrutura e serviços de plataforma é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
+			context: "ssc", name: "Strategic Sourcing & Category", subdomains: ["ssc"]
+			subdomainType: "supporting", wardleyEvolution: "product"
+			domainAgentSpec: "agt-ssc-primary"
+			rationale: "Governa seleção estratégica de fornecedores e gestão de categorias de compra: cotação estruturada, equalização TCO, spend analysis e decisão de sourcing. BC separado: linguagem de sourcing (categoria, TCO, RFQ, spend), profissionais (category managers) e cadência (contratos-quadro anuais/plurianuais) são distintos de execução de compra (P2P) e qualificação de participantes (NPM)."
+		},
+		{
+			context: "tcm", name: "Treasury & Cash Management", subdomains: ["tcm"]
+			subdomainType: "supporting", wardleyEvolution: "product"
+			domainAgentSpec: "agt-tcm-primary"
+			rationale: "Governa visão de tesouraria corporativa: posição de caixa, projeção de fluxo de caixa, estratégia de liquidez e exposição cambial. BC separado: linguagem de tesouraria (cash position, cash forecast, liquidez, hedge), profissionais (tesoureiros, controllers) e cadência (projeções diárias/semanais) são distintos de execução financeira transacional (FCE) e originação de produto financeiro (SCF)."
+		},
+		{
 			context: "scf", name: "Supply Chain Finance", subdomains: ["scf"]
 			subdomainType: "supporting", wardleyEvolution: "product"
 			domainAgentSpec: "agt-scf-primary"
-			rationale: "Origina e liquida operações de antecipação de recebíveis. Consome lastro de INV, elegibilidade de REW e termos de CTR; opera como SCD. BC separado: linguagem de financiamento de cadeia produtiva, regras de cessão e operação de FIDC são distintas de faturamento (INV) e risco (REW)."
+			rationale: "Estruturação e oferta de produtos financeiros sobre recebíveis operacionais e preparação de portfólios para distribuição: antecipação de recebíveis, reverse factoring, dynamic discounting, working capital e preparação de portfólios de securitização. Consome recebíveis materializados por INV a partir do commitment lifecycle (CMT governa estado), elegibilidade de REW e termos de CTR; opera como SCD. BC separado: linguagem de financiamento de cadeia produtiva, regras de cessão e operação de FIDC são distintas de faturamento (INV) e risco (REW). SCF estrutura; FCE executa."
 		},
 
 		// --- Generic (3) ---
@@ -182,15 +211,19 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		ato: {ownerContext: "ato", rationale: "Subdomínio supporting com linguagem fiscal/contábil própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		bdg: {ownerContext: "bdg", rationale: "Subdomínio supporting com linguagem orçamentária própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		ctr: {ownerContext: "ctr", rationale: "Subdomínio supporting com linguagem contratual própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
-		dgv: {ownerContext: "dgv", rationale: "Subdomínio supporting com linguagem de governança de dados própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		drc: {ownerContext: "drc", rationale: "Subdomínio supporting com linguagem de disputas e reversões própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
-		idn: {ownerContext: "idn", rationale: "Subdomínio supporting com linguagem de identidade e acesso própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		idc: {ownerContext: "idc", rationale: "Subdomínio supporting com linguagem de identidade e integridade de dados própria — BC dedicado por separação deliberada de linguagem, invariantes e governança. Fusão de antigos IDN e DGV."}
+		ins: {ownerContext: "ins", rationale: "Subdomínio supporting com linguagem securitária própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		inv: {ownerContext: "inv", rationale: "Subdomínio supporting com linguagem fiscal/faturamento própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		itc: {ownerContext: "itc", rationale: "Subdomínio supporting com linguagem de comércio exterior própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		log: {ownerContext: "log", rationale: "Subdomínio supporting com linguagem logística e de evidência operacional própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		npm: {ownerContext: "npm", rationale: "Subdomínio supporting com linguagem de gestão de participantes própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		obs: {ownerContext: "obs", rationale: "Subdomínio supporting com linguagem de observabilidade própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		p2p: {ownerContext: "p2p", rationale: "Subdomínio supporting com linguagem de procurement própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		plt: {ownerContext: "plt", rationale: "Subdomínio supporting com linguagem de plataforma e infraestrutura própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		scf: {ownerContext: "scf", rationale: "Subdomínio supporting com linguagem de financiamento de cadeia produtiva própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		ssc: {ownerContext: "ssc", rationale: "Subdomínio supporting com linguagem de sourcing estratégico própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
+		tcm: {ownerContext: "tcm", rationale: "Subdomínio supporting com linguagem de tesouraria corporativa própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 
 		bkr: {ownerContext: "bkr", rationale: "Subdomínio generic com linguagem de integração bancária própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
 		ntf: {ownerContext: "ntf", rationale: "Subdomínio generic com linguagem de notificações própria — BC dedicado por separação deliberada de linguagem, invariantes e governança."}
@@ -198,7 +231,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 	}
 
 	// ==============================
-	// RELATIONSHIPS (32 total)
+	// RELATIONSHIPS (46 total)
 	// ==============================
 
 	relationships: [
@@ -285,26 +318,26 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			events: ["OperationalEvidenceRecorded"]
 		},
 		{
-			code:              "dgv-to-log"
-			source:            {kind: "bounded-context", context: "dgv"}
+			code:              "idc-to-log"
+			source:            {kind: "bounded-context", context: "idc"}
 			target:            {kind: "bounded-context", context: "log"}
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "conformist"
-			description:       "DGV fornece serviços de verificação de integridade e governança de dados; LOG conforma com o protocolo."
-			rationale:         "LOG não traduz — adota diretamente os padrões de integridade e verificação de DGV. Conformist por design: custo de ACL sem benefício."
+			description:       "IDC fornece primitivas de verificação de integridade e governança de dados; LOG conforma com o protocolo."
+			rationale:         "LOG não traduz — adota diretamente os padrões de integridade criptográfica de IDC. Conformist por design: custo de ACL sem benefício. Captura e integridade são preocupações distintas — LOG não garante não adulteração nem autoria verificável."
 			communication: {type: "sync"}
 			queries: ["QueryEvidenceIntegrity"]
 		},
 		{
-			code:              "dgv-to-dlv"
-			source:            {kind: "bounded-context", context: "dgv"}
+			code:              "idc-to-dlv"
+			source:            {kind: "bounded-context", context: "idc"}
 			target:            {kind: "bounded-context", context: "dlv"}
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "conformist"
-			description:       "DGV fornece verificação criptográfica de integridade; DLV conforma para garantir que evidência não foi adulterada."
-			rationale:         "DLV depende de DGV para integridade criptográfica sem tradução — conformist é o padrão correto para primitiva de verificação."
+			description:       "IDC fornece verificação criptográfica de integridade; DLV conforma para garantir que evidência não foi adulterada."
+			rationale:         "DLV depende de IDC para integridade criptográfica sem tradução — conformist é o padrão correto para primitiva de verificação."
 			communication: {type: "sync"}
 			queries: ["QueryCryptographicIntegrity"]
 		},
@@ -641,6 +674,189 @@ meshContextMap: artifact_schemas.#ContextMap & {
 				loopSemantics:         "Resolução de disputa altera estado do compromisso; compromisso contextualiza disputa — loop bidirecional disputa↔compromisso."
 			}
 		},
+		// --- I. Procurement & Sourcing (4) ---
+		{
+			code:              "p2p-to-cmt"
+			source:            {kind: "bounded-context", context: "p2p"}
+			target:            {kind: "bounded-context", context: "cmt"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "P2P publica PurchaseOrderEmitted; CMT consome para formalizar compromisso econômico bilateral a partir do pedido de compra."
+			rationale:         "Pedido de compra é sinal de demanda unilateral do comprador; compromisso exige aceite mútuo. P2P é upstream porque o pedido precede o compromisso no macrofluxo. CMT traduz pedido para linguagem de compromisso via ACL."
+			communication: {type: "async"}
+			events: ["PurchaseOrderEmitted"]
+		},
+		{
+			code:              "ssc-to-p2p"
+			source:            {kind: "bounded-context", context: "ssc"}
+			target:            {kind: "bounded-context", context: "p2p"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "SSC publica decisão de sourcing e fornecedores selecionados; P2P consome para direcionar emissão de pedidos aos fornecedores aprovados."
+			rationale:         "Decisão estratégica de sourcing precede execução de compra. SSC seleciona fornecedor e condições; P2P executa o pedido sob essas condições. P2P traduz decisão de sourcing para linguagem de procurement via ACL."
+			communication: {type: "async"}
+			events: ["SourcingDecisionMade", "PreferredSupplierDesignated"]
+		},
+		{
+			code:              "ssc-to-ctr"
+			source:            {kind: "bounded-context", context: "ssc"}
+			target:            {kind: "bounded-context", context: "ctr"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "SSC publica decisão de sourcing que fundamenta formalização de contrato-quadro; CTR consome para iniciar registro de termos."
+			rationale:         "Decisão de sourcing é gatilho para formalização contratual — contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P). CTR traduz decisão de sourcing para linguagem contratual via ACL."
+			communication: {type: "async"}
+			events: ["SourcingDecisionMade"]
+		},
+		{
+			code:              "npm-to-ssc"
+			source:            {kind: "bounded-context", context: "npm"}
+			target:            {kind: "bounded-context", context: "ssc"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "NPM publica eventos de qualificação de participantes e expõe status; SSC consome como input para decisão de sourcing."
+			rationale:         "Sourcing estratégico depende de qualificação de participantes — fornecedor não qualificado não entra no pool de sourcing. Hybrid porque SSC consulta status sincronamente durante processo de cotação e reage assincronamente a mudanças de status."
+			communication: {type: "hybrid"}
+			events: ["NetworkParticipantStatusChanged"]
+			queries: ["QueryParticipantQualificationStatus"]
+		},
+
+		// --- J. International Trade (3) ---
+		{
+			code:              "ctr-to-itc"
+			source:            {kind: "bounded-context", context: "ctr"}
+			target:            {kind: "bounded-context", context: "itc"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service-published-language"
+			downstreamPattern: "anti-corruption-layer"
+			publishedLanguage: "Contract & Terms canonical model"
+			description:       "CTR expõe termos contratuais com cláusulas de comex (Incoterms, condições de embarque) via published language; ITC consome para governar operação de comércio exterior sob termos formalizados."
+			rationale:         "Operação de comex é regida por termos contratuais — Incoterms definem responsabilidades logísticas e aduaneiras. CTR é SoT de termos; ITC traduz para linguagem de comex via ACL. Hybrid porque ITC consulta termos sincronamente na abertura de operação e reage assincronamente a mudanças."
+			communication: {type: "hybrid"}
+			events: ["ContractTermsActivated"]
+			queries: ["QueryContractTerms"]
+		},
+		{
+			code:              "itc-to-log"
+			source:            {kind: "bounded-context", context: "itc"}
+			target:            {kind: "bounded-context", context: "log"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "ITC publica eventos de fluxo aduaneiro (liberação, desembaraço, status documental); LOG consome como evidência operacional de operações internacionais."
+			rationale:         "O fluxo aduaneiro e documental de ITC condiciona a logística internacional — liberação aduaneira é pré-condição para movimentação de carga. LOG registra esses fatos como evidência operacional. ITC é upstream porque o desembaraço precede a movimentação no fluxo internacional."
+			communication: {type: "async"}
+			events: ["CustomsClearanceCompleted", "TradeDocumentStatusChanged"]
+		},
+		{
+			code:              "itc-to-ato"
+			source:            {kind: "bounded-context", context: "itc"}
+			target:            {kind: "bounded-context", context: "ato"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "conformist"
+			description:       "ITC publica eventos de comércio exterior; ATO conforma para registrar consequências fiscais e obrigações aduaneiras."
+			rationale:         "Operações de comex têm consequências fiscais específicas (impostos de importação, ICMS-ST, PIS/Cofins-importação). ATO conforma porque linguagem fiscal aduaneira é extensão direta dos eventos de comex."
+			communication: {type: "async"}
+			events: ["CustomsClearanceCompleted", "ImportTaxAssessed"]
+		},
+
+		// --- K. Treasury & Cash (3) ---
+		{
+			code:              "cmt-to-tcm"
+			source:            {kind: "bounded-context", context: "cmt"}
+			target:            {kind: "bounded-context", context: "tcm"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "CMT publica compromissos aceitos e mudanças de estado; TCM consome para projetar obrigações e direitos futuros na posição de caixa."
+			rationale:         "Compromisso aceito gera obrigação/direito financeiro futuro que TCM precisa projetar para gestão de liquidez. TCM traduz estado de compromisso para linguagem de tesouraria (cash forecast) via ACL."
+			communication: {type: "async"}
+			events: ["CommitmentAccepted", "CommitmentStateChanged"]
+		},
+		{
+			code:              "fce-to-tcm"
+			source:            {kind: "bounded-context", context: "fce"}
+			target:            {kind: "bounded-context", context: "tcm"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "FCE publica eventos de liquidação financeira; TCM consome para atualizar posição de caixa realizada."
+			rationale:         "Pagamento liquidado altera posição de caixa — projeção vira realizado. TCM traduz evento de settlement para linguagem de tesouraria (cash position) via ACL."
+			communication: {type: "async"}
+			events: ["PaymentSettled"]
+		},
+		{
+			code:              "tcm-to-fce"
+			source:            {kind: "bounded-context", context: "tcm"}
+			target:            {kind: "bounded-context", context: "fce"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "TCM expõe disponibilidade financeira e posição de caixa; FCE consome para otimizar sequenciamento e timing de execução de pagamentos."
+			rationale:         "FCE utiliza informações de disponibilidade fornecidas por TCM para otimizar execução, sem assumir gestão de posição de caixa. Empresa pode ter orçamento sem caixa (BDG aprovou mas TCM não tem liquidez) ou caixa sem orçamento — são domínios distintos."
+			communication: {type: "sync"}
+			queries: ["QueryCashAvailability", "QueryCashForecast"]
+		},
+
+		// --- L. Insurance & Risk Transfer (3) ---
+		{
+			code:              "rew-to-ins"
+			source:            {kind: "bounded-context", context: "rew"}
+			target:            {kind: "bounded-context", context: "ins"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service-published-language"
+			downstreamPattern: "anti-corruption-layer"
+			publishedLanguage: "Risk score and eligibility model"
+			description:       "REW publica score de risco e sinais de exposição via published language; INS consome como input para solicitar cotação e cobertura à seguradora externa."
+			rationale:         "Score de risco da Mesh informa INS sobre exposição — INS usa como input para intermediar cotação com seguradoras externas. REW fornece sinal; INS gerencia vínculo de cobertura; seguradora externa é quem subscreve e decide aceitação do risco. INS nunca decide cobertura sozinho — intermedia."
+			communication: {type: "async"}
+			events: ["CounterpartyRiskScoreUpdated"]
+		},
+		{
+			code:              "ins-to-scf"
+			source:            {kind: "bounded-context", context: "ins"}
+			target:            {kind: "bounded-context", context: "scf"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "INS publica estado de cobertura e eventos de apólice; SCF consome como input para elegibilidade e condições de produto financeiro."
+			rationale:         "Existência de cobertura securitária pode melhorar condições de antecipação ou habilitar produtos que exigem garantia. SCF traduz estado de cobertura para linguagem de produto financeiro via ACL."
+			communication: {type: "async"}
+			events: ["CoverageActivated", "CoverageLapsed", "ClaimFiled"]
+		},
+		{
+			code:              "ins-to-ext-insurers"
+			source:            {kind: "bounded-context", context: "ins"}
+			target:            {kind: "external-system", code: "ext-insurers", name: "Insurance Companies & Guarantors", type: "financial-institution", regulatoryVolatility: "medium"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "external-interface"
+			description:       "INS solicita cotação e emissão de apólice a seguradoras externas; recebe confirmação de cobertura e notificação de sinistro."
+			rationale:         "A Mesh não é seguradora nem garantidora — INS intermedia entre necessidade de cobertura da rede e capacidade de subscrição de seguradoras externas. Hybrid porque inclui solicitação síncrona de cotação e confirmação assíncrona de emissão e sinistro."
+			communication: {type: "hybrid"}
+			events: ["PolicyIssuedConfirmed", "ClaimProcessed"]
+			commands: ["RequestQuotation", "RequestPolicyIssuance"]
+		},
+
+		// --- M. Identity & Data Governance (1) ---
+		{
+			code:              "idc-to-npm"
+			source:            {kind: "bounded-context", context: "idc"}
+			target:            {kind: "bounded-context", context: "npm"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "IDC fornece identidade verificável e resultado de verificação KYC/AML; NPM consome como pré-condição para onboarding e qualificação de participantes."
+			rationale:         "Identidade verificável é pré-condição de onboarding — NPM não qualifica sem identidade. Relação semanticamente diferenciada: NPM depende de verificação de identidade de forma distinta dos demais BCs que consomem autenticação genérica. ACL porque NPM traduz resultado de verificação para linguagem de qualificação de participante."
+			communication: {type: "hybrid"}
+			events: ["IdentityVerified", "KycAmlCheckCompleted"]
+			queries: ["QueryIdentityVerificationStatus"]
+		},
 	]
 
 	// ==============================
@@ -649,9 +865,10 @@ meshContextMap: artifact_schemas.#ContextMap & {
 
 	expectedContexts: [
 		"ato", "bdg", "bkr", "cmt", "ctr",
-		"dgv", "dlv", "drc", "fce", "idn",
-		"inv", "log", "ngr", "nim", "npm",
-		"ntf", "obs", "plt", "rew", "scf", "str",
+		"dlv", "drc", "fce", "idc", "ins",
+		"inv", "itc", "log", "ngr", "nim",
+		"npm", "ntf", "obs", "p2p", "plt",
+		"rew", "scf", "ssc", "str", "tcm",
 	]
 
 	declaredFlows: [
@@ -663,46 +880,51 @@ meshContextMap: artifact_schemas.#ContextMap & {
 	// ==============================
 
 	knownLimitations: [
-		"v1 modela relações 1:1 entre BC e subdomínio — eventual reagrupamento exigirá revisão completa do mapa.",
-		"BCs transversais (idn, ntf, str, plt, obs) não têm relações individuais modeladas. Regra de omissão: capability transversal consumida uniformemente por todos os BCs de domínio é registrada no rationale do contexto, não como N relações individuais. Relações individuais só são modeladas quando a integração é semanticamente diferenciada (padrão, SLA, ou data flow específico). Enquanto todos os BCs consomem a mesma interface da mesma forma, modelar cada relação adicionaria ruído sem valor semântico.",
+		"v2 modela relações 1:1 entre BC e subdomínio — eventual reagrupamento exigirá revisão completa do mapa.",
+		"BCs transversais (ntf, str, plt, obs) não têm relações individuais modeladas. IDC (ex-IDN+DGV) tem relações individuais com LOG, DLV e NPM por semântica diferenciada — demais BCs consomem IDC como transversal genérica. Regra de omissão: capability transversal consumida uniformemente por todos os BCs de domínio é registrada no rationale do contexto, não como N relações individuais. Relações individuais só são modeladas quando a integração é semanticamente diferenciada (padrão, SLA, ou data flow específico).",
 		"Relações modelam integrações de domínio entre BCs — integrações técnicas (health checks, service discovery, logging) estão fora do escopo.",
 		"Partnership NGR↔NPM é a única relação simétrica. Eventual necessidade de shared kernel entre outros BCs exigirá revisão.",
 		"Nomes de eventos, commands e queries seguem convenção {QualifiedEntity}{PastParticiple}/{Verb}{QualifiedEntity}/Query{Entity}{Aspect} — nomes canônicos podem ser refinados nos canvas de cada BC.",
-		"Nomes de eventos neste mapa são candidatos canônicos derivados da análise estratégica. Canonização definitiva ocorre nos canvas de cada BC, onde o evento é definido com schema, payload e invariantes. Até lá, nomes como EvidenceRecorded, NetworkBehaviorSignalEmitted e PaymentObligationDefaulted são plausíveis mas não validados cross-artifact.",
+		"Nomes de eventos neste mapa são candidatos canônicos derivados da análise estratégica. Canonização definitiva ocorre nos canvas de cada BC, onde o evento é definido com schema, payload e invariantes. Até lá, nomes são plausíveis mas não validados cross-artifact.",
 		"domainLevelTransversals não modelados nesta versão — definição de shared kernels de domínio requer análise dos canvas de cada BC, que ainda não existem.",
+		"INS→CMT não modelada nesta versão — não há evento de INS que mude estado de compromisso de forma semanticamente forte. Se canvas do CMT revelar CoverageRequirementBreached ou CoverageAttachedToCommitment, a relação entra.",
+		"IDC→CMT e IDC→FCE não modeladas — assinatura/autorização verificável é consumida como transversal genérica por ambos. Se canvas revelar requisito criptográfico específico diferenciado do consumo genérico, relação entra.",
 	]
 
 	assumptions: [
 		"Mapeamento 1:1 entre subdomínios e BCs é decisão arquitetural deliberada, não artefato acidental. Cada subdomínio foi analisado com precisão de BC (linguagem, invariantes, razão de existir próprias) e a conclusão foi que nenhum par de subdomínios compartilha linguagem o suficiente para justificar agrupamento. Esta decisão será reavaliada quando canvas de BCs revelarem sobreposição semântica não detectada na análise estratégica.",
-		"BCs transversais (idn, ntf, str, plt, obs) são consumidos como primitivas técnicas por todos os BCs de domínio. A ausência de relações explícitas não significa ausência de dependência — significa que a dependência é uniforme e cross-cutting. Ver regra de omissão em knownLimitations.",
-		"As relações modeladas refletem o Wave 0 da Mesh. Evolução da rede pode introduzir novas relações ou alterar padrões existentes.",
-		"Padrões conformist (ATO←INV, ATO←FCE, ATO←SCF, LOG←DGV, DLV←DGV) refletem decisão consciente: o custo de ACL não se justifica quando a linguagem downstream é extensão direta da upstream.",
+		"BCs transversais (ntf, str, plt, obs) são consumidos como primitivas técnicas por todos os BCs de domínio. IDC tem relações explícitas com LOG, DLV e NPM por semântica diferenciada. A ausência de relações explícitas para demais BCs não significa ausência de dependência — significa que a dependência é uniforme e cross-cutting. Ver regra de omissão em knownLimitations.",
+		"As relações modeladas refletem o Wave 0 da Mesh com ontologia expandida (WI-037). Evolução da rede pode introduzir novas relações ou alterar padrões existentes.",
+		"Padrões conformist (ATO←INV, ATO←FCE, ATO←SCF, ATO←ITC, LOG←IDC, DLV←IDC) refletem decisão consciente: o custo de ACL não se justifica quando a linguagem downstream é extensão direta da upstream.",
+		"Macrofluxo canônico estendido: P2P→SSC→CTR→CMT→BDG→DLV→INV→FCE. O spine antigo (CMT→BDG→DLV→INV→FCE) inicia no meio — o fluxo real começa na demanda interna (P2P) e decisão de sourcing (SSC).",
+		"INS intermedia entre rede Mesh e seguradoras externas — nunca subscreve risco. A existência de instrumento de proteção não elimina o risco subjacente nem garante indenização automática.",
 	]
 
 	rationale: """
-		Context map com 21 BCs e 32 relações. Mapeamento 1:1
-		BC↔subdomínio é decisão arquitetural deliberada — cada
-		subdomínio tem linguagem, invariantes e razão de existir
-		distintas. 32 relações cobrem: spine do commitment lifecycle (5),
-		cadeia de evidência (3), risco e inteligência (8), produtos
-		financeiros e execução (5), fiscal e contábil (3), crescimento
-		de rede (1), gestão contratual (3, inclui npm-to-ctr para
-		qualificação de partes) e disputas (4). 5 BCs transversais
-		são consumidos cross-cutting sem relações individuais (ver regra
-		de omissão em knownLimitations). 2 pares de feedback loops
-		diretos capturados (4 relações com feedbackLoop): fce↔rew
-		(pagamento↔risco) e cmt↔drc (compromisso↔disputa). Loop
-		indireto cmt→bdg→dlv→rew→cmt documentado em rationale de
-		rew-to-cmt. Classificação estratégica completa: subdomainType,
-		wardleyEvolution e domainAgentSpec (padrão agt-{bc}-primary)
-		preenchidos para todos os 21 BCs. Padrões de integração seguem
-		DDD: OHS/ACL como default, OHS-PL/ACL para contexts com
-		ontologia formal publicada (CTR, NIM, REW), conformist onde
-		linguagem downstream é extensão direta da upstream (ATO, LOG,
-		DLV←DGV), partnership para relação simétrica (NGR↔NPM).
-		Propagação CTR: 3 relações existentes (ctr-to-cmt, ctr-to-scf,
-		ctr-to-drc) atualizadas de sync para hybrid com eventos de
-		lifecycle; 1 nova relação (npm-to-ctr) para qualificação de
-		partes como precondição de registro.
+		Context map v2 com 25 BCs e 46 relações. Reconstruído sobre
+		ontologia expandida (WI-037): IDN+DGV fundidos em IDC; 6 novos
+		BCs (P2P, SSC, ITC, TCM, INS, IDC). Mapeamento 1:1
+		BC↔subdomínio mantido. 46 relações cobrem: spine do commitment
+		lifecycle (5), cadeia de evidência (3), risco e inteligência (8),
+		produtos financeiros e execução (5), fiscal e contábil (3),
+		crescimento de rede (1), gestão contratual (3), disputas (4),
+		procurement e sourcing (4, inclui macrofluxo P2P→SSC→CTR→CMT),
+		comércio exterior (3, ITC como hub entre CTR, LOG e ATO),
+		tesouraria e caixa (3, TCM como visão consolidada de
+		liquidez com feedback loop implícito fce→tcm→fce),
+		seguro e transferência de risco (3, INS como intermediário
+		entre rede e seguradoras externas), e identidade e governança
+		de dados (1, idc-to-npm por identidade verificável + 2
+		existentes idc-to-log e idc-to-dlv por integridade
+		criptográfica). 4 BCs transversais (ntf, str, plt, obs)
+		consumidos cross-cutting sem relações individuais. IDC tem 3
+		relações diferenciadas. 2 pares de feedback loops diretos:
+		fce↔rew (pagamento↔risco) e cmt↔drc (compromisso↔disputa).
+		1 sistema externo novo: ext-insurers (seguradoras e
+		garantidores). Macrofluxo canônico estendido:
+		P2P→SSC→CTR→CMT→BDG→DLV→INV→FCE. Padrões: OHS/ACL como
+		default, OHS-PL/ACL para ontologias formais (CTR, NIM, REW),
+		conformist para extensão direta (ATO, LOG←IDC, DLV←IDC,
+		ATO←ITC), partnership para simetria (NGR↔NPM).
 		"""
 }
