@@ -94,7 +94,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "ctr", name: "Contract & Terms Registry", subdomains: ["ctr"]
 			subdomainType: "supporting", wardleyEvolution: "product"
 			domainAgentSpec: "agt-ctr-primary"
-			rationale: "Formalização e gestão de lifecycle de instrumentos contratuais — contratos-quadro, contratos de fornecimento e termos contratuais aplicáveis a pedidos de compra, ordens de serviço, SLAs, cláusulas de retenção e exigências de garantia. Registry canônico de termos contratuais que CMT e FCE consomem. Publica eventos de lifecycle para CMT, SCF, DRC e ITC; consome qualificação de NPM e decisões de SSC. BC separado: linguagem contratual, versionamento imutável e lifecycle de termos são distintos de compromisso (CMT), disputa (DRC) e sourcing (SSC)."
+			rationale: "Formalização e gestão de lifecycle de instrumentos contratuais — contratos-quadro, contratos de fornecimento e termos contratuais aplicáveis a pedidos de compra, ordens de serviço, SLAs, cláusulas de retenção e exigências de garantia. Registry canônico de termos contratuais consumido primariamente por CMT e por BCs downstream como SCF, DRC e ITC. Publica eventos de lifecycle para CMT, SCF, DRC e ITC; consome qualificação de NPM e decisões de SSC. BC separado: linguagem contratual, versionamento imutável e lifecycle de termos são distintos de compromisso (CMT), disputa (DRC) e sourcing (SSC)."
 		},
 		{
 			context: "idc", name: "Identity & Data Governance", subdomains: ["idc"]
@@ -130,7 +130,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "log", name: "Logistics & Operational Evidence", subdomains: ["log"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-log-primary"
-			rationale: "Captura, registro e gestão de evidência operacional: rastreamento de carga, inspeção de qualidade, medição de obra, atividades de prestação de serviço e eventos de campo. Produz cadeia de custódia registrada que DLV consome. Consome integridade de IDC; publica evidência para DLV. BC separado: linguagem de evidência operacional e rastreabilidade são distintas de verificação de compromisso (DLV) e governança de dados (IDC)."
+			rationale: "Captura, registro e gestão de evidência operacional: rastreamento de carga, inspeção de qualidade, medição de obra, atividades de prestação de serviço e eventos de campo. Produz cadeia de custódia registrada que DLV consome. Consome integridade de IDC; publica eventos operacionais e cadeia de custódia para DLV. BC separado: linguagem de evidência operacional e rastreabilidade são distintas de verificação de compromisso (DLV) e governança de dados (IDC)."
 		},
 		{
 			context: "npm", name: "Network Participant Management", subdomains: ["npm"]
@@ -172,7 +172,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "scf", name: "Supply Chain Finance", subdomains: ["scf"]
 			subdomainType: "supporting", wardleyEvolution: "product"
 			domainAgentSpec: "agt-scf-primary"
-			rationale: "Estruturação e oferta de produtos financeiros sobre recebíveis operacionais e preparação de portfólios para distribuição: antecipação de recebíveis, reverse factoring, dynamic discounting, working capital e preparação de portfólios de securitização. Consome recebíveis materializados por INV a partir do commitment lifecycle (CMT governa estado), elegibilidade de REW e termos de CTR; opera como SCD. BC separado: linguagem de financiamento de cadeia produtiva, regras de cessão e operação de FIDC são distintas de faturamento (INV) e risco (REW). SCF estrutura; FCE executa."
+			rationale: "Estruturação e oferta de produtos financeiros sobre recebíveis operacionais e preparação de portfólios para distribuição: antecipação de recebíveis, reverse factoring, dynamic discounting, working capital e preparação de portfólios de securitização. Consome recebíveis materializados por INV, derivados de compromissos governados por CMT, elegibilidade de REW e termos de CTR; opera como SCD. BC separado: linguagem de financiamento de cadeia produtiva, regras de cessão e operação de FIDC são distintas de faturamento (INV) e risco (REW). SCF estrutura; FCE executa."
 		},
 
 		// --- Generic (3) ---
