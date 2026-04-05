@@ -136,7 +136,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "npm", name: "Network Participant Management", subdomains: ["npm"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
 			domainAgentSpec: "agt-npm-primary"
-			rationale: "Gerencia ciclo de vida de participantes da rede. Publica eventos para REW, NIM e CTR; opera em parceria com NGR. BC separado: linguagem de participante, onboarding e qualificação são distintos de risco (REW) e growth (NGR)."
+			rationale: "Gerencia ciclo de vida de participantes da rede. Publica eventos para REW, NIM, CTR e SSC; opera em parceria com NGR. BC separado: linguagem de participante, onboarding e qualificação são distintos de risco (REW) e growth (NGR)."
 		},
 		{
 			context: "p2p", name: "Procure-to-Pay", subdomains: ["p2p"]
@@ -172,7 +172,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "scf", name: "Supply Chain Finance", subdomains: ["scf"]
 			subdomainType: "supporting", wardleyEvolution: "product"
 			domainAgentSpec: "agt-scf-primary"
-			rationale: "Estruturação e oferta de produtos financeiros sobre recebíveis operacionais e preparação de portfólios para distribuição: antecipação de recebíveis, reverse factoring, dynamic discounting, working capital e preparação de portfólios de securitização. Consome recebíveis materializados por INV, derivados de compromissos governados por CMT, elegibilidade de REW e termos de CTR; opera como SCD. BC separado: linguagem de financiamento de cadeia produtiva, regras de cessão e operação de FIDC são distintas de faturamento (INV) e risco (REW). SCF estrutura; FCE executa."
+			rationale: "Estruturação e oferta de produtos financeiros sobre recebíveis operacionais e preparação de portfólios para distribuição: antecipação de recebíveis, reverse factoring, dynamic discounting, working capital e preparação de portfólios de securitização. Consome recebíveis materializados por INV, derivados de compromissos governados por CMT, elegibilidade de REW, termos de CTR e estado de cobertura securitária de INS; opera como SCD. BC separado: linguagem de financiamento de cadeia produtiva, regras de cessão e operação de FIDC são distintas de faturamento (INV) e risco (REW). SCF estrutura; FCE executa."
 		},
 
 		// --- Generic (3) ---
@@ -854,7 +854,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "IDC fornece identidade verificável e evidências base de verificação de identidade; NPM consome como pré-condição para onboarding e qualificação de participantes."
 			rationale:         "Identidade verificável é pré-condição de onboarding — NPM não qualifica sem identidade. Relação semanticamente diferenciada: NPM depende de verificação de identidade de forma distinta dos demais BCs que consomem autenticação genérica. ACL porque NPM traduz resultado de verificação para linguagem de qualificação de participante. Compliance material (KYC/AML) é responsabilidade de NPM — IDC fornece apenas a verificação de identidade base."
 			communication: {type: "hybrid"}
-			events: ["IdentityVerified", "IdentityVerificationCompleted"]
+			events: ["IdentityVerificationCompleted"]
 			queries: ["QueryIdentityVerificationStatus"]
 		},
 	]
@@ -889,6 +889,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		"domainLevelTransversals não modelados nesta versão — definição de shared kernels de domínio requer análise dos canvas de cada BC, que ainda não existem.",
 		"INS→CMT não modelada nesta versão — não há evento de INS que mude estado de compromisso de forma semanticamente forte. Se canvas do CMT revelar CoverageRequirementBreached ou CoverageAttachedToCommitment, a relação entra.",
 		"IDC→CMT e IDC→FCE não modeladas — assinatura/autorização verificável é consumida como transversal genérica por ambos. Se canvas revelar requisito criptográfico específico diferenciado do consumo genérico, relação entra.",
+		"ATO acumula 4 upstreams conformist (INV, FCE, SCF, ITC). Decisão consciente — linguagem fiscal é extensão direta de cada upstream. Risco: mudança de schema em qualquer upstream impacta ATO sem tradução. Se a concentração gerar instabilidade, migrar para ACL seletivo nas relações mais voláteis.",
 	]
 
 	assumptions: [
@@ -896,7 +897,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		"BCs transversais (ntf, str, plt, obs) são consumidos como primitivas técnicas por todos os BCs de domínio. IDC tem relações explícitas com LOG, DLV e NPM por semântica diferenciada. A ausência de relações explícitas para demais BCs não significa ausência de dependência — significa que a dependência é uniforme e cross-cutting. Ver regra de omissão em knownLimitations.",
 		"As relações modeladas refletem o Wave 0 da Mesh com ontologia expandida (WI-037). Evolução da rede pode introduzir novas relações ou alterar padrões existentes.",
 		"Padrões conformist (ATO←INV, ATO←FCE, ATO←SCF, ATO←ITC, LOG←IDC, DLV←IDC) refletem decisão consciente: o custo de ACL não se justifica quando a linguagem downstream é extensão direta da upstream.",
-		"Macrofluxo canônico estendido: P2P→SSC→CTR→CMT→BDG→DLV→INV→FCE. O spine antigo (CMT→BDG→DLV→INV→FCE) inicia no meio — o fluxo real começa na demanda interna (P2P) e decisão de sourcing (SSC). O macrofluxo não é linear rígido: P2P→CMT direto existe para compras spot sem contrato-quadro prévio; SSC→CTR→CMT é o caminho quando há sourcing estratégico e formalização contratual. A coexistência das duas relações reflete bifurcação real por tipo de instrumento, não redundância.",
+		"Macrofluxo canônico estendido: SSC→{P2P, CTR}→CMT→BDG→DLV→INV→FCE. O spine antigo (CMT→BDG→DLV→INV→FCE) inicia no meio — o fluxo real começa na decisão de sourcing (SSC), que informa tanto a execução de compra (P2P) quanto a formalização contratual (CTR), ambas convergindo em CMT. O macrofluxo não é linear rígido: P2P→CMT direto existe para compras spot sem contrato-quadro prévio; SSC→CTR→CMT é o caminho quando há sourcing estratégico e formalização contratual. A coexistência das duas relações reflete bifurcação real por tipo de instrumento, não redundância.",
 		"INS intermedia entre rede Mesh e seguradoras externas — nunca subscreve risco. A existência de instrumento de proteção não elimina o risco subjacente nem garante indenização automática.",
 	]
 
@@ -922,7 +923,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		fce↔rew (pagamento↔risco) e cmt↔drc (compromisso↔disputa).
 		1 sistema externo novo: ext-insurers (seguradoras e
 		garantidores). Macrofluxo canônico estendido:
-		P2P→SSC→CTR→CMT→BDG→DLV→INV→FCE. Padrões: OHS/ACL como
+		SSC→{P2P, CTR}→CMT→BDG→DLV→INV→FCE. Padrões: OHS/ACL como
 		default, OHS-PL/ACL para ontologias formais (CTR, NIM, REW),
 		conformist para extensão direta (ATO, LOG←IDC, DLV←IDC,
 		ATO←ITC), partnership para simetria (NGR↔NPM).
