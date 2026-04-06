@@ -112,7 +112,8 @@ canvas: artifact_schemas.#Canvas & {
 				Qualificação de participantes: verificação de
 				identidade (via IDC), análise documental KYC/AML
 				e avaliação de perfil de negócio, com resultado
-				binário (qualificado ou não) e monitoramento
+				operacional binário para fins de gate downstream
+				(qualified ou not-qualified-to-operate) e monitoramento
 				contínuo pós-qualificação. Cada passo do processo
 				gera evidência verificável.
 				"""
@@ -266,7 +267,7 @@ canvas: artifact_schemas.#Canvas & {
 	stakeholders: [{
 		stakeholderRef:    "sh-01"
 		roleInContext:     "Participante-comprador — submete onboarding e documentação para operar como contratante na rede."
-		impactDescription: "Onboarding com processo claro e resultado binário (qualificado ou não) permite rastreabilidade completa. Reduz time-to-first-operation versus processos manuais de cadastro."
+		impactDescription: "Onboarding com processo claro e resultado operacional binário (qualified ou not-qualified-to-operate) permite rastreabilidade completa. Reduz time-to-first-operation versus processos manuais de cadastro."
 		rationale:         "Construtora é o participante âncora da rede no vertical de construção civil. Experiência de onboarding determina conversão."
 	}, {
 		stakeholderRef:    "sh-02"
@@ -453,7 +454,7 @@ canvas: artifact_schemas.#Canvas & {
 		rationale:          "Dependência de IDC é ponto de falha para onboarding. Se IDC não é confiável, NPM precisa de estratégia de resiliência."
 	}, {
 		id:                 "as-npm-2"
-		assumption:         "Qualificação binária (qualified/not qualified) é suficiente para todos os BCs downstream."
+		assumption:         "Qualificação binária (qualified/not-qualified-to-operate) é suficiente para todos os BCs downstream."
 		invalidationSignal: "BCs downstream precisam de níveis de qualificação diferentes — e.g., CTR exige qualificação plena para contratos de alto valor mas aceita qualificação básica para contratos standard."
 		rationale:          "Qualificação binária simplifica gate de acesso. Se tiers forem necessários, o modelo precisa de extensão sem quebrar invariante existente."
 	}, {
@@ -529,7 +530,9 @@ canvas: artifact_schemas.#Canvas & {
 		no context-map. Eventos de lifecycle são especializações
 		locais do published language estratégico
 		NetworkParticipantStatusChanged do context-map —
-		convenção local candidata a promoção. Decisões de
+		convenção local candidata a promoção. Runner trata
+		cada evento granular como instância tipada do
+		NetworkParticipantStatusChanged estratégico. Decisões de
 		negócio: KYC/AML em NPM (não IDC), qualificação como
 		gate binário (bd-qualification-as-gate), lifecycle
 		explícito com 4 estados. Governance: registro e
