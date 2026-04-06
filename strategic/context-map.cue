@@ -23,7 +23,10 @@ package strategic
 // - domainAgentSpec referencia o path canônico do agent spec do BC.
 // - Formato: contexts/{bc}/agents/{bc}-primary-agent.cue
 // - Substitui o antigo ID lógico agt-{bc}-primary (ADR-039).
-// - Permite validação estrutural direta pelo runner.
+// - Permite validação estrutural do formato diretamente pelo runner.
+// - A coerência entre o BC do contexto e o BC embutido no path,
+//   bem como a existência física do arquivo, é validada pelo runner
+//   como regra semântica.
 // - Estado transitório: paths declarados para todos os 25 BCs;
 //   existência física dos arquivos é progressiva conforme agent
 //   specs são criados por WI dedicados.
