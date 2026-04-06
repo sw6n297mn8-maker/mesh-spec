@@ -167,7 +167,14 @@ package artifact_schemas
 	// tq-cm-12 alerta quando ausentes sem rationale.
 	subdomainType?:    "core" | "supporting" | "generic"
 	wardleyEvolution?: "genesis" | "custom" | "product" | "commodity"
-	domainAgentSpec?:  string & !=""
+	// Path canônico do agent spec primário do BC.
+	// Formato esperado: contexts/{bc}/agents/{bc}-primary-agent.cue
+	// Substitui o antigo ID lógico (agt-{bc}-primary) — ADR-039.
+	// O schema valida apenas o formato geral do path.
+	// A coerência entre o BC do contexto e o BC embutido no path,
+	// bem como a existência física do arquivo, é validada pelo runner.
+	// Arquivo ausente em fase incremental: warn, não fail.
+	domainAgentSpec?: string
 
 	// Referências a transversais definidos em domainLevelTransversals[].code.
 	// tq-cm-13 valida existência.

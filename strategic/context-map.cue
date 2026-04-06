@@ -18,6 +18,15 @@ package strategic
 // - Queries: Query{Entity}{Aspect}
 // Nomes são canônicos nesta versão; revisões futuras nos canvas
 // de cada BC podem refiná-los.
+//
+// Convenção de referência de agent specs:
+// - domainAgentSpec referencia o path canônico do agent spec do BC.
+// - Formato: contexts/{bc}/agents/{bc}-primary-agent.cue
+// - Substitui o antigo ID lógico agt-{bc}-primary (ADR-039).
+// - Permite validação estrutural direta pelo runner.
+// - Estado transitório: paths declarados para todos os 25 BCs;
+//   existência física dos arquivos é progressiva conforme agent
+//   specs são criados por WI dedicados.
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
@@ -44,37 +53,37 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		{
 			context: "cmt", name: "Commitment Management", subdomains: ["cmt"]
 			subdomainType: "core", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-cmt-primary"
+			domainAgentSpec: "contexts/cmt/agents/cmt-primary-agent.cue"
 			rationale: "Formaliza compromissos econômicos entre organizações com aceite bilateral, a partir de sinais upstream de procurement (P2P), eventualmente informados por sourcing estratégico (SSC), e sob termos contratuais de CTR. Consome sinais de risco (REW); publica compromissos para BDG, TCM e DRC. BC separado: linguagem de compromisso, gates de confirmação e invariantes de aceite mútuo são distintos de termos (CTR), risco (REW) e procurement (P2P)."
 		},
 		{
 			context: "dlv", name: "Delivery & Verification", subdomains: ["dlv"]
 			subdomainType: "core", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-dlv-primary"
+			domainAgentSpec: "contexts/dlv/agents/dlv-primary-agent.cue"
 			rationale: "Verifica execução de compromissos contra critérios acordados. Consome evidência de LOG com integridade de IDC; publica verificação para INV, REW, NIM e DRC. BC separado: linguagem de verificação e suficiência de evidência é distinta de logística (LOG) e faturamento (INV)."
 		},
 		{
 			context: "fce", name: "Financial Commitment Execution", subdomains: ["fce"]
 			subdomainType: "core", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-fce-primary"
+			domainAgentSpec: "contexts/fce/agents/fce-primary-agent.cue"
 			rationale: "Executa liquidação financeira condicionada a gates de risco e fatura válida, com disponibilidade informada por TCM e settlement via BKR. Consome elegibilidade de REW e faturas de INV; publica sinais de pagamento para REW, ATO e TCM. BC separado: linguagem de liquidação e regras de settlement são distintas de faturamento (INV), risco (REW), tesouraria (TCM) e rails bancários (BKR)."
 		},
 		{
 			context: "ngr", name: "Network Growth & Reach", subdomains: ["ngr"]
 			subdomainType: "core", wardleyEvolution: "genesis"
-			domainAgentSpec: "agt-ngr-primary"
+			domainAgentSpec: "contexts/ngr/agents/ngr-primary-agent.cue"
 			rationale: "Direciona crescimento da rede usando insights de NIM. Opera em parceria com NPM para onboarding de participantes. BC separado: linguagem de growth, estratégias de aquisição e métricas de rede são distintas de gestão de participantes (NPM) e inteligência (NIM)."
 		},
 		{
 			context: "nim", name: "Network Intelligence & Mechanism Design", subdomains: ["nim"]
 			subdomainType: "core", wardleyEvolution: "genesis"
-			domainAgentSpec: "agt-nim-primary"
+			domainAgentSpec: "contexts/nim/agents/nim-primary-agent.cue"
 			rationale: "Modela topologia e comportamento de rede para calibrar mecanismos de incentivo. Consome dados de NPM e DLV; publica ontologia de mecanismos para REW e insights para NGR. BC separado: linguagem de mecanismos, modelagem de rede e calibração de incentivos são distintas de risco (REW) e growth (NGR)."
 		},
 		{
 			context: "rew", name: "Risk Engine & Risk Observability", subdomains: ["rew"]
 			subdomainType: "core", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-rew-primary"
+			domainAgentSpec: "contexts/rew/agents/rew-primary-agent.cue"
 			rationale: "Avalia risco contínuo de participantes e operações. Consome sinais de múltiplos BCs; publica scores e elegibilidade como published language. BC separado: linguagem de risco, modelos de scoring e decisões de elegibilidade são distintas de compromissos (CMT) e financiamento (SCF)."
 		},
 
@@ -82,97 +91,97 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		{
 			context: "ato", name: "Accounting & Tax Operations", subdomains: ["ato"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-ato-primary"
+			domainAgentSpec: "contexts/ato/agents/ato-primary-agent.cue"
 			rationale: "Registra lançamentos fiscais e contábeis derivados de operações de faturamento, liquidação financeira, supply chain finance e comércio exterior. Consome eventos de INV, FCE, SCF e ITC em modo conformist. BC separado: linguagem fiscal/contábil e regulação tributária brasileira e aduaneira são distintas de faturamento (INV), liquidação (FCE), financiamento (SCF) e comércio exterior (ITC)."
 		},
 		{
 			context: "bdg", name: "Budget & Approval", subdomains: ["bdg"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-bdg-primary"
+			domainAgentSpec: "contexts/bdg/agents/bdg-primary-agent.cue"
 			rationale: "Aprova ou rejeita cobertura orçamentária para compromissos. Consome CommitmentAccepted de CMT; publica BudgetApproved para DLV. BC separado: linguagem orçamentária, regras de aprovação e limites de cobertura são distintos de compromisso (CMT) e verificação (DLV)."
 		},
 		{
 			context: "ctr", name: "Contract & Terms Registry", subdomains: ["ctr"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-ctr-primary"
+			domainAgentSpec: "contexts/ctr/agents/ctr-primary-agent.cue"
 			rationale: "Formalização e gestão de lifecycle de instrumentos contratuais — contratos-quadro, contratos de fornecimento e termos contratuais aplicáveis a pedidos de compra, ordens de serviço, SLAs, cláusulas de retenção e exigências de garantia. Registry canônico de termos contratuais consumido primariamente por CMT e por BCs downstream como SCF, DRC e ITC. Publica eventos de lifecycle para CMT, SCF, DRC e ITC; consome qualificação de NPM e decisões de SSC. BC separado: linguagem contratual, versionamento imutável e lifecycle de termos são distintos de compromisso (CMT), disputa (DRC) e sourcing (SSC)."
 		},
 		{
 			context: "idc", name: "Identity & Data Governance", subdomains: ["idc"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-idc-primary"
+			domainAgentSpec: "contexts/idc/agents/idc-primary-agent.cue"
 			rationale: "Gestão de identidade, autenticação, autorização, governança de dados e integridade criptográfica. Unifica identidade e primitivas de verificação criptográfica (CAS, DSSE, Merkle proofs) sob único owner — quem fez o quê, com qual permissão, e a evidência está íntegra. Substitui antigos IDN e DGV. Relações individuais modeladas apenas quando semanticamente diferenciadas (LOG, DLV, NPM); demais BCs consomem IDC como transversal."
 		},
 		{
 			context: "drc", name: "Disputes, Reversals & Corrections", subdomains: ["drc"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-drc-primary"
+			domainAgentSpec: "contexts/drc/agents/drc-primary-agent.cue"
 			rationale: "Avalia e resolve disputas referenciando compromissos, evidência e termos. Consome de CMT, DLV e CTR; publica decisões para FCE e CMT. BC separado: linguagem de disputa, processo de resolução e reversão são distintos de compromisso (CMT) e execução financeira (FCE)."
 		},
 		{
 			context: "ins", name: "Insurance & Risk Transfer", subdomains: ["ins"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-ins-primary"
+			domainAgentSpec: "contexts/ins/agents/ins-primary-agent.cue"
 			rationale: "Governa instrumentos de proteção e transferência de risco: seguro garantia, seguro de carga, performance bonds e outros instrumentos emitidos por seguradoras e garantidores. BC separado: linguagem securitária (apólice, sinistro, prêmio, franquia, endosso, cobertura), profissionais (corretores, underwriters) e regime regulatório (SUSEP, IRB) são distintos de precificação de risco (REW) e originação financeira (SCF). INS intermedia — não subscreve."
 		},
 		{
 			context: "itc", name: "International Trade & Customs", subdomains: ["itc"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-itc-primary"
+			domainAgentSpec: "contexts/itc/agents/itc-primary-agent.cue"
 			rationale: "Governa operações de comércio exterior: freight forwarding, desembaraço aduaneiro, documentação comex e compliance aduaneiro. BC separado: linguagem de comex (BL, AWB, DI, Incoterms, NCM), profissionais (despachantes, freight forwarders) e regime regulatório (legislação aduaneira, Siscomex, câmbio) são distintos de logística doméstica (LOG) e execução financeira (FCE)."
 		},
 		{
 			context: "inv", name: "Invoicing", subdomains: ["inv"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-inv-primary"
+			domainAgentSpec: "contexts/inv/agents/inv-primary-agent.cue"
 			rationale: "Emite faturas vinculadas a entrega verificada. Consome DeliveryVerified de DLV; publica InvoiceIssued para FCE, SCF e ATO. BC separado: linguagem fiscal de faturamento, regras de NF-e e regulação tributária são distintas de verificação (DLV) e liquidação (FCE)."
 		},
 		{
 			context: "log", name: "Logistics & Operational Evidence", subdomains: ["log"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-log-primary"
+			domainAgentSpec: "contexts/log/agents/log-primary-agent.cue"
 			rationale: "Captura, registro e gestão de evidência operacional: rastreamento de carga, inspeção de qualidade, medição de obra, atividades de prestação de serviço e eventos de campo. Produz cadeia de custódia registrada que DLV consome. Consome integridade de IDC; publica eventos operacionais e cadeia de custódia para DLV. BC separado: linguagem de evidência operacional e rastreabilidade são distintas de verificação de compromisso (DLV) e governança de dados (IDC)."
 		},
 		{
 			context: "npm", name: "Network Participant Management", subdomains: ["npm"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
-			domainAgentSpec: "agt-npm-primary"
+			domainAgentSpec: "contexts/npm/agents/npm-primary-agent.cue"
 			rationale: "Gerencia ciclo de vida de participantes da rede. Publica eventos para REW, NIM, CTR e SSC; opera em parceria com NGR. BC separado: linguagem de participante, onboarding e qualificação são distintos de risco (REW) e growth (NGR)."
 		},
 		{
 			context: "p2p", name: "Procure-to-Pay", subdomains: ["p2p"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-p2p-primary"
+			domainAgentSpec: "contexts/p2p/agents/p2p-primary-agent.cue"
 			rationale: "Governa ciclo interno de demanda-compra: requisição, aprovação, emissão de pedido de compra para fornecedores participantes. BC separado: linguagem de procurement (requisição, autorização, pedido de compra), profissionais (compradores, requisitantes técnicos) e cadência de evolução (políticas corporativas) são distintos de compromisso econômico (CMT) e sourcing estratégico (SSC)."
 		},
 		{
 			context: "obs", name: "Observability & Operational Intelligence", subdomains: ["obs"]
 			subdomainType: "supporting", wardleyEvolution: "commodity"
-			domainAgentSpec: "agt-obs-primary"
+			domainAgentSpec: "contexts/obs/agents/obs-primary-agent.cue"
 			rationale: "Fornece observabilidade e inteligência operacional. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de observabilidade e métricas operacionais é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
 			context: "plt", name: "Platform & Infrastructure Services", subdomains: ["plt"]
 			subdomainType: "supporting", wardleyEvolution: "commodity"
-			domainAgentSpec: "agt-plt-primary"
+			domainAgentSpec: "contexts/plt/agents/plt-primary-agent.cue"
 			rationale: "Fornece serviços de plataforma e infraestrutura. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de infraestrutura e serviços de plataforma é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
 			context: "ssc", name: "Strategic Sourcing & Category", subdomains: ["ssc"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-ssc-primary"
+			domainAgentSpec: "contexts/ssc/agents/ssc-primary-agent.cue"
 			rationale: "Governa seleção estratégica de fornecedores e gestão de categorias de compra: cotação estruturada, equalização TCO, spend analysis e decisão de sourcing. BC separado: linguagem de sourcing (categoria, TCO, RFQ, spend), profissionais (category managers) e cadência (contratos-quadro anuais/plurianuais) são distintos de execução de compra (P2P) e qualificação de participantes (NPM)."
 		},
 		{
 			context: "tcm", name: "Treasury & Cash Management", subdomains: ["tcm"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-tcm-primary"
+			domainAgentSpec: "contexts/tcm/agents/tcm-primary-agent.cue"
 			rationale: "Governa visão de tesouraria corporativa: posição de caixa, projeção de fluxo de caixa, estratégia de liquidez e exposição cambial. BC separado: linguagem de tesouraria (cash position, cash forecast, liquidez, hedge), profissionais (tesoureiros, controllers) e cadência (projeções diárias/semanais) são distintos de execução financeira transacional (FCE) e originação de produto financeiro (SCF)."
 		},
 		{
 			context: "scf", name: "Supply Chain Finance", subdomains: ["scf"]
 			subdomainType: "supporting", wardleyEvolution: "product"
-			domainAgentSpec: "agt-scf-primary"
+			domainAgentSpec: "contexts/scf/agents/scf-primary-agent.cue"
 			rationale: "Estruturação e oferta de produtos financeiros sobre recebíveis operacionais e preparação de portfólios para distribuição: antecipação de recebíveis, reverse factoring, dynamic discounting, working capital e preparação de portfólios de securitização. Consome recebíveis materializados por INV, derivados de compromissos governados por CMT, elegibilidade de REW, termos de CTR e estado de cobertura securitária de INS; opera como SCD. BC separado: linguagem de financiamento de cadeia produtiva, regras de cessão e operação de FIDC são distintas de faturamento (INV) e risco (REW). SCF estrutura; FCE executa."
 		},
 
@@ -180,19 +189,19 @@ meshContextMap: artifact_schemas.#ContextMap & {
 		{
 			context: "bkr", name: "Banking Rails & Settlement", subdomains: ["bkr"]
 			subdomainType: "generic", wardleyEvolution: "commodity"
-			domainAgentSpec: "agt-bkr-primary"
+			domainAgentSpec: "contexts/bkr/agents/bkr-primary-agent.cue"
 			rationale: "Integra com rails bancários para liquidação física. Consumido por FCE para settlement. BC separado: linguagem de integração bancária e protocolos de settlement são domínio especializado distinto de execução financeira (FCE)."
 		},
 		{
 			context: "ntf", name: "Notifications & Communications", subdomains: ["ntf"]
 			subdomainType: "generic", wardleyEvolution: "commodity"
-			domainAgentSpec: "agt-ntf-primary"
+			domainAgentSpec: "contexts/ntf/agents/ntf-primary-agent.cue"
 			rationale: "Fornece notificações e comunicações. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de notificação e canais de comunicação é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 		{
 			context: "str", name: "Storage & Document Management", subdomains: ["str"]
 			subdomainType: "generic", wardleyEvolution: "commodity"
-			domainAgentSpec: "agt-str-primary"
+			domainAgentSpec: "contexts/str/agents/str-primary-agent.cue"
 			rationale: "Fornece armazenamento e gestão documental. Capability transversal consumida por todos os BCs de domínio. BC separado: linguagem de storage e gestão documental é domínio especializado. Relações individuais omitidas — ver knownLimitations, regra de omissão de transversais."
 		},
 	]
