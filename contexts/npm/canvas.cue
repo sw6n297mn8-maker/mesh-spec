@@ -7,9 +7,10 @@ package npm
 // onboarding, qualificação (KYC/AML), monitoramento contínuo,
 // suspensão, reativação e terminação. CTR depende diretamente
 // de NPM via query sync para validar qualificação antes de
-// registrar termos. REW, NIM, SSC e NGR consomem eventos de
-// lifecycle para atualizar modelos, topologia, sourcing e
-// métricas de crescimento respectivamente.
+// registrar termos. REW, NIM e SSC consomem eventos de
+// lifecycle para atualizar modelos, topologia e sourcing
+// respectivamente. NGR consome evento de registro
+// (ParticipantRegistered) para métricas de crescimento.
 //
 // IDC fornece verificação de identidade base. NPM consome o
 // resultado de duas formas complementares: evento push
@@ -191,7 +192,7 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "query-surface"
 			query:       "QueryParticipantStatus"
 			returnType:  "ParticipantStatus"
-			description: "Retorna status de qualificação (pending, qualified, suspended, terminated) e data de última qualificação. Interface primária consumida por CTR (registro de termos) e SSC (decisão de sourcing). Context-map referencia esta query como QueryParticipantQualificationStatus — nome estratégico para a mesma interface."
+			description: "Retorna status de qualificação (pending, qualified, suspended, terminated) e data de última qualificação. Interface primária consumida por CTR (registro de termos) e SSC (decisão de sourcing). Context-map usa dois nomes para esta query: QueryParticipantStatus em npm-to-ctr e QueryParticipantQualificationStatus em npm-to-ssc — divergência a alinhar no context-map."
 		}, {
 			type:        "query-surface"
 			query:       "QueryParticipantProfile"
@@ -228,7 +229,7 @@ canvas: artifact_schemas.#Canvas & {
 			trigger:     "Novo participante registrado (pendente de qualificação)."
 			event:       "ParticipantRegistered"
 			consumers:   ["ngr", "rew"]
-			description: "Sinal de novo registro na rede. NGR consome para métricas de crescimento e funil de conversão. REW inicializa modelo de risco baseline para o participante (consistente com NetworkParticipantOnboarded no context-map). Consistente com partnership ngr↔npm."
+			description: "Sinal de novo registro na rede. NGR consome para métricas de crescimento e funil de conversão. REW inicializa modelo de risco baseline para o participante. Context-map referencia este evento como NetworkParticipantOnboarded — nome estratégico para o mesmo sinal de registro. Consistente com partnership ngr↔npm."
 		}, {
 			type:          "query-dependency"
 			targetContext: "idc"
@@ -251,7 +252,8 @@ canvas: artifact_schemas.#Canvas & {
 			query pull confirma estado no ponto de decisão — em
 			caso de divergência, query prevalece. NPM é upstream
 			de qualificação para 4 BCs via evento (REW, NIM, SSC,
-			NGR) e 1 via query sync (CTR). NIM e SSC consomem
+			NGR) e 2 via query sync (CTR e SSC — npm-to-ssc é
+			hybrid no context-map). NIM e SSC consomem
 			todos os status changes (não apenas qualificação) —
 			consistente com NetworkParticipantStatusChanged no
 			context-map. Publicação de terminação para CMT
@@ -266,7 +268,7 @@ canvas: artifact_schemas.#Canvas & {
 		consequences: "NPM depende de IDC para pré-condição (identidade verificada), mas executa qualificação de forma independente. Se IDC não responde, NPM não pode qualificar — dependência declarada."
 	}, {
 		id:           "bd-qualification-as-gate"
-		decision:     "Qualificação em NPM é gate binário para operações contratuais e financeiras na rede. Participante não qualificado não pode ser usado como contraparte habilitada em operações que exigem qualificação. BCs como REW, NIM e NGR referenciam participantes em qualquer estado para fins de scoring, topologia e métricas — a restrição do gate aplica-se a operações contratuais e financeiras, não a observação."
+		decision:     "Qualificação em NPM é gate binário para operações contratuais e financeiras na rede. Participante não qualificado não pode ser usado como contraparte habilitada em operações que exigem qualificação. BCs como REW e NIM referenciam participantes em qualquer estado para fins de scoring e topologia — a restrição do gate aplica-se a operações contratuais e financeiras, não a observação."
 		rationale:    "Gate binário simplifica invariante para downstream: CTR verifica apenas QueryParticipantStatus == qualified. Sem gate, cada BC implementaria sua própria lógica de verificação — inconsistência garantida."
 		consequences: "Qualquer interrupção em NPM bloqueia operações que envolvam novos participantes. Participantes já qualificados continuam operáveis — status é cached por downstream via evento ou última query."
 	}, {
@@ -372,7 +374,7 @@ canvas: artifact_schemas.#Canvas & {
 			manipulationCost:          "IDC verifica identidade de cada entidade independentemente — vínculos societários e de controle são verificáveis contra fontes externas (Receita Federal, Junta Comercial). Monitoramento contínuo cruza padrões comportamentais entre participantes — operação coordenada anômala é sinal estatístico detectável por REW. Terminação de uma entidade dispara reavaliação de entidades vinculadas."
 			vsBenefit:                 "Benefício de conluio é contornar terminação ou acelerar qualificação. Custo: detecção por verificação cruzada de vínculos + monitoramento de padrões coordenados + terminação em cascata de todos os envolvidos."
 			designResponse:            "Verificação de vínculos societários e de controle via fontes externas. REW monitora padrões comportamentais coordenados entre participantes. Terminação de entidade dispara reavaliação de entidades vinculadas. Trail auditável documenta vínculos para responsabilização. Limitação reconhecida: conluio sofisticado sem vínculos formais é parcialmente mitigado por monitoramento comportamental mas não eliminado por design (at-06)."
-			rationale:                 "at-06 do domain-definition identifica conluio coordenado como ameaça ao sistema que dp-08 mitiga parcialmente mas não elimina. Este vetor reconhece a limitação: design response torna conluio mais caro mas não impossível. Detecção depende de vínculos formais verificáveis e padrões comportamentais — conluio sem rastro formal é residual."
+			rationale:                 "at-06 do domain-definition identifica conluio coordenado como ameaça que dp-08 mitiga parcialmente mas não elimina. Schema exige stakeholderRef singular — sh-01 é usado como representante, mas o vetor envolve sh-01 + sh-02 coordenados. Design response torna conluio mais caro mas não impossível. Detecção depende de vínculos formais verificáveis e padrões comportamentais — conluio sem rastro formal é risco residual."
 		}]
 		rationale: """
 			Análise cobre 5 vetores em 4 classes: (a) falsificação
@@ -489,9 +491,9 @@ canvas: artifact_schemas.#Canvas & {
 		rationale:          "Verificação contra fontes externas é parte material do KYC/AML. Se indisponíveis, NPM opera com verificação parcial — risco de compliance."
 	}, {
 		id:                 "as-npm-4"
-		assumption:         "Reavaliação periódica de qualificação com cadência trimestral é suficiente para monitoramento contínuo entre sinais de risco de REW."
+		assumption:         "Reavaliação periódica de qualificação com cadência trimestral é suficiente para monitoramento contínuo de qualificação."
 		invalidationSignal: "Deterioração de participante detectada entre reavaliações periódicas — sinal de que cadência é insuficiente para o perfil de risco da rede."
-		rationale:          "Monitoramento contínuo opera em duas camadas: reavaliação periódica (cadência fixa) e reavaliação sob demanda (sinal de REW). Se a cadência fixa não captura deterioração entre sinais, precisa ser encurtada."
+		rationale:          "Monitoramento contínuo opera com reavaliação periódica (cadência fixa) e fontes externas. Canal de feedback de REW para reavaliação sob demanda é possível mas não modelado (oq-npm-4). Se a cadência fixa não captura deterioração, precisa ser encurtada ou complementada por feedback reativo."
 	}]
 
 	openQuestions: [{
@@ -511,7 +513,7 @@ canvas: artifact_schemas.#Canvas & {
 		question:  "NPM deve publicar eventos de terminação diretamente para CMT, ou CMT descobre via CTR?"
 		impact:    "Evento direto npm→cmt permite reação imediata a terminação de participante. Via CTR, CMT só descobre na próxima operação que envolva o participante — latência pode ser significativa para compromissos ativos."
 		deadline:  "2026-07-01"
-		rationale: "Context-map v2 não declara relação npm→cmt. Este canvas não modela a relação operacionalmente enquanto não formalizada — ParticipantTerminated publica apenas para REW. Decisão topológica pendente: se latência de descoberta via CTR for inaceitável para compromissos ativos, relação direta npm→cmt deverá ser adicionada ao context-map."
+		rationale: "Context-map v2 não declara relação npm→cmt. Este canvas não modela a relação operacionalmente enquanto não formalizada — ParticipantTerminated publica para REW, NIM e SSC, mas não para CMT. Decisão topológica pendente: se latência de descoberta via CTR for inaceitável para compromissos ativos, relação direta npm→cmt deverá ser adicionada ao context-map."
 	}, {
 		id:        "oq-npm-4"
 		question:  "REW deve publicar sinais de risco que disparem reavaliação de qualificação em NPM, ou NPM opera apenas com monitoramento periódico próprio?"
