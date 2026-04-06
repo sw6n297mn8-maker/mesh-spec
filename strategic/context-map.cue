@@ -149,7 +149,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			context: "npm", name: "Network Participant Management", subdomains: ["npm"]
 			subdomainType: "supporting", wardleyEvolution: "custom"
 			domainAgentSpec: "contexts/npm/agents/npm-primary-agent.cue"
-			rationale: "Gerencia ciclo de vida de participantes da rede. Publica eventos para REW, NIM, CTR e SSC; opera em parceria com NGR. BC separado: linguagem de participante, onboarding e qualificação são distintos de risco (REW) e growth (NGR)."
+			rationale: "Gerencia ciclo de vida de participantes da rede. Publica eventos de lifecycle para REW, NIM e SSC; expõe status via query para CTR e SSC; opera em parceria com NGR. BC separado: linguagem de participante, onboarding e qualificação são distintos de risco (REW) e growth (NGR)."
 		},
 		{
 			context: "p2p", name: "Procure-to-Pay", subdomains: ["p2p"]
