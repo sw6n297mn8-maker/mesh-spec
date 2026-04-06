@@ -401,7 +401,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		]
 		queryCapabilities: [{
 			code:        "qry-participant-status"
-			description: "Retorna status de qualificação (4 estados internos) e data de última transição. CTR interpreta como gate binário (qualified ou não). Context-map usa dois nomes para esta query: QueryParticipantStatus (npm-to-ctr) e QueryParticipantQualificationStatus (npm-to-ssc) — divergência documentada no canvas."
+			description: "Retorna status do participante (4 estados internos: pending, qualified, suspended, terminated) e data de última transição. CTR interpreta como gate binário para operações contratuais (qualified ou não) — observação por outros BCs não é restrita pelo gate. Context-map usa dois nomes para esta query: QueryParticipantStatus (npm-to-ctr) e QueryParticipantQualificationStatus (npm-to-ssc) — divergência documentada no canvas."
 			rationale:   "Interface primária para validação de qualificação. Projeção unificada serve ambos os nomes — divergência é de naming no context-map, não de semântica."
 		}]
 		rationale: "Projeção otimizada para lookup de status. Consome todos os eventos de lifecycle para manter visão atualizada. Consumers síncronos (CTR, SSC) precisam de latência mínima."
