@@ -52,4 +52,91 @@ taskGovernance: {
 		defaultLeaseDuration: "8h"
 		rationale:            "Instâncias são constrangidas pelo artifact schema — risco menor que schema. Self-review (quality-gate.cue) e completionValidation (P10/P11 aplicados ao build-time) adicionam gates antes da proposta ao founder, justificando criticality medium em vez de high."
 	}
+
+	// ────────────────────────────────────────────────────────
+	// Overrides por task: BCs com criticality high
+	// ────────────────────────────────────────────────────────
+	// Dois níveis semânticos dentro de high:
+	// - high-regulated-core: controla decisão ou movimento de dinheiro
+	//   (FCE, SCF, BKR, REW, IDC)
+	// - high-regulated-support: boundary regulatório e obrigação acessória
+	//   (ATO, INS, ITC)
+	// O schema só aceita "high" como valor formal; a distinção semântica
+	// está no rationale de cada override.
+
+	// --- high-regulated-core ---
+	"WI-043-fce": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-043"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "FCE controla liquidação financeira condicionada a gates de risco. Movimento de dinheiro regulado por Bacen/SCD."
+	}
+	"WI-046-rew": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-046"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "REW controla decisões de elegibilidade que condicionam liquidação e financiamento. Scoring incorreto gera exposição sistêmica."
+	}
+	"WI-050-idc": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-050"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "IDC controla identidade, autorização e integridade criptográfica. LGPD e KYC/AML impõem constraints invioláveis."
+	}
+	"WI-059-scf": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-059"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "SCF estrutura produtos financeiros sobre recebíveis e opera como SCD. Cessão e FIDC exigem precisão regulatória."
+	}
+	"WI-062-bkr": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-062"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "BKR é boundary com sistema financeiro regulado. Execução física de settlement via SPB/PIX."
+	}
+
+	// --- high-regulated-support ---
+	"WI-047-ato": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-047"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "ATO materializa obrigações fiscais e tributárias derivadas de operações. Boundary regulatório — não controla dinheiro, mas non-compliance tem consequência legal direta."
+	}
+	"WI-051-ins": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-051"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "INS intermedia instrumentos de proteção sob regime SUSEP/IRB. Boundary regulatório securitário — não controla dinheiro diretamente, mas especificação incorreta gera exposição de cobertura."
+	}
+	"WI-052-itc": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-052"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "high"
+		defaultLeaseDuration: "4h"
+		rationale:            "ITC governa comércio exterior sob Siscomex, câmbio e legislação aduaneira. Boundary regulatório — obrigação acessória com consequência legal e aduaneira."
+	}
 }
