@@ -317,7 +317,6 @@ domainModel: artifact_schemas.#DomainModel & {
 		usesValueObjects: [
 			"vo-participant-id",
 			"vo-participant-status",
-			"vo-participant-profile",
 			"vo-qualification-result",
 		]
 
@@ -359,10 +358,17 @@ domainModel: artifact_schemas.#DomainModel & {
 				emitsEvents:        ["evt-participant-terminated"]
 				guards:             ["inv-termination-irreversible", "inv-supervision-required-for-material-decisions"]
 				description:        "Terminação definitiva a partir de suspensão. Irreversível."
+			}, {
+				from:               "pending"
+				to:                 "terminated"
+				triggeredByCommand: "cmd-terminate-participant"
+				emitsEvents:        ["evt-participant-terminated"]
+				guards:             ["inv-termination-irreversible", "inv-supervision-required-for-material-decisions"]
+				description:        "Terminação de participante pendente — fraude descoberta durante onboarding ou determinação regulatória antes da qualificação. Irreversível."
 			}]
 		}
 
-		rationale: "Single aggregate porque participante é a única boundary de consistência do NPM. Todas as transições de lifecycle são atômicas. evt-identity-verification-received (ACL) listado em emitsEvents para tq-dm-02 — semanticamente produzido pelo ACL adapter, aggregate registra o fato traduzido (padrão CMT)."
+		rationale: "Single aggregate porque participante é a única boundary de consistência do NPM. Todas as transições de lifecycle são atômicas, incluindo pending→terminated para fraude descoberta durante onboarding. evt-identity-verification-received (ACL) listado em emitsEvents para tq-dm-02 — semanticamente produzido pelo ACL adapter, aggregate registra o fato traduzido (padrão CMT). vo-participant-profile não em usesValueObjects porque é conceito de projeção (prj-participant-profile-view), não stored field — tq-dm-04 warn aceito."
 	}]
 
 	// ══════════════════════════════════════════════════════════
@@ -422,11 +428,11 @@ domainModel: artifact_schemas.#DomainModel & {
 	rationale: """
 		Domain model tático do NPM com single aggregate (Participant)
 		governando lifecycle de 4 estados internos (pending, qualified,
-		suspended, terminated) com gate binário externo para operações
-		contratuais — observação não restrita. 7 eventos (5 published
-		lifecycle/registro, 1 internal workflow, 1 ACL de IDC com
-		sufixo -received). 7 commands (6 de fronteira do canvas + 1
-		interno para policy ACL). 6 invariants. NetworkGrowthTargetDefined
+		suspended, terminated) com 6 transições e gate binário externo
+		para operações contratuais — observação não restrita. 7 eventos
+		(5 published lifecycle/registro, 1 internal workflow, 1 ACL de
+		IDC com sufixo -received). 7 commands (6 de fronteira do canvas
+		+ 1 interno para policy ACL). 6 invariants. NetworkGrowthTargetDefined
 		(NGR) não modelado como domain event — sinal operacional que
 		afeta capacidade de onboarding, não estado do aggregate
 		(tq-dm-15 warn aceito). Projeções servem as 2 query-surfaces
