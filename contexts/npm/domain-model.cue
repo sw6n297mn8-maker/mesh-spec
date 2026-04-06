@@ -113,7 +113,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "cmd-terminate-participant"
 		name:        "TerminateParticipant"
-		description: "Exclui participante definitivamente da rede. Async — decisão supervisionada com processamento que pode envolver reavaliação de entidades vinculadas. Irreversível."
+		description: "Transiciona participante de qualified, suspended ou pending para terminated. Exclui definitivamente da rede. Async — decisão supervisionada com processamento que pode envolver reavaliação de entidades vinculadas. Irreversível."
 		rationale:   "Sanção máxima — irreversibilidade exige documentação e supervisão (dp-10). Async porque pode disparar reavaliação em cascata."
 	}, {
 		code:        "cmd-record-identity-verification"

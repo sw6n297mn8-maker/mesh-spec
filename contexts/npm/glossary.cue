@@ -74,8 +74,8 @@ glossary: artifact_schemas.#Glossary & {
 		}]
 		examples: [{
 			context:   "Transições"
-			instance:  "pending → qualified (ApproveQualification). qualified → suspended (SuspendParticipant). suspended → qualified (ReactivateParticipant). qualified → terminated (TerminateParticipant). suspended → terminated (TerminateParticipant)."
-			rationale: "Diagrama de estados completo. Não existe transição pending → suspended nem terminated → qualquer estado."
+			instance:  "pending → qualified (ApproveQualification). pending → terminated (TerminateParticipant — fraude durante onboarding). qualified → suspended (SuspendParticipant). suspended → qualified (ReactivateParticipant). qualified → terminated (TerminateParticipant). suspended → terminated (TerminateParticipant)."
+			rationale: "Diagrama de estados completo com 6 transições. Não existe transição pending → suspended nem terminated → qualquer estado."
 		}]
 		relatedTerms: ["term-participante", "term-gate-de-qualificacao"]
 		domainModelRefs: ["vo-participant-status"]
@@ -150,7 +150,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-terminacao-de-participante"
 		name:       "Terminação de Participante"
 		termEn:     "Participant Termination"
-		definition: "Exclusão definitiva e irreversível do participante da rede. Transiciona de qualified ou suspended para terminated. Decisão supervisionada com justificativa documentada. Não existe caminho de volta — terminated é estado final. Evento ParticipantTerminated notifica REW, NIM e SSC."
+		definition: "Exclusão definitiva e irreversível do participante da rede. Transiciona de qualified, suspended ou pending para terminated. Decisão supervisionada com justificativa documentada. Não existe caminho de volta — terminated é estado final. Evento ParticipantTerminated notifica REW, NIM e SSC."
 		category:   "process"
 		rationale:  "Irreversibilidade exige supervisão e documentação — dp-10 (responsabilidade jurídica). Terminação é a sanção máxima da rede, reservada para irregularidades graves ou violações irrecuperáveis. Impacto em compromissos ativos pendente de decisão topológica (oq-npm-3)."
 		antiTerms: [{
