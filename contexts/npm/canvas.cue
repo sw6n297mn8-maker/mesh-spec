@@ -9,7 +9,9 @@ package npm
 // de NPM via query sync para validar qualificação antes de
 // registrar termos. REW, NIM e SSC consomem eventos de
 // lifecycle para atualizar modelos, topologia e sourcing
-// respectivamente. NGR consome evento de registro
+// respectivamente. SSC também consome NPM via query sync
+// (QueryParticipantQualificationStatus — hybrid no context-map).
+// NGR consome evento de registro
 // (ParticipantRegistered) para métricas de crescimento.
 //
 // IDC fornece verificação de identidade base. NPM consome o
@@ -197,7 +199,7 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "query-surface"
 			query:       "QueryParticipantProfile"
 			returnType:  "ParticipantProfile"
-			description: "Retorna perfil completo: dados cadastrais, histórico de qualificação, estado atual. Interface consumida por REW (modelos de risco) e SSC (decisão de sourcing)."
+			description: "Retorna perfil completo: dados cadastrais, histórico de qualificação, estado atual. Interface consumida por SSC (decisão de sourcing). REW obtém dados de participante via eventos de lifecycle (npm-to-rew é async-only no context-map)."
 		}]
 
 		outbound: [{
@@ -576,7 +578,8 @@ canvas: artifact_schemas.#Canvas & {
 		identidade emprestada, ocultação de deterioração,
 		agent misalignment, conluio coordenado) — vetores
 		individuais com custos que excedem benefícios por
-		design; conluio parcialmente mitigado (at-06, dp-08). Relação npm→cmt
+		design; conluio parcialmente mitigado (adversarial threat at-06,
+		design principle dp-08). Relação npm→cmt
 		pendente de formalização topológica (oq-npm-3).
 		"""
 }
