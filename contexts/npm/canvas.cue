@@ -9,8 +9,8 @@ package npm
 // de NPM via query sync para validar qualificação antes de
 // registrar termos. REW, NIM e SSC consomem eventos de
 // lifecycle para atualizar modelos, topologia e sourcing
-// respectivamente. SSC também consome NPM via query sync
-// (QueryParticipantQualificationStatus — hybrid no context-map).
+// respectivamente. SSC também consome NPM via hybrid
+// (eventos async + query sync QueryParticipantQualificationStatus).
 // NGR consome evento de registro
 // (ParticipantRegistered) para métricas de crescimento.
 //
@@ -55,8 +55,8 @@ canvas: artifact_schemas.#Canvas & {
 
 	purpose: """
 		Gerenciar ciclo de vida de participantes da rede Mesh —
-		onboarding, qualificação, monitoramento contínuo, suspensão
-		e terminação — como gate de acesso que garante que apenas
+		onboarding, qualificação, monitoramento contínuo, suspensão,
+		reativação e terminação — como gate de acesso que garante que apenas
 		organizações verificadas e qualificadas operam na rede.
 		CTR consulta qualificação em NPM via query sync antes de
 		registrar termos — participantes não qualificados não
@@ -126,8 +126,7 @@ canvas: artifact_schemas.#Canvas & {
 			description: """
 				Modelo canônico de status de participante exposto
 				via OHS (Open Host Service) e sync queries para CTR
-				(registro de termos), SSC (sourcing) e demais BCs
-				que requerem participante qualificado.
+				(registro de termos) e SSC (sourcing).
 				"""
 			rationale: "Múltiplos BCs downstream consomem status de qualificação. OHS garante que todos referenciam a mesma fonte com tradução via ACL local."
 		}]
@@ -230,8 +229,8 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "event-publisher"
 			trigger:     "Novo participante registrado (pendente de qualificação)."
 			event:       "ParticipantRegistered"
-			consumers:   ["ngr", "rew"]
-			description: "Sinal de novo registro na rede. NGR consome para métricas de crescimento e funil de conversão. REW inicializa modelo de risco baseline para o participante. Context-map referencia este evento como NetworkParticipantOnboarded — nome estratégico para o mesmo sinal de registro. Consistente com partnership ngr↔npm."
+			consumers:   ["ngr", "rew", "nim"]
+			description: "Sinal de novo registro na rede. NGR consome para métricas de crescimento e funil de conversão. REW inicializa modelo de risco baseline para o participante. NIM atualiza topologia com novo nó. Context-map referencia este evento como NetworkParticipantOnboarded — nome estratégico para o mesmo sinal de registro. Consistente com npm-to-nim e partnership ngr↔npm."
 		}, {
 			type:          "query-dependency"
 			targetContext: "idc"
@@ -248,7 +247,7 @@ canvas: artifact_schemas.#Canvas & {
 			surfaces (status + perfil). Outbound: 5 event publishers
 			(qualificado para REW/NIM/SSC, suspenso para
 			REW/NIM/SSC, terminado para REW/NIM/SSC, reativado
-			para REW/NIM/SSC, registrado para NGR/REW), 1 query
+			para REW/NIM/SSC, registrado para NGR/REW/NIM), 1 query
 			dependency (verificação de identidade via IDC — pull).
 			IDC integração dual: evento push notifica conclusão,
 			query pull confirma estado no ponto de decisão — em
@@ -333,7 +332,7 @@ canvas: artifact_schemas.#Canvas & {
 			desiredBehavior:           "Submeter dados cadastrais precisos, documentação KYC/AML completa e atualizada, refletindo realidade da organização."
 			correctOperationIncentive: "Qualificação rápida habilita operações na rede — contratos, compromissos, crédito. Dados imprecisos atrasam qualificação e bloqueiam pipeline operacional."
 			manipulationVector:        "Submeter documentação falsificada ou dados inflados para acelerar qualificação ou obter perfil de risco mais favorável em REW."
-			manipulationCost:          "IDC verifica identidade com integridade criptográfica — falsificação de identidade é detectável. Documentação KYC/AML é verificada contra fontes externas (Receita Federal, Junta Comercial). REW monitora performance real — divergência entre perfil declarado e comportamento operacional deteriora scoring. Suspensão retroativa afeta todos os BCs downstream."
+			manipulationCost:          "IDC verifica identidade com integridade criptográfica — falsificação de identidade é detectável. Documentação KYC/AML é verificada contra fontes externas (Receita Federal, Junta Comercial). REW monitora performance real — divergência entre perfil declarado e comportamento operacional deteriora scoring. Suspensão imediata afeta todos os BCs downstream."
 			vsBenefit:                 "Benefício de dados falsos é aceleração de qualificação ou perfil de risco inflado. Custo inclui detecção por verificação cruzada com fontes externas, deterioração de score real em REW, e suspensão que bloqueia toda operação na rede."
 			designResponse:            "Verificação de identidade via IDC com integridade criptográfica. Verificação documental contra fontes externas. Monitoramento contínuo pós-qualificação. REW cruza perfil declarado com performance operacional real. Suspensão como consequência automática de irregularidade detectada."
 			rationale:                 "Comprador como participante âncora tem incentivo para qualificação rápida. Design response usa verificação multi-camada (IDC + fontes externas + REW) para tornar falsificação mais cara que operação correta."
@@ -399,7 +398,11 @@ canvas: artifact_schemas.#Canvas & {
 			Verificação multi-camada (IDC + fontes externas + REW),
 			monitoramento contínuo pós-qualificação, supervisão
 			humana para decisões materiais, escalada de severidade,
-			Event Log imutável (dp-08).
+			Event Log imutável (dp-08). sh-04 (Bacen) é
+			stakeholder regulatório mas não participante econômico
+			— incentive analysis modela vetores de manipulação por
+			agentes que operam no sistema, não conformidade
+			regulatória (que é constraint inviolável, não incentivo).
 			"""
 	}
 
@@ -521,7 +524,7 @@ canvas: artifact_schemas.#Canvas & {
 		question:  "REW deve publicar sinais de risco que disparem reavaliação de qualificação em NPM, ou NPM opera apenas com monitoramento periódico próprio?"
 		impact:    "Sem feedback de REW, monitoramento depende exclusivamente de cadência fixa (as-npm-4) e fontes externas. Com feedback, deterioração comportamental detectada por REW dispara reavaliação sob demanda — reduz janela de exposição."
 		deadline:  "2026-07-15"
-		rationale: "Canvas modela relação unidirecional npm→rew. as-npm-4 assume monitoramento dual (periódico + sinais de REW), mas o canal rew→npm não existe no context-map. Se feedback for necessário, relação deve ser adicionada ao context-map."
+		rationale: "Canvas modela relação unidirecional npm→rew. as-npm-4 assume monitoramento periódico apenas; canal de feedback de REW para reavaliação sob demanda é possível mas não modelado. O canal rew→npm não existe no context-map. Se feedback for necessário, relação deve ser adicionada ao context-map."
 	}]
 
 	verificationMetrics: [{
