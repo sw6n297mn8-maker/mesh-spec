@@ -89,8 +89,10 @@ canvas: artifact_schemas.#Canvas & {
 			secundário: NPM executa o processo de onboarding e
 			qualificação com steps sequenciais (registro →
 			verificação de identidade → documentação KYC/AML →
-			aprovação). O resultado é binário: qualificado ou
-			não (bd-qualification-as-gate).
+			aprovação). O resultado para downstream é binário:
+			qualified ou not-qualified-to-operate
+			(bd-qualification-as-gate). Internamente, NPM
+			modela 4 estados de lifecycle (bd-lifecycle-explicit).
 			"""
 	}
 
@@ -170,7 +172,7 @@ canvas: artifact_schemas.#Canvas & {
 			trigger:         "Decisão irreversível de exclusão — fraude confirmada, sanção regulatória, decisão judicial ou saída voluntária."
 			command:         "TerminateParticipant"
 			resultingEvents: ["ParticipantTerminated"]
-			description:     "Transiciona participante para terminated — estado terminal, irreversível. Decisão supervisionada com blast radius alto: downstream deve tratar consequências. Reporte ao Bacen quando motivado por fraude ou sanção."
+			description:     "Supervisão humana ocorre antes da emissão do comando — supervisor valida justificativa e autoriza terminação. Comando entra async porque execução (notificação a downstream, arquivamento, reporte ao Bacen) não exige resposta síncrona do chamador. Estado terminal, irreversível. Downstream deve tratar consequências."
 		}, {
 			type:          "event-consumer"
 			sourceContext: "idc"
@@ -251,13 +253,13 @@ canvas: artifact_schemas.#Canvas & {
 		consequences: "NPM depende de IDC para pré-condição (identidade verificada), mas executa qualificação de forma independente. Se IDC não responde, NPM não pode qualificar — dependência declarada."
 	}, {
 		id:           "bd-qualification-as-gate"
-		decision:     "Qualificação em NPM é gate binário para operação na rede. Participante não qualificado não pode ser referenciado por nenhum BC downstream."
+		decision:     "Qualificação em NPM é gate binário para operação na rede. Participante não qualificado não pode ser usado como contraparte habilitada em operações que exigem qualificação. BCs como REW, NIM e NGR referenciam participantes em qualquer estado para fins de scoring, topologia e métricas — a restrição do gate aplica-se a operações contratuais e financeiras, não a observação."
 		rationale:    "Gate binário simplifica invariante para downstream: CTR verifica apenas QueryParticipantStatus == qualified. Sem gate, cada BC implementaria sua própria lógica de verificação — inconsistência garantida."
 		consequences: "Qualquer interrupção em NPM bloqueia operações que envolvam novos participantes. Participantes já qualificados continuam operáveis — status é cached por downstream via evento ou última query."
 	}, {
 		id:           "bd-lifecycle-explicit"
 		decision:     "Participantes têm lifecycle explícito com 4 estados (pending, qualified, suspended, terminated) e transições determinísticas."
-		rationale:    "Sem lifecycle, status de participante é ambíguo para downstream. pending→qualified via aprovação KYC/AML. qualified→suspended via irregularidade (reversível). suspended→qualified via resolução (reversível). qualified/suspended→terminated via decisão irreversível (fraude, sanção, saída voluntária). Estado terminated é prática prudencial em instituições financeiras reguladas — capacidade de impedir continuidade de partes com irregularidade grave."
+		rationale:    "Internamente, NPM modela quatro estados de lifecycle (pending, qualified, suspended, terminated) com transições determinísticas. Externamente, para fins de gate operacional downstream, a decisão efetiva é binária: qualified versus not-qualified-to-operate — downstream consulta QueryParticipantStatus e age sobre essa distinção. pending→qualified via aprovação KYC/AML. qualified→suspended via irregularidade (reversível). suspended→qualified via resolução (reversível). qualified/suspended→terminated via decisão irreversível (fraude, sanção, saída voluntária). Estado terminated é prática prudencial em instituições financeiras reguladas — capacidade de impedir continuidade de partes com irregularidade grave."
 		consequences: "CTR valida status qualified antes de registrar termos. Terminação invalida status para CTR (query sync) e REW (evento). Propagação para BCs sem relação direta com NPM (e.g., CMT) depende de topologia ainda não formalizada (oq-npm-3) — blast radius real é proporcional ao histórico do participante, mas mecanismo de propagação completo é pendente."
 	}]
 
@@ -469,9 +471,9 @@ canvas: artifact_schemas.#Canvas & {
 	openQuestions: [{
 		id:        "oq-npm-1"
 		question:  "Se a Mesh evoluir além do gate binário atual, quais seriam os tiers de qualificação e quais operações cada tier habilitaria?"
-		impact:    "Sem tiers, todo participante precisa de qualificação plena para qualquer operação. Com tiers, onboarding pode ser mais rápido para operações iniciais, mas gate de acesso fica mais complexo — cascateia para QueryParticipantStatus, validação em CTR e gate em CMT."
+		impact:    "Sem tiers, todo participante precisa de qualificação plena para qualquer operação. Com tiers, onboarding pode ser mais rápido para operações iniciais, mas gate de acesso fica mais complexo — cascateia para QueryParticipantStatus, validação em CTR e gate downstream mediado por CTR e demais consumers."
 		deadline:  "2026-07-01"
-		rationale: "bd-qualification-as-gate é decisão vigente. Esta questão explora cenário evolutivo futuro — não reabre a decisão. Caso tiers se mostrem necessários, a mudança cascateia para QueryParticipantStatus, validação em CTR e gate de acesso downstream."
+		rationale: "bd-qualification-as-gate é decisão vigente. Esta questão explora cenário evolutivo futuro — não reabre a decisão. Caso tiers se mostrem necessários, a mudança cascateia para QueryParticipantStatus, validação em CTR e gate downstream mediado por CTR e demais consumers."
 	}, {
 		id:        "oq-npm-2"
 		question:  "Qual o SLA de onboarding end-to-end (registro → qualificado) aceitável para não matar conversão?"
