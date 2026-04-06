@@ -458,6 +458,7 @@ architecture/validation-prompts/
 contexts/
 contexts/cmt/
 contexts/ctr/
+contexts/npm/
 domain/
 governance/
 governance/build-time/
