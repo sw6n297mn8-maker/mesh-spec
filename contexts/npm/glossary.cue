@@ -103,6 +103,7 @@ glossary: artifact_schemas.#Glossary & {
 			instance:  "Fornecedor registra → submete documentos KYC/AML → IDC verifica identidade → NPM confirma via query → supervisor aprova qualificação → ParticipantQualified publicado."
 		}]
 		relatedTerms: ["term-participante", "term-gate-de-qualificacao", "term-aprovar-qualificacao", "term-documentacao-de-qualificacao"]
+		domainModelRefs: ["cmd-approve-qualification", "cmd-submit-qualification-documents", "evt-participant-qualified", "inv-qualification-gate"]
 		layerMapping: {
 			codeTerm: "Qualification"
 			apiTerm:  "qualifications"
@@ -141,6 +142,7 @@ glossary: artifact_schemas.#Glossary & {
 		category:   "process"
 		rationale:  "Suspensão como processo supervisionado (não autônomo) porque afeta todo o ecosystem downstream. Reversibilidade distingue suspensão de terminação — participante suspenso pode resolver irregularidade e retornar."
 		relatedTerms: ["term-status-de-participante", "term-terminacao-de-participante", "term-participante"]
+		domainModelRefs: ["cmd-suspend-participant", "evt-participant-suspended"]
 		layerMapping: {
 			codeTerm: "ParticipantSuspension"
 			apiTerm:  "suspensions"
@@ -158,6 +160,7 @@ glossary: artifact_schemas.#Glossary & {
 			clarification: "Suspensão é reversível (suspended → qualified via reativação). Terminação é irreversível (terminated é estado final sem transição de saída)."
 		}]
 		relatedTerms: ["term-suspensao-de-participante", "term-status-de-participante"]
+		domainModelRefs: ["cmd-terminate-participant", "evt-participant-terminated", "inv-termination-irreversible"]
 		layerMapping: {
 			codeTerm: "ParticipantTermination"
 			apiTerm:  "terminations"
@@ -241,10 +244,39 @@ glossary: artifact_schemas.#Glossary & {
 			clarification: "Identidade é verificação de quem é a organização — vive em IDC. Documentação de qualificação é o conjunto de evidências para qualificar a organização para operar — processo em NPM que consome identidade verificada de IDC."
 		}]
 		relatedTerms: ["term-qualificacao"]
+		domainModelRefs: ["cmd-submit-qualification-documents", "evt-qualification-documents-received"]
 		layerMapping: {
 			codeTerm: "QualificationDocumentation"
 			apiTerm:  "qualifications/{id}/documents"
 			uiLabel:  "Documentação"
+		}
+	}, {
+		code:       "term-dados-cadastrais"
+		name:       "Dados Cadastrais"
+		termEn:     "Cadastral Data"
+		definition: "Conjunto de dados de identificação da organização: CNPJ, razão social, endereço, dados de contato. Coletados no registro (RegisterParticipant), validados por completude (inv-registration-completeness). Tipo de domínio nomeado no aggregate e no perfil — não é value object com lifecycle próprio, é bloco de dados imutável por transação."
+		category:   "value"
+		rationale:  "Dados cadastrais são o insumo mínimo do registro. Sem termo canônico, agentes tratam como campos avulsos perdendo a semântica de conjunto coeso com regra de completude. 'Cadastral' é mais preciso que 'dados da empresa' (nem toda organização é empresa) e distingue de dados de qualificação (KYC/AML)."
+		relatedTerms: ["term-participante", "term-registrar-participante", "term-perfil-de-participante"]
+		domainModelRefs: ["agg-participant", "cmd-register-participant", "inv-registration-completeness"]
+		layerMapping: {
+			codeTerm: "CadastralData"
+			apiTerm:  "cadastral_data"
+			uiLabel:  "Dados Cadastrais"
+		}
+	}, {
+		code:       "term-historico-de-qualificacao"
+		name:       "Histórico de Qualificação"
+		termEn:     "Qualification History"
+		definition: "Registro cronológico de qualificações, suspensões, reativações e terminações do participante com datas, justificativas e supervisor responsável. Compõe o perfil do participante (vo-participant-profile) para decisão de sourcing em SSC. Distinto do status atual — histórico preserva todo o trail de transições."
+		category:   "value"
+		rationale:  "Histórico é necessário para reconstituição regulatória (SCD/Bacen) e para decisão de sourcing informada (SSC precisa saber não apenas o status atual mas o padrão de comportamento). Sem termo canônico, agentes tratam como lista de eventos — perdendo a semântica de trail auditável com implicação regulatória."
+		relatedTerms: ["term-qualificacao", "term-perfil-de-participante", "term-status-de-participante"]
+		domainModelRefs: ["vo-participant-profile", "prj-participant-profile-view"]
+		layerMapping: {
+			codeTerm: "QualificationHistory"
+			apiTerm:  "qualification_history"
+			uiLabel:  "Histórico de Qualificação"
 		}
 	}]
 
