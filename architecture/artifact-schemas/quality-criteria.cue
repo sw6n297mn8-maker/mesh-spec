@@ -33,7 +33,8 @@ package artifact_schemas
 	"wave-plan" |
 	"agent-spec" |
 	"agent-governance" |
-	"tension-entry"
+	"tension-entry" |
+	"structural-check"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -42,7 +43,7 @@ package artifact_schemas
 // dm (domain-model), gl (glossary), dd (domain-definition), ln (lens),
 // as (artifact-schema), ag (agent-spec), gv (agent-governance), sd (subdomain),
 // sm (stakeholder-map), tt (task-template), wp (wave-plan), te (tension-entry),
-// srr (self-review-report).
+// sc (structural-check), srr (self-review-report).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

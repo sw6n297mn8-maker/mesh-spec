@@ -486,6 +486,7 @@ glossary.cue
 lens.cue
 quality-criteria.cue
 stakeholder-map.cue
+structural-check.cue
 subdomain.cue
 task-template.cue
 tension-entry.cue
