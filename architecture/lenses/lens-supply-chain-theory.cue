@@ -1,12 +1,35 @@
 package lenses
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 supplyChainTheory: artifact_schemas.#AnalyticalLens & {
 	id:      "lens-supply-chain-theory"
 	name:    "Teoria de Supply Chain"
 	purpose: "Modelar o substrato operacional da cadeia produtiva da construção civil, incluindo fluxo físico, informacional e financeiro. A lente traduz eventos operacionais em elegibilidade, risco, coordenação e valor para a Mesh."
 	status:  "draft"
+
+	verticalApplicability: shared_types.#VerticalApplicability & {
+		mode:            "vertical-adaptable"
+		primaryVertical: "construction"
+		rationale: """
+			Núcleo teórico (bullwhip effect, Kraljic matrix,
+			propagação multi-tier de risco, regimes de formalidade
+			ao longo da cadeia) aplica-se a qualquer cadeia
+			produtiva multi-tier com assimetria de poder e capital
+			de giro escasso nos elos finais. Hoje a lens está
+			integralmente instanciada na cadeia da construção civil
+			— tanto no purpose quanto nos conceitos operacionais
+			(boletim de medição, retenção, glosa) e nos
+			meshExamples. Transferência para outras cadeias
+			produtivas (logística, agricultura, manufatura) é
+			estruturalmente plausível sem redefinir o núcleo, mas
+			exige reinstanciação completa dos exemplos e validação
+			empírica que ainda não foi feita.
+			"""
+	}
 
 	trigger: {
 		conditions: [

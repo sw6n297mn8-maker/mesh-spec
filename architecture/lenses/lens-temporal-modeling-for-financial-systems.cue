@@ -1,6 +1,9 @@
 package lenses
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 temporalModelingForFinancialSystems: artifact_schemas.#AnalyticalLens & {
 id:     "lens-temporal-modeling-for-financial-systems"
@@ -8,6 +11,30 @@ name:   "Modelagem Temporal para Sistemas Financeiros"
 
 purpose: "Orientar decisões sobre como modelar tempo como primitiva de primeira classe — tipos temporais, settlement, bitemporal, day count, cutoffs e timezone discipline."
 status: "draft"
+
+verticalApplicability: shared_types.#VerticalApplicability & {
+	mode: "vertical-agnostic"
+	rationale: """
+		Núcleo teórico (Instant vs LocalDate, cadeias de
+		settlement, day count conventions, disciplina de
+		timezone, auditoria bitemporal, vintage analysis) é
+		universalmente aplicável a qualquer sistema financeiro
+		com obrigações datadas, sem dependência de primitives
+		de cadeia produtiva específica. A implementação
+		conceitual da lens (reasoning protocol, conceitos
+		operacionais) também não usa vocabulário de construção.
+
+		Os meshExamples atuais estão instanciados no contexto
+		de FIDC/NF/antecipação na construção civil por efeito
+		do bootstrap inicial da Mesh, mas não refletem
+		dependência estrutural do modelo: substituí-los por
+		exemplos de crédito agrícola, leasing industrial ou
+		settlement internacional não exigiria mudança no núcleo
+		nem nos conceitos. A lens não requer adaptação para
+		outras verticais — apenas substituição de exemplos.
+		Portanto, vertical-agnostic, não vertical-adaptable.
+		"""
+}
 
 trigger: {
 	conditions: [
