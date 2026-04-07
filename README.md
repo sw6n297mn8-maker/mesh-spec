@@ -453,6 +453,7 @@ architecture/cross-context-workflows/
 architecture/lenses/
 architecture/shared-schemas/
 architecture/shared-types/
+architecture/structural-checks/
 architecture/tension-log/
 architecture/validation-prompts/
 contexts/
