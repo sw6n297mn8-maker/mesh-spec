@@ -10,7 +10,10 @@ package cmt
 //
 // 3 rounds de red team + 4 ajustes do founder.
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 canvas: artifact_schemas.#Canvas & {
 	code: "cmt"
@@ -47,6 +50,54 @@ canvas: artifact_schemas.#Canvas & {
 			compromisso formalizado em CMT. Custom porque a solução é
 			proprietária mas o problema (formalização de acordos) é
 			compreendido — não é genesis.
+			"""
+	}
+
+	verticalApplicability: shared_types.#VerticalApplicability & {
+		mode:            "vertical-adaptable"
+		primaryVertical: "construction"
+		rationale: """
+			Os mecanismos centrais do CMT — aceite mútuo bilateral
+			como invariante, CommitmentId como fio de rastreabilidade
+			end-to-end, validação síncrona de termos contra CTR,
+			communication patterns de command/event/query, e
+			governance scope separando automação permitida,
+			supervisão e escalation conforme criticidade decisória —
+			são padrões universais de teoria dos contratos B2B e
+			domain-driven design, reutilizáveis em qualquer cadeia
+			produtiva com formalização de compromissos econômicos
+			rastreáveis.
+
+			Os pontos de variação por vertical estão explicitamente
+			enumerados pelo próprio canvas como assumptions e open
+			questions, configurando adaptable e não agnostic:
+
+			- as-cmt-1 escopa "aceite bilateral síncrono" ao
+			  "vertical de construção civil", reconhecendo que outros
+			  verticais podem exigir workflow assíncrono multi-step.
+			- as-cmt-3 reconhece que "construção civil demanda
+			  compromissos hierárquicos (contrato guarda-chuva com
+			  sub-compromissos por medição)" — vocabulário de obra
+			  (medição) embebido na premissa de modelagem.
+			- oq-cmt-2 declara textualmente: "Mesh planeja expansão
+			  multi-vertical. Invariante que funciona na construção
+			  civil pode não funcionar em logística ou energia",
+			  autoatestando a fronteira vertical da invariante de
+			  aceite bilateral.
+
+			Stakeholders confirmam o anchoring construção: sh-01 é
+			"Construtora — nó central da cadeia", proponente que
+			"submete propostas vinculadas a contratos de obra". Os
+			demais papéis (fornecedor, IF parceira, regulador, agente
+			operador) são descritos em vocabulário neutro e
+			reaproveitáveis cross-vertical.
+
+			Não há validatedVerticals declaradas: o canvas só foi
+			validado contra construção até o momento. Adaptação a
+			logística, energia, agricultura ou manufatura exige
+			revisão das três premissas enumeradas (sincronia,
+			hierarquia, padrão cultural de aceite) — não revisão
+			do núcleo.
 			"""
 	}
 

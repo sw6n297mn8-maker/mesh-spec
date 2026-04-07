@@ -11,21 +11,11 @@ cmtCanvas: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
-	generatedAt:     "2026-04-01T00:00:00Z"
+	generatedAt:     "2026-04-07"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 	status:         "stable"
-
-	singleRoundRationale: """
-		Canvas estabilizou em 1 round de self-review porque passou por
-		3 rounds de red-team pré-proposta (verificação completa dos 12
-		quality criteria do schema + 8 universais) seguidos de 4 ajustes
-		do founder (domainAgentSpec canônico por path, SoT explícito,
-		CommitmentProposed declarado interno, solução técnica removida
-		de businessDecisions). Todas as correções foram aplicadas antes
-		do commit. Self-review confirmou zero findings.
-		"""
 
 	roundDetails: [{
 		round:     1
@@ -48,6 +38,66 @@ cmtCanvas: build_time.#SelfReviewReport & {
 			QueryContractTerms) e async entries (ProposeCommitment,
 			3 event-consumers, 2 event-publishers). tq-cv-10 (core BC
 			com costsEliminated) passa com ce-02 preenchido.
+			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 2 (adr-043 Fase 1 backfill — primeira descida ao plano
+			operacional canvas): adicionado campo verticalApplicability
+			ao canvas CMT. Classificação: vertical-adaptable / construction.
+
+			Análise estrutural: o núcleo do CMT (aceite mútuo bilateral
+			como invariante, CommitmentId como fio de rastreabilidade
+			end-to-end, validação síncrona de termos contra CTR,
+			communication patterns DDD, governance scope mech-agent-gate)
+			é universal — padrões de teoria dos contratos B2B e DDD,
+			reutilizáveis em qualquer cadeia produtiva com formalização
+			de compromissos econômicos rastreáveis.
+
+			Smoking gun para adaptable (não agnostic): o próprio canvas
+			enumera três pontos de variação concretos por vertical, cada
+			um amarrado a uma assumption ou open question existente:
+			(1) as-cmt-1 escopa "aceite bilateral síncrono" ao "vertical
+			de construção civil"; (2) as-cmt-3 reconhece que "construção
+			civil demanda compromissos hierárquicos por medição" —
+			vocabulário de obra embebido na premissa; (3) oq-cmt-2
+			declara textualmente "Mesh planeja expansão multi-vertical.
+			Invariante que funciona na construção civil pode não
+			funcionar em logística ou energia". Esta enumeração explícita
+			satisfaz o critério de ten-007: "adaptable exige identificar
+			pontos de variação concretos no artefato".
+
+			Stakeholders confirmam o anchoring construção em sh-01
+			("Construtora", "contratos de obra"). Demais stakeholders
+			(fornecedor, IF, regulador, agente) descritos em vocabulário
+			cross-vertical neutro.
+
+			Calibração da heurística de ten-007: hipótese a priori
+			vertical-adaptable/construction (~55% confiança); análise
+			confirmou (~85% confiança). Sem erro de calibração — caso
+			genuinamente híbrido com evidência textual nas duas direções.
+			Diferente do erro conservador observado em scf, onde a
+			ausência de pontos de variação enumerados deveria ter
+			sinalizado agnostic já no a priori.
+
+			Cross-plane test: cmt subdomain ainda não classificado
+			(strategic/subdomains/cmt.cue sem verticalApplicability).
+			Fica como experimento deliberado próximo, não como apêndice
+			deste commit. Hipótese para cross-plane test futuro: o
+			subdomain pode aparecer como agnostic ou adaptable mais
+			raso, dado que opera no plano de fronteira (negativeBoundaries)
+			onde os pontos de variação operacionais (sincronia de
+			aceite, hierarquia, padrão cultural) tipicamente não
+			aparecem.
+
+			tq-cv-13 (novo critério em canvas.cue) pass: campo presente,
+			mode coerente com evidência estrutural, primaryVertical
+			declarado, rationale explicita os três pontos de variação
+			com referências a IDs internos do canvas (as-cmt-1, as-cmt-3,
+			oq-cmt-2). cue vet pass.
 			"""
 	}]
 
