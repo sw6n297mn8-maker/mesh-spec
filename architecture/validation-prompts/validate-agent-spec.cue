@@ -10,6 +10,8 @@ validationPrompts: "vp-agent-spec": artifact_schemas.#ValidationPrompt & {
 
 	appliesTo: ["agent-spec"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"architecture/artifact-schemas/agent-spec.cue",
 		"architecture/artifact-schemas/agent-governance.cue",
