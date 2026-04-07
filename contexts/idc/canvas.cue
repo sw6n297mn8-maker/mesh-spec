@@ -329,19 +329,56 @@ canvas: artifact_schemas.#Canvas & {
 			vsBenefit:                 "Agente não tem benefício direto em favorecer — não há contraparte oferecendo vantagem. Pressão potencial viria de otimização de custo (cachear em vez de reverificar) ou de vies de treinamento — ambos detectáveis via amostragem estatística do trail."
 			designResponse:            "Trail criptográfico de toda operação + amostragem periódica de reverificação + self-review obrigatório com critério de drift detection (sh-05 monitora sua própria distribuição de resultados ao longo do tempo)."
 			rationale:                 "Agente é o executor real do protocolo na operação cotidiana — incentivo precisa cobrir tanto manipulação externa quanto drift interno do próprio agente. Drift detection é o mecanismo específico para vetor 'favorecimento seletivo'."
+		}, {
+			stakeholderRef:            "sh-05"
+			participantType:           "Executor do protocolo de confiança — vetor de conluio com contraparte verificada."
+			desiredBehavior:           "Aplicar critério de verificação uniforme independentemente de qual organização está sendo verificada, mesmo na presença de pressão externa."
+			correctOperationIncentive: "Agente não tem conta financeira, não recebe pagamento direto e não tem canal de comunicação privado com sh-01/sh-02 — qualquer interação acontece via interface auditada."
+			manipulationVector:        "Construtora ou fornecedor oferece vantagem (financeira, operacional, ou de influência sobre regras futuras) ao operador humano do agente em troca de verificação leniente para sua própria identidade ou para identidade afiliada."
+			manipulationCost:          "Toda verificação gera trail criptográfico imutável. Calibração de threshold é supervisedDecision — agente não pode unilateralmente abaixar o critério. Amostragem estatística periódica reverifica entidades já aprovadas e detecta lenidade seletiva. Regulador (sh-04) tem acesso independente ao trail e pode reconstituir critério aplicado por entidade."
+			vsBenefit:                 "Benefício potencial de favorecer uma entidade é limitado pelo valor das operações daquela entidade na rede. Custo é detecção via amostragem + perda de credibilidade regulatória de toda a operação Mesh + responsabilização jurídica do operador humano. Custo é estruturalmente desproporcional ao benefício."
+			designResponse:            "Threshold como supervisedDecision + amostragem estatística periódica + acesso independente do regulador ao trail + separação entre execução do agente e calibração de política."
+			rationale:                 "Vetor de conluio é o vetor adversarial mais provável quando agente é o ponto único de execução — incentivo precisa ser estrutural, não baseado em integridade do operador humano."
+		}, {
+			stakeholderRef:            "sh-05"
+			participantType:           "Executor do protocolo de confiança — vetor de omissão ativa."
+			desiredBehavior:           "Executar toda requisição de verificação recebida ou registrar falha explícita com causa; nunca silenciar requisição."
+			correctOperationIncentive: "Cada requisição gera registro de entrada antes de qualquer execução. Ausência de resultado dentro de SLA gera escalation automático. Consumer BC (NPM) detecta requisições sem resposta e reporta como incidente."
+			manipulationVector:        "Agente simula timeout, ficar offline ou descartar requisição sem registro para evitar verificar uma identidade específica — produzindo o mesmo efeito de rejeição sem deixar trail explícito de decisão."
+			manipulationCost:          "Registro de entrada é separado do registro de resultado — omitir resultado preserva o registro de entrada como evidência de requisição não atendida. SLA monitoring por requisição força ou execução ou escalation — não há terceiro caminho. Discrepância entre requisições recebidas (visível ao consumer) e respostas emitidas é métrica auditável."
+			vsBenefit:                 "Omissão tem o mesmo custo de detecção que rejeição explícita, sem benefício adicional — o consumer ainda fica sem resposta e ainda escala. Único benefício marginal é negação plausível, anulada pelo registro de entrada."
+			designResponse:            "Registro de entrada antes de execução + SLA monitoring por requisição + escalation automático em ausência de resposta + reconciliação periódica entre requisições e respostas."
+			rationale:                 "Omissão é vetor sutil porque produz aparência de falha técnica em vez de decisão. Endereçada por separar registro de entrada de registro de resultado."
+		}, {
+			stakeholderRef:            "sh-05"
+			participantType:           "Executor do protocolo de confiança — vetor de timing/front-running."
+			desiredBehavior:           "Processar requisições de verificação em ordem determinística (FIFO ou outro critério público), sem reordenação que beneficie requisição específica."
+			correctOperationIncentive: "Ordem de processamento é registrada por timestamp na entrada. Reordenação é detectável por comparação entre timestamp de entrada e timestamp de execução."
+			manipulationVector:        "Agente atrasa verificação de organização A (concorrente) para dar vantagem temporal a organização B na qualificação para crédito ou participação em operação com janela limitada."
+			manipulationCost:          "Timestamps de entrada e execução são imutáveis. Reordenação detectável por amostragem ou por queixa de consumer prejudicado. Métrica de tempo médio por requisição segmentada por organização revela tratamento assimétrico."
+			vsBenefit:                 "Benefício temporal é apenas relevante quando há janela competitiva — caso raro. Custo de detecção (queixa do prejudicado + audit trail) é alto e a operação Mesh perde credibilidade ao ser identificada como manipulável por timing."
+			designResponse:            "Timestamp imutável de entrada + métrica de tempo de processamento por organização + critério de ordem público e auditável + escalation em desvios estatísticos."
+			rationale:                 "Vetor de front-running existe sempre que verificação é gate de operação com janela competitiva. Endereçado por tornar ordem auditável, não por confiar em FIFO implícito."
 		}]
 		rationale: """
-			Análise cobre os três tipos de participante com vetor
-			de manipulação real: contrapartes verificadas (sh-01,
-			sh-02) têm incentivo estrutural para identidade honesta
-			via custo de falsificar fontes externas autoritativas;
-			executor do protocolo (sh-05) tem vetor próprio de
-			drift interno endereçado por trail criptográfico +
-			amostragem + self-monitoring. Reguladores e parceiros
-			financeiros (sh-04, sh-03) não são participantes
+			Análise cobre quatro vetores adversariais distintos
+			contra sh-05 (drift interno, conluio com contraparte,
+			omissão ativa, front-running) além dos vetores
+			estruturais contra sh-01 e sh-02 (identidade falsa).
+			Cada vetor tem custo concreto enraizado em mecanismo
+			arquitetural — não em integridade presumida do
+			operador humano. Lacuna conhecida: o stakeholder map
+			não modela "operador da plataforma" como ator distinto
+			do founder. IDC é raiz de confiança da Mesh, portanto
+			vetor de manipulação do operador sobre IDC para
+			favorecer próprios clientes ou extrair inteligência
+			sobre identidades verificadas é teoricamente
+			relevante. Registrado como oq-idc-4 — não endereçado
+			neste canvas porque exige decisão prévia sobre o
+			modelo de stakeholders. Reguladores (sh-04) e
+			parceiros financeiros (sh-03) não são participantes
 			ativos — são consumers de evidência produzida por
-			outros — por isso não geram vetor de manipulação
-			endereçável neste BC.
+			outros — por isso não geram vetor endereçável neste BC.
 			"""
 	}
 
@@ -353,9 +390,34 @@ canvas: artifact_schemas.#Canvas & {
 				description: "Executar processo de verificação de identidade contra fontes externas conforme protocolo definido, sem intervenção humana por execução individual."
 				rationale:   "Operação determinística com protocolo bem-definido — humano supervisor não agrega valor por execução individual; auditoria é por amostragem."
 			}, {
-				id:          "sign-evidence"
-				description: "Assinar evidência via DSSE quando solicitado por BC autorizado, dentro dos limites de identidade verificada."
-				rationale:   "Operação criptográfica determinística e idempotente — não há decisão de política, apenas execução do protocolo."
+				id: "sign-evidence"
+				description: """
+					Assinar evidência via DSSE quando solicitado por BC
+					autorizado. Decisão é autônoma porque está protegida
+					por gate determinístico pré-assinatura sobre quatro
+					invariantes: (1) BC solicitante está declarado como
+					consumer autorizado da capacidade de assinatura no
+					context-map; (2) identidade do solicitante está
+					verificada por IDC com resultado vigente (não
+					revogado); (3) evidência conforma com schema da
+					taxonomia registrada para a classe declarada;
+					(4) requisição não é duplicata de assinatura já
+					emitida. Falha em qualquer invariante bloqueia a
+					assinatura e gera registro de tentativa rejeitada.
+					Não há julgamento semântico sobre valor da evidência
+					— gate é puramente determinístico sobre as
+					invariantes acima.
+					"""
+				rationale: """
+					P10 exige que operações com impacto financeiro
+					passem por gate determinístico que imponha
+					invariantes. Assinatura DSSE é gate de fluxos
+					downstream (LOG → DLV → INV → FCE), portanto a
+					autonomia só é admissível se o próprio gate
+					determinístico está declarado e auditável. As
+					quatro invariantes acima são a forma concreta
+					desse gate em IDC.
+					"""
 			}, {
 				id:          "generate-integrity-proof"
 				description: "Gerar Merkle proof para conjunto de evidências armazenadas via CAS quando solicitado."
@@ -393,6 +455,32 @@ canvas: artifact_schemas.#Canvas & {
 				condition: "Self-monitoring detecta desvio estatístico no padrão de verificações (e.g., taxa de aceitação muda significativamente sem mudança de input)."
 				action:    "Notificar founder, gerar relatório de amostragem comparativa, pausar autonomia sobre verificações até revisão."
 				rationale: "Drift no padrão pode indicar viés emergente do agente ou mudança nas fontes externas — ambos exigem investigação humana antes que padrão se consolide."
+			}, {
+				id: "signature-pattern-anomaly"
+				condition: """
+					Self-monitoring detecta padrão anômalo em
+					requisições de assinatura: volume fora da
+					distribuição histórica, classe de evidência fora
+					da taxonomia registrada, requisição repetida de
+					BC não declarado como consumer autorizado, ou
+					concentração temporal incompatível com fluxo
+					operacional normal do BC solicitante.
+					"""
+				action: """
+					Pausar assinatura para a classe ou origem afetada,
+					notificar founder, preservar trail criptográfico
+					das requisições anômalas. Reativação requer decisão
+					humana após análise.
+					"""
+				rationale: """
+					Gate determinístico cobre invariantes por requisição
+					individual, mas padrão anômalo agregado pode indicar
+					comprometimento, abuso de capacidade autorizada, ou
+					drift no consumer. Detecção por padrão é complemento
+					ao gate por requisição — sem ele, ataque distribuído
+					passa pelas invariantes individuais e só é detectado
+					em auditoria.
+					"""
 			}]
 		}
 		rationale: """
@@ -440,6 +528,29 @@ canvas: artifact_schemas.#Canvas & {
 		question: "Qual a estratégia de rotação de chaves criptográficas usadas para assinatura DSSE — automatizada por IDC ou supervisionada por humano?"
 		impact:   "Rotação afeta toda evidência assinada — rotação errada invalida proofs históricos. Rotação ausente cria risco crescente de comprometimento."
 		rationale: "Rotação de chaves é decisão criptográfica com impacto sobre todo o histórico — exige avaliação de trade-off entre automação operacional e supervisão humana antes de fixar política."
+	}, {
+		id: "oq-idc-4"
+		question: """
+			O "operador da plataforma" deve ser modelado como
+			stakeholder distinto do founder no stakeholder map, e
+			em caso afirmativo, IDC precisa documentar vetor de
+			manipulação do operador sobre verificação de
+			identidade e geração de proofs?
+			"""
+		impact: """
+			IDC é raiz de confiança da Mesh — operador com acesso
+			privilegiado pode em tese favorecer próprios clientes,
+			extrair inteligência sobre identidades verificadas, ou
+			introduzir viés sistemático. Sem stakeholder explícito,
+			a análise de incentivos não pode endereçar este vetor
+			nem propor mitigação arquitetural. Decisão tem impacto
+			cross-BC, não apenas IDC.
+			"""
+		rationale: """
+			Lacuna identificada na validação semântica do canvas
+			IDC (vc-cv-02). Resolução exige decisão sobre o modelo
+			de stakeholders ao nível domain, não ao nível BC.
+			"""
 	}]
 
 	verificationMetrics: [{
