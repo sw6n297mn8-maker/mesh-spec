@@ -2,6 +2,18 @@ package validation_prompts
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
+// validate-canvas.cue — Validation prompt advisory para BC Canvas.
+//
+// Per adr-040: este prompt produz design review interpretativo.
+// Não bloqueia CI. NÃO revalida fatos estruturais cobertos por
+// architecture/structural-checks/canvas.cue (sc-cv-NN).
+//
+// Cada check abaixo cobre dimensão semântica que CUE schema e
+// structural-checks não alcançam — genuinidade do contorno,
+// qualidade adversarial da análise de incentivos, coerência do
+// padrão de comunicação com o role, substância das business
+// decisions e proporcionalidade do governance scope.
+
 validationPrompts: "vp-canvas": artifact_schemas.#ValidationPrompt & {
 	id:    "vp-canvas"
 	title: "Validação semântica de Bounded Context Canvas"
@@ -14,6 +26,8 @@ validationPrompts: "vp-canvas": artifact_schemas.#ValidationPrompt & {
 
 	references: [
 		"architecture/artifact-schemas/canvas.cue",
+		// referência explícita ao escopo estrutural para evitar duplicação
+		"architecture/structural-checks/canvas.cue",
 		"architecture/design-principles.cue",
 		"domain/domain-definition.cue",
 		"strategic/context-map.cue",
@@ -56,5 +70,5 @@ validationPrompts: "vp-canvas": artifact_schemas.#ValidationPrompt & {
 		rationale:  "P10 exige que agentes nunca executem operações financeiras sem gate. Governance scope no canvas é a primeira declaração de boundaries — se está desbalanceada aqui, o agent-governance envelope herda o desbalanceio."
 	}]
 
-	rationale: "Canvas é o documento raiz de cada BC — erros semânticos aqui propagam para todos os artefatos downstream. Validação cobre o que quality criteria estruturais não alcançam: genuinidade do contorno (vs. context map), qualidade adversarial da análise de incentivos (dp-08), coerência do padrão de comunicação com o role declarado, substância das business decisions, e proporcionalidade do governance scope ao risco operacional."
+	rationale: "Canvas é o documento raiz de cada BC — erros semânticos aqui propagam para todos os artefatos downstream. Per adr-040, validação é split: gating determinístico (architecture/structural-checks/canvas.cue) cobre coerência estrutural intra-artefato; este prompt cobre o que estrutura não alcança — genuinidade do contorno (vs. context map), qualidade adversarial da análise de incentivos (dp-08), coerência do padrão de comunicação com o role declarado, substância das business decisions, e proporcionalidade do governance scope ao risco operacional. Findings aqui são hipóteses para review do founder, nunca veredito de gate."
 }
