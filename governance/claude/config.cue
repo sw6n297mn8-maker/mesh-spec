@@ -129,25 +129,37 @@ config: #AgentConfig & {
 			content: #"""
 				Rodar `cue vet` antes de qualquer commit. Se CUE CLI não estiver disponível, perguntar ao founder como proceder. CUE sintaticamente inválido nunca é commitado.
 
-				Validação semântica deve ocorrer com separação de contexto — por execução isolada, sem acesso ao histórico da sessão que produziu o artefato.
+				Validação pós-commit é dividida em duas categorias com papéis distintos (per adr-040):
+
+				1. Estrutural (deterministic gate). Structural checks vivem em architecture/structural-checks/<artifactType>.cue e implementam regras declarativas (kinds: required-block, reference-exists, same-artifact-consistency). São o ÚNICO mecanismo de validação pós-commit que pode bloquear o fluxo. Reproduzíveis, auditáveis, sem variância entre execuções.
+
+				2. Semântica advisory (design review interpretativo). Validation prompts vivem em architecture/validation-prompts/validate-<artifactType>.cue e produzem revisão por agente em sessão isolada. Findings são RECOMENDAÇÕES para decisão do founder, NUNCA veredito de gate. Cobrem dimensões interpretativas (genuinidade de contornos, qualidade adversarial de análise, coerência semântica) que estrutura não alcança.
 
 				Após commit local de qualquer artefato CUE na branch ativa, o agente deve:
-				1. Identificar quais arquivos commitados têm validation prompt correspondente em architecture/validation-prompts/ (matching via matchPatterns declarados nos prompts).
-				2. Para cada match, disparar validação semântica em execução isolada com:
+
+				1. Identificar quais structural-checks aplicam-se ao artefato (matching por artifactType + canonicalPathRegex declarado no schema). Para cada match, executar a regra. Violações estruturais bloqueiam o fluxo até correção da instância ou alteração explícita da regra por decisão arquitetural.
+
+				2. Identificar quais validation prompts aplicam-se (matching via matchPatterns declarados nos prompts). Para cada match, disparar revisão advisory em execução isolada com:
 				   - path do artefato commitado
 				   - path do validation prompt correspondente
 				   - leitura do artefato, references e checks definidos no prompt
-				3. Reportar findings ao usuário:
-				   - fail: sempre reportar com contexto suficiente para decisão
-				   - warn: incluir no output
-				   - info: omitir por padrão, detalhar sob demanda
-				4. O fluxo só é considerado concluído após resolução dos findings fail ou decisão explícita do usuário de aceitar a tensão.
 
-				Se não existir validation prompt correspondente, prosseguir sem bloquear e registrar que o tipo ainda não entrou no regime de validação semântica.
+				3. Reportar findings advisory ao usuário como recomendação:
+				   - strong recommendation (mapeia para severity=fail no schema): recomendação forte de revisão; reportar com contexto suficiente para decisão
+				   - warning (mapeia para severity=warn no schema): incluir no output
+				   - info: omitir por padrão, detalhar sob demanda
+
+				   Findings advisory NUNCA bloqueiam o fluxo. O agente prossegue após o reporte; a decisão de aplicar, ignorar ou registrar como tensão pertence ao founder.
+
+				4. Se não existir structural-check correspondente, prosseguir sem bloquear e registrar explicitamente que o artifactType ainda não está coberto por gate estrutural.
+
+				5. Se não existir validation prompt correspondente, prosseguir sem bloquear e registrar explicitamente que o artifactType ainda não está coberto por design review advisory.
 
 				Hooks post-commit podem atuar como safety net para commits feitos fora do fluxo principal, enfileirando validações pendentes para processamento posterior.
+
+				Princípio (P10): agentes estocásticos recomendam, gates determinísticos validam. Qualquer uso de LLM como mecanismo de gate viola este princípio — ten-006 documenta a impossibilidade de tratar LLM como gate determinístico e adr-040 formaliza a separação categórica entre as duas camadas.
 				"""#
-			rationale: "Gate comportamental; previne commits com CUE quebrado. Execução isolada satisfaz separação de contexto (zero histórico de autoria) sem depender de sessão separada manual. Findings alinhados com vocabulário do sistema (fail/warn/info). Ausência de validation prompt é registrada, não silenciada."
+			rationale: "Gate comportamental; previne commits com CUE quebrado. Validação pós-commit dividida per adr-040: structural-checks (deterministic, único bloqueante) e validation prompts (advisory, recomendação para founder). Execução isolada satisfaz separação de contexto. ten-006 documenta a impossibilidade de tratar LLM como gate; adr-040 formaliza a separação."
 		},
 		{
 			title:           "Commits"
