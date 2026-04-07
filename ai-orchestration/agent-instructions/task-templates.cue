@@ -189,3 +189,71 @@ templates: "tmpl-create-instance": {
 		rationale: "Validação semântica é gate de prosseguimento, não step opcional."
 	}]
 }
+
+// ════════════════════════════════════════════════════════════
+// tmpl-create-script
+// ════════════════════════════════════════════════════════════
+
+templates: "tmpl-create-script": {
+	version:       1
+	kind:          "create-script"
+	title:         "Criar script de build ou governança rastreado como WI"
+	applicability: "Tarefas que produzem shell script (ou equivalente executável) com função de build de artefato derivado, enforcement de governança ou CI check. Não aplicável a scripts experimentais, descartáveis ou de investigação local — esses permanecem fora do sistema de WI."
+	rationale:     "Scripts com função de governança têm blast radius equivalente aos artefatos que derivam ou validam. Protocolo dedicado separa critérios de qualidade de script (idempotência, reprodutibilidade, atomicidade script↔derivado) dos critérios de artefato CUE (conformidade com schema, ubiquitous language), evitando ritual cruzado. Política de fronteira canônica vive em adr-042 (campo decision): um script deve ser rastreado como WI quando altera, deriva ou valida artefato versionado com papel normativo no sistema; na dúvida, rastrear. Este rationale é ponteiro operacional, não fonte normativa — a ADR é SoT."
+
+	preReads: [{
+		target:     "outputs[0].artifact"
+		targetType: "derived-from-task-output"
+		rationale:  "Path do script a ser criado. Determina diretório destino e convenções de nomenclatura."
+	}, {
+		target:     "architecture/adrs/adr-042-tmpl-create-script-and-script-wi-tracking.cue"
+		targetType: "path"
+		rationale:  "Fonte normativa da política de fronteira entre scripts rastreados e não-rastreados. Confirma que o script alvo qualifica para WI via teste altera/deriva/valida."
+	}, {
+		target:     "architecture/design-principles.cue"
+		targetType: "path"
+		rationale:  "P0 (zero duplicação), P1 (schema-first), P12 (governance as code) informam decisões de conteúdo do script."
+	}, {
+		target:     "scripts/ci/"
+		targetType: "path"
+		condition:  "if-exists"
+		rationale:  "Scripts existentes são referência de estilo: set -euo pipefail, estrutura de flags, modos check/--fix, mensagens de erro. São exemplo de padrão, não fonte retroativa de conformidade."
+	}]
+
+	steps: [{
+		action:    "Identificar o artefato source do qual o output do script deriva (caso de script de build) ou o artefato que o script valida (caso de check de governança). Declarar no cabeçalho do script como comentário. Se o script não possui source único — caso multi-source ou validação transversal a múltiplos artefatos — declarar explicitamente esta condição no cabeçalho em vez de forçar um source principal artificial."
+		rationale: "Script de governança sem referência explícita ao artefato governado é ritual opaco. Rastreabilidade source→script→output é pré-requisito para auditoria. A opção de declarar 'multi-source' ou 'transversal' evita modelar o mundo de forma errada quando o script legitimamente não tem um source único."
+	}, {
+		action:    "Implementar o script com cabeçalho padrão: shebang, set -euo pipefail, bloco de documentação com propósito, modos de operação e exit codes declarados."
+		rationale: "Cabeçalho padrão é convenção herdada de scripts/ci/ e reduz carga cognitiva na leitura. set -euo pipefail transforma falhas silenciosas em falhas detectáveis."
+	}, {
+		action:    "Implementar gate de idempotência: executar o script duas vezes consecutivas sobre o mesmo input deve produzir o mesmo output. Comparação byte-a-byte é a forma preferencial — recorrer a hash somente quando normalização de output for necessária (e.g., timestamps embutidos que exigem mascaramento) e declarar explicitamente a normalização no cabeçalho."
+		rationale: "Idempotência é pré-requisito de script de build — sem ela, o output varia entre execuções e não pode servir como source of truth derivado. Preferência por byte-a-byte evita esconder divergência real atrás de hash normalizado; a exceção existe mas exige declaração explícita."
+	}, {
+		action:    "Implementar gate de reprodutibilidade: falhar com mensagem clara quando input esperado não existe, quando ferramenta externa (cue, jq, etc.) não está no PATH, ou quando resultado não pode ser validado. Nunca retornar exit 0 com output parcial."
+		rationale: "Script que passa silenciosamente sobre falhas produz artefato derivado corrompido sem sinal. Falha alta e visível é condição de usabilidade."
+	}, {
+		action:    "Propor o script completo no chat (conteúdo inline + path de destino) antes de escrever. Incluir a saída esperada de uma execução limpa."
+		rationale: "Ciclo proposta→aprovação aplica-se a scripts como a qualquer artefato rastreado. Saída esperada documenta o contrato."
+	}, {
+		action:    "Após aprovação, escrever o arquivo com permissão de execução (chmod +x) e rodar o script contra o input real para validar idempotência: executar duas vezes e comparar outputs."
+		rationale: "Validação empírica do gate de idempotência antes do commit. Falha aqui significa defeito no script, não no protocolo."
+	}, {
+		action:    "Se o script gera artefato derivado versionado no repo (ex: CLAUDE.md), commitar o artefato derivado atualizado no mesmo commit do script. Script e derivado nascem juntos em estado consistente."
+		rationale: "Commit atômico evita janela de inconsistência entre script novo e derivado antigo. Consistência é invariante do repo, não responsabilidade do próximo commit."
+	}]
+
+	qualityGates: [{
+		gate:      "Gate de idempotência passa empiricamente: duas execuções consecutivas produzem outputs idênticos byte-a-byte (ou iguais após normalização declarada no cabeçalho)"
+		rationale: "Verificação do invariante declarado no script. Sem evidência empírica, o gate é apenas documentação."
+	}, {
+		gate:      "Script falha com exit code não-zero e mensagem específica para cada classe de erro conhecida"
+		rationale: "Falha silenciosa ou genérica esconde defeito. Gate força mapeamento explícito de erro → mensagem → exit code."
+	}, {
+		gate:      "Cabeçalho declara source (ou ausência de source único), output, modos de operação e exit codes"
+		rationale: "Documentação inline é a única que sobrevive ao drift. Gate força disciplina no ponto de escrita."
+	}, {
+		gate:      "Se o script gera artefato derivado versionado, o derivado atualizado está incluído no mesmo commit"
+		rationale: "Atomicidade script↔derivado. Verificável via git diff antes do commit."
+	}]
+}

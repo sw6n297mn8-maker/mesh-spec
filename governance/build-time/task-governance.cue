@@ -53,6 +53,16 @@ taskGovernance: {
 		rationale:            "Instâncias são constrangidas pelo artifact schema — risco menor que schema. Self-review (quality-gate.cue) e completionValidation (P10/P11 aplicados ao build-time) adicionam gates antes da proposta ao founder, justificando criticality medium em vez de high."
 	}
 
+	"tmpl-create-script": #TaskGovernanceRule & {
+		scope:                "template"
+		templateRef:          "tmpl-create-script@v1"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "medium"
+		defaultLeaseDuration: "8h"
+		rationale:            "Script de build/governança (ref adr-042) tem blast radius limitado ao artefato derivado ou ao check que implementa — não propaga para instâncias futuras como schema (high) nem fica isolado como validação (low). Criticality medium alinhada com tmpl-create-instance. Gates de idempotência, reprodutibilidade e atomicidade script↔derivado no template reduzem risco residual antes da proposta ao founder."
+	}
+
 	// ────────────────────────────────────────────────────────
 	// Overrides por task: BCs com criticality high
 	// ────────────────────────────────────────────────────────
