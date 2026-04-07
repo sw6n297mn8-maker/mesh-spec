@@ -373,5 +373,55 @@ wavePlan: artifact_schemas.#WavePlan & {
 				rationale: "Tipos utilitários compartilhados (#NonEmptyString, #ChannelCode, refs canônicos) estão espalhados nos arquivos que os introduziram. Centralizar em shared-types.cue elimina dependências conceituais implícitas e facilita descoberta. Migração: mover definições dos arquivos originais, que passam a consumir do shared-types. Candidatos de rollout subsequente: agent-governance.cue, glossary.cue, domain-model.cue, stakeholder-map.cue."
 			}]
 		}
+
+		"W001-build-tooling": {
+			id:    "W001-build-tooling"
+			title: "Build Tooling — infraestrutura transversal de governança do próprio sistema"
+			rationale: """
+				W001-build-tooling cobre infraestrutura de build e derivação
+				de artefatos normativos do próprio sistema Mesh. Diferente
+				de tooling de produto, estes scripts sustentam propriedades
+				estruturais do sistema: determinismo, ausência de drift e
+				auditabilidade de artefatos derivados.
+
+				Sub-wave transversal às demais de W001. W001-foundation
+				define o sistema; W001-bc-completeness instancia o
+				sistema; W001-build-tooling garante que o sistema não
+				degrade com o tempo — que foundation e BC completeness
+				permaneçam consistentes com suas fontes canônicas ao
+				longo da operação.
+
+				Política de admissão (ref adr-042): scripts que alteram,
+				derivam ou validam artefato versionado com papel normativo
+				no sistema entram nesta sub-wave; scripts experimentais
+				ou descartáveis permanecem fora do work-graph até
+				promoção explícita.
+				"""
+
+			tasks: [{
+				id:         "WI-065"
+				title:      "Criar scripts/build/generate-claude-md.sh para regenerar CLAUDE.md a partir do CUE fonte"
+				tshirtSize: "M"
+				dependsOn: []
+				semanticPrerequisites: [
+					"adr-042 aceito — template tmpl-create-script@v1 existe e está registrado em task-governance",
+					"architecture/artifact-schemas/task-template.cue com kind estendido para incluir 'create-script'",
+					"governance/claude/config.cue e governance/claude/output.cue presentes e validados por cue vet",
+					"Script deve usar cue export sobre o package claude (governance/claude/) como fonte única de geração",
+				]
+				outputs: [{
+					artifact: "scripts/build/generate-claude-md.sh"
+					type:     "create"
+				}, {
+					artifact: "CLAUDE.md"
+					type:     "update"
+				}]
+				affects: [
+					"governance/claude/config.cue",
+					"governance/claude/output.cue",
+				]
+				rationale: "CLAUDE.md é artefato derivado de governance/claude/config.cue + governance/claude/output.cue, mas hoje é regenerado manualmente. Drift entre source CUE e derivado é risco operacional — o agente opera a partir do renderizado. Escopo mínimo: regenerar via cue export sobre o package claude, checar idempotência empírica (byte-a-byte), falhar explicitamente quando geração não reproduz conteúdo esperado. Fora de escopo (WIs futuras desta sub-wave): integração com pre-commit hook, drift detection, enforcement no CI."
+			}]
+		}
 	}
 }
