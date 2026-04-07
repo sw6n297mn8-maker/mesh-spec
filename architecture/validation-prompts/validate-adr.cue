@@ -10,6 +10,8 @@ validationPrompts: "vp-adr": artifact_schemas.#ValidationPrompt & {
 
 	appliesTo: ["adr"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"architecture/artifact-schemas/adr.cue",
 		"architecture/design-principles.cue",
