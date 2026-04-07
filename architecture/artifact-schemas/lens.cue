@@ -1,6 +1,10 @@
 package artifact_schemas
 
-import "list"
+import (
+	"list"
+
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 // lens.cue — Schema para lentes analíticas.
 //
@@ -41,6 +45,14 @@ import "list"
 	purpose?: #NonEmptyString
 
 	status: *"draft" | "active" | "deprecated"
+
+	// Aplicabilidade por vertical de cadeia produtiva.
+	// Opcional na Fase 1 do rollout definido em adr-043:
+	// novas lenses devem declarar; lenses existentes permanecem
+	// válidas sob backfill progressivo guiado pelo warning de
+	// tq-ln-05. Fase 2 (ADR posterior) promove a obrigatório
+	// estrutural.
+	verticalApplicability?: shared_types.#VerticalApplicability
 
 	trigger: {
 		conditions:   [#NonEmptyString, ...#NonEmptyString] & list.MinItems(3)
@@ -115,6 +127,12 @@ _qualityCriteria: #QualityCriteria & {
 		test:        "Cada limitation descreve onde a lens falha, com alternativa concreta."
 		severity:    "warn"
 		rationale:   "Lens sem fronteira explícita tende a ser aplicada fora de contexto."
+	}, {
+		id:          "tq-ln-05"
+		description: "Aplicabilidade por vertical declarada (Fase 1 advisory)"
+		test:        "O campo verticalApplicability está presente e declara explicitamente o modo (vertical-agnostic, vertical-specific ou vertical-adaptable) com rationale. Ausência do campo é warning na Fase 1 do rollout definido em adr-043; novas lenses devem declarar o campo já na criação. Lenses existentes permanecem estruturalmente válidas e entram em backfill progressivo guiado por este warning."
+		severity:    "warn"
+		rationale:   "adr-043 Fase 1: campo opcional no schema, obrigatoriedade normativa de authoring sinalizada por warn advisory. Fase 2 promove a fail após backfill completo verificado."
 	}]
 	rationale: "Critérios garantem que a lens seja acionável, distintiva e calibrada para a Mesh."
 }
