@@ -10,6 +10,8 @@ validationPrompts: "vp-domain-model": artifact_schemas.#ValidationPrompt & {
 
 	appliesTo: ["domain-model"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"architecture/artifact-schemas/domain-model.cue",
 		"architecture/design-principles.cue",

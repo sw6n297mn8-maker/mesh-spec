@@ -10,6 +10,8 @@ validationPrompts: "vp-canvas": artifact_schemas.#ValidationPrompt & {
 
 	appliesTo: ["canvas"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"architecture/artifact-schemas/canvas.cue",
 		"architecture/design-principles.cue",

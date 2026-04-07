@@ -10,6 +10,8 @@ validationPrompts: "vp-self-review-report": artifact_schemas.#ValidationPrompt &
 
 	appliesTo: ["self-review-report"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"governance/build-time/self-review-report.cue",
 		"governance/build-time/quality-gate.cue",

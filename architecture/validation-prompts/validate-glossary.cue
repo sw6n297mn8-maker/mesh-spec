@@ -10,6 +10,8 @@ validationPrompts: "vp-glossary": artifact_schemas.#ValidationPrompt & {
 
 	appliesTo: ["glossary"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"architecture/artifact-schemas/glossary.cue",
 		"architecture/design-principles.cue",

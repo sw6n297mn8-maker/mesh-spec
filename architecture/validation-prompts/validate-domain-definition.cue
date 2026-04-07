@@ -10,6 +10,8 @@ validationPrompts: "vp-domain-definition": artifact_schemas.#ValidationPrompt & 
 
 	appliesTo: ["domain-definition"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"architecture/artifact-schemas/domain-definition.cue",
 		"architecture/design-principles.cue",

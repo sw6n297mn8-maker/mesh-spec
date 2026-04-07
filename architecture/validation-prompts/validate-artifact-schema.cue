@@ -10,6 +10,8 @@ validationPrompts: "vp-artifact-schema": artifact_schemas.#ValidationPrompt & {
 
 	appliesTo: ["artifact-schema"]
 
+	reviewContract: "advisory-only"
+
 	references: [
 		"architecture/artifact-schemas/artifact-schema.cue",
 		"architecture/artifact-schemas/quality-criteria.cue",
