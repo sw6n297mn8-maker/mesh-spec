@@ -64,24 +64,36 @@ ten006: artifact_schemas.#TensionEntry & {
 		"""
 
 	resolution: """
-		Tensão registrada como open. Resolução estrutural não
-		decidida nesta entry — pertence a ADR subsequente que
-		formalizará o reposicionamento do mecanismo de validação.
-		Decisão provisória até a ADR: nenhum finding produzido
-		por validation-prompt LLM bloqueia commit ou é tratado
-		como veredito factual; findings interpretativos são
-		input para decisão do founder, findings sobre presença
-		ou ausência factual são tratados como sujeitos a
-		verificação manual antes de qualquer ação. Alternativa
-		rejeitada: tentar disciplinar o LLM (consensus runs,
-		evidence requirement, uncertain-reading finding type)
-		mantendo-o como autoridade de gate — rejeitada porque
-		mitiga sintomas sem corrigir a confusão de categoria
-		entre verificação determinística e julgamento
-		interpretativo.
+		Resolvida estruturalmente por adr-040 (validation split:
+		structural verification deterministic vs design review
+		advisory). LLM removido categoricamente do papel de gate:
+		nenhum finding produzido por validation prompt pode
+		bloquear fluxo nem ser tratado como veredito factual.
+		Validation prompts permanecem como mecanismo de design
+		review advisory — output é recomendação para decisão do
+		founder, nunca veredito vinculante de gate nem evidência
+		factual autoautenticada.
+
+		Gate determinístico pós-commit pertence exclusivamente ao
+		mecanismo structural-check, formalizado por adr-041 e
+		materializado pelo schema architecture/artifact-schemas/structural-check.cue
+		e por instâncias em architecture/structural-checks/.
+		Regras estruturais são declarativas, reproduzíveis e
+		auditáveis — propriedades incompatíveis com motor LLM.
+
+		Conclusão irrevogável: qualquer uso futuro de LLM como
+		mecanismo de gate viola P10 (agentes estocásticos
+		recomendam, gates determinísticos validam) e reabre
+		exatamente esta tensão. A categoria 'design review
+		interpretativo' e a categoria 'verificação estrutural
+		determinística' são distintas por natureza do motor de
+		execução, não por convenção — não podem ser colapsadas
+		em um único mecanismo sem reincidir em ten-006.
 		"""
 
-	status: "open"
+	status: "resolved"
+
+	relatedADR: "adr-040"
 
 	rationale: """
 		Tensão registrada antes da ADR de reposicionamento
