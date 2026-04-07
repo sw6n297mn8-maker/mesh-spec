@@ -46,11 +46,17 @@ completionGates: {
 		kind:        "evidence"
 		rationale:   "P10: agentes estocásticos recomendam, gates determinísticos validam. Self-review produz report auditável (self-review-report.cue) que comprova revisão antes da proposta ao founder. Evidência: report com status stable ou max-rounds-reached com disclaimer."
 	}
+	"structural-check": {
+		id:          "structural-check"
+		description: "Structural checks aplicáveis ao artefato, executados como gate determinístico pós-commit per adr-040."
+		kind:        "deterministic"
+		rationale:   "Per adr-040, structural-checks (architecture/structural-checks/) são o único mecanismo de validação pós-commit que pode bloquear. Regras declarativas por kind (required-block, reference-exists, same-artifact-consistency), reproduzíveis e auditáveis. Falha estrutural exige correção da instância ou alteração explícita da regra via decisão arquitetural. P10: agentes estocásticos recomendam, gates determinísticos validam."
+	}
 	"validation-prompt": {
 		id:          "validation-prompt"
-		description: "Validation prompt correspondente executado sem findings fail pendentes — validação semântica pós-commit por agente isolado."
+		description: "Validation prompt correspondente executado em sessão isolada como design review advisory per adr-040. Findings são recomendações para decisão do founder, nunca bloqueio."
 		kind:        "evidence"
-		rationale:   "Validação semântica em sessão separada (CLAUDE.md seção Validação) detecta viés e blind spots que self-review do mesmo agente não captura. Separação de contexto é o mecanismo diferenciador."
+		rationale:   "Per adr-040, validation prompts são exclusivamente advisory — produzem revisão de design interpretativa por agente em sessão separada. Detectam viés e blind spots que self-review do mesmo agente não captura, mas não participam de gating determinístico (esse papel pertence a structural-check). Separação de contexto é o mecanismo diferenciador. Kind 'evidence' é aproximativo aqui por restrição do enum atual (deterministic|evidence) — 'advisory' ou 'review' seria mais preciso semanticamente; manter como evidence até que o enum seja estendido. ten-006 documenta por que a categoria não pode ser colapsada com structural-check."
 	}
 	"adr-coevolution": {
 		id:          "adr-coevolution"
