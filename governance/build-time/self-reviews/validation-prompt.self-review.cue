@@ -2,8 +2,8 @@ package self_reviews
 
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
-validationPromptAdvisory: build_time.#SelfReviewReport & {
-	reportId: "srr-validation-prompt-advisory"
+validationPrompt: build_time.#SelfReviewReport & {
+	reportId: "srr-validation-prompt"
 
 	artifactPath:       "architecture/artifact-schemas/validation-prompt.cue"
 	artifactSchemaPath: "architecture/artifact-schemas/artifact-schema.cue"
