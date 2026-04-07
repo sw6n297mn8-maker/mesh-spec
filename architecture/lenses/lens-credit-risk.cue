@@ -1,12 +1,41 @@
 package lenses
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 creditRisk: artifact_schemas.#AnalyticalLens & {
 	id:      "lens-credit-risk"
 	name:    "Risco de Crédito e Dinâmicas de Carteira"
 	purpose: "Modelar a exposição econômica, jurídica e estatística criada por antecipação de recebíveis na Mesh, distinguindo risco individual, risco de carteira, risco correlacionado, risco de fraude, risco de diluição e risco regulatório. A lente trata antecipação como posição em carteira, não como transação isolada."
 	status:  "draft"
+
+	verticalApplicability: shared_types.#VerticalApplicability & {
+		mode:            "vertical-adaptable"
+		primaryVertical: "construction"
+		rationale: """
+			Núcleo teórico (PD, LGD, EAD, expected loss,
+			concentração, correlação, stress testing, RAROC) é
+			universal a qualquer sistema de crédito. A
+			operacionalização desta lens, no entanto, depende
+			estruturalmente de mecanismos causais específicos
+			da construção: vintage analysis exige controle por
+			ciclo de projeto, dilution é modelada por padrões
+			de glosa e contestação típicos de serviços na obra,
+			e a transmissão operacional→financeira é calibrada
+			em eventos de canteiro, boletim de medição e atraso
+			endêmico setorial.
+
+			A própria seção de limitations da lens declara que
+			"ao expandir para agricultura, energia ou indústria,
+			reconstruir a camada causal em vez de reaproveitar
+			a da construção" — autoatestado de que o reuso
+			exige redefinição estrutural, não apenas substituição
+			de exemplos. Vertical-adaptable, primaryVertical
+			construction.
+			"""
+	}
 
 	trigger: {
 		conditions: [

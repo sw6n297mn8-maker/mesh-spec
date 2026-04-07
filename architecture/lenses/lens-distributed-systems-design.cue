@@ -1,6 +1,9 @@
 package lenses
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 distributedSystemsDesign: artifact_schemas.#AnalyticalLens & {
 id:     "lens-distributed-systems-design"
@@ -8,6 +11,29 @@ name:   "Design de Sistemas Distribuídos"
 
 purpose: "Orientar decisões sobre como projetar sistemas distribuídos que são resilientes, consistentes e operáveis — particionamento, replicação, consenso e failure modes."
 status: "draft"
+
+verticalApplicability: shared_types.#VerticalApplicability & {
+	mode: "vertical-agnostic"
+	rationale: """
+		Núcleo teórico (CAP/PACELC, sagas, idempotência,
+		modos de falha, causalidade de eventos, replicação,
+		consenso) é canonicamente independente de cadeia
+		produtiva — aplica-se a qualquer sistema com execução
+		distribuída e estado consistente. Os 12 reasoning steps
+		são formulados de forma agnóstica (consistency models,
+		saga coordination, idempotency keys, topologia, failure
+		modes, ordering) e o vocabulário operacional dos
+		conceitos (bounded context, saga, compensação,
+		idempotency key, replicação, hybrid clock) é universal
+		na disciplina de sistemas distribuídos.
+
+		Construção aparece exclusivamente em meshExamples
+		(antecipação de recebíveis, scoring de comprador,
+		registro em registradora) — substituí-los por exemplos
+		de manufatura, logística ou energia não exige mudança
+		no núcleo nem nos conceitos. Vertical-agnostic.
+		"""
+}
 
 trigger: {
 	conditions: [

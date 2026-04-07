@@ -1,12 +1,52 @@
 package lenses
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 platformDynamics: artifact_schemas.#AnalyticalLens & {
 	id:      "lens-platform-dynamics"
 	name:    "Dinâmicas de Plataforma"
 	purpose: "Analisar como a Mesh cria, acelera, sustenta e defende efeitos de plataforma entre compradores, fornecedores e investidores, identificando condições de bootstrap, massa crítica, retenção, desintermediação, concentração e defensibilidade."
 	status:  "draft"
+
+	verticalApplicability: shared_types.#VerticalApplicability & {
+		mode:            "vertical-specific"
+		primaryVertical: "construction"
+		rationale: """
+			Núcleo teórico de platform dynamics (Rochet-Tirole,
+			network effects, multi-sided markets, chicken-and-egg,
+			anchor tenants, envelopment, switching costs) é
+			universal e aplicável a qualquer plataforma multi-sided.
+			O artefato atual desta lens, no entanto, não opera
+			nesse nível de abstração: está instanciado de forma
+			substantiva na Mesh como plataforma bootstrapada em
+			construção civil brasileira, sem pontos de variação
+			explicitados.
+
+			O purpose declara explicitamente analisar "como a
+			Mesh cria, acelera, sustenta e defende efeitos de
+			plataforma"; conceitos centrais como pd-friction-threshold,
+			pd-multi-sided-structure, pd-platform-lifecycle e
+			pd-single-player-mode embutem premissas
+			construção-específicas (concentração de compradores,
+			fornecedores como geradores de necessidade de crédito,
+			qualificação manual cara, fricção setorial)
+			diretamente em suas meshManifestation; o reasoning
+			protocol pergunta sobre "a Mesh", não sobre
+			plataformas em geral; e a própria seção de limitations
+			declara que "construção civil não generaliza
+			automaticamente para outras cadeias".
+
+			Portanto, a classificação correta do artefato atual é
+			vertical-specific, ainda que uma re-autoria futura
+			possa produzir uma versão vertical-agnostic ou
+			vertical-adaptable da mesma lens — re-autoria
+			registrada como observação separada, fora do escopo
+			deste backfill.
+			"""
+	}
 
 	trigger: {
 		conditions: [
