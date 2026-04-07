@@ -306,7 +306,22 @@ canvas: artifact_schemas.#Canvas & {
 			correctOperationIncentive: "Verificação única e persistente reduz fricção em todas as operações subsequentes na rede. Identidade verificada é pré-condição para qualquer operação — não há atalho."
 			manipulationVector:        "Tentar registrar identidade falsa ou usar credenciais de outra organização para operar na rede sem ser quem alega ser."
 			manipulationCost:          "Verificação cruza dados com fontes externas autoritativas (Receita Federal, Junta Comercial, bureaus). Falsificação exigiria comprometer fontes externas, o que está fora do alcance prático e expõe a riscos legais (falsidade ideológica, fraude documental)."
-			vsBenefit:                 "Custo de comprometer fontes externas autoritativas é ordens de magnitude maior que qualquer benefício obtido por operar sob identidade falsa em uma única rede de SCD."
+			vsBenefit: """
+				O benefício realista do vetor não é operar sob
+				identidade falsa em uma única operação — é escapar
+				de histórico negativo de crédito vinculado à
+				identidade verdadeira (reset de reputação). Mesmo
+				nesse cenário ampliado o custo permanece
+				estruturalmente maior: fontes externas autoritativas
+				vinculam CNPJ a quadro societário, patrimônio e
+				histórico fiscal. Abrir CNPJ novo para esconder
+				histórico cruza com sócios reais e endereço
+				declarado, deixando trail rastreável por bureaus
+				de crédito e pelo próprio Bacen. Reset de reputação
+				via identidade falsa é detectável estruturalmente
+				por cruzamento de fontes, não apenas por boa-fé do
+				verificador.
+				"""
 			designResponse:            "IDC depende de múltiplas fontes externas autoritativas e mantém trail criptográfico de cada verificação. Tentativas de fraude geram evidência reutilizável por reguladores."
 			rationale:                 "Construtora é participante âncora — incentivo para verificação honesta deve ser estrutural, não confiar em boa fé."
 		}, {
@@ -325,9 +340,33 @@ canvas: artifact_schemas.#Canvas & {
 			desiredBehavior:           "Executar protocolo de verificação fielmente, reportar resultados sem viés, escalar ambiguidade técnica para humano supervisor quando autonomy envelope exigir."
 			correctOperationIncentive: "Operações criptográficas são determinísticas e auditáveis — execução correta gera trail verificável. Self-monitoring detecta drift e reporta ao founder antes que padrão se consolide."
 			manipulationVector:        "Favorecimento seletivo — agente poderia, em tese, aplicar critério de verificação mais leve para entidades específicas, ou cachear resultados sem reverificar quando necessário, criando viés sistemático invisível em casos individuais."
-			manipulationCost:          "Cada operação gera trail criptográfico imutável. Self-review em build-time + auditoria periódica de amostras + comparação estatística entre verificações detectam padrão de favorecimento. Trail é acessível ao founder e ao regulador."
-			vsBenefit:                 "Agente não tem benefício direto em favorecer — não há contraparte oferecendo vantagem. Pressão potencial viria de otimização de custo (cachear em vez de reverificar) ou de vies de treinamento — ambos detectáveis via amostragem estatística do trail."
-			designResponse:            "Trail criptográfico de toda operação + amostragem periódica de reverificação + self-review obrigatório com critério de drift detection (sh-05 monitora sua própria distribuição de resultados ao longo do tempo)."
+			manipulationCost: """
+				Mitigação operacional atual: trail de cada
+				operação é registrado em log configurado pelo
+				founder fora do processo do agente; amostragem
+				estatística por reverificação é executada
+				manualmente ou por pipeline auxiliar configurado
+				pelo founder; threshold de aceitação é
+				supervisedDecision e qualquer alteração exige
+				aprovação humana. Resolução estrutural futura:
+				registro e amostragem como responsabilidade
+				transversal de PLT (infraestrutura ainda não
+				formalizada), garantindo separação arquitetural
+				— não apenas operacional — entre execução e
+				auditoria. Mecanismo secundário: self-monitoring
+				pelo agente da própria distribuição de resultados
+				como input adicional para diagnóstico, nunca
+				como defesa primária.
+				"""
+			vsBenefit:                 "Agente não tem benefício direto em favorecer — não há contraparte oferecendo vantagem. Pressão potencial viria de otimização de custo (cachear em vez de reverificar) ou de vies de treinamento — ambos detectáveis pela amostragem por reverificação executada externamente, não pelo próprio agente."
+			designResponse: """
+				Atual: log externo configurado + amostragem por
+				pipeline auxiliar + threshold supervisado + acesso
+				direto do founder e do regulador ao trail.
+				Futuro: substrato comum em PLT que torne a
+				separação arquitetural por construção, não por
+				configuração.
+				"""
 			rationale:                 "Agente é o executor real do protocolo na operação cotidiana — incentivo precisa cobrir tanto manipulação externa quanto drift interno do próprio agente. Drift detection é o mecanismo específico para vetor 'favorecimento seletivo'."
 		}, {
 			stakeholderRef:            "sh-05"
@@ -335,9 +374,32 @@ canvas: artifact_schemas.#Canvas & {
 			desiredBehavior:           "Aplicar critério de verificação uniforme independentemente de qual organização está sendo verificada, mesmo na presença de pressão externa."
 			correctOperationIncentive: "Agente não tem conta financeira, não recebe pagamento direto e não tem canal de comunicação privado com sh-01/sh-02 — qualquer interação acontece via interface auditada."
 			manipulationVector:        "Construtora ou fornecedor oferece vantagem (financeira, operacional, ou de influência sobre regras futuras) ao operador humano do agente em troca de verificação leniente para sua própria identidade ou para identidade afiliada."
-			manipulationCost:          "Toda verificação gera trail criptográfico imutável. Calibração de threshold é supervisedDecision — agente não pode unilateralmente abaixar o critério. Amostragem estatística periódica reverifica entidades já aprovadas e detecta lenidade seletiva. Regulador (sh-04) tem acesso independente ao trail e pode reconstituir critério aplicado por entidade."
-			vsBenefit:                 "Benefício potencial de favorecer uma entidade é limitado pelo valor das operações daquela entidade na rede. Custo é detecção via amostragem + perda de credibilidade regulatória de toda a operação Mesh + responsabilização jurídica do operador humano. Custo é estruturalmente desproporcional ao benefício."
-			designResponse:            "Threshold como supervisedDecision + amostragem estatística periódica + acesso independente do regulador ao trail + separação entre execução do agente e calibração de política."
+			manipulationCost: """
+				Mitigação operacional atual: ausência de canal
+				monetário entre agente e contraparte (agente não
+				recebe pagamento direto), threshold de verificação
+				como supervisedDecision (alterar critério exige
+				aprovação humana fora do controle do agente),
+				amostragem por reverificação executada por processo
+				externo configurado pelo founder, e acesso autônomo
+				do regulador (sh-04) ao trail criptográfico.
+				Resolução estrutural futura: amostragem e gravação
+				de trail como responsabilidade arquitetural de PLT,
+				garantindo que conluio não possa ser ocultado por
+				configuração operacional comprometida. Mecanismo
+				secundário: comparação estatística contínua e
+				self-review pelo agente como input adicional, não
+				como gate.
+				"""
+			vsBenefit:                 "Benefício potencial de favorecer uma entidade é limitado pelo valor das operações daquela entidade na rede. Custo é detecção por amostragem externa + perda de credibilidade regulatória de toda a operação Mesh + responsabilização jurídica do operador humano. Custo é estruturalmente desproporcional ao benefício."
+			designResponse: """
+				Atual: remoção estrutural do canal monetário +
+				supervisão humana sobre threshold + amostragem
+				externa + observabilidade independente do regulador.
+				Futuro: substrato comum em PLT para gravação de
+				trail e amostragem por construção. Self-review do
+				agente é complemento.
+				"""
 			rationale:                 "Vetor de conluio é o vetor adversarial mais provável quando agente é o ponto único de execução — incentivo precisa ser estrutural, não baseado em integridade do operador humano."
 		}, {
 			stakeholderRef:            "sh-05"
@@ -345,9 +407,30 @@ canvas: artifact_schemas.#Canvas & {
 			desiredBehavior:           "Executar toda requisição de verificação recebida ou registrar falha explícita com causa; nunca silenciar requisição."
 			correctOperationIncentive: "Cada requisição gera registro de entrada antes de qualquer execução. Ausência de resultado dentro de SLA gera escalation automático. Consumer BC (NPM) detecta requisições sem resposta e reporta como incidente."
 			manipulationVector:        "Agente simula timeout, ficar offline ou descartar requisição sem registro para evitar verificar uma identidade específica — produzindo o mesmo efeito de rejeição sem deixar trail explícito de decisão."
-			manipulationCost:          "Registro de entrada é separado do registro de resultado — omitir resultado preserva o registro de entrada como evidência de requisição não atendida. SLA monitoring por requisição força ou execução ou escalation — não há terceiro caminho. Discrepância entre requisições recebidas (visível ao consumer) e respostas emitidas é métrica auditável."
-			vsBenefit:                 "Omissão tem o mesmo custo de detecção que rejeição explícita, sem benefício adicional — o consumer ainda fica sem resposta e ainda escala. Único benefício marginal é negação plausível, anulada pelo registro de entrada."
-			designResponse:            "Registro de entrada antes de execução + SLA monitoring por requisição + escalation automático em ausência de resposta + reconciliação periódica entre requisições e respostas."
+			manipulationCost: """
+				Mitigação operacional atual: registro de entrada
+				de cada requisição é gravado em fila configurada
+				pelo founder fora do processo do agente, separado
+				do registro de execução — agente não pode descartar
+				requisição sem deixar trail de entrada. Consumer
+				BC (NPM, LOG, DLV) detecta ausência de resposta
+				independentemente porque depende do resultado para
+				prosseguir. Resolução estrutural futura: fila e
+				SLA monitoring como responsabilidade transversal
+				de PLT (ainda não formalizada), garantindo que
+				registro de entrada seja por construção
+				inacessível ao agente. Mecanismo secundário:
+				reconciliação periódica entre requisições recebidas
+				e respostas emitidas, executada externamente.
+				"""
+			vsBenefit:                 "Omissão tem o mesmo custo de detecção que rejeição explícita, sem benefício adicional — o consumer ainda fica sem resposta e ainda escala. Único benefício marginal é negação plausível, anulada pelo registro de entrada externo ao agente."
+			designResponse: """
+				Atual: registro de entrada externo + dependência
+				observável dos consumers + reconciliação por
+				processo externo. Futuro: fila e SLA monitoring
+				como substrato de PLT, separação por construção
+				em vez de configuração.
+				"""
 			rationale:                 "Omissão é vetor sutil porque produz aparência de falha técnica em vez de decisão. Endereçada por separar registro de entrada de registro de resultado."
 		}, {
 			stakeholderRef:            "sh-05"
@@ -355,30 +438,244 @@ canvas: artifact_schemas.#Canvas & {
 			desiredBehavior:           "Processar requisições de verificação em ordem determinística (FIFO ou outro critério público), sem reordenação que beneficie requisição específica."
 			correctOperationIncentive: "Ordem de processamento é registrada por timestamp na entrada. Reordenação é detectável por comparação entre timestamp de entrada e timestamp de execução."
 			manipulationVector:        "Agente atrasa verificação de organização A (concorrente) para dar vantagem temporal a organização B na qualificação para crédito ou participação em operação com janela limitada."
-			manipulationCost:          "Timestamps de entrada e execução são imutáveis. Reordenação detectável por amostragem ou por queixa de consumer prejudicado. Métrica de tempo médio por requisição segmentada por organização revela tratamento assimétrico."
-			vsBenefit:                 "Benefício temporal é apenas relevante quando há janela competitiva — caso raro. Custo de detecção (queixa do prejudicado + audit trail) é alto e a operação Mesh perde credibilidade ao ser identificada como manipulável por timing."
-			designResponse:            "Timestamp imutável de entrada + métrica de tempo de processamento por organização + critério de ordem público e auditável + escalation em desvios estatísticos."
+			manipulationCost: """
+				Mitigação operacional atual: timestamps de entrada
+				e execução são gravados em fila configurada pelo
+				founder fora do processo do agente; ordem é
+				verificável por terceiro (founder, auditor,
+				regulador) por comparação direta entre os dois
+				timestamps, sem cooperação do agente. Critério de
+				ordenação é declarado e auditável. Resolução
+				estrutural futura: fila com timestamps imutáveis
+				como responsabilidade arquitetural de PLT,
+				eliminando dependência de configuração operacional.
+				Mecanismo secundário: amostragem estatística do
+				tempo de processamento por organização revela
+				tratamento assimétrico no agregado.
+				"""
+			vsBenefit:                 "Benefício temporal é apenas relevante quando há janela competitiva — caso raro. Custo de detecção (queixa do prejudicado + audit trail externo) é alto e a operação Mesh perde credibilidade ao ser identificada como manipulável por timing."
+			designResponse: """
+				Atual: timestamps em fila externa + critério de
+				ordem declarado e público + verificabilidade por
+				terceiro sem cooperação do agente + amostragem
+				estatística complementar. Futuro: fila com
+				timestamps imutáveis como substrato de PLT,
+				ordem auditável por construção.
+				"""
 			rationale:                 "Vetor de front-running existe sempre que verificação é gate de operação com janela competitiva. Endereçado por tornar ordem auditável, não por confiar em FIFO implícito."
+		}, {
+			stakeholderRef: "sh-05"
+			participantType: """
+				Executor do protocolo de confiança — vetor de
+				stale read entre estado vigente em IDC e cópia
+				cacheada em consumer BC após revogação ou
+				suspensão de identidade.
+				"""
+			desiredBehavior: """
+				Garantir convergência entre estado vigente em
+				IDC e estado em uso por cada consumer (NPM,
+				LOG, DLV) com latência limitada e auditável;
+				quando IDC marca identidade como revogada ou
+				suspensa, propagar a invalidação ativamente em
+				vez de depender exclusivamente do TTL passivo
+				de cada consumer.
+				"""
+			correctOperationIncentive: """
+				Operação produzida por consumer sobre cache
+				stale gera registro auditável e é passível de
+				rollback downstream em DLV/INV. Custo
+				regulatório de operar com identidade não-vigente
+				cresce linearmente com a janela de
+				inconsistência — incentivo estrutural para
+				minimizar essa janela.
+				"""
+			manipulationVector: """
+				Os três pontos de exposição:
+				(1) Estado vigente: IDC marca organização X
+				como revogada (em t0) por decisão de verificação
+				ou por sinal externo de comprometimento.
+				(2) Cópia cacheada: cada consumer (NPM, LOG,
+				DLV) mantém resultado de uma query anterior a
+				t0 onde X figurava como verificada. O cache
+				pode ser explícito (resultado armazenado) ou
+				implícito (decisão tomada com base no resultado
+				e nunca reavaliada).
+				(3) Janela de inconsistência: intervalo entre
+				t0 (revogação em IDC) e tN (atualização efetiva
+				no consumer), determinado pelo TTL do consumer
+				e pela frequência de reconciliação ou propagação
+				ativa.
+				Adversário (X, sabendo que foi revogada)
+				acelera operações dentro de [t0, tN] explorando
+				a janela. Consequência operacional por consumer
+				dentro da janela: NPM continua qualificando X
+				para novas operações e habilitando contratos
+				baseados em identidade verificada inexistente,
+				expondo a rede a contraparte inelegível; LOG
+				continua aceitando e fornecendo evidência cuja
+				identidade signatária está revogada, propagando
+				evidência cripto-válida mas semanticamente
+				inválida para downstream; DLV continua
+				aceitando proofs de integridade atrelados a
+				identidade revogada como suficientes para
+				liberar entrega, validando fluxos cuja base de
+				confiança foi removida.
+				"""
+			manipulationCost: """
+				Mitigação operacional atual: TTL passivo
+				configurado em cada consumer + reconciliação
+				periódica entre IDC e consumers (executada por
+				processo externo configurado pelo founder) +
+				bloqueio downstream em DLV/INV quando
+				inconsistência é detectada. Toda operação
+				dentro da janela [t0, tN] gera registro
+				auditável passível de rollback. Resolução
+				estrutural futura: invalidação ativa via evento
+				IdentityRevoked publicado por IDC e consumido
+				por NPM, LOG, DLV (decisão pendente em oq-idc-1,
+				registrada como ten-003). Enquanto a resolução
+				estrutural não existir, o vetor permanece com
+				cobertura parcial e janela de inconsistência
+				diretamente proporcional ao TTL configurado nos
+				consumers.
+				"""
+			vsBenefit: """
+				O benefício para o adversário é proporcional à
+				janela de inconsistência e ao número de
+				operações que ele consegue executar antes da
+				reconciliação. Para janelas curtas (TTL na
+				ordem de minutos a dezenas de minutos) e
+				operações detectáveis por bloqueio downstream
+				em DLV/INV, o benefício realizável é baixo.
+				Para janelas longas (TTL de horas ou ausência
+				de reconciliação ativa) e operações que escapem
+				do bloqueio downstream (e.g., decisões de
+				qualificação em NPM cujo efeito já se propagou
+				para fora do escopo de DLV/INV), o benefício
+				pode ser substancial. Por isso a janela deve
+				ser estruturalmente limitada, não apenas
+				operacionalmente — ten-003 é o caminho de
+				redução estrutural.
+				"""
+			designResponse: """
+				Atual: TTL configurado em cada consumer +
+				reconciliação periódica externa + bloqueio
+				downstream em DLV/INV + responsabilização
+				posterior por operações sobre cache stale.
+				Futuro: protocolo de invalidação ativa via
+				evento IdentityRevoked, dependente da resolução
+				de oq-idc-1 / ten-003.
+				"""
+			rationale: """
+				Vetor de cache stale é diretamente dependente
+				da resolução estrutural de ten-003. Endereçamento
+				atual é parcial e honestamente declarado: três
+				pontos de exposição (estado vigente, cópia
+				cacheada, janela de inconsistência) estão
+				amarrados explicitamente, e a consequência
+				operacional em cada consumer é nomeada — vetor
+				não vira abstração genérica de cache.
+				"""
+		}, {
+			stakeholderRef: "sh-05"
+			participantType: """
+				Executor do protocolo de confiança — vetor de
+				side-channel via observação de padrão de queries
+				de verificação.
+				"""
+			desiredBehavior: """
+				Atender queries de verificação sem expor
+				metadata observacional que permita inferir
+				estado de identidades em verificação ou
+				correlacionar atividade entre BCs.
+				"""
+			correctOperationIncentive: """
+				Padrão de queries é observável por qualquer
+				ator com acesso a logs de IDC ou de consumers.
+				Sem mitigação estrutural, observador pode
+				inferir que entidade X está sendo verificada
+				antes do resultado público — vazamento de
+				informação de domínio sensível.
+				"""
+			manipulationVector: """
+				Observador com acesso a logs de query (operador
+				da plataforma, BC consumer comprometido, ou
+				auditoria com escopo amplo) infere state machine
+				de verificação observando frequência, ordem e
+				correlação de queries entre BCs. Permite
+				inteligência adversarial sobre quem está em
+				onboarding, quem foi suspenso, quem está em
+				re-verificação.
+				"""
+			manipulationCost: """
+				Mitigação operacional atual: gates de acesso a
+				logs de query são supervisedDecision em
+				governance — quem pode ler audit trail é
+				decisão humana fora do controle do agente.
+				Resolução estrutural futura: normalização de
+				resposta (constant-time response, dummy traffic,
+				agregação temporal) ainda não decidida —
+				exigiria decisão arquitetural sobre o protocolo
+				de query de IDC. Mecanismo secundário não se
+				aplica: não há self-monitoring que detecte
+				exfiltração silenciosa de padrão observacional.
+				"""
+			vsBenefit: """
+				Vetor é assimétrico: custo de explorar é baixo
+				(apenas acesso a logs) e benefício é alto
+				(inteligência sobre identidades sensíveis em
+				estados intermediários). Endereçamento atual é
+				parcial — gates de acesso limitam quem observa,
+				mas não normalizam o que é observável.
+				Cobertura completa depende de decisão
+				arquitetural não tomada.
+				"""
+			designResponse: """
+				Atual: gate de acesso a logs (quem lê).
+				Futuro: normalização de resposta
+				(constant-time, dummy traffic) como direção de
+				evolução, ainda não decidida. Vetor reconhecido
+				com cobertura parcial em vez de coberto por
+				mecanismo inexistente.
+				"""
+			rationale: """
+				Side-channel é vetor adversarial assimétrico
+				que não pode ser fechado por self-monitoring
+				nem por boa-fé. Endereçamento estrutural exige
+				decisão arquitetural sobre normalização de
+				resposta — declarado como gap honesto, não
+				como mitigação inventada. Cruza com ten-005
+				(operador da plataforma) porque o observador
+				mais provável é o operador.
+				"""
 		}]
 		rationale: """
-			Análise cobre quatro vetores adversariais distintos
-			contra sh-05 (drift interno, conluio com contraparte,
-			omissão ativa, front-running) além dos vetores
-			estruturais contra sh-01 e sh-02 (identidade falsa).
-			Cada vetor tem custo concreto enraizado em mecanismo
-			arquitetural — não em integridade presumida do
-			operador humano. Lacuna conhecida: o stakeholder map
-			não modela "operador da plataforma" como ator distinto
-			do founder. IDC é raiz de confiança da Mesh, portanto
-			vetor de manipulação do operador sobre IDC para
-			favorecer próprios clientes ou extrair inteligência
-			sobre identidades verificadas é teoricamente
-			relevante. Registrado como oq-idc-4 — não endereçado
-			neste canvas porque exige decisão prévia sobre o
-			modelo de stakeholders. Reguladores (sh-04) e
+			Análise cobre seis vetores adversariais distintos
+			contra sh-05 (drift interno, conluio com
+			contraparte, omissão ativa, front-running, cache
+			stale read, side-channel via padrão de queries)
+			além dos vetores estruturais contra sh-01 e sh-02
+			(identidade falsa incluindo reset de reputação).
+			Cada vetor explicita seu mecanismo primário de
+			mitigação como estrutural e externo ao agente
+			(registro em fila separada, supervisão humana
+			sobre threshold, amostragem por processo
+			independente, bloqueio downstream, gates de acesso
+			a logs); self-monitoring pelo agente é declarado
+			como mecanismo secundário onde presente, nunca
+			como defesa primária. Cobertura parcial é declarada
+			honestamente quando o mecanismo estrutural depende
+			de artefato ainda não materializado: ten-003
+			(protocolo de revogação) afeta o vetor de cache
+			stale, ten-004 (taxonomia de evidência) afeta a
+			invariante pré-assinatura, ten-005 (operador da
+			plataforma) afeta o vetor de side-channel e o
+			conjunto de vetores não cobertos pela ausência de
+			sh-NN para operador. Reguladores (sh-04) e
 			parceiros financeiros (sh-03) não são participantes
 			ativos — são consumers de evidência produzida por
-			outros — por isso não geram vetor endereçável neste BC.
+			outros — por isso não geram vetor endereçável
+			neste BC.
 			"""
 	}
 
@@ -399,14 +696,22 @@ canvas: artifact_schemas.#Canvas & {
 					consumer autorizado da capacidade de assinatura no
 					context-map; (2) identidade do solicitante está
 					verificada por IDC com resultado vigente (não
-					revogado); (3) evidência conforma com schema da
-					taxonomia registrada para a classe declarada;
-					(4) requisição não é duplicata de assinatura já
-					emitida. Falha em qualquer invariante bloqueia a
-					assinatura e gera registro de tentativa rejeitada.
-					Não há julgamento semântico sobre valor da evidência
-					— gate é puramente determinístico sobre as
-					invariantes acima.
+					revogado nem suspenso) — protocolo de revogação
+					ainda em formalização (ten-003); (3) evidência
+					conforma com schema da classe declarada conforme
+					taxonomia canônica de evidência — taxonomia ainda
+					em formalização (ten-004); (4) requisição não é
+					duplicata de assinatura já emitida — escopo de
+					unicidade definido pela tupla (hash do conteúdo
+					da evidência, classe de evidência, BC solicitante);
+					reexecução com mesma tupla retorna a assinatura
+					previamente emitida em vez de gerar nova; tentativa
+					com classe ou BC distintos é tratada como
+					requisição independente. Falha em qualquer
+					invariante bloqueia a assinatura e gera registro
+					de tentativa rejeitada. Não há julgamento semântico
+					sobre valor da evidência — gate é determinístico
+					sobre as invariantes acima.
 					"""
 				rationale: """
 					P10 exige que operações com impacto financeiro
@@ -417,6 +722,16 @@ canvas: artifact_schemas.#Canvas & {
 					determinístico está declarado e auditável. As
 					quatro invariantes acima são a forma concreta
 					desse gate em IDC.
+
+					Ressalva de completude: invariantes (2) e (3)
+					dependem de artefatos ainda não materializados
+					— protocolo de revogação de identidade (ten-003)
+					e taxonomia canônica de evidência (ten-004).
+					Conformidade plena com P10 está condicionada à
+					resolução estrutural dessas tensões. Até lá, as
+					duas invariantes são sustentadas por configuração
+					operacional verificável pelo founder, não por
+					gate arquitetural.
 					"""
 			}, {
 				id:          "generate-integrity-proof"
@@ -550,6 +865,10 @@ canvas: artifact_schemas.#Canvas & {
 			Lacuna identificada na validação semântica do canvas
 			IDC (vc-cv-02). Resolução exige decisão sobre o modelo
 			de stakeholders ao nível domain, não ao nível BC.
+			Cross-referência: ten-005 registra esta lacuna no
+			log sistêmico de tensões e descreve o caminho de
+			resolução estrutural (adição de sh-06 ao stakeholder
+			map).
 			"""
 	}]
 
