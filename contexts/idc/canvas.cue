@@ -240,7 +240,7 @@ canvas: artifact_schemas.#Canvas & {
 	}, {
 		id:           "bd-verify-not-interpret"
 		decision:     "IDC verifica identidade e integridade, mas não interpreta, classifica ou atribui risco a entidades — essas decisões pertencem a BCs consumers."
-		rationale:    "Se IDC interpretasse dados de identidade (e.g., inferir risco a partir de perfil, classificar entidade por porte ou segmento), acumularia responsabilidade analítica que pertence a REW (risco), NPM (qualificação) ou outros BCs de domínio. Drift de 'verificar' para 'interpretar' é gradual e difícil de reverter — fronteira explícita previne."
+		rationale:    "Se IDC interpretasse dados de identidade (e.g., inferir risco a partir de perfil, classificar entidade por porte ou segmento), acumularia responsabilidade analítica que pertence a REW (risco), NPM (qualificação) ou outros BCs de domínio. Drift de 'verificar' para 'interpretar' é gradual e difícil de reverter — fronteira explícita previne. Alternativa rejeitada concreta: IDC retornar score de confiança ou classificação derivada (e.g., 'identidade verificada com risco baixo'). Score derivado é interpretação — pertence a REW/NPM/outros consumers, não a IDC. O eixo desta decisão é distinto de bd-primitives-not-policy: aquela rejeita IDC implementar política externa (KYC/AML); esta rejeita IDC atribuir significado interpretativo ao próprio output."
 		consequences: "IDC retorna resultado binário ou estruturado de verificação (verificado/não verificado, íntegro/não íntegro). Qualquer decisão derivada — pode operar? qual risco? qual classificação? — é responsabilidade do BC que consome a primitiva. IDC não tem visibilidade sobre o uso downstream do resultado."
 	}]
 
@@ -795,6 +795,38 @@ canvas: artifact_schemas.#Canvas & {
 					ao gate por requisição — sem ele, ataque distribuído
 					passa pelas invariantes individuais e só é detectado
 					em auditoria.
+					"""
+			}, {
+				id: "sign-evidence-gap"
+				condition: """
+					Requisição de sign-evidence cujo BC consumer não
+					está na whitelist estática autorizada (NPM, LOG,
+					DLV) OU cuja classe de evidência não está
+					declarada na taxonomia interna do IDC, enquanto
+					ten-003 (protocolo de revogação ativa) e ten-004
+					(taxonomia formal de evidência) não estiverem
+					resolvidos.
+					"""
+				action: """
+					Escalar ao founder antes de assinar. Não cachear
+					decisão entre requisições — cada requisição fora
+					do escopo conhecido é reavaliada individualmente.
+					Preservar trail da requisição com motivo do
+					escalation.
+					"""
+				rationale: """
+					sign-evidence está em autonomousDecisions porque
+					a operação criptográfica em si é determinística,
+					mas as invariantes (2) identidade vigente e (3)
+					conformidade de classe dependem de ten-003 e
+					ten-004, ainda não materializados. Enquanto a
+					resolução estrutural não existir, P10 exige gate
+					humano sobre requisições fora do caminho
+					conhecido-seguro — escalation cobre exatamente o
+					delta entre o gate arquitetural pleno e o que é
+					sustentado operacionalmente hoje. Vem reportado
+					como finding vc-cv-05 da execução end-to-end de
+					vp-canvas em 2026-04-07.
 					"""
 			}]
 		}
