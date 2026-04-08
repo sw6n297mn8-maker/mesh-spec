@@ -18,7 +18,7 @@ import "list"
 
 	// Classificação fechada do tipo de tarefa. Permite roteamento
 	// por agente, validação de templateRef e analytics.
-	kind: "create-schema" | "validate-artifact" | "create-instance" | "create-script"
+	kind: "create-schema" | "validate-artifact" | "create-instance" | "create-script" | "create-convention"
 
 	title:         string & !=""
 	applicability: string & !=""
