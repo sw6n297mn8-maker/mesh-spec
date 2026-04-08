@@ -6,7 +6,8 @@ adr044: artifact_schemas.#ADR & {
 	id:            "adr-044"
 	title:         "Encerrar Fase 1 do adr-043 — declarar piloto suficiente e migrar para política on-touch"
 	date:          "2026-04-07"
-	status:        "accepted"
+	status:        "superseded"
+	supersededBy:  "adr-045"
 	decisionClass: "foundational"
 	decider:       "founder"
 

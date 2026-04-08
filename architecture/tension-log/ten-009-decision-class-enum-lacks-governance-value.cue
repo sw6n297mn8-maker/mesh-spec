@@ -57,6 +57,16 @@ ten009: artifact_schemas.#TensionEntry & {
 		têm representação canônica e serão forçadas a usar
 		"foundational" por exclusão, diluindo o sentido literal
 		desse valor.
+
+		Confirmação empírica em horas: adr-045, criado no mesmo
+		dia que adr-044 para revertê-lo, repetiu literalmente o
+		mesmo workaround. Pelos mesmos critérios de exclusão
+		(não cria novas relações, não é local, não é
+		experimental), "foundational" foi novamente a única
+		escolha disponível — desta vez para uma decisão de
+		correção de framing de governança, ainda mais distante
+		do sentido literal "decisão que define base do sistema".
+		n=2 passa a ser fato registrado, não previsão.
 		"""
 
 	resolution: """
@@ -94,10 +104,16 @@ ten009: artifact_schemas.#TensionEntry & {
 
 		Gatilho de reabertura para resolução: (a) decisão do
 		founder de priorizar a evolução do enum, OU (b)
-		identificação de um terceiro ADR que precisaria do mesmo
-		workaround (n=2 já existem: adr-044 explicitamente, e
-		potencialmente outros ADRs históricos que usaram
-		"foundational" por exclusão e poderiam ser re-classificados).
+		identificação concreta de n=2 ADRs que precisaram do
+		mesmo workaround. Critério (b) está satisfeito a partir
+		de 2026-04-07: adr-044 e adr-045 são os dois casos
+		confirmados, ambos do mesmo dia. Esta tensão passa de
+		"registro especulativo de gap" para "gap com evidência
+		empírica suficiente para priorização". O status permanece
+		"open" porque a resolução estrutural ainda exige decisão
+		do founder e ADR formal de evolução do enum — o gatilho
+		reduz a barreira de priorização, não cria a resolução
+		automaticamente.
 		"""
 
 	status: "open"
