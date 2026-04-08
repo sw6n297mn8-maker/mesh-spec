@@ -257,3 +257,103 @@ templates: "tmpl-create-script": {
 		rationale: "Atomicidade script↔derivado. Verificável via git diff antes do commit."
 	}]
 }
+
+// ════════════════════════════════════════════════════════════
+// tmpl-create-convention
+// ════════════════════════════════════════════════════════════
+
+templates: "tmpl-create-convention": {
+	version:       1
+	kind:          "create-convention"
+	title:         "Criar convenção de derivação/co-evolução entre tipos"
+	applicability: "Tarefas que produzem artefato em architecture/conventions/ declarando protocolo formal de derivação, co-evolução ou relação cross-artefato entre dois ou mais tipos de artefato governados do repositório. Não aplicável a schemas (que definem o que é um tipo), princípios (invariantes universais do sistema) nem scripts executáveis — distinção fixada em adr-046."
+	rationale:     "Convenções cross-artefato são protocolo, não ontologia nem axioma. Protocolo dedicado separa critérios de qualidade de convenção (tipos alvo explícitos, política de materialização classificada, SoT upstream canônico, separação determinístico/advisory) dos critérios de schema (estrutura de #Type) e script (idempotência, reprodutibilidade). Evita o cast que colapsaria convenção em schema ou script — motivação central de adr-046. A política de fronteira canônica vive em adr-046 (campo decision, seção 1): convenção governa relação entre 2+ tipos específicos, princípio governa o sistema inteiro. Este rationale é ponteiro operacional, não fonte normativa."
+
+	preReads: [{
+		target:     "outputs[0].artifact"
+		targetType: "derived-from-task-output"
+		rationale:  "Path da convenção a ser criada. Resolvido em runtime a partir da TaskSpec — confirma localização em architecture/conventions/ e nomenclatura."
+	}, {
+		target:     "architecture/adrs/adr-046-conventions-category-and-tmpl-create-convention.cue"
+		targetType: "path"
+		rationale:  "Fonte normativa meta-estrutural: enquadramento das 3 camadas (schema/princípio/convenção), política de singleton, vocabulário blockId, separação determinístico/advisory, fronteira regulatória. ADR é SoT da categoria."
+	}, {
+		target:     "schemas dos tipos governados (identificados na TaskSpec)"
+		targetType: "contextual-pattern"
+		rationale:  "Convenção governa relação entre tipos já existentes. Leitura dos schemas dos tipos alvo é pré-requisito: sem conhecer a estrutura de cada tipo, não há como declarar quais campos dirigem derivação, quais capability flags ativam o protocolo, nem onde as instâncias vivem. Tipos alvo são resolvidos em runtime a partir de governedTypes da TaskSpec — ler apenas os schemas referenciados, não o diretório inteiro."
+	}, {
+		target:     "architecture/design-principles.cue"
+		targetType: "path"
+		rationale:  "P0 (zero duplicação) governa política de materialização — conteúdo derivado não duplica source. P1 (schema-first) exige que schemas dos tipos alvo existam antes da convenção. P12 (governance as code) exige que a convenção seja CUE versionada. P10 (agentes recomendam, gates validam) sustenta a separação determinístico/advisory."
+	}, {
+		target:     "architecture/conventions/*.cue"
+		targetType: "glob"
+		condition:  "if-exists"
+		rationale:  "Convenções pré-existentes são referência de shape. Durante n=0 (antes da primeira convenção concreta) o glob retorna vazio; a partir de n>=1 servem de golden example. Decisão sobre #Convention schema central é deferida até n=2 (pattern ten-009)."
+	}, {
+		target:     "governance/repo-structure.cue"
+		targetType: "path"
+		rationale:  "Singleton análogo estabelecido, e home de derivedArtifacts que registra zonas derivadas em artefatos híbridos. Convenção com materialization=hybrid deve fazer repo-structure.cue referenciar o blockId que ela declara — continuidade lexical fixada por adr-046 decisão 2."
+	}]
+
+	steps: [{
+		action:    "Listar explicitamente o conjunto governedTypes: no mínimo dois tipos alvo. Cada tipo pode ser (a) tipo top-level com schema em architecture/artifact-schemas/, (b) subtipo aninhado dentro de outro artefato (ex: domain events dentro de canvas.cue), ou (c) artefato derivado registrado em governance/repo-structure.cue.derivedArtifacts. Declarar para cada tipo o path canônico e a referência estrutural (schema, campo no artefato container, ou entry em derivedArtifacts). Se o conjunto tem apenas um tipo, PARAR a execução e sinalizar ao founder no chat: (i) criar o tipo faltante antes via tmpl-create-schema, (ii) reclassificar a tarefa para create-schema se o objetivo real é definir ontologia, ou (iii) reclassificar para mudança em design-principles.cue se o invariante é universal. Não prosseguir com convenção de tipo único."
+		rationale: "Convenção sem 2+ tipos alvo explícitos colapsa a distinção schema/princípio/convenção. Este step força o teste ontológico antes da materialização. Aceitar subtipos aninhados e artefatos derivados evita excluir padrões latentes (domain events dentro de canvas, schema↔CLAUDE.md derivado) citados em adr-046 como motivadores da categoria."
+	}, {
+		action:    "Identificar e declarar upstreamSources: para cada relação de derivação ou co-evolução governada, qual tipo é fonte de verdade canônica (upstream) e qual é derivado, coevolutivo ou dependente (downstream). Declarar SoT por relação, não globalmente — uma convenção pode ter múltiplas relações internas com diferentes SoTs. Se a relação é simétrica (nenhum lado é upstream), declarar explicitamente e justificar no rationale por que não há direção de derivação."
+		rationale: "P0 exige uma única localização canônica por unidade de conhecimento. Sem SoT upstream declarado por relação, conflitos resolvem ad-hoc — drift por construção. Simetria declarada é distinta de omissão."
+	}, {
+		action:    "Identificar e declarar presenceConditions: dentro do escopo dos tipos governados, sob quais condições o protocolo ativa. Condições podem ser (a) co-existência dos tipos alvo (ativa sempre que ambos existem no escopo relevante); (b) valores específicos de campos ou capability flags no upstream; (c) tags, propriedades estruturais ou estado de outro tipo; (d) combinação das anteriores. Declarar de forma mecanicamente verificável — não em prosa."
+		rationale: "Sem presenceConditions explícitas, enforcement é impossível: validator não sabe quando o protocolo aplica. 'Sempre que ambos os tipos existem' é presença válida — declarar explicitamente em vez de implícito. Convenção não se torna princípio por ativar sempre — a distinção é escopo (par de tipos vs sistema inteiro), não frequência de ativação."
+	}, {
+		action:    "Classificar materialization como exatamente um de: pure-derived (output é regenerado integralmente do source, sem conteúdo autoral no downstream), pure-authored (downstream é escrito manualmente conforme a convenção, sem geração mecânica — convenção apenas declara relação normativa), hybrid (downstream mistura zonas derivadas delimitadas por blockMarkers com zonas autorais). Registrar a classificação como campo explícito da convenção com rationale curto."
+		rationale: "Política de materialização determina quais mecanismos de enforcement são viáveis. pure-derived admite regeneração mecânica; pure-authored admite apenas validação; hybrid exige marker de zona. Sem classificação, o próximo passo (enforcement) fica ambíguo e drift vira invisível."
+	}, {
+		action:    "Se materialization=hybrid, declarar blockMarkers com blockId(s) e sintaxe específica do formato alvo. Usar blockId como nome do identificador por continuidade lexical com repo-structure.cue.derivedArtifacts (vocabulário herdado per adr-046 decisão 2). A convenção é SoT do blockId e da sintaxe do marker — repo-structure.cue.derivedArtifacts REFERENCIA o blockId declarado pela convenção, não redeclara. A sintaxe concreta do marker depende do formato do arquivo alvo (markdown, CUE, YAML, etc.) e deve ser documentada inline com exemplo. Se materialization!=hybrid, omitir blockMarkers."
+		rationale: "Híbrido sem marker é drift garantido — zona derivada contamina zona autoral ou vice-versa. Marker explícito é pré-requisito de enforcement. SoT único do blockId (convenção declara, repo-structure referencia) previne duplicação P0-violadora entre os dois mecanismos análogos. Sintaxe varia por formato e não cabe no template."
+	}, {
+		action:    "Separar validationPolicy em duas camadas declaradas per adr-040: (a) structural — regras determinísticas em architecture/structural-checks/ que podem bloquear o fluxo; declarar 'none' explicitamente quando não há gate estrutural viável, com justificativa; (b) advisory — revisão interpretativa em architecture/validation-prompts/ que recomenda mas nunca bloqueia; declarar 'none' explicitamente quando não há dimensão interpretativa que justifique o custo. Não misturar as duas camadas no mesmo slot. Nenhum gate declarado em 'structural' pode depender de LLM (P10 + ten-006)."
+		rationale: "adr-040 estabelece que gates determinísticos bloqueiam e advisory recomenda. Convenção que declara validação sem separar camadas força reclassificação retroativa — ou pior, trata LLM como gate (violação de P10). Separação explícita desde a criação previne drift semântico."
+	}, {
+		action:    "Avaliar fronteira regulatória: se qualquer tipo governado pertence a BC regulado (FCE, SCF, BKR, REW, IDC, ATO, INS, ITC) ou se o protocolo afeta conteúdo sob dp-10/LGPD/KYC, declarar o contrato regulatório explicitamente no rationale da convenção: quais constraints aplicam, qual artefato concreto carrega a responsabilidade jurídica identificável, quais BCs regulados são afetados. Constraints regulatórias não são tensionáveis pelo protocolo da convenção."
+		rationale: "CLAUDE.md fixa constraints regulatórias como invioláveis, distintos dos axiomas tensionáveis. Convenção que toca conteúdo regulado sem declarar o contrato é risco de compliance silencioso. Responsabilidade jurídica identificável (dp-10) exige que o ponto de responsabilidade seja declarado, não implícito."
+	}, {
+		action:    "Propor a convenção completa no chat antes de escrever, com cada seção (governedTypes, upstreamSources, presenceConditions, materialization, blockMarkers se hybrid, validationPolicy, contrato regulatório se aplicável) e rationale por decisão estrutural. Incluir referência cruzada ao ADR da convenção concreta (obrigatório para criação de convenção per CLAUDE.md tabela 'Referências por Tipo de Operação': mudança semântica em architecture/ exige ADR no mesmo commit)."
+		rationale: "Convenções são decisões estruturais semânticas. Ciclo proposta→aprovação aplica-se integralmente. ADR próprio é obrigatório porque cria artefato estrutural em architecture/ — a regra vive em CLAUDE.md, não é específica deste template."
+	}, {
+		action:    "Após aprovação, escrever a convenção em architecture/conventions/<nome>.cue e rodar cue vet. Se materialization=hybrid e a convenção introduz nova zona derivada em artefato versionado, atualizar governance/repo-structure.cue.derivedArtifacts com entry referenciando o blockId declarado pela convenção (não redeclarando), no mesmo commit. Se validationPolicy.structural declara check(s) concreto(s), criar arquivo(s) correspondente(s) em architecture/structural-checks/ no mesmo commit OU registrar explicitamente como follow-up com gap declarado no rationale da convenção — nunca declaração silenciosa de gate inexistente."
+		rationale: "Atomicidade convenção↔repo-structure e convenção↔structural-check previne janelas de inconsistência. Commit único mantém o invariante do repo. Follow-up explícito é aceitável; silêncio sobre gate inexistente é drift de construção (gate declarado mas não implementado)."
+	}, {
+		action:    "Verificar cobertura de design review advisory: existe validation prompt para artifactType 'convention' em architecture/validation-prompts/? Se sim, instruir o founder a executar em sessão separada sobre a convenção criada. Se não, registrar explicitamente no output ao founder que o tipo ainda não está coberto por design review advisory, conforme CLAUDE.md seção 14 item 5."
+		rationale: "Transparência de cobertura de validação é gate da seção 14 do CLAUDE.md. Gap silencioso = ritualização. Registrar explicitamente é pré-requisito para que o founder decida se a ausência é aceitável ou se exige criação de validation prompt."
+	}]
+
+	qualityGates: [{
+		gate:      "governedTypes contém dois ou mais tipos explicitamente declarados, cada um referenciado por schema canônico, subtipo aninhado em artefato container, ou entry em repo-structure.cue.derivedArtifacts"
+		rationale: "Teste ontológico mecânico — menos de dois tipos = não é convenção. Aceitar 3 formas de referência cobre os padrões latentes (schema-a-schema, subtipo-a-subtipo, schema-a-derivado) sem forçar cast incorreto."
+	}, {
+		gate:      "upstreamSources declara SoT canônico por relação de derivação/co-evolução governada; relações simétricas são declaradas explicitamente como tais com justificativa"
+		rationale: "P0 aplicado por relação, não globalmente. Sem SoT explícito, conflitos resolvem ad-hoc. Simetria declarada é distinta de omissão."
+	}, {
+		gate:      "presenceConditions declara mecanicamente quando o protocolo ativa dentro do escopo dos tipos governados (co-existência, campos, flags, tags, ou combinação) — nunca em prosa"
+		rationale: "Enforcement exige condição verificável. Prosa livre é não-enforceável e vira interpretação."
+	}, {
+		gate:      "materialization está classificada como exatamente um de pure-derived | pure-authored | hybrid, com rationale curto"
+		rationale: "Sem classificação, enforcement é impossível. Gate força a escolha no ponto de escrita."
+	}, {
+		gate:      "Se materialization=hybrid, blockMarkers está declarado com blockId único (a convenção é SoT do blockId; repo-structure.cue.derivedArtifacts apenas referencia) e sintaxe exemplificada inline; se materialization!=hybrid, blockMarkers é omitido"
+		rationale: "Híbrido sem marker é drift. Não-híbrido com marker é ruído. SoT único previne duplicação P0-violadora."
+	}, {
+		gate:      "validationPolicy separa explicitamente camada structural (determinístico) de camada advisory (interpretativo), mesmo quando uma das camadas é 'none'; nenhum gate declarado em structural depende de LLM"
+		rationale: "Separação por adr-040 é invariante estrutural. P10 impede LLM como gate determinístico."
+	}, {
+		gate:      "Pelo menos uma das camadas de validationPolicy (structural ou advisory) declara conteúdo não-'none'; se ambas são 'none', rationale da convenção contém justificativa explícita para convenção puramente declarativa (ex: fase intermediária, com follow-up de enforcement registrado como tensão ou ADR)"
+		rationale: "Convenção sem enforcement algum pode virar ritual vazio silenciosamente. Gate força que o modo puramente declarativo seja decisão consciente e registrada, não deriva por omissão."
+	}, {
+		gate:      "ADR próprio da convenção concreta está incluído no mesmo commit (ou no commit imediatamente anterior referenciado pela convenção)"
+		rationale: "CLAUDE.md tabela de operações: criar artefato estrutural em architecture/ exige ADR. Convenção concreta é artefato estrutural semântico por definição."
+	}, {
+		gate:      "cue vet passa sem erros"
+		rationale: "Conformidade sintática obrigatória antes de commit."
+	}]
+}

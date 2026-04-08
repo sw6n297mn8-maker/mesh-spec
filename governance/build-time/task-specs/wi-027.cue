@@ -1,9 +1,9 @@
 package task_specs
 
 taskSpecs: "WI-027": {
-	version:               1
+	version:               2
 	title:                 "Definir convenção OpenAPI/AsyncAPI por capability flags"
-	templateRef:           "tmpl-create-schema@v1"
+	templateRef:           "tmpl-create-convention@v1"
 	semanticPrerequisites: [
 		"Canvas CMT com hasSyncSurface e hasAsyncSurface como referência de uso",
 	]

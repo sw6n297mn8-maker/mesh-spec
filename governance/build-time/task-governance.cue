@@ -63,6 +63,16 @@ taskGovernance: {
 		rationale:            "Script de build/governança (ref adr-042) tem blast radius limitado ao artefato derivado ou ao check que implementa — não propaga para instâncias futuras como schema (high) nem fica isolado como validação (low). Criticality medium alinhada com tmpl-create-instance. Gates de idempotência, reprodutibilidade e atomicidade script↔derivado no template reduzem risco residual antes da proposta ao founder."
 	}
 
+	"tmpl-create-convention": #TaskGovernanceRule & {
+		scope:                "template"
+		templateRef:          "tmpl-create-convention@v1"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "medium"
+		defaultLeaseDuration: "8h"
+		rationale:            "Convenção cross-artefato (ref adr-046) governa relação entre 2+ tipos já existentes — blast radius é o par de tipos afetados, não o sistema inteiro (schema, high) nem isolado (validação, low). Criticality medium alinhada com tmpl-create-instance e tmpl-create-script. Gates de governedTypes explícitos, upstreamSources canônico, separação determinístico/advisory per adr-040 no template reduzem risco residual antes da proposta ao founder."
+	}
+
 	// ────────────────────────────────────────────────────────
 	// Overrides por task: BCs com criticality high
 	// ────────────────────────────────────────────────────────
