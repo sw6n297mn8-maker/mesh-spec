@@ -3,12 +3,15 @@ package artifact_schemas
 // structural-check.cue — Schema para regras de verificação estrutural.
 //
 // Per adr-040: structural verification é o lado determinístico da
-// validação, separado do design review interpretativo. Per adr-041:
-// este schema v1 é deliberadamente mínimo — 8 campos, 3 kinds,
-// rule estritamente como dado estruturado. Cross-artifact reference
-// checking, cardinalidade genérica, regex matching e demais checks
-// estão explicitamente fora da v1; serão adicionados organicamente
-// quando casos concretos justificarem.
+// validação, separado do design review interpretativo. Per adr-041
+// (v1) e adr-049 (extensão): este schema é deliberadamente mínimo
+// — 8 campos, 4 kinds, rule estritamente como dado estruturado.
+// Cross-artifact reference checking genérico, cardinalidade
+// genérica, regex matching e demais checks estão explicitamente
+// fora do schema; serão adicionados organicamente quando casos
+// concretos justificarem. conditional-file-presence (adr-049) é
+// o primeiro kind adicionado após a v1 original, motivado pelo
+// enforcement da convenção api-spec (adr-048).
 //
 // Discriminação por kind segue o padrão de #ADR (união discriminada
 // status↔supersededBy): cada kind exige um shape específico de rule.
@@ -27,6 +30,9 @@ package artifact_schemas
 } | {
 	kind: "same-artifact-consistency"
 	rule: #SameArtifactConsistencyRule
+} | {
+	kind: "conditional-file-presence"
+	rule: #ConditionalFilePresenceRule
 })
 
 _#StructuralCheckBase: {
@@ -95,9 +101,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -133,3 +139,25 @@ _#StructuralCheckBase: {
 }
 
 #SameArtifactRelation: "every-reference-must-exist-as-entry"
+
+// Rule shape para kind=conditional-file-presence.
+// Verifica presença ou ausência de um arquivo-alvo por path,
+// condicionada a um campo booleano em um artefato-fonte no
+// mesmo scope de diretório. Per adr-049: kind deliberadamente
+// sobre arquivo por path, não sobre "artefato" abstrato —
+// evita escorregar para meta-kind cross-artifact genérico.
+// Cross-artifact reference checking genérico permanece fora
+// do schema (per adr-041); este kind cobre exclusivamente
+// presença condicional de arquivo.
+#ConditionalFilePresenceRule: {
+	// Glob pattern para o artefato-fonte contendo a condição.
+	// Wildcard * delimita o scope compartilhado com targetPattern.
+	sourcePattern: string & !=""
+	// Caminho dot-separated ao campo booleano no artefato-fonte.
+	conditionField: string & !=""
+	// Path pattern para o arquivo-alvo. Mesmo * scope do sourcePattern.
+	targetPattern: string & !=""
+	// true: field=true exige target, field=false proíbe target.
+	// false: apenas field=true exige target.
+	biconditional: bool
+}
