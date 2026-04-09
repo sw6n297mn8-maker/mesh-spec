@@ -115,25 +115,22 @@ apiSpecConvention: {
 
 	validationPolicy: {
 		structural: {
-			status: "follow-up"
+			status: "implemented"
 			description: """
 				Invariante de presença condicionada a flags do canvas
 				é fato decidível por inspeção do filesystem — cabe no
-				domínio de structural-check per adr-040. Materialização
-				do check é objeto de WI-027 B.2.
+				domínio de structural-check per adr-040. Materializada
+				em WI-027 B.2 (adr-049).
 
-				Kind necessário: presença condicional cross-artifact
-				(se canvas.flag == true, então file X existe no mesmo
-				BC). Este kind NÃO existe na v1 do schema de
-				structural-check (per adr-041 — v1 cobre
-				required-block, reference-exists,
-				same-artifact-consistency, todos intra-artifact). B.2
-				decidirá entre expressar a regra por composição dos
-				kinds existentes, se isso for semanticamente
-				suficiente, ou introduzir extensão explícita do
-				schema de structural-check.
+				Kind utilizado: conditional-file-presence (adicionado
+				ao schema de structural-check por adr-049). Instâncias
+				sc-cv-02 (hasSyncSurface → api.yaml) e sc-cv-03
+				(hasAsyncSurface → async-api.yaml) em
+				architecture/structural-checks/canvas.cue enforçam a
+				bicondicionalidade: flag true exige target, flag false
+				proíbe target.
 				"""
-			rationale: "Declarar como follow-up com gap explícito é mais honesto do que declarar 'none' — a invariante existe e é enforceável; o mecanismo ainda não está materializado."
+			rationale: "Enforcement estrutural materializado por kind dedicado. Análise de expressividade dos kinds v1 (todos intra-artifact) concluiu que extensão explícita era necessária — composição não era semanticamente suficiente."
 		}
 		advisory: {
 			status: "follow-up"

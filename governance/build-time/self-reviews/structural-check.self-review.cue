@@ -132,20 +132,24 @@ structuralCheck: build_time.#SelfReviewReport & {
 	findings: {}
 
 	summary: """
-		structural-check.cue v1 cria o tipo #StructuralCheck conforme
-		shape decidido em adr-041: 8 campos no base, união discriminada
-		por kind com 3 shapes de rule (#RequiredBlockRule,
-		#ReferenceExistsRule restrito a referências internas,
-		#SameArtifactConsistencyRule), sem campo severity (sempre fail),
-		_schema.location declarando architecture/structural-checks/
-		como path canônico das instâncias, e _qualityCriteria próprio
-		(tq-sc-01/02/03) cobrindo acionabilidade de errorMessage,
-		conformidade da união discriminada e justificabilidade do
-		rationale. Acompanhada de edição em quality-criteria.cue que
-		adiciona "structural-check" ao enum #ArtifactType e "sc" às
+		structural-check.cue cria o tipo #StructuralCheck conforme
+		shape decidido em adr-041 (v1) e estendido por adr-049:
+		8 campos no base, união discriminada por kind com 4 shapes
+		de rule (#RequiredBlockRule, #ReferenceExistsRule restrito a
+		referências internas, #SameArtifactConsistencyRule,
+		#ConditionalFilePresenceRule adicionado por adr-049), sem
+		campo severity (sempre fail), _schema.location declarando
+		architecture/structural-checks/ como path canônico das
+		instâncias, e _qualityCriteria próprio (tq-sc-01/02/03)
+		cobrindo acionabilidade de errorMessage, conformidade da
+		união discriminada e justificabilidade do rationale.
+		Acompanhada de edição em quality-criteria.cue que adiciona
+		"structural-check" ao enum #ArtifactType e "sc" às
 		abreviações canônicas. Estável em 1 round — todos os 11
 		critérios passam, zero findings, cinco observações de design
-		confirmando intencionalidade.
+		confirmando intencionalidade. Nota: este self-review cobre
+		a criação v1; a extensão adr-049 é coberta pelo self-review
+		de adr-049.
 		"""
 
 	singleRoundRationale: """

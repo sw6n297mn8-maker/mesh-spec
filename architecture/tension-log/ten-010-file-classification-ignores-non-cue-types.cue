@@ -34,27 +34,24 @@ ten010: artifact_schemas.#TensionEntry & {
 		"""
 
 	resolution: """
-		Cobertura de presença para os tipos .yaml é delegada
-		ao structural-check prospectivo da convenção api-spec
-		(WI-027 B.2), que ancorará nas flags
-		canvas.hasSyncSurface/hasAsyncSurface para decidir se
-		api.yaml e async-api.yaml devem existir.
+		Cobertura de presença para os tipos .yaml foi delegada
+		ao structural-check da convenção api-spec (WI-027 B.2,
+		adr-049). Instâncias sc-cv-02 e sc-cv-03 em
+		architecture/structural-checks/canvas.cue ancoram nas
+		flags canvas.hasSyncSurface/hasAsyncSurface para
+		enforçar presença/ausência de api.yaml e async-api.yaml.
 
-		Isto resolve apenas o enforcement de presença/ausência.
-		Não resolve o gap de inventário/classificação automática:
+		Isto resolve o enforcement de presença/ausência. Não
+		resolve o gap de inventário/classificação automática:
 		tipos .yaml continuam fora do fluxo genérico de file
 		classification e do unmatched-file warning enquanto
 		repo-structure.cue permanecer .cue-only.
 
-		Trade-off aceito: presença será enforçada por
+		Trade-off aceito: presença é enforçada por
 		structural-check especializado; inventário automático
 		de tipos não-.cue fica fora do mecanismo genérico até
 		extensão explícita do file classification — decisão
 		arquitetural separada e de blast radius mais amplo.
-
-		Enquanto o structural-check não existir (pré-B.2), a
-		cobertura de presença é zero — gap transitório aceito
-		por ser estágio de bootstrap.
 		"""
 
 	status: "accepted"
