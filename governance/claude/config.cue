@@ -131,7 +131,7 @@ config: #AgentConfig & {
 
 				Validação pós-commit é dividida em duas categorias com papéis distintos (per adr-040):
 
-				1. Estrutural (deterministic gate). Structural checks vivem em architecture/structural-checks/<artifactType>.cue e implementam regras declarativas (kinds: required-block, reference-exists, same-artifact-consistency). São o ÚNICO mecanismo de validação pós-commit que pode bloquear o fluxo. Reproduzíveis, auditáveis, sem variância entre execuções.
+				1. Estrutural (deterministic gate). Structural checks vivem em architecture/structural-checks/<artifactType>.cue e implementam regras declarativas (kinds: required-block, reference-exists, same-artifact-consistency, conditional-file-presence). São o ÚNICO mecanismo de validação pós-commit que pode bloquear o fluxo. Reproduzíveis, auditáveis, sem variância entre execuções.
 
 				2. Semântica advisory (design review interpretativo). Validation prompts vivem em architecture/validation-prompts/validate-<artifactType>.cue e produzem revisão por agente em sessão isolada. Findings são RECOMENDAÇÕES para decisão do founder, NUNCA veredito de gate. Cobrem dimensões interpretativas (genuinidade de contornos, qualidade adversarial de análise, coerência semântica) que estrutura não alcança.
 

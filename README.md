@@ -449,6 +449,7 @@ architecture/adrs/
 architecture/artifact-schemas/
 architecture/artifacts/
 architecture/c4/
+architecture/conventions/
 architecture/cross-context-workflows/
 architecture/lenses/
 architecture/shared-schemas/
@@ -477,6 +478,7 @@ END:repo-structure-paths -->
 adr.cue
 agent-governance.cue
 agent-spec.cue
+api-spec.cue
 artifact-schema.cue
 canvas.cue
 context-map.cue
