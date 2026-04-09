@@ -735,7 +735,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			rationale:         "Sourcing estratégico depende de qualificação de participantes — fornecedor não qualificado não entra no pool de sourcing. Hybrid porque SSC consulta status sincronamente durante processo de cotação e reage assincronamente a mudanças de status."
 			communication: {type: "hybrid"}
 			events: ["NetworkParticipantStatusChanged"]
-			queries: ["QueryParticipantQualificationStatus"]
+			queries: ["QueryParticipantStatus"]
 		},
 
 		// --- J. International Trade (3) ---

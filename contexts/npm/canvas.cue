@@ -10,7 +10,7 @@ package npm
 // registrar termos. REW, NIM e SSC consomem eventos de
 // lifecycle para atualizar modelos, topologia e sourcing
 // respectivamente. SSC também consome NPM via hybrid
-// (eventos async + query sync QueryParticipantQualificationStatus).
+// (eventos async + query sync QueryParticipantStatus).
 // NGR consome evento de registro
 // (ParticipantRegistered) para métricas de crescimento.
 //
@@ -193,7 +193,7 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "query-surface"
 			query:       "QueryParticipantStatus"
 			returnType:  "ParticipantStatus"
-			description: "Retorna status de qualificação (pending, qualified, suspended, terminated) e data de última qualificação. Interface primária consumida por CTR (registro de termos) e SSC (decisão de sourcing). Context-map usa dois nomes para esta query: QueryParticipantStatus em npm-to-ctr e QueryParticipantQualificationStatus em npm-to-ssc — divergência a alinhar no context-map."
+			description: "Retorna status de qualificação (pending, qualified, suspended, terminated) e data de última qualificação. Interface primária consumida por CTR (registro de termos) e SSC (decisão de sourcing)."
 		}, {
 			type:        "query-surface"
 			query:       "QueryParticipantProfile"
