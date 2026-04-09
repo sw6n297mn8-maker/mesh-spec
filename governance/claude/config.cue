@@ -1,13 +1,7 @@
 package claude
 
-// TODO: proposta pendente referencia artefatos que precisam ser criados:
-//   - architecture/artifact-schemas/lens.cue (schema de lenses analíticas)
+// TODO: proposta pendente referencia artefato que precisa ser criado:
 //   - architecture/artifact-schemas/autonomy-envelope.cue (schema de envelopes de governança)
-//   - architecture/artifact-schemas/tension-entry.cue (schema de tension-log)
-//   - architecture/lenses/ (diretório de lenses)
-//   - architecture/artifacts/governance/ (diretório de autonomy envelopes)
-//   - architecture/tension-log/ (diretório de tensões registradas)
-//   - architecture/validation-prompts/ (diretório de prompts de validação semântica)
 
 config: #AgentConfig & {
 	repo:    "mesh-spec"
