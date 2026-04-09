@@ -8,8 +8,12 @@ package artifact_schemas
 // contêm _qualityCriteria: conformance estrutural a OpenAPI/AsyncAPI é
 // delegada ao padrão externo; invariantes cross-artifact (presença
 // condicionada a flags do canvas, coerência com interaction-contracts)
-// vivem na convenção api-spec-convention.cue e são enforçados via
-// structural-check dedicado.
+// serão codificadas na convenção api-spec-convention.cue (a ser criada
+// em architecture/conventions/ por WI-027 B.1) e enforçadas via
+// structural-check dedicado (a ser criado em WI-027 B.2). Nem a
+// convenção nem o structural-check existem no repositório no momento
+// da criação deste schema — são dependências prospectivas da
+// sequência planejada de WI-027.
 //
 // Justificativa arquitetural (adr-040): schema declara ontologia
 // ("este tipo existe e vive aqui"); structural-check declara enforcement
@@ -17,12 +21,23 @@ package artifact_schemas
 // legítimo quando o tipo não tem invariantes intra-artifact expressáveis
 // sem consultar o padrão externo.
 //
-// Limitação conhecida: file classification em repo-structure.cue
-// processa apenas arquivos .cue. Enquanto isso não mudar,
-// canonicalPathRegex destes schemas não alimenta o fluxo de classification
-// automática — a cobertura de presença é feita pelo structural-check
-// da convenção, que ancora nas flags hasSyncSurface/hasAsyncSurface
-// do canvas.
+// Limitações conhecidas:
+//
+// 1. File classification em repo-structure.cue processa apenas arquivos
+//    .cue. Enquanto isso não mudar, canonicalPathRegex destes schemas
+//    não alimenta o fluxo de classification automática — a cobertura
+//    de presença depende do structural-check prospectivo da convenção,
+//    que ancorará nas flags hasSyncSurface/hasAsyncSurface do canvas.
+//
+// 2. canonicalPathRegex/fileNameRegex codificam os nomes api.yaml e
+//    async-api.yaml mas não codificam compromisso versionado com
+//    OpenAPI 3.x ou AsyncAPI 2.x. Verificação de conformance ao
+//    padrão externo é responsabilidade da convenção/structural-check
+//    prospectivos, não deste schema.
+//
+// 3. Bloqueador mecânico do enum #ArtifactType para criação do
+//    structural-check (pré-B.2 de WI-027), resolvido por adr-047
+//    (extensão com openapi-spec e asyncapi-spec).
 
 #OpenAPISpec: {
 	_schema: {
