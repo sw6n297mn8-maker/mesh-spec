@@ -58,7 +58,7 @@ paths:
       operationId: "searchContractTerms"
       description: |
         Busca aggregates por contract_id, opcionalmente filtrado por
-        scope. Retorna lista paginada com versao active expandida
+        scope_description. Retorna lista paginada com versao active expandida
         (se existir).
       parameters:
         - name: contract_id
@@ -77,11 +77,6 @@ paths:
       responses:
         "200":
           description: "Resultados da busca"
-          headers:
-            Deprecation:
-              $ref: "#/components/headers/Deprecation"
-            Sunset:
-              $ref: "#/components/headers/Sunset"
           content:
             application/json:
               schema:
@@ -147,10 +142,6 @@ paths:
             ETag:
               schema:
                 type: string
-            Deprecation:
-              $ref: "#/components/headers/Deprecation"
-            Sunset:
-              $ref: "#/components/headers/Sunset"
           content:
             application/json:
               schema:
@@ -176,11 +167,6 @@ paths:
       responses:
         "200":
           description: "Lista de versoes"
-          headers:
-            Deprecation:
-              $ref: "#/components/headers/Deprecation"
-            Sunset:
-              $ref: "#/components/headers/Sunset"
           content:
             application/json:
               schema:
@@ -207,10 +193,6 @@ paths:
             ETag:
               schema:
                 type: string
-            Deprecation:
-              $ref: "#/components/headers/Deprecation"
-            Sunset:
-              $ref: "#/components/headers/Sunset"
           content:
             application/json:
               schema:
@@ -339,10 +321,6 @@ paths:
             ETag:
               schema:
                 type: string
-            Deprecation:
-              $ref: "#/components/headers/Deprecation"
-            Sunset:
-              $ref: "#/components/headers/Sunset"
           content:
             application/json:
               schema:
@@ -367,11 +345,6 @@ paths:
       responses:
         "200":
           description: "Status"
-          headers:
-            Deprecation:
-              $ref: "#/components/headers/Deprecation"
-            Sunset:
-              $ref: "#/components/headers/Sunset"
           content:
             application/json:
               schema:
