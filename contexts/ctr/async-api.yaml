@@ -13,13 +13,18 @@ info:
     ## Evento consumido (inbound)
     - **SourcingDecisionMade** (SSC): trigger para contrato-quadro
 
+    ## Formato de mensagem
+    Structured CloudEvents (application/cloudevents+json). Atributos
+    CloudEvents e extensoes mesh vivem no envelope JSON; payload de
+    dominio no campo `data`. Nao usar binary mode (headers).
+
     ## Garantias de entrega
-    - At-least-once com deduplicacao por `ce_id`
+    - At-least-once com deduplicacao por `id`
     - Ordem por `mesh_sequence_number` dentro do aggregate
     - Schema backward-compatible (novos campos opcionais)
 
     ## Guidance para consumers
-    - Processar eventos de forma idempotente (deduplicar por `ce_id`)
+    - Processar eventos de forma idempotente (deduplicar por `id`)
     - Usar `mesh_sequence_number` para detectar out-of-order
     - Activated e Superseded da mesma ativacao compartilham
       `mesh_correlation_id` — processar como par atomico
@@ -94,64 +99,92 @@ components:
     ContractTermsActivated:
       name: "ContractTermsActivated"
       contentType: "application/cloudevents+json"
-      headers:
-        $ref: "#/components/schemas/CloudEventsHeaders"
       payload:
-        $ref: "#/components/schemas/ActivatedPayload"
+        allOf:
+          - $ref: "#/components/schemas/CloudEventsEnvelope"
+          - type: object
+            required: [data]
+            properties:
+              data:
+                $ref: "#/components/schemas/ActivatedPayload"
 
     ContractTermsSuperseded:
       name: "ContractTermsSuperseded"
       contentType: "application/cloudevents+json"
-      headers:
-        $ref: "#/components/schemas/CloudEventsHeaders"
       payload:
-        $ref: "#/components/schemas/SupersededPayload"
+        allOf:
+          - $ref: "#/components/schemas/CloudEventsEnvelope"
+          - type: object
+            required: [data]
+            properties:
+              data:
+                $ref: "#/components/schemas/SupersededPayload"
 
     ContractTermsCancelled:
       name: "ContractTermsCancelled"
       contentType: "application/cloudevents+json"
-      headers:
-        $ref: "#/components/schemas/CloudEventsHeaders"
       payload:
-        $ref: "#/components/schemas/CancelledPayload"
+        allOf:
+          - $ref: "#/components/schemas/CloudEventsEnvelope"
+          - type: object
+            required: [data]
+            properties:
+              data:
+                $ref: "#/components/schemas/CancelledPayload"
 
     SourcingDecisionMade:
       name: "SourcingDecisionMade"
       contentType: "application/cloudevents+json"
-      description: "Schema definido por SSC — CTR consome via ACL"
+      description: |
+        ACL boundary — payload de dominio pertence a SSC. Schema
+        concreto sera resolvido quando SSC publicar seu async-api.yaml.
+        CTR nao deve acoplar ao schema interno de SSC; a ACL traduz
+        na fronteira. Tipo `object` generico e placeholder operacional
+        intencional, nao o nivel de especificacao desejado para
+        eventos publicados por CTR.
       payload:
-        type: object
+        allOf:
+          - $ref: "#/components/schemas/CloudEventsEnvelope"
+          - type: object
+            required: [data]
+            properties:
+              data:
+                type: object
+                description: "Payload de dominio de SSC — schema concreto definido pelo produtor"
 
   schemas:
-    CloudEventsHeaders:
+    CloudEventsEnvelope:
       type: object
-      required: [ce_id, ce_type, ce_source, ce_specversion, ce_time]
+      description: "Structured CloudEvents v1.0 envelope com extensoes mesh"
+      required: [specversion, id, type, source, time, subject,
+                 mesh_sequence_number, mesh_correlation_id]
       properties:
-        ce_id:
+        specversion:
+          type: string
+          enum: ["1.0"]
+        id:
           type: string
           format: uuid
           description: "ID unico para deduplicacao"
-        ce_type:
+        type:
           type: string
-        ce_source:
+          description: "Tipo do evento (e.g., ctr.contract-terms.activated.v1)"
+        source:
           type: string
           description: "URN do aggregate origem (e.g., urn:mesh:ctr:contract-terms:{id})"
-        ce_specversion:
-          type: string
-          enum: ["1.0"]
-        ce_time:
+        time:
           type: string
           format: date-time
-        ce_subject:
+        subject:
           type: string
           description: "contractTermsId"
         mesh_sequence_number:
           type: integer
-          description: "Ordem dentro do aggregate"
+          description: "Ordem dentro do aggregate — consumers usam para detectar out-of-order"
         mesh_correlation_id:
           type: string
           format: uuid
-          description: "Liga eventos da mesma operacao atomica"
+          description: "Liga eventos da mesma operacao atomica (e.g., Activated+Superseded)"
         mesh_schema_version:
           type: string
           enum: ["v1"]
