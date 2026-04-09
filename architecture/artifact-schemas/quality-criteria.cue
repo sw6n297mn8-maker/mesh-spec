@@ -34,7 +34,9 @@ package artifact_schemas
 	"agent-spec" |
 	"agent-governance" |
 	"tension-entry" |
-	"structural-check"
+	"structural-check" |
+	"openapi-spec" |
+	"asyncapi-spec"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -43,7 +45,8 @@ package artifact_schemas
 // dm (domain-model), gl (glossary), dd (domain-definition), ln (lens),
 // as (artifact-schema), ag (agent-spec), gv (agent-governance), sd (subdomain),
 // sm (stakeholder-map), tt (task-template), wp (wave-plan), te (tension-entry),
-// sc (structural-check), srr (self-review-report).
+// sc (structural-check), srr (self-review-report), oas (openapi-spec),
+// aas (asyncapi-spec).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""
