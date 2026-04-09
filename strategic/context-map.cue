@@ -311,9 +311,9 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			downstreamPattern: "anti-corruption-layer"
 			publishedLanguage: "Contract & Terms canonical model"
 			description:       "CTR expõe termos contratuais via published language e publica eventos de lifecycle; CMT consome para formalizar compromissos sob termos registrados e reagir a mudanças de termos."
-			rationale:         "Compromisso referencia termos contratuais como pré-condição. CTR é SoT de termos; CMT traduz para linguagem de compromisso. Hybrid porque CMT consulta termos sincronamente na formalização e reage assincronamente a ativação e supersessão de termos."
+			rationale:         "Compromisso referencia termos contratuais como pré-condição. CTR é SoT de termos; CMT traduz para linguagem de compromisso. Hybrid porque CMT consulta termos sincronamente na formalização e reage assincronamente a ativação, supersessão e cancelamento de termos."
 			communication: {type: "hybrid"}
-			events: ["ContractTermsActivated", "ContractTermsSuperseded"]
+			events: ["ContractTermsActivated", "ContractTermsSuperseded", "ContractTermsCancelled"]
 			queries: ["QueryContractTerms"]
 		},
 

@@ -200,6 +200,23 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "domain-type", name: "supersededBy", type: "ContractTermsId"
 			description: "Identificador da versão que substitui."
 		}]
+	}, {
+		code:          "evt-contract-terms-cancelled-received"
+		name:          "ContractTermsCancelledReceived"
+		visibility:    "internal"
+		sourceContext: "ctr"
+		description:   "Tradução ACL de ContractTermsCancelled (CTR). Termos contratuais invalidados por fraude, erro ou decisão regulatória — compromissos ativos que referenciam estes termos devem ser avaliados."
+		rationale:     "Evento interno traduzido de sinal externo de CTR. Cancelamento é mais grave que supersession — invalidação irreversível, não substituição. Compromissos existentes com referência a termos cancelados podem exigir reavaliação ou suspensão, diferente de superseded onde o snapshot permanece válido."
+		fields: [{
+			kind: "domain-type", name: "contractTermsId", type: "ContractTermsId"
+			description: "Identificador dos termos cancelados em CTR."
+		}, {
+			kind: "primitive", name: "reasonType", type: "string"
+			description: "Tipo de razão do cancelamento (fraud, error, regulatory, other)."
+		}, {
+			kind: "primitive", name: "cancelledAt", type: "datetime"
+			description: "Data/hora do cancelamento."
+		}]
 	}]
 
 	// =============================================

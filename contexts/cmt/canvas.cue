@@ -214,6 +214,12 @@ canvas: artifact_schemas.#Canvas & {
 			reaction:      "Sinaliza que termos referenciados por compromissos existentes foram superseded. Compromissos existentes mantêm referência snapshot; novos compromissos devem usar versão active."
 			description:   "CTR publica supersession; CMT reage para garantir que novos compromissos referenciam termos vigentes."
 		}, {
+			type:          "event-consumer"
+			sourceContext: "ctr"
+			event:         "ContractTermsCancelled"
+			reaction:      "Sinaliza que termos referenciados foram invalidados (fraude, erro, regulatória). Compromissos ativos que referenciam termos cancelados devem ser avaliados — cancelamento é mais grave que supersession (invalidação irreversível, não substituição)."
+			description:   "CTR publica cancelamento; CMT reage para identificar compromissos impactados por termos invalidados."
+		}, {
 			type:        "query-surface"
 			query:       "QueryCommitmentState"
 			returnType:  "CommitmentState"
@@ -240,9 +246,9 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 		rationale: """
 			Inbound: 2 commands (proposta async + aceite bilateral sync),
-			7 event consumers (risco e resolução de risco de REW +
+			8 event consumers (risco e resolução de risco de REW +
 			2 sinais de disputa de DRC + pedido de compra de P2P +
-			2 sinais de lifecycle de termos de CTR), 1 query surface
+			3 sinais de lifecycle de termos de CTR), 1 query surface
 			(estado canônico). Outbound: 2 event publishers
 			(CommitmentAccepted para BDG/DRC/TCM + CommitmentStateChanged
 			para DRC/TCM), 1 query dependency (termos contratuais de CTR).
