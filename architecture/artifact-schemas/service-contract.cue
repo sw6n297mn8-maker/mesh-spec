@@ -164,8 +164,14 @@ package artifact_schemas
 			test:        "Além de existir (tq-ct-01), cada async.publishedEvents[].eventRef aponta para event com visibility 'published' no domain model. Cada async.consumedEvents[].eventRef aponta para event com sourceContext preenchido no domain model. Evento publicado com visibility 'internal' ou consumido sem sourceContext falha. Validação por runner."
 			severity:    "fail"
 			rationale:   "Existência da ref (tq-ct-01) não garante alinhamento de visibility. Publicar evento internal expõe sinal que não deveria cruzar fronteira. Consumir evento sem sourceContext perde rastreabilidade ACL."
+		}, {
+			id:          "tq-ct-13"
+			description: "availability não é vazio quando presente"
+			test:        "Cada links[].availability, quando presente, contém ao menos um dos campos stateIn ou roleIn com pelo menos um valor. availability: {} é estruturalmente válido em CUE mas semanticamente redundante com ausência de availability. Validação por runner — CUE não suporta 'at least one optional' (mesmo problema de #GovernanceScope em canvas.cue)."
+			severity:    "fail"
+			rationale:   "availability: {} introduz ambiguidade: link condicional sem condição é indistinguível de link incondicional. Sem este critério, instâncias podem satisfazer o type system e ainda violar a intenção do schema."
 		}]
-		rationale: "Três camadas por natureza epistemológica: (1) integridade referencial (tq-ct-01 a 03) é mecânica — ref existe ou não; (2) alinhamento cross-artifact (tq-ct-04/05/11/12) é determinístico mas exige cruzamento entre artefatos; (3) qualidade advisory (tq-ct-06 a 10) exige julgamento semântico que LLM recomenda mas não decide (P10). Separação importa porque misturar fail estrutural com fail semântico produz falsos bloqueios — o mesmo problema que adr-040 resolve na camada pós-commit. Layering tq-ct-01 como prerequisite de tq-ct-11/12 evita findings redundantes."
+		rationale: "Três camadas por natureza epistemológica: (1) integridade referencial (tq-ct-01 a 03) é mecânica — ref existe ou não; (2) alinhamento cross-artifact (tq-ct-04/05/11/12) é determinístico mas exige cruzamento entre artefatos; (3) qualidade advisory (tq-ct-06 a 10) exige julgamento semântico que LLM recomenda mas não decide (P10). tq-ct-13 é gate estrutural que CUE não consegue expressar nativamente — enforcement por runner como workaround documentado. Separação importa porque misturar fail estrutural com fail semântico produz falsos bloqueios — o mesmo problema que adr-040 resolve na camada pós-commit. Layering tq-ct-01 como prerequisite de tq-ct-11/12 evita findings redundantes."
 	}
 }
 
