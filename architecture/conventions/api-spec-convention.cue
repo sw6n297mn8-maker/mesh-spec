@@ -14,8 +14,8 @@ package conventions
 // canvas.capabilities.hasAsyncSurface dirigem a presença dos
 // specs downstream correspondentes.
 //
-// Política de materialização: pure-authored — specs são escritos
-// manualmente conforme padrão externo (OpenAPI 3.x / AsyncAPI 2.x);
+// Política de materialização: derived — specs são derivados
+// mecanicamente de service-contract.cue (SoT autoral em CUE, P1);
 // esta convenção declara a relação normativa de presença, não
 // gera conteúdo.
 //
@@ -39,13 +39,13 @@ apiSpecConvention: {
 		schema:       "architecture/artifact-schemas/api-spec.cue"
 		definition:   "#OpenAPISpec"
 		role:         "downstream"
-		rationale:    "Spec autoral da superfície síncrona. Presença é consequência da flag hasSyncSurface no canvas upstream."
+		rationale:    "Spec derivado da superfície síncrona. Presença é consequência da flag hasSyncSurface no canvas upstream. Conteúdo derivado de service-contract.cue."
 	}, {
 		artifactType: "asyncapi-spec"
 		schema:       "architecture/artifact-schemas/api-spec.cue"
 		definition:   "#AsyncAPISpec"
 		role:         "downstream"
-		rationale:    "Spec autoral da superfície assíncrona. Presença é consequência da flag hasAsyncSurface no canvas upstream."
+		rationale:    "Spec derivado da superfície assíncrona. Presença é consequência da flag hasAsyncSurface no canvas upstream. Conteúdo derivado de service-contract.cue."
 	}]
 
 	// ── Fontes de verdade por relação ──
@@ -107,8 +107,8 @@ apiSpecConvention: {
 	// ── Política de materialização ──
 
 	materialization: {
-		classification: "pure-authored"
-		rationale:      "api.yaml e async-api.yaml são escritos manualmente conforme padrão externo (OpenAPI 3.x / AsyncAPI 2.x). A convenção governa QUANDO o spec deve existir — não COMO o conteúdo é gerado. Geração mecânica de conteúdo de API spec não é viável sem código de domínio real; tooling futuro poderá gerar stubs, mas isso é extensão da convenção, não redefinição da política de materialização."
+		classification: "derived"
+		rationale:      "api.yaml e async-api.yaml são derivados mecanicamente de service-contract.cue (SoT autoral em CUE, P1). A convenção governa QUANDO o spec deve existir (bicondicionalidade com canvas flags) — não COMO o conteúdo é gerado. Até que o generator exista, derivação manual é bootstrap operacional, não mudança de classificação."
 	}
 
 	// ── Política de validação ──
@@ -172,5 +172,5 @@ apiSpecConvention: {
 		rationale: "CLAUDE.md fixa constraints regulatórias como invioláveis. Presença condicionada a flag é decisão de completude estrutural, não de conteúdo regulado. Separar explicitamente evita que a convenção seja interpretada como autorizando conteúdo arbitrário em specs de BCs regulados."
 	}
 
-	rationale: "Primeira convenção concreta do repositório — codifica o protocolo de presença bicondicional (if-and-only-if) entre canvas (upstream, capability flags) e API specs (downstream, arquivos autorais). Flag true exige spec, flag false proíbe spec. Materialização pure-authored: convenção declara quando, não como. Esta convenção fixa a norma antes do mecanismo; a materialização do gate estrutural permanece dependente de decisão adicional sobre a expressividade do schema de structural-check. Advisory é follow-up complementar a tq-cv-11, deferido por custo de parsing."
+	rationale: "Primeira convenção concreta do repositório — codifica o protocolo de presença bicondicional (if-and-only-if) entre canvas (upstream, capability flags) e API specs (downstream, derivados de service-contract.cue). Flag true exige spec, flag false proíbe spec. Materialização derived: specs são projeção mecânica de service-contract.cue (P1). Esta convenção fixa a norma antes do mecanismo; a materialização do gate estrutural permanece dependente de decisão adicional sobre a expressividade do schema de structural-check. Advisory é follow-up complementar a tq-cv-11, deferido por custo de parsing."
 }
