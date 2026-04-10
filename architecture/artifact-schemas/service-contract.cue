@@ -119,7 +119,7 @@ package artifact_schemas
 		}, {
 			id:          "tq-ct-05"
 			description: "Todo evento consumido declara sourceContext e aclBoundary estruturado"
-			test:        "Cada async.consumedEvents[] tem sourceContext preenchido e aclBoundary com kind válido e description não-vazia."
+			test:        "Cada async.consumedEvents[] tem sourceContext preenchido e aclBoundary com kind válido, description não-vazia e rationale não-vazio — shape completo de #ACLBoundary."
 			severity:    "fail"
 			rationale:   "Evento consumido sem fronteira ACL explícita é acoplamento escondido — dependência cross-BC sem contorno declarado."
 		}, {
@@ -151,7 +151,7 @@ package artifact_schemas
 			description: "httpStatusCode é semanticamente adequado ao erro de domínio"
 			test:        "Faixa 4xx/5xx válida é garantida pelo type system (int & >=400 & <600). Este critério avalia adequação semântica: 409 para conflitos de concorrência, 422 para violação de invariant, 404 para recurso inexistente. StatusCode válido mas semanticamente inadequado (e.g., 500 para erro de negócio, 400 genérico para conflito de concorrência) falha neste critério. Avaliação por design review. NUNCA automatizar como gate determinístico: adequação semântica de HTTP status exige julgamento contextual que LLM pode recomendar mas não decidir (P10)."
 			severity:    "warn"
-			rationale:   "Adequação semântica do statusCode dirige qualidade da projeção OpenAPI mas exige julgamento interpretativo. Faixa válida é gate estrutural (type system); adequação semântica é advisory."
+			rationale:   "Adequação semântica do statusCode dirige qualidade da projeção OpenAPI mas exige julgamento interpretativo. Faixa válida é gate estrutural (type system); adequação semântica é advisory. Nenhum runner ou CI deve promover este critério para fail — promoção silenciosa violaria P10 e a separação categórica de adr-040."
 		}, {
 			id:          "tq-ct-11"
 			description: "Commands satisfazem invariantes de wiring do domain model"
@@ -489,6 +489,10 @@ _#QueryBase: {
 	// (e.g., partition key do Kafka). Caso futuro em que declaração
 	// local seria redundante com infraestrutura. Não mudar agora —
 	// reavaliar quando houver instância real com broker guarantee.
+	// Rigidez consciente: manter obrigatório mesmo no cenário broker garante
+	// que toda instância declare explicitamente o campo de partição. O custo
+	// de declarar campo potencialmente redundante é menor que o risco de
+	// consumidor assumir ordenação sem saber qual campo a governa.
 	sequenceField: string & !=""
 
 	rationale: string & !=""
