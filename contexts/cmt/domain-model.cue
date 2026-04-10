@@ -18,7 +18,7 @@ package cmt
 // Decisões de design:
 // - Single aggregate (agg-commitment): compromisso é o único consistency
 //   boundary. Partes, termos e estado são internos ao aggregate.
-// - 7 eventos internos ACL (sourceContext): traduzem sinais de REW, DRC,
+// - 8 eventos internos ACL (sourceContext): traduzem sinais de REW, DRC,
 //   P2P e CTR para linguagem local do CMT. Domain model permanece puro.
 // - Dual entry path: compromisso pode originar de pedido de compra spot
 //   (P2P → evt-purchase-order-received → ProposeCommitment) ou de termos
@@ -479,6 +479,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-purchase-order-received",
 			"evt-contract-terms-activated-received",
 			"evt-contract-terms-superseded-received",
+			"evt-contract-terms-cancelled-received",
 		]
 
 		protectsInvariants: [
@@ -575,7 +576,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			}]
 		}
 
-		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate). Nota: 7 eventos ACL internos (evt-counterparty-risk-signaled, evt-counterparty-risk-cleared, evt-dispute-resolved-received, evt-suspension-ordered-received, evt-purchase-order-received, evt-contract-terms-activated-received, evt-contract-terms-superseded-received) aparecem em emitsEvents por limitação estrutural do schema (tq-dm-02), não porque o aggregate os origine semanticamente — são fatos traduzidos pela camada ACL que o aggregate registra no seu event stream. Eventos CTR (activated, superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms."
+		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate). Nota: 8 eventos ACL internos (evt-counterparty-risk-signaled, evt-counterparty-risk-cleared, evt-dispute-resolved-received, evt-suspension-ordered-received, evt-purchase-order-received, evt-contract-terms-activated-received, evt-contract-terms-superseded-received, evt-contract-terms-cancelled-received) aparecem em emitsEvents por limitação estrutural do schema (tq-dm-02), não porque o aggregate os origine semanticamente — são fatos traduzidos pela camada ACL que o aggregate registra no seu event stream. Eventos CTR (activated, superseded, cancelled) são informativos sem policy — validação de termos é sync via QueryContractTerms."
 	}]
 
 	// =============================================
@@ -643,5 +644,5 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale: "Projeção necessária porque o aggregate é otimizado para escrita (event sourced). Leitura por BCs downstream usa projeção em vez de reconstruir estado do event log."
 	}]
 
-	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 10 events (7 internos ACL de REW/DRC/P2P/CTR + 1 interno + 2 published), 8 commands, 8 invariants, 5 value objects. Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. 5 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared + purchase-order→propose); eventos CTR (terms activated/superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms. Dual entry path: spot (P2P→CMT) e estratégico (SSC→CTR→CMT), ambos assumem termos em CTR (inv-terms-reference-valid). 1 projeção habilita QueryCommitmentState para BDG, DLV, DRC, TCM. Alinhado com canvas pós-WI-039/WI-041, glossário, context-map v2 e design principles."
+	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 11 events (8 internos ACL de REW/DRC/P2P/CTR + 1 interno + 2 published), 8 commands, 8 invariants, 5 value objects. Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. 5 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared + purchase-order→propose); eventos CTR (terms activated/superseded/cancelled) são informativos sem policy — validação de termos é sync via QueryContractTerms. Dual entry path: spot (P2P→CMT) e estratégico (SSC→CTR→CMT), ambos assumem termos em CTR (inv-terms-reference-valid). 1 projeção habilita QueryCommitmentState para BDG, DLV, DRC, TCM. Alinhado com canvas pós-WI-039/WI-041, glossário, context-map v2 e design principles."
 }
