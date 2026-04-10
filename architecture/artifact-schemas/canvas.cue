@@ -1,5 +1,7 @@
 package artifact_schemas
 
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+
 // canvas.cue — Artifact schema para Bounded Context Canvas.
 //
 // O BC Canvas é o documento raiz de identidade de cada bounded context.
@@ -49,6 +51,14 @@ package artifact_schemas
 
 	// Classificação estratégica.
 	classification: #BCClassification
+
+	// Aplicabilidade por vertical de cadeia produtiva.
+	// Opcional na Fase 1 do rollout definido em adr-043:
+	// novos bounded contexts devem declarar; canvases existentes
+	// permanecem válidos sob backfill progressivo guiado pelo
+	// warning de tq-cv-13. Fase 2 (ADR posterior) promove a
+	// obrigatório estrutural.
+	verticalApplicability?: shared_types.#VerticalApplicability
 
 	// Domain roles — archetypes do BC Canvas canônico.
 	domainRoles: #DomainRoles
@@ -177,6 +187,12 @@ package artifact_schemas
 			test:        "Cada sourceContext, targetContext e consumer ref em communication deve corresponder a um context (contexts[].context) ou external system (ext-* em relationships[].source.code/target.code) declarado no context map. Validação por runner/unificação."
 			severity:    "fail"
 			rationale:   "Ref de comunicação apontando para nó inexistente é fronteira fantasma."
+		}, {
+			id:          "tq-cv-13"
+			description: "Aplicabilidade por vertical declarada (Fase 1 advisory)"
+			test:        "O campo verticalApplicability está presente e declara explicitamente o modo (vertical-agnostic, vertical-specific ou vertical-adaptable) com rationale. Ausência do campo é warning na Fase 1 do rollout definido em adr-043; novos canvases devem declarar o campo já na criação. Canvases existentes permanecem estruturalmente válidos e entram em backfill progressivo guiado por este warning."
+			severity:    "warn"
+			rationale:   "adr-043 Fase 1: campo opcional no schema, obrigatoriedade normativa de authoring sinalizada por warn advisory. Fase 2 promove a fail após backfill completo verificado."
 		}]
 		rationale: "Critérios cobrem contorno (purpose), rastreabilidade (stakeholders, costs, communication refs), alinhamento econômico (incentive analysis, costsEliminated condicional), identidade operacional (archetypes, communication discriminada, governance), completude condicional (capability flags) e estado epistêmico (assumptions, open questions)."
 	}

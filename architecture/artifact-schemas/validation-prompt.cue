@@ -2,12 +2,24 @@ package artifact_schemas
 
 // validation-prompt.cue — Schema para validation prompts.
 //
-// Validation prompts são instruções estruturadas para validação
-// semântica de artefatos por agente em sessão/processo separado.
+// Per adr-040: validation prompts são EXPLICITAMENTE advisory.
+// Não participam de gating determinístico — esse papel pertence
+// a structural-check.cue (architecture/artifact-schemas/structural-check.cue).
+// Validation prompts produzem revisão de design interpretativa
+// por agente em sessão/processo separado, com findings tratados
+// como recomendação contextual, nunca como veredito de bloqueio
+// de CI.
+//
 // matchPatterns permite que o hook post-commit encontre
 // automaticamente quais prompts aplicar a cada commit.
 // Queue (.validation-queue) acumula pendências; processamento
 // é batch por comando dedicado.
+
+// Contrato de revisão. Tipo dedicado (não enum inline) para que
+// adição futura de qualquer outro valor seja decisão explícita
+// registrada em ADR — não edição silenciosa de uma string union.
+// v1 admite um único valor; evolução futura exige ADR.
+#ReviewContract: "advisory-only"
 
 #ValidationTargetType:
 	#ArtifactType |
@@ -35,6 +47,14 @@ package artifact_schemas
 	// Enum controlada com extensão explícita para tipos fora de #ArtifactType.
 	appliesTo: [#ValidationTargetType, ...#ValidationTargetType]
 
+	// Contrato de revisão. Obriga toda instância a declarar
+	// explicitamente que opera como advisory — não há default
+	// implícito. Per adr-040, nenhum validation prompt pode
+	// participar de gating; declaração explícita torna o
+	// contrato visível no shape de cada instância, não apenas
+	// em prosa de cabeçalho.
+	reviewContract: #ReviewContract
+
 	// Arquivos que o validador deve ler como contexto antes de avaliar.
 	// O agente de validação opera sem histórico de sessão — references
 	// são o único contexto disponível além do artefato sob validação.
@@ -49,8 +69,8 @@ package artifact_schemas
 		location: {
 			canonicalPathRegex: "^architecture/validation-prompts/validate-[a-z0-9-]+\\.cue$"
 			fileNameRegex:      "^validate-[a-z0-9-]+\\.cue$"
-			description:        "Validation prompts: instruções estruturadas para validação semântica por agente separado."
-			rationale:          "Validation prompts vivem em architecture/ porque governam qualidade cross-cutting. Automação via hook post-commit com queue."
+			description:        "Validation prompts: instruções estruturadas para revisão de design advisory por agente separado (per adr-040; gating determinístico pertence a structural-check)."
+			rationale:          "Validation prompts vivem em architecture/ porque governam qualidade cross-cutting na camada interpretativa. Automação via hook post-commit com queue. Não participam de CI gating — esse papel pertence a structural-check."
 			cardinality:        "collection"
 			allowNested:        false
 		}
@@ -62,7 +82,7 @@ package artifact_schemas
 			description: "Checks são semanticamente distintos de quality criteria"
 			test:        "Cada check valida algo que schema e quality criteria do tipo NÃO capturam — requer leitura e julgamento contextual. Checks que duplicam critérios estruturais são redundantes."
 			severity:    "fail"
-			rationale:   "Validation prompts existem para camada semântica. Se um check é verificável por cue vet ou self-review, não pertence aqui."
+			rationale:   "Validation prompts existem para camada semântica advisory. Se um check é verificável por cue vet, structural-check ou self-review, não pertence aqui."
 		}, {
 			id:          "tq-vp-02"
 			description: "References suficientes para avaliação"
@@ -76,15 +96,24 @@ package artifact_schemas
 			severity:    "warn"
 			rationale:   "Divergência entre matchPatterns e schema location indica prompt desalinhado com tipo alvo."
 		}]
-		rationale: "Critérios garantem que validation prompts adicionam valor semântico genuíno, são auto-contidos via references, e estão alinhados com tipos que validam."
+		rationale: "Critérios garantem que validation prompts adicionam valor semântico genuíno como revisão advisory, são auto-contidos via references, e estão alinhados com tipos que validam — sem invadir o território determinístico de structural-check."
 	}
 }
 
 #ValidationCheck: {
 	id:         string & =~"^vc-[a-z0-9-]+-[0-9]{2}$"
-	question:   string & !=""  // Pergunta que o validador aplica ao artefato
+	question:   string & !=""  // Pergunta que o validador aplica ao agente
 	lookFor:    string & !=""  // O que constitui um finding
+
 	outputMode: #CheckOutputMode
+
+	// Per adr-040: severity aqui classifica a importância do
+	// finding como recomendação advisory — não é mais um sinal
+	// de pipeline. "fail" significa "recomendação forte de
+	// revisão", não "bloqueio de CI". Gating determinístico
+	// pertence a structural-check.cue. A enum permanece pelos
+	// mesmos valores; apenas a interpretação é reposicionada.
 	severity:   #Severity
+
 	rationale:  string & !=""
 }

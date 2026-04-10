@@ -3,33 +3,41 @@ package self_reviews
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
 canvasSchema: build_time.#SelfReviewReport & {
-	reportId: "srr-canvas-schema-v2"
+	reportId: "srr-canvas-schema-v3"
 
 	artifactPath:       "architecture/artifact-schemas/canvas.cue"
 	artifactSchemaPath: "architecture/artifact-schemas/artifact-schema.cue"
 	artifactType:       "artifact-schema"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
-	executionMode:   "isolated-subagent"
-	generatedAt:     "2026-04-01"
+	executionMode:   "self-reported"
+	generatedAt:     "2026-04-07"
 
 	roundsExecuted: 1
 	maxRounds:      4
 	status:         "stable"
 
 	singleRoundRationale: """
-		Canvas schema evoluído significativamente: adição de communication
-		discriminada (6 subtipos com interactionMode), domain roles com
-		archetypes, ownership com governanceScope, business decisions,
-		assumptions/open questions com invalidationSignal, verification
-		metrics, classification expandida com businessRole e wardleyEvolution.
-		Sub-agente isolado avaliou contra 8 critérios universais e 3
-		type-specific. Verificou: rationales WHY em sub-structs restaurados
-		(conformidade CLAUDE.md), refs tipados com regex numérica compatível
-		com dados existentes (sh-[0-9]{2}, ce-[0-9]{2}), #ContextOrSystemRef
-		com regex que aceita BCs internos e ext-* para externos, 12 quality
-		criteria acionáveis (vs 4 na versão anterior), _schema.location
-		preservado. Zero findings.
+		Mudança incremental e mecânica em canvas.cue para Fase 1
+		do rollout definido em adr-043: (a) adição do import de
+		shared_types (canvas.cue não importava nada antes); (b)
+		adição de campo opcional verticalApplicability?:
+		shared_types.#VerticalApplicability dentro do struct
+		#Canvas, posicionado após classification por paralelo
+		semântico direto (ambas são classificações transversais
+		do BC); (c) adição de quality criterion tq-cv-13 com
+		severity warn em _qualityCriteria.criteria, sinalizando
+		ausência do campo como finding advisory durante a Fase 1.
+		Nenhum dos 12 critérios existentes (tq-cv-01 a tq-cv-12)
+		teve test, severity ou rationale modificados; nenhum
+		campo existente foi alterado, removido ou re-tipado;
+		_schema.location intacto. cue vet limpo após a edição.
+		Conteúdo entrou no self-review formal já refinado por
+		round dialógico explícito com o founder que aprovou
+		posicionamento (após classification, antes de domainRoles),
+		texto do critério, consistência de rationale entre os
+		três schemas-alvo e a decisão de não tocar a estrutura
+		existente do schema além do necessário para a Fase 1.
 		"""
 
 	roundDetails: [{
@@ -37,18 +45,86 @@ canvasSchema: build_time.#SelfReviewReport & {
 		failCount: 0
 		warnCount: 0
 		infoCount: 0
-		summary:   "Sub-agente isolado avaliou canvas.cue v2 contra uq-01..uq-08 e tq-as-01..tq-as-03. Schema expandido com #BCCommunication (6 subtipos inbound/outbound com interactionMode sync/async), #DomainRoles (6 archetypes), #BCOwnership (domainAgentSpec SoT local + governanceScope com autonomous/supervised/escalation), #BCClassification inline com businessRole e wardleyEvolution, #Assumption com invalidationSignal, #OpenQuestion com deadline tipado como data, #VerificationMetric. capabilityRef mantido com regex ampliada (cc-[0-9]+). Rationale restaurado em todas as sub-structs. 12 quality criteria (tq-cv-01..12) com testes acionáveis. #ContextOrSystemRef aceita BCs e ext-* para sistemas externos. Zero findings."
+		summary: """
+			Avaliação self-reported da edição mecânica de Fase 1
+			adr-043 sobre canvas.cue: import de shared_types
+			adicionado, campo opcional verticalApplicability?
+			adicionado após classification dentro de #Canvas,
+			critério tq-cv-13 (severity warn) adicionado como
+			último item de _qualityCriteria.criteria.
+
+			uq-01 (rationale=WHY): rationale do novo critério
+			tq-cv-13 explica por que existe (Fase 1 do rollout
+			adr-043, obrigatoriedade normativa de authoring
+			sinalizada por advisory) sem descrever mecanicamente
+			o que o critério faz. Pass.
+
+			uq-02 (Mesh-specific): teste de substituição "qualquer
+			fintech" falha — o critério é específico de um sistema
+			que governa BC Canvas como documento raiz de identidade
+			de contexto e que afirma agnosticismo a verticais com
+			execução física verificável. Pass.
+
+			uq-03 (refs cruzadas existem): tq-cv-13 referencia
+			adr-043 (commitado em f147a6b);
+			shared_types.#VerticalApplicability existe em
+			architecture/shared-types/vertical-applicability.cue
+			(commitado no mesmo commit); o import path
+			github.com/sw6n297mn8-maker/mesh-spec/architecture/
+			shared-types:shared_types resolve corretamente
+			(verificado por cue vet). Pass.
+
+			uq-04 (consistência com design principles): a adição
+			implementa P0 (definição vive em shared_types,
+			schema importa não copia), P1 (schema-first), P10
+			(warn advisory Fase 1 → fail estrutural Fase 2 só
+			após backfill). Sem contradição com nenhum princípio
+			do canvas. Pass.
+
+			uq-05 (limitações declaradas): Fase 1 advisory
+			explicitamente declarada no rationale do tq-cv-13;
+			adr-043 carrega limitações e o critério aponta para
+			ela como fonte normativa. Pass.
+
+			uq-06 (ubiquitous language): novos termos
+			(verticalApplicability, vertical-agnostic/specific/
+			adaptable, Fase 1, rollout) consistentes com adr-043
+			e vertical-applicability.cue; vocabulário existente
+			do canvas (subdomainType, businessRole, domainRoles,
+			communication etc.) preservado intacto. Pass.
+
+			uq-07 (zero placeholder): sem TODO/TBD. Pass.
+
+			uq-08 (conforma com #ArtifactSchema): _schema.location
+			preservado; _qualityCriteria continua conformando
+			com #QualityCriteria — novo entry tem id no padrão
+			tq-cv-NN, description não vazio, test específico,
+			severity warn válido, rationale não vazio. Struct
+			#Canvas mantido; novo campo é opcional, não quebra
+			instâncias existentes. Pass.
+
+			tq-as-01/02/03 (type-specific): schema continua
+			sendo struct closed com campos descritos, _schema
+			completo e _qualityCriteria com lista não vazia
+			(agora 13 critérios). Pass.
+
+			Conclusão: 0 fails, 0 warns, 0 infos. Edição mecânica
+			Fase 1 adr-043, sem regressão sobre os critérios
+			existentes do canvas.
+			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		Canvas schema v2 estável no round 1 via sub-agente isolado.
-		Evolução estrutural significativa: communication discriminada,
-		domain roles, ownership com governance, estado epistêmico,
-		classification expandida, 12 quality criteria. Correções de
-		alinhamento: rationale em sub-structs, regex numérica para refs,
-		#ContextOrSystemRef alinhado com #ExternalSystemRef do context-map.
-		Zero findings em 11 critérios.
+		Edição de Fase 1 do rollout adr-043 sobre canvas.cue:
+		import de shared_types adicionado, campo opcional
+		verticalApplicability? adicionado dentro de #Canvas após
+		classification, e critério warn tq-cv-13 adicionado em
+		_qualityCriteria.criteria (agora com 13 critérios).
+		Estável em 1 round via self-reported review com zero
+		findings. A natureza mecânica da edição e a aprovação
+		prévia dialógica do founder sobre posicionamento e texto
+		justificam estabilização em uma única passada.
 		"""
 }

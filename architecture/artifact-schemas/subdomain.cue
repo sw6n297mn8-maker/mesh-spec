@@ -43,6 +43,14 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 	// Perfil estratégico — opcional por default; obrigatório para core-subdomain.
 	strategicProfile?: #StrategicProfile
 
+	// Aplicabilidade por vertical de cadeia produtiva.
+	// Opcional na Fase 1 do rollout definido em adr-043:
+	// novos subdomínios devem declarar; artefatos existentes
+	// permanecem válidos sob backfill progressivo guiado pelo
+	// warning de tq-sd-08. Fase 2 (ADR posterior) promove a
+	// obrigatório estrutural.
+	verticalApplicability?: shared_types.#VerticalApplicability
+
 	// Justificativa das escolhas de modelagem.
 	rationale: string & !=""
 
@@ -108,6 +116,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 			test:        "O campo code é idêntico ao nome base do arquivo em strategic/subdomains/<code>.cue. Divergência entre identidade declarada e localização canônica falha."
 			severity:    "fail"
 			rationale:   "Identidade canônica não pode depender de transformação implícita nem de convenção informal."
+		}, {
+			id:          "tq-sd-08"
+			description: "Aplicabilidade por vertical declarada (Fase 1 advisory)"
+			test:        "O campo verticalApplicability está presente e declara explicitamente o modo (vertical-agnostic, vertical-specific ou vertical-adaptable) com rationale. Ausência do campo é warning na Fase 1 do rollout definido em adr-043; novos subdomínios devem declarar o campo já na criação. Artefatos existentes permanecem estruturalmente válidos e entram em backfill progressivo guiado por este warning."
+			severity:    "warn"
+			rationale:   "adr-043 Fase 1: campo opcional no schema, obrigatoriedade normativa de authoring sinalizada por warn advisory. Fase 2 promove a fail após backfill completo verificado."
 		}]
 		rationale: "Critérios cobrem identidade canônica, contorno (definition, purpose, negative boundaries), rastreabilidade à tese (mechanismRefs, costRefs, capabilityRefs) e governança estratégica de core."
 	}

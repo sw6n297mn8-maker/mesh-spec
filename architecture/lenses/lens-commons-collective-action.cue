@@ -1,12 +1,34 @@
 package lenses
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 commonsCollectiveAction: artifact_schemas.#AnalyticalLens & {
 	id:      "lens-commons-collective-action"
 	name:    "Commons e Ação Coletiva"
 	purpose: "Modelar os recursos compartilhados que a Mesh cria e governa — dados, scoring, reputação, compliance e funding — quando seu valor depende de contribuição coletiva, regras de acesso, monitoramento e proteção contra free-riding, degradação e enclosure. A lente distingue problemas de contribuição, coordenação, governança e captura da infraestrutura comum pela própria plataforma."
 	status:  "draft"
+
+	verticalApplicability: shared_types.#VerticalApplicability & {
+		mode:            "vertical-adaptable"
+		primaryVertical: "construction"
+		rationale: """
+			Núcleo teórico (Ostrom, Hardin, Olson, design principles
+			de CPR) é estruturalmente universal: aplica-se a qualquer
+			recurso comum sob risco de degradação por ação individual
+			racional. Toda a instanciação operacional desta lens
+			(meshManifestation, meshImplication, meshExamples) está
+			hoje bootstrapada em commons da construção civil
+			(cadastros de empreiteiras, histórico de medições, base
+			compartilhada de fornecedores, FIDC). Transferência para
+			outras verticais é tecnicamente plausível sem redefinição
+			material do núcleo, mas exige reinstanciação de exemplos
+			e evidência empírica que ainda não existe — daí
+			vertical-adaptable, não vertical-agnostic.
+			"""
+	}
 
 	trigger: {
 		conditions: [

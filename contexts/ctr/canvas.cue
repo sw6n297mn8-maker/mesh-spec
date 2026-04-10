@@ -6,7 +6,9 @@ package ctr
 // CTR é o registry canônico de termos contratuais. Termos são imutáveis
 // e versionados — qualquer alteração cria nova versão. Lifecycle
 // explícito (draft → active → superseded → expired → cancelled).
-// CMT, SCF e DRC consomem CTR como SoT de validade jurídica.
+// Recebe upstream de SSC (decisão de sourcing estratégico inicia
+// registro de contrato-quadro). CMT, SCF, DRC e ITC consomem CTR
+// como SoT de validade jurídica.
 //
 // Lenses aplicadas:
 // - lens-contractual-and-legal-architecture (primária):
@@ -148,6 +150,12 @@ canvas: artifact_schemas.#Canvas & {
 			resultingEvents: ["ContractTermsCancelled"]
 			description: "Transiciona termos para cancelled — estado terminal. Supervisionado por irreversibilidade e impacto em compromissos ativos downstream."
 		}, {
+			type:          "event-consumer"
+			sourceContext: "ssc"
+			event:         "SourcingDecisionMade"
+			reaction:      "Inicia registro de contrato-quadro fundamentado na decisão de sourcing. Agente traduz decisão de sourcing para linguagem contratual via ACL."
+			description:   "SSC é upstream — decisão de sourcing estratégico é gatilho para formalização contratual. Contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P)."
+		}, {
 			type:        "query-surface"
 			query:       "QueryContractTerms"
 			returnType:  "ContractTerms"
@@ -162,8 +170,8 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "event-publisher"
 			trigger:     "Termos contratuais ativados com sucesso."
 			event:       "ContractTermsActivated"
-			consumers:   ["cmt", "scf"]
-			description: "Sinal de novos termos disponíveis. CMT pode referenciar em novos compromissos. SCF atualiza condições de elegibilidade."
+			consumers:   ["cmt", "scf", "itc"]
+			description: "Sinal de novos termos disponíveis. CMT pode referenciar em novos compromissos. SCF atualiza condições de elegibilidade. ITC consome para governar operações de comex sob termos formalizados."
 		}, {
 			type:        "event-publisher"
 			trigger:     "Versão de termos superseded por nova versão ativada."
@@ -185,17 +193,18 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 		rationale: """
 			Inbound: 4 commands (registro async + ativação sync + revisão
-			async + cancelamento sync), 2 query surfaces (termos e
-			cláusulas). Outbound: 3 event publishers (ativação para
-			CMT/SCF, supersession para CMT/SCF/DRC, cancelamento para
-			CMT/DRC), 1 query dependency (qualificação de partes via
-			NPM). Padrão: CTR é upstream puro de termos contratuais,
-			com uma única dependência de qualificação em NPM — publica
-			sinais de lifecycle que downstream consome para manter
-			referências válidas. Queries sync são interface principal
-			(registry). hasAsyncSurface é true porque registro e
-			revisão são async (não exigem resposta imediata) e CTR
-			publica eventos de lifecycle consumidos por 3 BCs.
+			async + cancelamento sync), 1 event consumer (decisão de
+			sourcing de SSC), 2 query surfaces (termos e cláusulas).
+			Outbound: 3 event publishers (ativação para CMT/SCF/ITC,
+			supersession para CMT/SCF/DRC, cancelamento para CMT/DRC),
+			1 query dependency (qualificação de partes via NPM). Padrão:
+			CTR recebe upstream de SSC (sourcing estratégico inicia
+			contrato-quadro) e é upstream puro de termos contratuais para
+			4 BCs (CMT, SCF, DRC, ITC), com uma única dependência de
+			qualificação em NPM. Queries sync são interface principal
+			(registry). hasAsyncSurface é true porque registro e revisão
+			são async, CTR consome evento de SSC, e publica eventos de
+			lifecycle consumidos por 4 BCs.
 			"""
 	}
 
@@ -303,15 +312,41 @@ canvas: artifact_schemas.#Canvas & {
 			vsBenefit:                 "Benefício de aceite apressado é velocidade de formalização. Custo é vinculação a termos desfavoráveis com base documental irrefutável em disputa."
 			designResponse:            "Imutabilidade cria consequência permanente do aceite. Versionamento com lineage documenta exatamente o que foi aceito e quando. DRC tem base objetiva. REW penaliza disputas recorrentes."
 			rationale:                 "Fornecedor como contraparte tem incentivo para aceitar rápido. Design response vincula aceite a consequências documentadas e permanentes."
+		}, {
+			stakeholderRef:             "sh-05"
+			participantType:           "operador-plataforma"
+			desiredBehavior:           "Registrar termos submetidos com imparcialidade, gerenciar lifecycle sem favoritismo temporal e publicar eventos de lifecycle para todos os consumers sem seletividade."
+			correctOperationIncentive: "Operação imparcial mantém confiança de ambas as partes e de consumers downstream (CMT, SCF, DRC, ITC). Favoritismo detectado degrada credibilidade da plataforma como registry neutro e pode gerar responsabilidade jurídica (dp-10)."
+			manipulationVector:        "Atrasar seletivamente processamento de drafts para favorecer determinado registrante (criando janela onde concorrente não pode referenciar termos), omitir publicação de evento de lifecycle para consumer específico, ou priorizar registro de determinadas partes sobre outras. Precondição: agente controla timing de processamento na fase draft (autônoma) e publicação de eventos."
+			manipulationCost:          "Superfície de detecção: Event Log imutável registra timestamps de cada operação — desvio de latência por registrante é detectável estatisticamente. Ativação de termos é decisão supervisionada (activate-contract-terms) — agente não pode ativar autonomamente. Publicação de eventos é append-only e determinística — omissão é ausência detectável por consumers via timeout ou reconciliação."
+			vsBenefit:                 "Benefício de favoritismo temporal é vantagem competitiva para registrante preferencial. Custo: ativação supervisionada elimina margem para timing manipulation autônomo, Event Log torna atrasos detectáveis, e consumers detectam ausência de eventos esperados."
+			designResponse:            "Ativação supervisionada (activate-contract-terms) elimina timing manipulation autônomo — agente propõe, humano aprova. Event Log imutável com timestamps (mech-evidence) cria trail auditável. Publicação de eventos é determinística (publish-lifecycle-events é decisão autônoma, mas append-only — omissão é detectável). REW pode monitorar padrões cross-registrante para detectar favoritismo estatístico."
+			rationale:                 "Agente IA como operador de registry tem poder assimétrico sobre timing. Design response mais forte que no CMT: ativação é supervisionada, eliminando o vetor principal. Risco residual: atraso na fase de draft (registro → ativação) que é autônoma — agente pode priorizar processamento de drafts de determinadas partes. Detecção via SLA monitorado é necessária mas insuficiente sem alignment proativo — métricas de fairness de processamento, penalização por desvio, e feedback loop REW→agente (oq-cmt-4 se aplica cross-BC)."
+		}, {
+			stakeholderRef:             "sh-01"
+			participantType:           "registrante-timing"
+			desiredBehavior:           "Submeter termos com antecedência suficiente para revisão adequada pela contraparte e pelos consumers downstream."
+			correctOperationIncentive: "Termos ativados após revisão adequada evitam disputas em DRC e aceleram formalização de compromissos em CMT. Termos ativados sem revisão geram contestação, suspensão e custo jurídico."
+			manipulationVector:        "Registrante solicita ativação de termos just-in-time antes de compromisso urgente em CMT, criando pressão temporal sobre o supervisor humano que deve aprovar ativação. Contraparte (sh-02) aceita sob pressão porque alternativa é atrasar compromisso e perder oportunidade. Precondição: urgência legítima de compromisso, contraparte com poder de barganha inferior, e supervisor sob pressão temporal que aceita sem verificar adequadamente a posição da contraparte."
+			manipulationCost:          "Superfície de detecção: bitemporalidade registra gap entre registro e ativação — ativações com gap mínimo são detectáveis como padrão. REW monitora padrões por registrante — recorrência de ativação just-in-time gera alerta. Contraparte pode contestar termos aceitos sob pressão em DRC, com base documental (timeline de registro → ativação → compromisso)."
+			vsBenefit:                 "Benefício: termos favoráveis aceitos sem escrutínio. Custo: padrão detectável por bitemporalidade + REW, disputas em DRC com timeline documentada que demonstra pressão, e deterioração de score que afeta futuras operações."
+			designResponse:            "Ativação é supervisionada (activate-contract-terms) — humano pode rejeitar ativação com gap suspeito. Bitemporalidade registra data de registro vs data de ativação — gap mínimo é sinal verificável. REW monitora padrões de timing por registrante. DRC tem base objetiva (timeline completa) para avaliar se aceite foi sob pressão. Versão anterior permanece active até nova ser ativada — não há janela sem termos válidos."
+			rationale:                 "Timing attack explora assimetria informacional temporal — registrante sabe quando vai precisar de ativação, contraparte não. Design response usa bitemporalidade + supervisão humana + monitoramento de padrão. Risco residual duplo: (1) primeiro timing attack pode não ser detectado por padrão (falta baseline) — mitigável quando REW tiver histórico para calibrar alerta; (2) supervisor humano é vulnerável a pressão contextual legítima (urgência real + perda econômica se não aprovar) — decisão racional sob pressão pode ser subótima (as-ctr-4). Ativação supervisionada é controle necessário mas não suficiente quando o contexto pressiona a aprovação."
 		}]
 		rationale: """
-			Análise foca nos dois participantes diretos do registro
-			de termos (registrante e contraparte). Ambos têm vetores
-			de manipulação com custos que excedem benefícios por design:
-			imutabilidade impede reescrita, versionamento com lineage
-			torna adulteração detectável, bilateralidade distribui
-			responsabilidade, DRC tem base jurídica objetiva para
-			resolver disputas (dp-08).
+			Análise cobre 4 participantes em 3 classes de vetor: (a) economic
+			manipulation — registrante envia termos enviesados (sh-01),
+			contraparte aceita sem revisão (sh-02); (b) governance bypass —
+			registrante explora timing de ativação para pressionar contraparte
+			(sh-01); (c) agent misalignment — operador plataforma com
+			favoritismo temporal ou omissão seletiva (sh-05). Todos os vetores
+			têm custos que excedem benefícios por design: imutabilidade impede
+			reescrita, versionamento com lineage torna adulteração detectável,
+			bitemporalidade registra timing, supervisão humana para ativação e
+			cancelamento, bilateralidade distribui responsabilidade, DRC tem
+			base jurídica objetiva (dp-08). Riscos residuais declarados: viés
+			de priorização na fase draft (autônoma), primeiro timing attack
+			sem baseline para detecção.
 			"""
 	}
 
@@ -398,6 +433,11 @@ canvas: artifact_schemas.#Canvas & {
 		assumption:         "Expiração automática por data é suficiente — não há necessidade de expiração condicional baseada em eventos de negócio."
 		invalidationSignal: "Contratos com prazo indefinido ou prazo condicional a marco de obra (não data fixa)."
 		rationale:          "Expiração temporal é determinística e automatizável. Expiração condicional exigiria integração com BCs de execução (DLV, LOG)."
+	}, {
+		id:                 "as-ctr-4"
+		assumption:         "Supervisor humano decide racionalmente sobre ativação de termos mesmo sob pressão temporal e econômica legítima."
+		invalidationSignal: "Recorrência de disputas em DRC originadas de termos ativados com gap registro-ativação mínimo, indicando que supervisor aprova sob pressão sem revisão adequada."
+		rationale:          "Ativação supervisionada assume que supervisão humana é controle efetivo. Pressão contextual legítima (urgência + perda econômica) pode degradar qualidade da decisão. Se invalidado, considerar cooling-off period mandatório ou dupla aprovação para ativações com gap suspeito."
 	}]
 
 	openQuestions: [{
@@ -443,13 +483,16 @@ canvas: artifact_schemas.#Canvas & {
 		Canvas do CTR como documento raiz de identidade. CTR é o
 		registry canônico de termos contratuais da Mesh — fundação
 		jurídica sobre a qual CMT formaliza compromissos, SCF precifica
-		antecipações e DRC resolve disputas. Supporting porque
-		formalização contratual é domínio entendido; product porque
-		nenhuma solução existente integra versionamento imutável com
-		lifecycle financeiro. Specification como archetype primário
-		porque CTR define e expõe Published Language consumida por 3
-		BCs. Communication: 4 commands inbound (register, activate,
-		revise, cancel), 2 query surfaces (termos + cláusulas),
+		antecipações, DRC resolve disputas e ITC governa operações de
+		comex. Recebe upstream de SSC — contrato-quadro nasce de
+		sourcing estratégico, não de execução de compra. Supporting
+		porque formalização contratual é domínio entendido; product
+		porque nenhuma solução existente integra versionamento imutável
+		com lifecycle financeiro. Specification como archetype primário
+		porque CTR define e expõe Published Language consumida por 4
+		BCs. Communication alinhada com context map v2: 4 commands
+		inbound (register, activate, revise, cancel), 1 event consumer
+		(SSC sourcing decision), 2 query surfaces (termos + cláusulas),
 		3 event publishers (activated, superseded, cancelled),
 		1 query dependency (qualificação de partes via NPM). Decisões
 		de negócio: imutabilidade, unicidade de versão active e

@@ -264,49 +264,55 @@ mesh-spec/
 │
 ├── architecture/
 │   ├── adrs/
-│   │   └── {nnn}-{slug}.cue             # ADRs globais (stack, patterns, deploy strategy)
+│   │   └── adr-{nnn}-{slug}.cue          # ADRs globais (stack, patterns, deploy strategy).
+│   │                                      #   49 ADRs ativos (adr-001 a adr-049).
+│   ├── artifact-schemas/                  # Schemas de validação para tipos de artefato.
+│   │   │                                  #   Define #Canvas, #ADR, #Lens, etc.
+│   │   │                                  #   CI valida que toda instância conforma com seu schema.
+│   │   │                                  #   NÃO são templates — agentes leem o schema + golden
+│   │   │                                  #   examples e geram instâncias conformantes.
+│   │   │                                  #
+│   │   │                                  #   ── Existentes (20) ──
+│   │   ├── adr.cue                        # #ADR
+│   │   ├── agent-governance.cue           # #AgentGovernance
+│   │   ├── agent-spec.cue                 # #AgentSpec
+│   │   ├── api-spec.cue                   # #OpenAPISpec, #AsyncAPISpec
+│   │   ├── artifact-schema.cue            # #ArtifactSchema (meta-schema)
+│   │   ├── canvas.cue                     # #Canvas
+│   │   ├── context-map.cue                # #ContextMap
+│   │   ├── cross-context-flow.cue         # #CrossContextFlow
+│   │   ├── domain-definition.cue          # #DomainDefinition
+│   │   ├── domain-model.cue               # #DomainModel
+│   │   ├── glossary.cue                   # #Glossary
+│   │   ├── lens.cue                       # #Lens
+│   │   ├── quality-criteria.cue           # #QualityCriteria, #QualityCriterion, #Severity
+│   │   ├── stakeholder-map.cue            # #StakeholderMap
+│   │   ├── structural-check.cue           # #StructuralCheck (4 kinds de rule)
+│   │   ├── subdomain.cue                  # #Subdomain
+│   │   ├── task-template.cue              # #TaskTemplate
+│   │   ├── tension-entry.cue              # #TensionEntry
+│   │   ├── validation-prompt.cue          # #ValidationPrompt
+│   │   └── wave-plan.cue                  # #WavePlan
+│   │                                      #
+│   │                                      #   ── Futuros (previstos, ainda não criados) ──
+│   │                                      #   invariant.cue, policy.cue, state-model.cue,
+│   │                                      #   command.cue, event.cue, workflow.cue,
+│   │                                      #   threat-model.cue, golden-example.cue,
+│   │                                      #   anti-pattern.cue, failure-mode.cue,
+│   │                                      #   coding-convention.cue, domain-story.cue,
+│   │                                      #   agent-instruction.cue, observability-contract.cue,
+│   │                                      #   projection.cue, port.cue, adapter.cue,
+│   │                                      #   error-taxonomy-entry.cue
+│   ├── artifacts/                         # Instâncias de artefatos operacionais.
+│   │   ├── governance/                    # Envelopes de autonomia e decisões de governança.
+│   │   └── lenses/                        # (reservado para instâncias produzidas por lenses)
 │   ├── c4/
-│   │   ├── workspace.dsl                # Structurizr DSL — source of truth dos diagramas C4
-│   │   └── views/                       # Diagramas derivados (.mmd, .png, exports)
-│   ├── artifact-schemas/                # Schemas de validação para tipos de artefato.
-│   │   │                                #   Define #Canvas, #Command, #Event, etc.
-│   │   │                                #   CI valida que toda instância conforma com seu schema.
-│   │   │                                #   NÃO são templates — agentes leem o schema + golden
-│   │   │                                #   examples e geram instâncias conformantes.
-│   │   │                                #
-│   │   │                                #   ── Existentes ──
-│   │   ├── adr.cue                      # #ADR
-│   │   ├── domain-definition.cue        # #DomainDefinition
-│   │   ├── lens.cue                     # #Lens
-│   │   ├── quality-criteria.cue         # #QualityCriteria, #QualityCriterion, #Severity
-│   │   ├── stakeholder-map.cue          # #StakeholderMap
-│   │   ├── task-template.cue            # #TaskTemplate
-│   │   ├── context-map.cue              # #ContextMap
-│   │   ├── cross-context-flow.cue       # #CrossContextFlow
-│   │   ├── wave-plan.cue               # #WavePlan
-│   │   │                                #
-│   │   │                                #   ── Futuros (previstos, ainda não criados) ──
-│   │   ├── canvas.cue                   # #Canvas
-│   │   ├── domain-model.cue             # #DomainModel
-│   │   ├── invariant.cue                # #Invariant
-│   │   ├── policy.cue                   # #Policy
-│   │   ├── state-model.cue              # #StateModel
-│   │   ├── command.cue                  # #Command
-│   │   ├── event.cue                    # #Event
-│   │   ├── workflow.cue                 # #Workflow
-│   │   ├── agent-spec.cue               # #AgentSpec
-│   │   ├── threat-model.cue             # #ThreatModel
-│   │   ├── golden-example.cue           # #GoldenExample
-│   │   ├── anti-pattern.cue             # #AntiPattern
-│   │   ├── failure-mode.cue             # #FailureMode
-│   │   ├── coding-convention.cue        # #CodingConvention
-│   │   ├── domain-story.cue             # #DomainStory
-│   │   ├── agent-instruction.cue        # #AgentInstruction
-│   │   ├── observability-contract.cue   # #ObservabilityContract
-│   │   ├── projection.cue              # #Projection
-│   │   ├── port.cue                    # #Port
-│   │   ├── adapter.cue                 # #Adapter
-│   │   └── error-taxonomy-entry.cue    # #ErrorEntry
+│   │   ├── workspace.dsl                  # Structurizr DSL — source of truth dos diagramas C4
+│   │   └── views/                         # Diagramas derivados (.mmd, .png, exports)
+│   ├── conventions/                       # Convenções arquiteturais condicionais a capability flags.
+│   │   └── api-spec-convention.cue        # OpenAPI/AsyncAPI por hasSyncSurface/hasAsyncSurface
+│   ├── cross-context-workflows/
+│   │   └── commitment-lifecycle.cue       # Processos que atravessam múltiplos BCs
 │   ├── design-principles.cue              # 13 princípios que governam como o sistema é
 │   │                                      #   desenhado. 5 grupos: #Foundation (P0-P2),
 │   │                                      #   #StructuralInvariants (P3-P6),
@@ -316,40 +322,43 @@ mesh-spec/
 │   │                                      #   Diferentes dos Princípios Orientadores (P1-P10
 │   │                                      #   do README): aqueles governam a organização
 │   │                                      #   da spec; estes governam o design do sistema.
-│   ├── agent-universal-principles.cue   # Princípios que governam todos os agentes de domínio.
-│   │                                    #   Cada princípio: id, statement, rationale, examples.
-│   ├── infrastructure.cue               # Stack, CI/CD, observabilidade, secrets
-│   ├── database-strategy.cue            # Schema isolation, migration strategy
-│   ├── error-taxonomy-global.cue        # Taxonomia de erros cross-context. CI valida unicidade
-│   │                                    #   de códigos e consistência com taxonomias locais.
-│   ├── security.cue                     # Autenticação, autorização, compliance
-│   ├── event-evolution.cue              # Versionamento de eventos: upcasting, downcasting,
-│   │                                    #   regras de compatibilidade, migração de consumidores
-│   ├── compensation-patterns.cue        # Patterns globais de recovery em sagas
-│   ├── observability-strategy.cue       # Estratégia global: métricas, logs, traces obrigatórios,
-│   │                                    #   naming conventions, SLOs por BC
-│   ├── testing-strategy.cue             # Como testes são gerados a partir da spec.
-│   │                                    #   Detalha o assertion schema canônico e como
-│   │                                    #   geradores consomem estrutura formal, não prosa.
-│   ├── shared-schemas/
-│   │   ├── money.cue                    # Tipo Money canônico (decimal string em REST, Ion decimal)
-│   │   ├── cloudevents-envelope.cue     # Envelope CloudEvents base para todos os BCs
-│   │   ├── assertion-schema.cue         # Gramática formal das assertions: #Assertion
-│   │   │                                #   (subject, variables, predicate + rationale),
-│   │   │                                #   #Variable, #Predicate. Todo invariants.cue,
-│   │   │                                #   policies.cue e state-models.cue importa este schema.
-│   │   │                                #   CUE é container das assertions, não engine de avaliação.
-│   │   ├── agent-decision-record.cue    # Schema tipado do registro de decisão de agentes:
-│   │   │                                #   inputs, política aplicada, output, confiança, timestamp
-│   │   ├── agent-interaction-envelope.cue # Schema do contrato de consumo inter-BC:
-│   │   │                                #   estrutura que descreve quais campos do event schema
-│   │   │                                #   um receptor requer e quais garantias semânticas carregam.
-│   │   ├── spec-gap-event.cue           # Schema tipado do evento de lacuna na spec:
-│   │   │                                #   gap_type, affected_artifact, evidence_refs,
-│   │   │                                #   hypothesis, severity, source_bc
-│   │   └── ion-rules.cue               # 4 regras canônicas: Ion-1 thru Ion-4
-│   └── cross-context-workflows/
-│       └── {workflow-slug}.cue          # Processos que atravessam múltiplos BCs
+│   │                                      #
+│   │                                      #   ── Planejados (top-level em architecture/) ──
+│   │                                      #   agent-universal-principles.cue, infrastructure.cue,
+│   │                                      #   database-strategy.cue, error-taxonomy-global.cue,
+│   │                                      #   security.cue, event-evolution.cue,
+│   │                                      #   compensation-patterns.cue, observability-strategy.cue,
+│   │                                      #   testing-strategy.cue
+│   ├── lenses/                            # Lenses analíticas: protocolos de raciocínio que
+│   │   │                                  #   expandem capacidade de análise para domínios
+│   │   │                                  #   específicos. ~50 lenses cobrindo economia, design,
+│   │   │                                  #   segurança, regulatório, plataforma, crédito, AI.
+│   │   └── lens-{domain-slug}.cue         # Instâncias de #Lens
+│   ├── shared-schemas/                    # Schemas compartilhados entre BCs.
+│   │   │                                  #   ── Planejados (diretório existe, arquivos futuros) ──
+│   │   ├── money.cue                      # Tipo Money canônico (decimal string em REST, Ion decimal)
+│   │   ├── cloudevents-envelope.cue       # Envelope CloudEvents base para todos os BCs
+│   │   ├── assertion-schema.cue           # Gramática formal das assertions: #Assertion
+│   │   │                                  #   (subject, variables, predicate + rationale),
+│   │   │                                  #   #Variable, #Predicate. CUE é container, não engine.
+│   │   ├── agent-decision-record.cue      # Schema de decisão de agentes
+│   │   ├── agent-interaction-envelope.cue # Contrato de consumo inter-BC
+│   │   ├── spec-gap-event.cue             # Evento de lacuna na spec
+│   │   └── ion-rules.cue                 # 4 regras canônicas: Ion-1 thru Ion-4
+│   ├── shared-types/                      # Tipos reutilizáveis entre artifact-schemas.
+│   │   ├── strategic-classification.cue   # #StrategicClassification
+│   │   └── vertical-applicability.cue     # #VerticalApplicability
+│   ├── structural-checks/                 # Instâncias de checks estruturais (gate determinístico,
+│   │   │                                  #   P10). 4 kinds de rule. Schema: structural-check.cue.
+│   │   └── canvas.cue                     # sc-cv-01..03: required-block + conditional-file-presence
+│   ├── tension-log/                       # Tensões arquiteturais: fricções cross-artifact que
+│   │   │                                  #   não são defeito de nenhum lado. 10 registradas.
+│   │   └── ten-{nnn}-{slug}.cue           # Instâncias de #TensionEntry
+│   └── validation-prompts/                # Prompts de design review advisory (P10: recomendação,
+│       │                                  #   nunca gate). Executados por agente isolado pós-commit.
+│       └── validate-{type}.cue            # 9 prompts: adr, agent-governance, agent-spec,
+│                                          #   artifact-schema, canvas, domain-definition,
+│                                          #   domain-model, glossary, self-review-report
 │
 │   ╔══════════════════════════════════════════════════════════════╗
 │   ║  CAMADA 4 — GOVERNANÇA E QUALIDADE                          ║
@@ -449,15 +458,19 @@ architecture/adrs/
 architecture/artifact-schemas/
 architecture/artifacts/
 architecture/c4/
+architecture/conventions/
 architecture/cross-context-workflows/
 architecture/lenses/
 architecture/shared-schemas/
 architecture/shared-types/
+architecture/structural-checks/
 architecture/tension-log/
 architecture/validation-prompts/
 contexts/
 contexts/cmt/
 contexts/ctr/
+contexts/idc/
+contexts/npm/
 domain/
 governance/
 governance/build-time/
@@ -474,6 +487,7 @@ END:repo-structure-paths -->
 adr.cue
 agent-governance.cue
 agent-spec.cue
+api-spec.cue
 artifact-schema.cue
 canvas.cue
 context-map.cue
@@ -484,6 +498,7 @@ glossary.cue
 lens.cue
 quality-criteria.cue
 stakeholder-map.cue
+structural-check.cue
 subdomain.cue
 task-template.cue
 tension-entry.cue

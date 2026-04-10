@@ -11,14 +11,12 @@ lensCommonsCollectiveAction: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
-	generatedAt:     "2026-03-27"
+	generatedAt:     "2026-04-07"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 
 	status: "stable"
-
-	singleRoundRationale: "Lente completa com 16 conceitos, 13 reasoning steps, 3 meshExamples, 6 principleIds, 7 relatedLenses e 6 limitations. Round 1 identificou zero fail e 1 warn (uq-03 forward references a lenses planejadas). Todos os campos obrigatórios do schema presentes. Conteúdo fornecido integralmente pelo founder em 3 entregas parciais — self-review validou consistência interna, especificidade Mesh, rationales e conformidade com schema."
 
 	roundDetails: [{
 		round:     1
@@ -26,6 +24,12 @@ lensCommonsCollectiveAction: build_time.#SelfReviewReport & {
 		warnCount: 1
 		infoCount: 0
 		summary:   "Round 1 avaliou lente completa (trigger + 16 concepts + 13 reasoning steps + 3 examples + 6 principleIds + 7 relatedLenses + 6 limitations). uq-01 pass: rationales explicam WHY. uq-02 pass: meshManifestation ancorado em FIDC, scoring, anchor tenants, Ostrom, construção civil, AUROC, HHI. uq-03 warn: principleIds todos existem; 5 de 9 crossDependsOn e 6 de 7 relatedLenses referenciam lenses planejadas ainda não criadas (padrão comum no repo). uq-04 pass: sem contradição com design-principles. uq-05 pass: 6 limitações declaradas com alternativas. uq-06 pass: terminologia consistente. uq-07 pass: zero placeholders. uq-08 pass: todos os campos obrigatórios do #AnalyticalLens presentes. tq-ln-01 pass: 11 condições testáveis, 5 excludeWhen. tq-ln-02 pass: 13 reasoning steps com perguntas específicas e appliesWhen condicionais. tq-ln-03 pass: 3 exemplos com cenário, análise e recomendação concretos. tq-ln-04 pass: 6 limitações reais com alternativas."
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 1
+		infoCount: 0
+		summary:   "Round 2 (adr-043 Fase 1 backfill): adicionado campo verticalApplicability ao lens. Classificação: vertical-adaptable, primaryVertical=construction, validatedVerticals omitido. Rationale dialogicamente refinado com founder distinguindo dependência estrutural (presente — toda a instanciação operacional bootstrapada em construção) de mera ausência de validação cross-vertical. tq-ln-05 (novo critério warn em lens.cue) pass: campo presente, mode válido para lens com instanciação setorial, rationale explícito sobre o que é universal (núcleo Ostrom/CPR) e o que é setorial (meshManifestation, meshImplication, meshExamples). uq-03 warn pré-existente mantido (forward references a lenses planejadas — não relacionado a este round). Demais critérios universais e type-specific permanecem pass."
 	}]
 
 	findings: {

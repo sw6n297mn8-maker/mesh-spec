@@ -9,10 +9,16 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // nem a aprovação do founder. Reduz rounds de revisão humana.
 //
 // Camadas de validação do sistema:
-// | Camada         | Quando                      | Quem             | O que valida                                  |
-// | Self-review    | Pré-proposta, loop interno  | Mesmo agente     | cue vet + crítica semântica contra critérios  |
-// | Procedural     | Pré-commit                  | Mesmo agente     | Checklist de completude do task template      |
-// | Semântica      | Pós-commit, sessão separada | Agente diferente | Viés, blind spots, coerência profunda         |
+// | Camada                  | Quando                      | Quem             | O que valida                                                              |
+// | Self-review             | Pré-proposta, loop interno  | Mesmo agente     | cue vet + crítica semântica contra critérios                              |
+// | Procedural              | Pré-commit                  | Mesmo agente     | Checklist de completude do task template                                  |
+// | Estrutural pós-commit   | Pós-commit                  | Tooling          | structural-checks — gate determinístico pós-commit; único mecanismo que pode bloquear |
+// | Semântica pós-commit    | Pós-commit, sessão separada | Agente diferente | validation-prompts — design review advisory; recomendações ao founder; não bloqueia    |
+//
+// Per adr-040: as camadas estrutural e semântica são categoricamente
+// distintas — a primeira é determinística e gating; a segunda é
+// interpretativa e advisory. Nenhuma pode ser colapsada na outra
+// sem reincidir em ten-006.
 //
 // Aplicação de critérios:
 // Para cada artefato, o agente aplica TODOS os universalCriteria deste

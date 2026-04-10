@@ -18,8 +18,13 @@ package cmt
 // Decisões de design:
 // - Single aggregate (agg-commitment): compromisso é o único consistency
 //   boundary. Partes, termos e estado são internos ao aggregate.
-// - 3 eventos internos ACL (sourceContext): traduzem sinais de REW e DRC
-//   para linguagem local do CMT. Domain model permanece puro.
+// - 7 eventos internos ACL (sourceContext): traduzem sinais de REW, DRC,
+//   P2P e CTR para linguagem local do CMT. Domain model permanece puro.
+// - Dual entry path: compromisso pode originar de pedido de compra spot
+//   (P2P → evt-purchase-order-received → ProposeCommitment) ou de termos
+//   ativados via sourcing estratégico (SSC→CTR→CMT). Ambos os fluxos
+//   assumem que termos contratuais existem em CTR — inv-terms-reference-valid
+//   é universal.
 // - CommitmentStateChanged como evento genérico de transição: simplifica
 //   consumers downstream vs evento por transição.
 // - at-risk como estado intermediário entre accepted e suspended:
@@ -27,6 +32,8 @@ package cmt
 //   (cmd-suspend-commitment). Canvas distingue explicitamente.
 // - Policies conectam sinais ACL a commands: automação event → command
 //   com guards opcionais per P10 (agentes recomendam, gates validam).
+//   Exceção: eventos de lifecycle de termos de CTR são fatos informativos
+//   registrados sem policy — validação de termos é sync via QueryContractTerms.
 //
 // Trade-off documentado (tq-dm-02):
 // - Eventos ACL (sourceContext) são produzidos pela camada ACL, não pelo
@@ -69,8 +76,8 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:        "evt-commitment-accepted"
 		name:        "CommitmentAccepted"
 		visibility:  "published"
-		description: "Gate de aceite mútuo bilateral aprovado com sucesso. Sinal canônico de entrada no commitment lifecycle — BDG inicia aprovação orçamentária, DRC registra contexto para disputas futuras."
-		rationale:   "Evento cross-context mais importante do CMT. Publicado para BDG e DRC conforme context-map (cmt-to-bdg, cmt-to-drc). Nome segue convenção Entity+PastParticiple."
+		description: "Gate de aceite mútuo bilateral aprovado com sucesso. Sinal canônico de entrada no commitment lifecycle — BDG inicia aprovação orçamentária, DRC registra contexto para disputas futuras, TCM projeta obrigação futura na posição de caixa."
+		rationale:   "Evento cross-context mais importante do CMT. Publicado para BDG, DRC e TCM conforme context-map (cmt-to-bdg, cmt-to-drc, cmt-to-tcm). Nome segue convenção Entity+PastParticiple."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
@@ -87,7 +94,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:        "evt-commitment-state-changed"
 		name:        "CommitmentStateChanged"
 		visibility:  "published"
-		description: "Estado do compromisso transicionou por sinal externo (risco, disputa) ou ação interna (suspensão, cancelamento, reativação). Consumido por DRC para atualizar contexto de disputas."
+		description: "Estado do compromisso transicionou por sinal externo (risco, disputa) ou ação interna (suspensão, cancelamento, reativação). Consumido por DRC para atualizar contexto de disputas e por TCM para atualizar projeções de caixa."
 		rationale:   "Trade-off deliberado: evento genérico vs evento por transição (e.g., CommitmentSuspended, CommitmentCancelled). Evento único reduz acoplamento de consumers downstream (DRC consome um tipo, não N) e permite adicionar estados ao lifecycle sem criar novos event types. Custo: consumers precisam inspecionar previousState/newState para filtrar transições relevantes."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
@@ -147,6 +154,68 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale:     "Par reverso de evt-counterparty-risk-signaled. Evento interno traduzido de sinal externo de REW. Trigger para pol-risk-cleared-clears-flag."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
+		}]
+	}, {
+		code:          "evt-purchase-order-received"
+		name:          "PurchaseOrderReceived"
+		visibility:    "internal"
+		sourceContext: "p2p"
+		description:   "Tradução ACL de PurchaseOrderEmitted (P2P). Pedido de compra spot recebido — trigger para formalização de compromisso bilateral."
+		rationale:     "Evento interno traduzido de sinal externo de P2P. P2P é upstream no macrofluxo spot (P2P→CMT). Agente traduz pedido unilateral para proposta bilateral via ACL. ACL adapter enriquece com contractTermsRef via QueryContractTerms — premissa de que termos existem em CTR para ambos os fluxos (spot e estratégico)."
+		fields: [{
+			kind: "domain-type", name: "purchaseOrderRef", type: "PurchaseOrderRef"
+			description: "Referência ao pedido de compra em P2P."
+		}, {
+			kind: "domain-type", name: "buyer", type: "ParticipantId"
+			description: "Compradora que emitiu o pedido."
+		}, {
+			kind: "domain-type", name: "supplier", type: "ParticipantId"
+			description: "Fornecedora destinatária do pedido."
+		}]
+	}, {
+		code:          "evt-contract-terms-activated-received"
+		name:          "ContractTermsActivatedReceived"
+		visibility:    "internal"
+		sourceContext: "ctr"
+		description:   "Tradução ACL de ContractTermsActivated (CTR). Novos termos contratuais ativados e disponíveis para referência em compromissos futuros."
+		rationale:     "Evento interno traduzido de sinal externo de CTR. Upstream no macrofluxo estratégico (SSC→CTR→CMT). Fato informativo registrado sem policy — validação de termos em propostas futuras é sync via QueryContractTerms (inv-terms-reference-valid). Evento existe para auditabilidade e cache invalidation."
+		fields: [{
+			kind: "domain-type", name: "contractTermsId", type: "ContractTermsId"
+			description: "Identificador dos termos ativados em CTR."
+		}, {
+			kind: "primitive", name: "effectiveFrom", type: "datetime"
+			description: "Data de vigência dos termos."
+		}]
+	}, {
+		code:          "evt-contract-terms-superseded-received"
+		name:          "ContractTermsSupersededReceived"
+		visibility:    "internal"
+		sourceContext: "ctr"
+		description:   "Tradução ACL de ContractTermsSuperseded (CTR). Termos contratuais superseded — compromissos existentes mantêm referência snapshot; novos compromissos devem usar versão vigente."
+		rationale:     "Evento interno traduzido de sinal externo de CTR. Fato informativo registrado sem policy — impacto é em validação de propostas futuras (inv-terms-reference-valid via QueryContractTerms sync), não em compromissos existentes (snapshot). Propostas in-flight com termos stale são capturadas no gate de aceite (inv-terms-reference-valid)."
+		fields: [{
+			kind: "domain-type", name: "contractTermsId", type: "ContractTermsId"
+			description: "Identificador dos termos superseded em CTR."
+		}, {
+			kind: "domain-type", name: "supersededBy", type: "ContractTermsId"
+			description: "Identificador da versão que substitui."
+		}]
+	}, {
+		code:          "evt-contract-terms-cancelled-received"
+		name:          "ContractTermsCancelledReceived"
+		visibility:    "internal"
+		sourceContext: "ctr"
+		description:   "Tradução ACL de ContractTermsCancelled (CTR). Termos contratuais invalidados por fraude, erro ou decisão regulatória — compromissos ativos que referenciam estes termos devem ser avaliados."
+		rationale:     "Evento interno traduzido de sinal externo de CTR. Cancelamento é mais grave que supersession — invalidação irreversível, não substituição. Compromissos existentes com referência a termos cancelados podem exigir reavaliação ou suspensão, diferente de superseded onde o snapshot permanece válido."
+		fields: [{
+			kind: "domain-type", name: "contractTermsId", type: "ContractTermsId"
+			description: "Identificador dos termos cancelados em CTR."
+		}, {
+			kind: "primitive", name: "reasonType", type: "string"
+			description: "Tipo de razão do cancelamento (fraud, error, regulatory, other)."
+		}, {
+			kind: "primitive", name: "cancelledAt", type: "datetime"
+			description: "Data/hora do cancelamento."
 		}]
 	}]
 
@@ -407,6 +476,9 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-dispute-resolved-received",
 			"evt-suspension-ordered-received",
 			"evt-counterparty-risk-cleared",
+			"evt-purchase-order-received",
+			"evt-contract-terms-activated-received",
+			"evt-contract-terms-superseded-received",
 		]
 
 		protectsInvariants: [
@@ -503,7 +575,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			}]
 		}
 
-		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate). Nota: eventos ACL internos (evt-counterparty-risk-signaled, evt-dispute-resolved-received, evt-suspension-ordered-received) aparecem em emitsEvents por limitação estrutural do schema atual (tq-dm-02), não porque o aggregate os origine semanticamente — são fatos traduzidos pela camada ACL que o aggregate registra no seu event stream."
+		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate). Nota: 7 eventos ACL internos (evt-counterparty-risk-signaled, evt-counterparty-risk-cleared, evt-dispute-resolved-received, evt-suspension-ordered-received, evt-purchase-order-received, evt-contract-terms-activated-received, evt-contract-terms-superseded-received) aparecem em emitsEvents por limitação estrutural do schema (tq-dm-02), não porque o aggregate os origine semanticamente — são fatos traduzidos pela camada ACL que o aggregate registra no seu event stream. Eventos CTR (activated, superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms."
 	}]
 
 	// =============================================
@@ -538,6 +610,13 @@ domainModel: artifact_schemas.#DomainModel & {
 		triggeredByEvent: "evt-counterparty-risk-cleared"
 		issuesCommand:    "cmd-clear-risk-flag"
 		rationale:        "Par reverso de pol-risk-signal-flags-commitment. Se sinalização é autônoma, limpeza também é. Simetria operacional: flag e clear são par determinístico com policies simétricas."
+	}, {
+		code:             "pol-purchase-order-initiates-commitment"
+		name:             "Pedido de Compra Inicia Compromisso"
+		description:      "Quando P2P emite pedido de compra spot (traduzido como evt-purchase-order-received), emite cmd-propose-commitment para iniciar formalização de compromisso bilateral."
+		triggeredByEvent: "evt-purchase-order-received"
+		issuesCommand:    "cmd-propose-commitment"
+		rationale:        "Canvas inbound: PurchaseOrderEmitted → 'Inicia formalização de compromisso econômico bilateral a partir de pedido de compra'. Automação do macrofluxo spot (P2P→CMT). ACL adapter traduz pedido unilateral para proposta bilateral, enriquecendo com contractTermsRef via QueryContractTerms. Policy formaliza a cadeia; tradução vive no adapter."
 	}]
 
 	// =============================================
@@ -557,12 +636,12 @@ domainModel: artifact_schemas.#DomainModel & {
 
 		queryCapabilities: [{
 			code:        "qry-commitment-state"
-			description: "Retorna estado canônico do compromisso por CommitmentId. Interface primária de leitura para BDG, DLV, DRC."
+			description: "Retorna estado canônico do compromisso por CommitmentId. Interface primária de leitura para BDG, DLV, DRC, TCM."
 			rationale:   "Canvas query-surface: QueryCommitmentState retorna CommitmentState. 3+ BCs downstream consomem."
 		}]
 
 		rationale: "Projeção necessária porque o aggregate é otimizado para escrita (event sourced). Leitura por BCs downstream usa projeção em vez de reconstruir estado do event log."
 	}]
 
-	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 7 events (4 internos ACL + 1 interno + 2 published), 8 commands (2 do fluxo bilateral + 1 dispute routing + 2 de risk flag/clear + 3 de gestão de estado), 8 invariants (aceite bilateral, termos válidos, unicidade de id, partes distintas, supervisão de suspensão/cancelamento/reativação, terminality de cancelled), 5 value objects (inclui StateChangeReason estruturado com causeType/originContext). Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos com policies simétricas, suspended↔accepted via reactivate supervisionado. cmd-handle-dispute-resolution encapsula routing multi-outcome dentro do aggregate (resolve limitação schema #Policy). 4 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared). 1 projeção habilita QueryCommitmentState. Alinhado com canvas, glossário, context-map e design principles (P0, P3, P6, P10, P11)."
+	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 10 events (7 internos ACL de REW/DRC/P2P/CTR + 1 interno + 2 published), 8 commands, 8 invariants, 5 value objects. Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. 5 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared + purchase-order→propose); eventos CTR (terms activated/superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms. Dual entry path: spot (P2P→CMT) e estratégico (SSC→CTR→CMT), ambos assumem termos em CTR (inv-terms-reference-valid). 1 projeção habilita QueryCommitmentState para BDG, DLV, DRC, TCM. Alinhado com canvas pós-WI-039/WI-041, glossário, context-map v2 e design principles."
 }

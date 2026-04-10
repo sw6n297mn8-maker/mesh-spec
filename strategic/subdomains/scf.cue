@@ -1,6 +1,9 @@
 package subdomains
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 scf: artifact_schemas.#Subdomain & {
 	code: "scf"
@@ -86,6 +89,36 @@ scf: artifact_schemas.#Subdomain & {
 		}
 		rationale: "SCF prepara carteiras e define critérios de elegibilidade; a constituição e administração de veículos de securitização é responsabilidade de administradores fiduciários e gestores regulados pela CVM. A Mesh não é administradora fiduciária nem gestora de FIDC."
 	}]
+
+	verticalApplicability: shared_types.#VerticalApplicability & {
+		mode: "vertical-agnostic"
+		rationale: """
+			O subdomain SCF estrutura produtos financeiros padronizados
+			do mercado global (antecipação de recebíveis, reverse factoring,
+			dynamic discounting, capital de giro, securitização) sobre
+			recebíveis operacionais materializados por INV. Nenhum destes
+			produtos carrega vocabulário, mecanismo ou premissa
+			construção-específica: são padrões exógenos da disciplina de
+			Supply Chain Finance, aplicáveis a qualquer cadeia produtiva
+			B2B com recebíveis rastreáveis.
+
+			O próprio rationale do subdomain é autoatestado neste ponto:
+			"produtos de supply chain finance [...] são padrões exógenos
+			do mercado financeiro — não proprietários à Mesh. O diferencial
+			proprietário é o lastro em evidência verificável (mech-evidence
+			via DLV) e o pricing baseado em dados observados (mech-network
+			via REW). SCF combina esses diferenciais em produtos que o
+			mercado já conhece — inovação é no lastro, não no produto."
+
+			O binding construção-específico da Mesh, se existir no plano
+			financeiro, vive upstream em DLV (materialização de evidência),
+			INV (derivação de recebíveis) e REW (pricing de risco) — não
+			em SCF. SCF é um orquestrador de produtos financeiros
+			padronizados. As menções regulatórias (FIDC, CVM, performance
+			bonds) são âncoras jurisdicionais (Brasil), não setoriais —
+			FIDC pode securitizar recebíveis de qualquer vertical.
+			"""
+	}
 
 	rationale: """
 		SCF é supporting porque produtos de supply chain finance

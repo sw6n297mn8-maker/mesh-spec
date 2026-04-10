@@ -36,6 +36,8 @@ taskSpecs: "WI-037": {
 		"strategic/subdomains/ctr.cue",
 		"strategic/subdomains/cmt.cue",
 		"strategic/subdomains/bdg.cue",
+		"strategic/subdomains/plt.cue",
+		"strategic/subdomains/str.cue",
 		"strategic/subdomains/idn.cue",
 		"strategic/subdomains/dgv.cue",
 		"strategic/context-map.cue",

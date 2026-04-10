@@ -7,7 +7,10 @@ package subdomains
 // de compromissos econômicos é área de conhecimento com linguagem,
 // regras e razão de existir próprias — passa no teste DDD.
 
-import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+import (
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+	"github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 cmt: artifact_schemas.#Subdomain & {
 	code: "cmt"
@@ -120,6 +123,56 @@ cmt: artifact_schemas.#Subdomain & {
 			Volatilidade alta: cada industry pack expande tipos de
 			compromisso (medição por milestone, aceite parcial, entregas
 			programadas) e padrões de formalização.
+			"""
+	}
+
+	verticalApplicability: shared_types.#VerticalApplicability & {
+		mode: "vertical-agnostic"
+		rationale: """
+			A definição estratégica do CMT — formalização, aceite
+			mútuo e gestão de estado de compromissos econômicos entre
+			organizações em redes produtivas — é vocabulário universal
+			de teoria dos contratos B2B. Purpose, negativeBoundaries
+			(8 delegações para subdomains pares: CTR, DLV, INV, FCE,
+			BDG, REW, DRC, P2P), mechanismRefs (mech-agent-gate,
+			mech-evidence), costRefs (ce-02) e capabilityRefs (cc-04)
+			são todos definidos em termos canônicos do
+			domain-definition, sem invocar vocabulário ou premissa
+			setorial.
+
+			A única menção a vertical específica vive em
+			strategicProfile.rationale e é descritiva, não anchoring:
+			"regras de formalização que variam por vertical (construção
+			vs logística vs energia)" reconhece o landscape
+			cross-vertical sem eleger primário, e "medição por
+			milestone, aceite parcial, entregas programadas" enumera
+			tipos de compromisso que industry packs absorvem — frame
+			explícito de extensão externa, não de embedding interno.
+
+			A frase decisiva é "cada industry pack expande tipos de
+			compromisso e padrões de formalização": o subdomain
+			declara sua estratégia de variação como extensão via
+			industry packs, deliberadamente preservando o núcleo
+			universal. Isso é consistente com classificação como
+			vertical-agnostic: núcleo estável no subdomain, com
+			variação tratada como extensão externa via industry packs.
+
+			Observação cross-plane: cmt-canvas (commit 717644f) foi
+			classificado como vertical-adaptable / construction porque
+			instancia premissas operacionais que carregam a vertical
+			de origem (as-cmt-1 escopa sincronia do aceite à
+			construção, as-cmt-3 embute "medição" como vocabulário
+			de obra na premissa de hierarquia, oq-cmt-2 admite que a
+			invariante pode não generalizar, e sh-01 é "Construtora").
+			A divergência entre os dois planos é uma observação
+			estruturalmente significativa neste primeiro par analisado:
+			a variação por vertical aparece no plano operacional
+			(canvas), não no plano de fronteira estratégica (subdomain).
+			O subdomain define a fronteira universal; o canvas
+			materializa a primeira instanciação ancorada em uma
+			vertical concreta. Hipótese de pesquisa para pares
+			subsequentes (ctr, idc, npm, p2p), ainda sem massa
+			empírica suficiente para registro como tensão.
 			"""
 	}
 
