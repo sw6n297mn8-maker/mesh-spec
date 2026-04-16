@@ -57,7 +57,8 @@ adr017: artifact_schemas.#ADR & {
 		real abrange qualquer arquivo operacional nas zonas governadas.
 		"""
 
-	status: "accepted"
+	status:        "superseded"
+	supersededBy:  "adr-051"
 
 	reversibility: "high"
 	blastRadius:   "cross-cutting"

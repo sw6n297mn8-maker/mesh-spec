@@ -69,7 +69,8 @@ adr016: artifact_schemas.#ADR & {
 		derived-artifact-sync (heurística complementar, não derivação).
 		"""
 
-	status: "proposed"
+	status:        "superseded"
+	supersededBy:  "adr-051"
 
 	reversibility: "high"
 	blastRadius:   "cross-cutting"
