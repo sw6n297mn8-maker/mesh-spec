@@ -450,5 +450,105 @@ config: artifact_schemas.#ReadmeConfig & {
 			**Nota sobre o Nível 6 (EventStorming).** EventStorming é um método de descoberta, não um artefato de persistência. Seus outputs — events, commands, aggregates, policies, read models — são capturados nos arquivos táticos de cada BC. Diagramas resultantes de workshops podem ser armazenados como imagens de referência em `contexts/{bc-code}/eventstorming/`, mas não são a fonte de verdade. Os arquivos derivados são.
 			"""#
 		rationale: "Novos leitores chegam com modelo mental DDD canônico; a tabela de mapeamento reduz tempo de orientação de horas para minutos ao conectar conceito conhecido com localização concreta no repo."
+	}, {
+		title: "Pipeline de Schemas (CUE → Artefatos Gerados)"
+		content: #"""
+			CUE é a source of truth única de todos os schemas e contratos compiláveis. Os `.cue` vivem em mesh-spec (`contexts/{bc-code}/schemas/`, artefatos `.cue` por BC, e `architecture/shared-schemas/`). Nenhum `.proto`, `.isl` ou `.json` é editado manualmente — todos são gerados no CI do mesh-runtime. A visão consolidada de todos os contratos do sistema é um artefato derivado (CI step que indexa os `.cue` distribuídos por BC), não source of truth.
+
+			```
+			 ┌─────────────┐     ┌──────────────────┐     ┌──────────────────────┐
+			 │  mesh-spec   │     │  mesh-runtime CI │     │  mesh-runtime        │
+			 │  .cue files  │────▸│  cue export      │────▸│  .proto  (codegen)   │
+			 │  (source of  │     │  cue vet         │     │  .isl    (runtime)   │
+			 │   truth)     │     │  pipelines       │     │  .json   (docs/spec) │
+			 └─────────────┘     └──────────────────┘     └──────────────────────┘
+			```
+
+			Tipos compartilhados entre BCs (Money, CloudEvents envelope, IDs globais, agent decision record, agent interaction envelope, spec gap event, assertion schema) vivem em `architecture/shared-schemas/` e são importados nos `.cue` locais de cada BC via referência CUE.
+
+			Amazon Ion governa a serialização de payloads com quatro regras canônicas documentadas em `architecture/shared-schemas/ion-rules.cue`:
+			- **Ion-1 — Canonicalization.** Forma canônica para hashing e comparação.
+			- **Ion-2 — SchemaRef dual.** Todo payload carrega referência ao schema (type + version).
+			- **Ion-3 — Compatibility 3 camadas.** Backward, forward e full compatibility por schema.
+			- **Ion-4 — Decimal normalization.** Decimais financeiros normalizados (sem trailing zeros espúrios).
+
+			Money em REST JSON é sempre `type: string` (decimal string), conforme ADR-C4-2.11 §2.11.5. Em payloads Ion, Money usa o tipo nativo `decimal`. Eventos seguem o envelope CloudEvents; cada BC define seus `type` e `source` em `schemas/cloudevents.cue`.
+			"""#
+		rationale: "Pipeline CUE → artefatos gerados é o contrato mecânico que permite spec governar runtime; explicitar direção e regras Ion evita que consumidores inventem caminhos alternativos."
+	}, {
+		title: "Artifact Schemas — Validação de Conformidade"
+		content: #"""
+			O diretório `architecture/artifact-schemas/` contém schemas CUE que definem a estrutura válida para cada tipo de artefato no repositório. Todo `canvas.cue` de um BC deve conformar com `#Canvas`. Todo `invariants.cue` deve conformar com `#Invariant`. CI executa `cue vet` para validar conformidade.
+
+			**Artifact schemas não são templates.** Um schema define estrutura e constraints — campos obrigatórios, tipos permitidos, relações. Um template seria um arquivo-starter com placeholders (TODOs) que se copia para começar. Em um repositório operado por agentes, templates são desnecessários: o agente lê o schema (sabe a estrutura válida), lê golden examples (sabe o que "bom" significa), lê o domínio (sabe o conteúdo), e gera a instância conformante.
+
+			**Três mecanismos, cada um no seu lugar:**
+
+			```
+			architecture/artifact-schemas/           ← Schemas (validação CI, define estrutura válida)
+			contexts/{bc}/golden-examples/           ← Exemplos reais aprovados (referência para agentes)
+			(templates)                              ← Não existe (desnecessário em repo AI-operated)
+			```
+
+			Exemplo de uso:
+
+			```cue
+			import "mesh-spec/architecture/artifact-schemas"
+
+			artifact_schemas.#Canvas & {
+			    purpose: "Manages the lifecycle of economic commitments..."
+			    capabilities: ["create-commitment", "approve-commitment"]
+			    classification: "core"
+			}
+			```
+			"""#
+		rationale: "Distinção schema-vs-template é contraintuitiva para quem vem de ecossistemas com scaffolding; sem ela, agentes recriam templates e geram drift de estrutura."
+	}, {
+		title: "Spec → Testes (Testing Strategy)"
+		content: #"""
+			A spec não é documentação — é a fonte a partir da qual testes são gerados. Esta é potencialmente a contribuição de maior valor do repositório para um sistema AI-operated: artefatos formais produzem testes automaticamente, eliminando a lacuna entre "o domínio diz que X" e "o código garante que X".
+
+			O `assertion-schema.cue` (em `architecture/shared-schemas/`) define a gramática formal: `#Assertion` (subject, variables, predicate + rationale), `#Variable` (name, source, filter), `#Predicate` (left, relation, right). Todo `invariants.cue`, `policies.cue` e `state-models.cue` importa esse schema. CUE é o container das assertions — não a engine de avaliação. Um gerador de testes no CI do mesh-runtime consome as assertions e produz código de teste. O padrão é o mesmo de CUE → `.proto`: CUE define estrutura, codegen produz artefato executável.
+
+			A conexão entre artefatos da spec e tipos de teste é:
+
+			```
+			invariants.cue         → property-based tests (assertions formais: variáveis, relação, condição)
+			state-models.cue       → FSM tests (transições formais: toda transição ilegal rejeitada)
+			commands/{cmd}.cue     → contract tests (preconditions/postconditions formais)
+			schemas/*.cue          → validation tests (payloads inválidos → rejeição; round-trip Ion ↔ CUE)
+			policies.cue           → integration tests (trigger/condition/action formal → comando executado)
+			failure-modes.cue      → chaos tests (trigger/dependency/fallback formais)
+			workflows/{wf}.cue     → workflow tests (steps/compensation/timeouts formais)
+			threat-model.cue       → adversarial tests (fonte formal: agent-governance + invariants)
+			{agent}.governance.cue → gate tests (agente estocástico sem gate → rejeição)
+			ports.cue              → adapter tests (todo port declarado tem adapter implementado)
+			error-taxonomy.cue     → error tests (códigos únicos, categorização consistente)
+			interaction-contracts  → contract tests (emissor sem campos obrigatórios → rejeição)
+			```
+
+			Cada BC documenta suas regras de geração em `test-specs.cue`. A estratégia global — incluindo como o assertion schema funciona e como geradores consomem estrutura formal — vive em `architecture/testing-strategy.cue`. O protocolo de execução — quando rodar, que cobertura mínima, como validar antes de merge — vive em `governance/validation-protocol.cue`.
+			"""#
+		rationale: "Testes-a-partir-da-spec é a proposta de valor central para sistemas AI-operated; sem explicitar o mapeamento artefato → tipo de teste, a geração fica implícita e não auditável."
+	}, {
+		title: "Contratos de Consumo entre BCs"
+		content: #"""
+			O schema CUE de um evento define a estrutura de dados que cruza a fronteira entre BCs. Mas quando um agente de scoring do BC de Network Intelligence (NTI) emite um evento consumido pelo agente de pricing do BC de Settlement (STL), o schema sozinho não basta. O receptor precisa saber quais campos são obrigatórios para sua decisão e quais garantias semânticas eles carregam.
+
+			Os campos de contexto decisório — confidence, reasoning_category, data_sufficiency — pertencem ao event schema. São fatos que o emissor observou no momento da emissão. O `schemas/interaction-contracts.cue` não define campos novos — ele declara requisitos de consumo sobre campos que já existem no schema do evento: quais são obrigatórios para aquele receptor e quais garantias semânticas carregam.
+
+			O `agent-decision-record.cue` é complementar: registra o que aconteceu após o fato (auditoria). O interaction contract define a expectativa antes do fato (contrato de consumo).
+
+			**Ownership segue o context-map.** O `strategic/context-map.cue` já define o pattern de cada relação entre BCs (OHS/CF, Customer/Supplier, ACL). O interaction contract segue a mesma regra de ownership:
+
+			| Pattern no context-map | Owner do interaction contract |
+			|---|---|
+			| OHS/CF (Open Host Service / Conformist) | Emissor (upstream) |
+			| Customer/Supplier | Receptor (customer) |
+			| ACL (Anti-Corruption Layer) | Receptor (downstream) |
+
+			CI valida que: (1) todo campo referenciado no interaction contract existe no event schema, (2) todo event consumido por agente de outro BC tem interaction contract declarado, (3) o owner do contrato é consistente com o pattern no context-map.
+			"""#
+		rationale: "Schema de evento responde 'quais dados'; interaction contract responde 'quais são obrigatórios para mim'. Sem a distinção, cada receptor reimplementa validação e gera drift de expectativa."
 	}]
 }
