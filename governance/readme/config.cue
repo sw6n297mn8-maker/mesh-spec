@@ -620,5 +620,62 @@ config: artifact_schemas.#ReadmeConfig & {
 			A governança de agentes opera em dois níveis (ADR-037): `architecture/agent-governance.cue` define defaults globais (autonomia, escalation, blast radius, drift detection, auditoria) e cada agente recebe um envelope em `contexts/{bc}/agents/{name}.governance.cue` que especializa esses defaults com lifecycle stage, escalation routing, autonomy overrides e calibração. Sem esses artefatos, a separação entre recomendação e execução fica implícita no código, violando o princípio de que tudo é especificado antes de implementado (P10 do `design-principles.cue`: agentes estocásticos recomendam, gates determinísticos validam).
 			"""#
 		rationale: "Orçamento de contexto, lifecycle e fronteira estocástico/determinístico são três facetas do mesmo problema — como agentes operam com disciplina — e juntar em uma seção mostra a coerência dos três mecanismos."
+	}, {
+		title: "Convenções de Nomenclatura"
+		content: #"""
+			Nomes de arquivo e diretório em inglês (exceto termos de domínio já canonizados no universal glossary ou na ubiquitous language do BC). Esta seção é a fonte canônica — CLAUDE.md aponta aqui.
+
+			- Diretórios de bounded context: código lowercase (ex: `cmt`, `ctr`, `idc`, `npm`). Nome completo vive no `canvas.cue` de cada BC.
+			- Arquivos de command: `{verbo}-{substantivo}.cue` — ex: `approve-commitment.cue`.
+			- Arquivos de event: `{substantivo}-{particípio}.cue` — ex: `commitment-approved.cue`.
+			- Arquivos de ADR: `{nnn}-{slug}.cue` — ex: `001-postgres-per-module.cue`.
+			- Arquivos de schema (CUE): `{nome-do-tipo}.cue` — ex: `commitment-created-event.cue`.
+			- Arquivos de glossário: `ubiquitous-language.cue` por BC, `domain/universal-glossary.cue` global.
+			- Arquivos de workflow: `{nome-do-processo}.cue` — ex: `commitment-fulfillment-flow.cue`.
+			- Arquivos de migration: `{event-slug}-v{N}-to-v{N+1}.cue` — ex: `commitment-created-v1-to-v2.cue`.
+			- Arquivos de agente: `{agent-slug}.cue` — ex: `scoring-agent.cue`.
+			- Arquivos de contrato de consumo: `interaction-contracts.cue` (por BC, dentro de `schemas/`).
+			- Arquivos de domain story: `{story-slug}.cue` — ex: `supplier-delivers-materials.cue`.
+			- Arquivos de golden example: `{example-slug}.cue` — ex: `commitment-aggregate-impl.cue`.
+			- Arquivos de artifact schema: `{artifact-type}.cue` — ex: `canvas.cue`, `command.cue`.
+			- Artefatos universais: todo artefato cross-context leva "universal" no nome.
+			"""#
+		rationale: "Convenção de nomes é consumida por agentes ao gerar arquivos novos; manter fonte única no README (apontada por CLAUDE.md) evita que cada protocolo reinvente o padrão."
+	}, {
+		title: "Critérios de Completude por Bounded Context"
+		content: #"""
+			Um BC é considerado "spec-complete" quando todos os critérios declarados em `governance/bounded-context-completeness.cue` são satisfeitos. O artefato machine-readable é a fonte de verdade — CI valida automaticamente, agentes consomem para planejar trabalho faltante, e evolução dos critérios é rastreada via ADR.
+
+			Em alto nível, completude cobre sete dimensões:
+
+			1. **Identidade.** `canvas.cue` com propósito, capabilities, classificação, custos de transação eliminados e incentive analysis. `context-dependencies.cue` derivado de `context-map.cue`. `ubiquitous-language.cue` local.
+			2. **Modelo de domínio.** `domain-model.cue`, `invariants.cue` (ao menos uma assertion formal por aggregate), `state-models.cue` para aggregates com lifecycle.
+			3. **Contratos.** Todo command em `commands/{cmd}.cue` com pré/pós-condições e `invariant_refs`. Todo event em `events/{event}.cue` com schema CUE, envelope CloudEvents e lista de consumidores. `schemas/` com as 8 famílias ContractGate aplicáveis. `interaction-contracts.cue` se o BC consome eventos de outros BCs.
+			4. **Aplicação.** `policies.cue` com trigger/condition/action formal. `projections.cue` com read models. `ports.cue` com interfaces do domínio. `workflows/` com steps, compensation e timeouts formais.
+			5. **Qualidade e padrão para IA.** `anti-patterns.cue` com ao menos 3 restrições. `coding-conventions.cue`. `error-taxonomy.cue` com códigos únicos. Pelo menos 1 `golden-example`.
+			6. **Agentes (quando aplicável).** `agents/{agent}.cue` e `agents/{agent}.governance.cue` com envelope per-agent.
+			7. **Operação e superfícies.** `api.yaml` ou `async-api.yaml` conforme superfície. `test-specs.cue` referenciando assertions formais. `observability.cue`. `failure-modes.cue`. `threat-model.cue`. `_migrations/` para eventos v2+. ADRs locais em `adrs/` para decisões não-triviais.
+
+			A lista exaustiva, o formato machine-readable e as regras de validação vivem exclusivamente em `governance/bounded-context-completeness.cue` — este README mantém apenas o mapa conceitual para orientar leitura humana.
+			"""#
+		rationale: "Checklist exaustivo pertence ao machine-readable (P0: zero duplicação); manter aqui apenas o mapa conceitual evita drift entre README e governance/ sem perder função de orientação para novos leitores."
+	}, {
+		title: "Ordem de Criação Recomendada"
+		content: #"""
+			Ordem sugerida para bootstrap de um repositório de especificação do zero. Ordem reflete dependências conceituais: cada etapa consome artefatos criados nas anteriores.
+
+			1. Criar repositório mesh-spec com estrutura de diretórios vazia + `README.md` raiz.
+			2. Criar `architecture/artifact-schemas/` — schemas de validação para todos os tipos de artefato (`#Canvas`, `#Command`, `#Event`, etc.).
+			3. Criar `architecture/design-principles.cue` — 13 princípios de design em 5 grupos (`#Foundation`, `#StructuralInvariants`, `#DesignPhilosophy`, `#SystemNature`, `#Governance`). Precede `domain/` porque `domain-definition.cue` referencia os princípios.
+			4. Criar `domain/` — `domain-definition.cue`, `business-model.cue`, `universal-glossary.cue`.
+			5. Criar `strategic/` — subdomínios em `.cue`, `context-map.cue`, `informational-flywheel.cue`.
+			6. Criar `contexts/cmt/` — primeiro BC (Economic Commitment Lifecycle, Minimum Economic Loop).
+			7. Criar `architecture/` (restante) — ADRs globais em `.cue`, `agent-universal-principles.cue`, C4, shared schemas (incluindo `assertion-schema.cue` com rationale, `agent-interaction-envelope.cue`, `spec-gap-event.cue`), error taxonomy global, `testing-strategy.cue`.
+			8. Criar `governance/` — `wave-plan.cue`, `red-team-protocol.cue`, `spec-gap-protocol.cue`, `audit-commands.cue`, `validation-protocol.cue`.
+			9. Criar `ai-orchestration/` — `retrieval-patterns.cue` com prioridades, `dependency-graph.cue`, `agent-lifecycle.cue`, `agent-instructions/`.
+			10. Validar: um agente consegue implementar um agregado do CMT usando apenas o repo? A self-validation funciona?
+			11. Iterar para os demais BCs por ordem de `wave-plan.cue`.
+			"""#
+		rationale: "Ordem de bootstrap captura dependências conceituais que não são óbvias sem o repo existir; documentar explicitamente permite reconstruir o padrão em futuros repos e validar retrospectivamente o caminho percorrido."
 	}]
 }
