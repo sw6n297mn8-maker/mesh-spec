@@ -313,3 +313,19 @@ repoStructure: {
 		}
 	}
 }
+
+// ── Contrato estável para tooling ──
+//
+// Entrypoint que desacopla scripts da forma interna do artefato.
+// Tooling consome `tooling.excludedPaths` (não
+// `repoStructure.scope.excluded`) para que renomeações da instância
+// não quebrem consumidores. Per ADR-051, check-readme-coevolution.sh
+// é o primeiro consumer formal.
+
+#Tooling: {
+	excludedPaths: [...string & !=""]
+}
+
+tooling: #Tooling & {
+	excludedPaths: repoStructure.scope.excluded
+}
