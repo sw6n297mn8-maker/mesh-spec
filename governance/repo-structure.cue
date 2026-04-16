@@ -146,24 +146,11 @@ repoStructure: {
 			rationale: "CLAUDE.md é exceção P2 (markdown), mas conteúdo é gerado a partir de config.cue. Edição direta é drift por construção."
 		}, {
 			path:      "README.md"
-			blockId:   "repo-structure-paths"
-			source:    "."
-			generator: "scripts/ci/check-readme-coevolution.sh --block repo-structure-paths"
-			rationale: "Lista de diretórios depth ≤ 2 é materialização do filesystem. Source é raiz do repo porque o scan é transversal."
-		}, {
-			path:      "README.md"
-			blockId:   "repo-artifact-schemas"
-			source:    "architecture/artifact-schemas/"
-			generator: "scripts/ci/check-readme-coevolution.sh --block repo-artifact-schemas"
-			rationale: "Lista de artifact schemas é materialização do conteúdo de architecture/artifact-schemas/."
-		}, {
-			path:      "README.md"
-			blockId:   "repo-governance-protocols"
-			source:    "governance/"
-			generator: "scripts/ci/check-readme-coevolution.sh --block repo-governance-protocols"
-			rationale: "Lista de protocolos de governança é materialização de governance/, governance/build-time/, governance/claude/ e scripts/ci/, scripts/hooks/."
+			source:    "governance/readme/config.cue"
+			generator: "cue export ./governance/readme -e output --out text"
+			rationale: "README.md é exceção P2 (markdown) materializada como derivado integral. Source é config.cue (instância de #ReadmeConfig); template fixo em governance/readme/output.cue completa o pipeline. Sync validado por scripts/ci/check-readme-coevolution.sh per ADR-051."
 		}]
-		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. blockId estende o mecanismo para derivação parcial dentro de arquivos com conteúdo misto (autoral + derivado)."
+		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. Per ADR-051, README.md migrou de derivação parcial por blockId para derivação full-file; campo blockId permanece no schema como extensão opcional para casos futuros, atualmente sem consumer."
 	}
 
 	responsibilityBoundary: {
@@ -276,12 +263,12 @@ repoStructure: {
 			},
 			{
 				id:        "derived-artifact-sync"
-				rationale: "Garante que artefatos derivados estão em sync com seus sources. Cobre arquivos inteiros (CLAUDE.md) e blocos dentro de arquivos (README.md blocks) via campo blockId."
+				rationale: "Garante que artefatos derivados estão em sync com seus sources. Cobre arquivos inteiros (CLAUDE.md, README.md). O campo blockId estende o mecanismo para derivação parcial em arquivos mistos, mas per ADR-051 nenhum derivedArtifact ativo o utiliza."
 				includes: [
 					"Para cada entrada em derivedArtifacts.artifacts:",
 					"Se blockId ausente: executar generator e comparar output com conteúdo integral de path",
-					"Se blockId presente: executar generator e comparar output com conteúdo entre marcadores <!-- BEGIN:{blockId} --> e <!-- END:{blockId} --> em path",
-					"Se diff não for vazio, CI falha com mensagem indicando source, blockId (se aplicável) e comando de regeneração (--fix)",
+					"Se blockId presente: executar generator e comparar output com conteúdo entre marcadores <!-- BEGIN:{blockId} --> e <!-- END:{blockId} --> em path (sem consumer ativo per ADR-051)",
+					"Se diff não for vazio, CI falha com mensagem indicando source, blockId (se aplicável) e comando de regeneração",
 				]
 				dependsOn: ["schema-conformance"]
 			},
@@ -307,7 +294,7 @@ repoStructure: {
 				completeness:          "script que resolve conditions do completeness contra canvas de cada BC"
 				"adr-coverage":        "script que compara diff de architecture/ e governance/ contra ADRs no mesmo PR; parseia affectedArtifacts dos .cue em architecture/adrs/"
 				"adr-consistency":        "script que parseia todos os ADRs em architecture/adrs/, monta grafo dirigido de supersession (supersedes/supersededBy) e valida existência, simetria e acyclicity"
-				"derived-artifact-sync":  "script que itera derivedArtifacts; para entries sem blockId: executa generator e compara output com path via diff; para entries com blockId: extrai bloco entre marcadores BEGIN/END e compara; --fix regenera e escreve; pre-commit hook executa --fix e auto-stage"
+				"derived-artifact-sync":  "script que itera derivedArtifacts; para entries sem blockId: executa generator e compara output com path via diff; entries com blockId atualmente não existem (per ADR-051); regeneração segue a convenção operacional 'generator > path'"
 				"self-review-evidence": "scripts/ci/check-self-review.sh — cue vet estrutural + checks relacionais via bash/python; bootstrap exceptions consultadas antes de exigir report"
 			}
 		}
