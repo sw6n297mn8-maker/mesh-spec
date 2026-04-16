@@ -550,5 +550,75 @@ config: artifact_schemas.#ReadmeConfig & {
 			CI valida que: (1) todo campo referenciado no interaction contract existe no event schema, (2) todo event consumido por agente de outro BC tem interaction contract declarado, (3) o owner do contrato é consistente com o pattern no context-map.
 			"""#
 		rationale: "Schema de evento responde 'quais dados'; interaction contract responde 'quais são obrigatórios para mim'. Sem a distinção, cada receptor reimplementa validação e gera drift de expectativa."
+	}, {
+		title: "Contratos de Observabilidade"
+		content: #"""
+			Para um sistema AI-operated com trilha de auditoria completa, observabilidade não é infraestrutura opcional — é contrato. Cada BC declara em `observability.cue` quais métricas, logs e traces emite, com schemas tipados.
+
+			O contrato de observabilidade inclui: métricas nomeadas com labels semânticos (não contadores genéricos), logs estruturados com schema (não texto livre), traces com contexto de domínio (qual aggregate, qual command, qual evento), e health checks semânticos (o agente de scoring está respondendo dentro do SLA, não apenas o container está up).
+
+			Decisões de agentes de domínio são registradas com schema tipado (`architecture/shared-schemas/agent-decision-record.cue`): inputs, política aplicada, output, confiança, timestamp. Todo BC que possui agentes de domínio emite decision records como parte do contrato de observabilidade.
+
+			A estratégia global — naming conventions de métricas, níveis de log obrigatórios, SLOs por tier de BC — vive em `architecture/observability-strategy.cue`. O contrato local por BC é o `.cue` que pode ser validado: se o código de um BC não emite uma métrica declarada no contrato, o CI falha.
+			"""#
+		rationale: "Observabilidade como contrato (não infraestrutura) é virada conceitual em sistemas AI-operated; explicitar o contrato torna validável a correspondência código ↔ telemetria emitida."
+	}, {
+		title: "Ciclo de Aprendizado Runtime → Spec"
+		content: #"""
+			A spec é a autoridade e o runtime é subordinado. Mas o runtime inevitavelmente descobre informações que revelam lacunas: failure modes não previstos, anti-patterns emergentes, invariantes insuficientes, edge cases não documentados. Se a única forma de atualização for observação humana manual, cria-se um gargalo de governança que escala mal.
+
+			O fluxo estruturado de evidência opera em três passos:
+
+			1. **Detecção.** O runtime emite um spec-gap event estruturado (schema em `architecture/shared-schemas/spec-gap-event.cue`): tipo de lacuna, artefato afetado, referências a evidências no event log, hipótese, severidade.
+
+			2. **Síntese.** Um agente de governança (tier Propose) consome a fila, agrupa por artefato afetado, analisa evidências e gera draft PR no mesh-spec com proposta de alteração.
+
+			3. **Decisão humana.** O founder ou CODEOWNERS (tier Decide) revisa e decide se a spec precisa evoluir, como e quando.
+
+			O protocolo completo — critérios de emissão, SLA de triagem, formato da proposta, mecanismo de priorização — vive em `governance/spec-gap-protocol.cue`.
+			"""#
+		rationale: "Autoridade unidirecional spec→runtime criaria gargalo de governança; o ciclo de aprendizado formaliza o canal reverso sem diluir autoridade — humano continua decidindo."
+	}, {
+		title: "Evolução de Eventos e Recovery"
+		content: #"""
+			**Evolução de eventos (upcasting/downcasting).** Ion-3 (compatibility em 3 camadas) define a política, mas não define a mecânica. Quando `CommitmentCreated v1` precisa virar v2, três coisas acontecem:
+
+			1. O schema v2 é definido no `.cue` como uma nova versão.
+			2. O upcaster — a transformação de v1 para v2 — é definido em `schemas/_migrations/commitment-created-v1-to-v2.cue`.
+			3. Consumidores que ainda esperam v1 continuam recebendo v1 até migrarem, porque o sistema mantém compatibilidade backward por pelo menos uma versão.
+
+			As regras globais — quantas versões são mantidas em paralelo, quando uma versão é aposentada, como consumidores são notificados de deprecação — vivem em `architecture/event-evolution.cue`. Os upcasters concretos vivem dentro do BC que produz o evento.
+
+			**Recovery e compensation em workflows.** Para um sistema financeiro, falha em saga é safety-critical. `contexts/{bc-code}/workflows/*.cue` documenta a compensation de cada workflow individual como estrutura formal, mas os patterns globais que governam como toda saga se comporta sob falha vivem em `architecture/compensation-patterns.cue`.
+
+			Esse artefato cobre: idempotência como requisito universal (reprocessar nunca duplica), compensation como evento (não como rollback — append-only), dead letter como escalação (não como descarte), timeout com semântica de negócio (não apenas técnico), e escalação humana como último recurso com critérios explícitos de quando acionar. Cada `workflow.cue` referencia quais patterns aplica e documenta seus failure modes específicos em `failure-modes.cue`.
+			"""#
+		rationale: "Evolução de eventos e recovery compartilham a mesma mecânica conceitual (regra global + instância local por BC); consolidá-los evita duplicar a mesma estrutura de seção duas vezes."
+	}, {
+		title: "Governança de Agentes"
+		content: #"""
+			Esta seção consolida três responsabilidades que operam em conjunto quando um agente executa tarefa no repo: o que o agente carrega de contexto, como seu ciclo de vida se estrutura, e onde termina a sua autonomia.
+
+			**Gestão de orçamento de contexto.** O context window do modelo é um recurso escasso que precisa ser gerenciado explicitamente. Em um BC maduro é plausível que existam trinta ou mais artefatos de especificação. Um agente que precise implementar ou modificar um command pode ultrapassar dezenas de milhares de tokens apenas ao carregar documentos de referência.
+
+			A responsabilidade é separada em duas camadas. **Spec** define prioridades de injeção por tipo de tarefa em `retrieval-patterns.cue`. Artefatos `critical` — invariants, state-models, schemas do command — são sempre injetados integralmente. Artefatos `important` — policies, error-taxonomy, anti-patterns — se o orçamento permitir. Artefatos `supplementary` — golden-examples, observability, coding-conventions — apenas se sobrar espaço. **Orquestrador** (mesh-runtime) computa dinamicamente token estimates, summaries sob demanda e degradação controlada. Quando omite ou resume, registra no contexto do agente — o agente sabe que opera com contexto parcial e pode sinalizar incerteza.
+
+			**Ciclo de vida do agente de desenvolvimento.** Prompt-templates em `ai-orchestration/agent-instructions/` especificam tarefas atômicas, mas agentes operam em ciclos: `receive-task → load-context → plan → implement → self-validate → submit → respond-to-review`. O ciclo completo vive em `ai-orchestration/agent-lifecycle.cue` e cobre:
+
+			1. **Receive task.** Task description com escopo e critérios de aceitação.
+			2. **Load context.** `retrieval-patterns.cue` determina quais artefatos injetar; orquestrador computa budget e aplica degradação. O agente sabe quais artefatos foram resumidos ou omitidos.
+			3. **Plan.** Decomposição explícita em sub-passos antes de implementar.
+			4. **Implement.** `agent-instructions/` fornece template por tipo de sub-tarefa.
+			5. **Self-validate.** Antes de submeter: invariants, state-models, test-specs, interaction-contracts. Falha = não submeter.
+			6. **Submit.** Com contexto sobre quais artefatos foram consultados e quais decisões ocorreram com contexto parcial.
+			7. **Respond to review.** Feedback → retorna ao passo 3 se necessário.
+
+			Prescritivo para artefatos financeiros (invariantes de pagamento, posting rules, settlement). Advisory para os demais.
+
+			**Fronteira estocástico/determinístico.** Para um sistema AI-operated que processa transações financeiras, a separação entre recomendação e execução é safety-critical. Agentes estocásticos (IA) nunca emitem comandos financeiros diretamente — eles recomendam. Um gate determinístico valida a recomendação e executa se e somente se ela passa por todas as invariantes.
+
+			A governança de agentes opera em dois níveis (ADR-037): `architecture/agent-governance.cue` define defaults globais (autonomia, escalation, blast radius, drift detection, auditoria) e cada agente recebe um envelope em `contexts/{bc}/agents/{name}.governance.cue` que especializa esses defaults com lifecycle stage, escalation routing, autonomy overrides e calibração. Sem esses artefatos, a separação entre recomendação e execução fica implícita no código, violando o princípio de que tudo é especificado antes de implementado (P10 do `design-principles.cue`: agentes estocásticos recomendam, gates determinísticos validam).
+			"""#
+		rationale: "Orçamento de contexto, lifecycle e fronteira estocástico/determinístico são três facetas do mesmo problema — como agentes operam com disciplina — e juntar em uma seção mostra a coerência dos três mecanismos."
 	}]
 }
