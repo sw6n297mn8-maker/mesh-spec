@@ -4,9 +4,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 // config.cue — Instância de #ReadmeConfig para mesh-spec.
 //
-// Stage 4a de adr-050: tree.entries materializada com 33 diretórios
-// governados (top-level + subdiretórios significativos). Stage 4b
-// expande sections com ~15 narrativas extraídas do README.md atual.
+// Stages 4a+4b de adr-050: tree.entries com 33 diretórios governados
+// e sections com 15 narrativas consolidadas extraídas do README.md atual.
 //
 // Escopo da tree: cobre todo diretório autoral governado do repo.
 // Instance containers (self-reviews/, task-specs/, agents/, events/,
@@ -14,6 +13,15 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // o conteúdo é puramente coleção de instâncias do tipo declarado no
 // diretório-pai — convenção sobre nomes de slug vive no schema do tipo,
 // não na tree do README.
+//
+// Consolidação de sections (vs README.md manual):
+//   - "Nota sobre Nível 6" integrada ao final de "Mapeamento".
+//   - "Recovery e Compensation" integrada a "Evolução de Eventos".
+//   - "Orçamento de Contexto", "Ciclo de Vida do Agente" e "Fronteira
+//     Estocástico/Determinístico" unificadas em "Governança de Agentes".
+//   - "Critérios de Completude" reduzida a ponteiro para
+//     governance/bounded-context-completeness.cue (evita duplicação
+//     do machine-readable per P0).
 
 config: artifact_schemas.#ReadmeConfig & {
 	repo:    "mesh-spec"
@@ -342,10 +350,105 @@ config: artifact_schemas.#ReadmeConfig & {
 		rationale: "Tree cobre 33 diretórios governados — todos os top-level mais subdiretórios autorais com função distinta. Instance containers (self-reviews/, task-specs/, agents/, events/ etc.) herdam regra do diretório-pai e não ganham entry dedicada para evitar ruído."
 	}
 	sections: [{
-		title: "Status"
+		title: "Como Este Repositório Funciona"
 		content: #"""
-			Este README está em transição de formato manual para governado via #ReadmeConfig (per adr-050). Stage 4a (tree.entries materializada com 33 diretórios) concluído. Stage 4b (sections narrativas extraídas do README.md atual) pendente antes da geração do README.md derivado.
+			mesh-spec é a autoridade do sistema. Todo artefato que descreve o que a Mesh é, como se comporta e quais contratos governa vive aqui. Nenhuma linha de código é escrita sem que a spec a justifique. Nenhuma divergência entre spec e implementação é aceitável — se divergem, o código está errado.
+
+			O repositório usa um formato único: CUE. Todo artefato — domain model, invariantes, policies, state machines, schemas, ADRs, threat models, domain stories, coding conventions, agent specs, glossários, protocolos de governança, instruções de agente — é definido em CUE com campo `rationale` por elemento. Não existe descrição narrativa paralela do mesmo conteúdo. Quando um humano precisa entender um artefato formal, ele lê a estrutura ou pede ao agente que explique sob demanda. A explicação é gerada, não persistida — e portanto nunca fica desatualizada. A única exceção é o README.md raiz (este documento), que serve como landing page do repositório e é artefato derivado de `governance/readme/config.cue`.
+
+			A organização é vertical, não horizontal. O agente que vai implementar o Commitment Management (CMT) lê a pasta `contexts/cmt/` e encontra tudo: canvas, linguagem ubíqua, modelo de domínio, invariantes, state machines, schemas, contratos, agents, workflows, anti-patterns, threat model, exemplos e specs de teste. Não precisa garimpar 15 documentos espalhados. Artefatos transversais — glossário global, context map, princípios universais de agentes, shared schemas, artifact schemas — existem fora dos BCs, mas cada BC declara explicitamente quais consome via manifesto derivado.
+
+			Schemas CUE são a source of truth de todos os contratos de domínio — events, commands, types, authorization, routing, posting rules, reconciliation, projections, workflow state, required evidence, interaction contracts. Os artefatos gerados (.proto, Ion Schema, JSON Schema) vivem no mesh-runtime ou são produzidos no CI do runtime. Nada gerado é editado manualmente, nada gerado vive neste repositório.
+
+			mesh-spec muda em cadência humana. Cada commit é uma decisão de design, não um bug fix. Agentes de código têm acesso read-only. O repositório de implementação — mesh-runtime — é subordinado e muda em cadência de agente. A subordinação não é unidirecional: o runtime emite spec-gap events quando descobre lacunas, agentes de governança sintetizam propostas, e a decisão final de evolução permanece humana.
 			"""#
-		rationale: "Marcar publicamente que o documento está em migração para evitar leitura enganosa do conteúdo ainda parcial."
+		rationale: "Landing page precisa ancorar o leitor nas três decisões fundamentais — spec como autoridade, CUE como formato único, organização por BC — antes de qualquer detalhe estrutural."
+	}, {
+		title: "Dois Repositórios, Papéis Distintos, Hierarquia Clara"
+		content: #"""
+			**mesh-spec** é o repositório de especificação. Contém tudo que descreve o que o sistema é e como se comporta: domain definition, subdomínios, bounded contexts, domain models, invariantes, policies, state models, commands, events, schemas CUE, context map, glossário, ADRs, governance, ai-orchestration. É a autoridade. Muda em cadência humana.
+
+			**mesh-runtime** é o repositório de implementação. Contém tudo que executa: código dos serviços por BC, testes gerados a partir da spec, artefatos gerados dos CUE (.proto, Ion Schema, JSON Schema), CI/CD, infra, observabilidade, deploy. Muda em cadência de agente. É subordinado à spec — se há divergência, o runtime está errado.
+
+			Os schemas CUE vivem em mesh-spec porque são artefatos de especificação que definem contratos de domínio. Os artefatos gerados a partir deles vivem em mesh-runtime ou são produzidos no CI do runtime — nunca editados manualmente, portanto não precisam de versionamento autoral.
+
+			**Três tiers de autorização:**
+
+			| Tier | Agente | Permissão no mesh-spec |
+			|---|---|---|
+			| **Read** | Agentes de código (implementam BCs) | Leitura de qualquer artefato. Zero escrita. |
+			| **Propose** | Agentes de governança (auditoria, spec-gap) | Criar branch + abrir draft PR. Zero merge. Lista explícita em governance/. |
+			| **Decide** | Humanos (founder, CODEOWNERS) | Aprovar e fazer merge. Modificar branches protegidos. |
+
+			Nenhum agente pode fazer merge. PRs de agentes Propose são sempre draft.
+			"""#
+		rationale: "Separação spec/runtime e os três tiers são os dois contratos organizacionais cuja violação desfaz toda a disciplina do repo — precisam estar explícitos na landing page."
+	}, {
+		title: "Princípios Orientadores"
+		content: #"""
+			Estes princípios governam a organização da spec (como o conhecimento é estruturado no repositório). São distintos de `architecture/design-principles.cue` (P0-P12), que governa o design do sistema. Ambos coexistem e não se sobrepõem.
+
+			**P1 — Bounded Context como unidade primária de organização.** O repositório não é organizado por camada de abstração (estratégico → tático → aplicacional → infra). É organizado por bounded context. Camadas descrevem a ordem de descoberta do conhecimento. BCs descrevem a unidade de consumo — o pacote coeso que um agente de IA recebe quando vai executar qualquer tarefa.
+
+			**P2 — CUE como formato universal, README.md como única exceção.** Todo artefato do repositório é definido em CUE — incluindo artefatos que em repositórios tradicionais seriam markdown. CUE é simultaneamente machine-readable (CI valida, agentes consomem) e human-readable (estrutura autoexplicativa, campo `rationale` por elemento). Exceções são apenas formatos impostos por ferramenta ou plataforma externa (README.md, CLAUDE.md derivado, OpenAPI/AsyncAPI, Structurizr DSL, CODEOWNERS, .github/). Payloads em trânsito são serializados em Amazon Ion, governados por quatro regras canônicas (Ion-1 a Ion-4). Git é o único sistema de versionamento.
+
+			**P3 — Granularidade atômica com composição explícita.** Cada unidade de conhecimento (um command, um event, uma invariante) é identificável e endereçável individualmente. Quando faz sentido, essas unidades vivem como arquivos separados (commands/, events/). Quando a granularidade por arquivo gera mais ruído que valor (invariantes, policies), elas vivem como seções dentro de um arquivo do BC. O critério é: se um agente precisaria desse item isoladamente com frequência, ele merece seu próprio arquivo.
+
+			**P4 — Autocontido por contexto, com dependências transversais declaradas.** Cada BC deve ser compreensível lendo apenas sua pasta + os documentos transversais que ele referencia. Dependências entre contextos ou com artefatos transversais são declaradas via referência explícita, não via conhecimento implícito. Cada BC mantém um manifesto de dependências (`context-dependencies.cue`) derivado de `strategic/context-map.cue` — nunca editado manualmente.
+
+			**P5 — Retrieval patterns como artefato de primeira classe.** A camada `ai-orchestration/` não é acessória — é tão importante quanto o domain model. Resolve o problema que a literatura DDD não endereça: como montar o contexto certo para a tarefa certa, dentro do orçamento de tokens. Sem ela, o agente recebe ou contexto demais (poluição) ou de menos (alucinação).
+
+			**P6 — Negative specs têm o mesmo peso que positive specs.** Para humanos, proibições são inferidas do contexto. Para IA, não. Anti-patterns, restrições arquiteturais e fronteiras de responsabilidade precisam ser explícitos. Cada BC tem um `anti-patterns.cue` e cada ADR tem uma seção de alternativas rejeitadas.
+
+			**P7 — Golden examples como padrão de qualidade.** A IA aprende mais por pattern matching concreto do que por instrução abstrata. Implementações de referência dentro de cada BC servem como template. Um agregado exemplar implementado corretamente vale mais que dez páginas de documentação abstrata.
+
+			**P8 — Versionamento semântico da spec.** Mudanças no domain model, invariantes ou contratos são commits com mensagens que referenciam o BC afetado e o tipo de mudança. Permite que agentes saibam se o contexto mudou desde a última execução.
+
+			**P9 — Cobertura auditável.** Para cada BC, deve ser possível verificar automaticamente: todo command tem pelo menos uma invariante? Todo event tem schema? Todo aggregate tem state model? O grafo de dependências entre BCs é acíclico? Os audit commands na camada de governança existem para isso.
+
+			**P10 — Formal first, rationale only.** Todo artefato é definido como estrutura formal em CUE — e a estrutura formal é a única representação. Cada elemento formal carrega um campo `rationale`: uma frase curta que registra por que aquela regra existe. O rationale não descreve o que a regra faz, não é consumido por CI, e não tem compromisso de sincronia com a estrutura. A explicação humana é gerada sob demanda, não persistida.
+			"""#
+		rationale: "Os 10 princípios orientadores são as hipóteses fundadoras sobre como organizar uma spec AI-operated; colocá-los no README explicita o racional que está embutido em cada decisão estrutural do repo."
+	}, {
+		title: "Mapeamento: Níveis de Abstração → Arquivos no Repo"
+		content: #"""
+			Tabela de tradução entre os níveis clássicos de DDD e onde cada conceito vive neste repositório. Leia top-down (Nível 1 → 12) para entender o repo como um todo; leia por coluna (Localização) para entender o papel de um diretório específico.
+
+			| Nível | Nome | Localização primária |
+			|---|---|---|
+			| 1 | Visão / Propósito do domínio | domain/domain-definition.cue, domain/business-model.cue |
+			| 2 | Subdomínios | strategic/subdomains/ |
+			| 3 | Bounded Contexts | contexts/{bc-code}/canvas.cue |
+			| 4 | Context Map | strategic/context-map.cue |
+			| 5 | Ubiquitous Language | domain/universal-glossary.cue (global) + contexts/{bc-code}/ubiquitous-language.cue (local) |
+			| 6 | EventStorming | Absorvido nos artefatos derivados: commands/, events/, policies.cue, state-models.cue |
+			| 7 | Capabilities / Invariantes | contexts/{bc-code}/invariants.cue (assertions formais + rationale) |
+			| 8 | Aggregates / Entities / VOs | contexts/{bc-code}/domain-model.cue |
+			| 9 | Contratos e Tipos | contexts/{bc-code}/schemas/*.cue, api.yaml, async-api.yaml, architecture/shared-schemas/ |
+			| 10 | Ports & Adapters | contexts/{bc-code}/ports.cue, adapters.cue |
+			| 11 | Aplicação / Workflows | contexts/{bc-code}/workflows/*.cue + architecture/cross-context-workflows/ |
+			| 12 | Infra | architecture/infrastructure.cue, database-strategy.cue, security.cue |
+			| — | Agentes de domínio | contexts/{bc-code}/agents/{agent}.cue + {agent}.governance.cue + architecture/agent-governance.cue (global) |
+			| — | Contratos de consumo inter-BC | contexts/{bc-code}/schemas/interaction-contracts.cue + architecture/shared-schemas/agent-interaction-envelope.cue |
+			| — | Incentive analysis | contexts/{bc-code}/canvas.cue (seção obrigatória do canvas) |
+			| — | Threat modeling | contexts/{bc-code}/threat-model.cue + governance/red-team-protocol.cue |
+			| — | Acumulação informacional | strategic/informational-flywheel.cue |
+			| — | Decision log de agentes | architecture/shared-schemas/agent-decision-record.cue |
+			| — | Assertion schema | architecture/shared-schemas/assertion-schema.cue (gramática formal com rationale) |
+			| — | Ciclo de aprendizado | governance/spec-gap-protocol.cue + architecture/shared-schemas/spec-gap-event.cue |
+			| — | Autorização do repo | Três tiers (Read/Propose/Decide) documentados neste README |
+			| — | Governança | governance/ |
+			| — | Configuração do agente | governance/claude/ (config.cue → CLAUDE.md derivado) |
+			| — | Orquestração de IA | ai-orchestration/ (retrieval com prioridades, lifecycle, instructions) |
+			| — | Testabilidade | contexts/{bc-code}/test-specs.cue + architecture/testing-strategy.cue + governance/validation-protocol.cue |
+			| — | Observabilidade | contexts/{bc-code}/observability.cue + architecture/observability-strategy.cue |
+			| — | Evolução de eventos | contexts/{bc-code}/schemas/_migrations/ + architecture/event-evolution.cue |
+			| — | Recovery / Compensation | contexts/{bc-code}/failure-modes.cue + workflows/*.cue + architecture/compensation-patterns.cue |
+			| — | Artifact schemas | architecture/artifact-schemas/ (schemas de validação para tipos de artefato) |
+			| — | Design principles | architecture/design-principles.cue (13 princípios do sistema) |
+
+			**Nota sobre o Nível 6 (EventStorming).** EventStorming é um método de descoberta, não um artefato de persistência. Seus outputs — events, commands, aggregates, policies, read models — são capturados nos arquivos táticos de cada BC. Diagramas resultantes de workshops podem ser armazenados como imagens de referência em `contexts/{bc-code}/eventstorming/`, mas não são a fonte de verdade. Os arquivos derivados são.
+			"""#
+		rationale: "Novos leitores chegam com modelo mental DDD canônico; a tabela de mapeamento reduz tempo de orientação de horas para minutos ao conectar conceito conhecido com localização concreta no repo."
 	}]
 }
