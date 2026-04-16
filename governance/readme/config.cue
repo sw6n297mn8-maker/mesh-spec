@@ -4,15 +4,17 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 // config.cue — Instância de #ReadmeConfig para mesh-spec.
 //
-// Stages 4a+4b de adr-050: tree.entries com 33 diretórios governados
+// Stages 4a+4b de adr-050: tree.entries com 43 diretórios governados
 // e sections com 15 narrativas consolidadas extraídas do README.md atual.
 //
-// Escopo da tree: cobre todo diretório autoral governado do repo.
-// Instance containers (self-reviews/, task-specs/, agents/, events/,
-// commands/, golden-examples/, etc.) não recebem entry própria quando
-// o conteúdo é puramente coleção de instâncias do tipo declarado no
-// diretório-pai — convenção sobre nomes de slug vive no schema do tipo,
-// não na tree do README.
+// Escopo da tree: cobre todo diretório que contém arquivo versionável
+// (per ADR-051 check-readme-coevolution.sh). Inclui containers de
+// instâncias (agents/, self-reviews/, task-specs/, work-events/,
+// projections/) e containers de derivados (c4/views/, artifacts/lenses/)
+// — cada container ganha entry própria com marcador conceitual no
+// rationale (instâncias / derivados / source autoral / eventos
+// append-only). Convenções sobre nomes de slug vivem no schema do
+// tipo correspondente, não na tree do README.
 //
 // Consolidação de sections (vs README.md manual):
 //   - "Nota sobre Nível 6" integrada ao final de "Mapeamento".
@@ -109,6 +111,24 @@ config: artifact_schemas.#ReadmeConfig & {
 				rationale: "Separar instâncias cross-context de schemas deixa claro que conteúdo aqui é produto de aplicação, não meta-definição."
 			},
 			{
+				path:    "architecture/artifacts/governance/"
+				purpose: "Instâncias de autonomy envelopes por domínio."
+				conventions: [
+					"Um arquivo por envelope; nome no formato {domain-slug}.governance.cue.",
+					"Conteúdo instanciado, não schema nem protocolo cross-domain.",
+				]
+				rationale: "Container de instâncias: separar instâncias de governance de definições autorais cross-domain. Diretório reservado antecipadamente como slot canônico — pode conter apenas marcador de presença, mas a função permanente independe de quando os primeiros envelopes serão materializados."
+			},
+			{
+				path:    "architecture/artifacts/lenses/"
+				purpose: "Outputs produzidos pela aplicação de lenses analíticas em decisões concretas."
+				conventions: [
+					"Um arquivo por output; nome referencia a lens aplicada e o artefato analisado.",
+					"Conteúdo derivado da execução de lens, não definição da lens.",
+				]
+				rationale: "Container de derivados: lenses em architecture/lenses/ são protocolos de raciocínio; seus outputs são instâncias materializadas aqui. Diretório reservado antecipadamente — outputs surgem on-demand quando agente aplica lens em decisão."
+			},
+			{
 				path:    "architecture/c4/"
 				purpose: "Diagramas C4 do sistema (Structurizr DSL como source, views derivadas em .mmd/.png)."
 				conventions: [
@@ -116,6 +136,16 @@ config: artifact_schemas.#ReadmeConfig & {
 					"Diagramas nunca editados no formato renderizado — regenerados do DSL.",
 				]
 				rationale: "C4 provê linguagem visual compartilhada para arquitetura; manter DSL como source mantém versionamento textual auditável."
+			},
+			{
+				path:    "architecture/c4/views/"
+				purpose: "Views derivadas do modelo arquitetural C4."
+				conventions: [
+					"Arquivos gerados a partir de workspace.dsl via Structurizr CLI.",
+					"Views derivadas nunca são editadas manualmente.",
+					"Formatos de saída podem incluir .mmd, .png e outros exports do pipeline.",
+				]
+				rationale: "Container de derivados: separar views materializadas do source workspace.dsl impede que artefatos derivados sejam confundidos com a fonte autoral do modelo."
 			},
 			{
 				path:    "architecture/conventions/"
@@ -213,6 +243,16 @@ config: artifact_schemas.#ReadmeConfig & {
 				rationale: "Commitment é o centro operacional do sistema Mesh; isolamento em BC próprio permite evolução independente do vocabulário de compromissos."
 			},
 			{
+				path:    "contexts/cmt/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Commitment Management."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: agentes de domínio vivem dentro do BC porque dependem de canvas, invariants e schemas locais; separar spec de envelope mantém capacidade e autoridade auditáveis."
+			},
+			{
 				path:    "contexts/ctr/"
 				purpose: "Bounded Context Contract & Terms Registry: registro versionado de contratos e cláusulas canônicas."
 				conventions: [
@@ -220,6 +260,16 @@ config: artifact_schemas.#ReadmeConfig & {
 					"Cláusulas são referenciadas por outros BCs via IDs estáveis.",
 				]
 				rationale: "Separar ctr como BC dedicado evita que cada BC consumidor redefina termos contratuais — fonte canônica única para obrigações jurídicas."
+			},
+			{
+				path:    "contexts/ctr/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Contract & Terms Registry."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			{
 				path:    "contexts/idc/"
@@ -238,6 +288,16 @@ config: artifact_schemas.#ReadmeConfig & {
 					"Onboarding e offboarding são workflows próprios deste BC.",
 				]
 				rationale: "Separar participante como entidade da rede do seu registro de identidade permite lifecycle de network-membership sem misturar com governança de dados pessoais."
+			},
+			{
+				path:    "contexts/npm/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Network Participant Management."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — localização por bounded context preserva autonomia operacional sem perder uniformidade estrutural."
 			},
 			// ── Domain (Layer 0) ──
 			{
@@ -269,6 +329,46 @@ config: artifact_schemas.#ReadmeConfig & {
 					"work-graph.cue e projections/ derivam de eventos; nunca editados manualmente.",
 				]
 				rationale: "Protocolos de build-time orquestram como o trabalho acontece; isolamento em subdiretório facilita auditoria de governança de execução sem ruído de domínio."
+			},
+			{
+				path:    "governance/build-time/projections/"
+				purpose: "Read models derivados do event stream de work governance."
+				conventions: [
+					"Um arquivo por projection; nome reflete o read model materializado.",
+					"Conteúdo é derivado de work-events/ e nunca editado manualmente.",
+					"Formato e integridade são governados pelos artefatos de build-time correspondentes.",
+				]
+				rationale: "Container de derivados: projections separam estado consultável da fonte de eventos e devem permanecer claramente distintas dos artefatos autorais que as definem."
+			},
+			{
+				path:    "governance/build-time/self-reviews/"
+				purpose: "Instâncias de self-review dos artefatos submetidos a quality gate."
+				conventions: [
+					"Um arquivo por artefato revisado; nome no formato {artifact-slug}.self-review.cue.",
+					"Conforma com governance/build-time/self-review-report.cue.",
+					"CI enforça presença via scripts/ci/check-self-review.sh.",
+				]
+				rationale: "Container de instâncias: self-reviews são evidência operacional do quality gate e devem permanecer agrupadas sem competir com os protocolos que as governam."
+			},
+			{
+				path:    "governance/build-time/task-specs/"
+				purpose: "Specs dos work items consumidos pelo motor de work governance."
+				conventions: [
+					"Um arquivo por work item; nome no formato wi-XXXXX.cue.",
+					"_constraints.cue define invariants globais sobre task-specs.",
+					"Conforma com o schema de task spec em governance/build-time/work-governance.cue.",
+				]
+				rationale: "Container de instâncias: task-specs são a entrada operacional do motor de work governance e devem permanecer separadas dos protocolos que governam sua execução."
+			},
+			{
+				path:    "governance/build-time/work-events/"
+				purpose: "Eventos append-only do event sourcing de work governance."
+				conventions: [
+					"Um arquivo por work item agregando seus eventos; nome no formato wi-XXXXX.cue.",
+					"_constraints.cue define o shape dos eventos e invariants relacionais.",
+					"Eventos committed não são editados retroativamente.",
+				]
+				rationale: "Container de eventos: o diretório torna explícito que o source de verdade do fluxo de trabalho é o histórico de eventos, não os read models derivados."
 			},
 			{
 				path:    "governance/claude/"
