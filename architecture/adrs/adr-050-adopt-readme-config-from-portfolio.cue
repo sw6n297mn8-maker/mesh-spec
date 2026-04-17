@@ -34,7 +34,7 @@ adr050: artifact_schemas.#ADR & {
 		(ADR-005 portfolio) com tree governada por #RepositoryTree +
 		#DirectoryNote — cada diretório vira entry estruturada com purpose,
 		conventions, rationale. README.md passa a ser artefato derivado via
-		cue eval de governance/readme/.
+		cue export de governance/readme/.
 
 		Mesh-spec ainda não adotou nada de tekton-spec — não existe
 		governance/adopted-artifacts.cue. Esta ADR é a primeira adoção
@@ -103,7 +103,7 @@ adr050: artifact_schemas.#ADR & {
 		tree com entries cobrindo filesystem real, sections para princípios
 		orientadores, organização em camadas, convenções, autorização.
 
-		(e) README.md regenerado — derivado de (d) via cue eval.
+		(e) README.md regenerado — derivado de (d) via cue export.
 
 		(f) governance/repo-structure.cue atualizado para registrar README.md
 		como artefato derivado (mesmo pattern de adr-004 para CLAUDE.md).
