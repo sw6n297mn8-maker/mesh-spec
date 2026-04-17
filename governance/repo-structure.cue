@@ -1,105 +1,31 @@
 package governance
 
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+
 // repo-structure.cue — Escopo e algoritmo de validação estrutural.
 //
-// Este artefato NÃO declara a árvore do filesystem nem onde cada tipo
-// de artefato vive. Essa responsabilidade é de cada artifact schema
-// (campo _schema.location). Este artefato declara:
+// Schema #RepoStructure e sub-tipos adotados verbatim de tekton-spec v0.3.0
+// via governance/adopted-artifacts.cue (ADR-052). Schema local anterior
+// removido — mesh-spec foi autor original (base de ADR-008 de tekton); com
+// promoção concluída, fechamos o ciclo adotando o schema portfolio-wide.
+//
+// Este artefato NÃO declara a árvore do filesystem nem onde cada tipo de
+// artefato vive. Essa responsabilidade é de cada artifact schema (campo
+// _schema.location). Este artefato declara:
 //   1. Quais diretórios CI deve validar (scope)
 //   2. Quais paths CI deve ignorar (excluded)
-//   3. Segmentos de path compartilhados (pathSegments) — single source
-//      para fragments usados por múltiplos schemas
+//   3. Segmentos de path compartilhados (pathSegments) — single source para
+//      fragments usados por múltiplos schemas
 //   4. O algoritmo de classificação e validação (validation)
 //   5. Limite explícito de responsabilidade (responsibilityBoundary)
 //   6. Artefatos derivados com source e comando de geração (derivedArtifacts)
+//
+// Nota sobre #PathSegments: schema portfolio-wide é struct aberta
+// ({[string]: string} + rationale) em vez de campos fixos. Mesh-spec preserva
+// os mesmos nomes (bcRoot, bcCodePattern, etc.) como keys — equivalência
+// semântica sem perda de documentação.
 
-repoStructure: #RepoStructure
-
-#RepoStructure: {
-	rationale: string & !=""
-	scope:     #Scope
-	pathSegments:           #PathSegments
-	responsibilityBoundary: #ResponsibilityBoundary
-	derivedArtifacts:       #DerivedArtifacts
-	validation:             #Validation
-}
-
-#Scope: {
-	validated: [...string & !=""]
-	excluded:  [...string & !=""]
-	rationale: string & !=""
-}
-
-#PathSegments: {
-	bcRoot:         string & !=""
-	bcCodePattern:  string & !=""
-	domainRoot:     string & !=""
-	strategicRoot:  string & !=""
-	archRoot:       string & !=""
-	governanceRoot: string & !=""
-	aiRoot:         string & !=""
-	rationale:      string & !=""
-}
-
-#ResponsibilityBoundary: {
-	owns:       [string & !="", ...string & !=""]
-	doesNotOwn: [string & !="", ...string & !=""]
-	rationale:  string & !=""
-}
-
-#DerivedArtifact: {
-	path:      string & !=""
-	source:    string & !=""
-	generator: string & !=""
-	blockId?:  string & !=""
-	rationale: string & !=""
-}
-
-#DerivedArtifacts: {
-	artifacts: [#DerivedArtifact, ...#DerivedArtifact]
-	rationale: string & !=""
-}
-
-#FileClassificationCategory: {
-	description: string & !=""
-}
-
-#FileClassificationPolicy: {
-	mapping: {[string]: "reject" | "warn" | "info" | "ignore" | "validate-conformance"}
-	actions: {[string]: string}
-	rationale: string & !=""
-}
-
-#FileClassification: {
-	strategy:   string & !=""
-	rationale:  string & !=""
-	steps:      [string & !="", ...string & !=""]
-	categories: {[string]: #FileClassificationCategory}
-	policy:     #FileClassificationPolicy
-}
-
-#ValidationPhase: {
-	id:        string & !=""
-	rationale: string & !=""
-	includes:  [string & !="", ...string & !=""]
-	dependsOn: [...string & !=""]
-}
-
-#ImplementationGuidance: {
-	rationale:   string & !=""
-	incremental: {[string]: string}
-}
-
-#Validation: {
-	rationale:              string & !=""
-	fileClassification:     #FileClassification
-	phases:                 [#ValidationPhase, ...#ValidationPhase]
-	implementationGuidance: #ImplementationGuidance
-}
-
-// ── Instância ──
-
-repoStructure: {
+repoStructure: artifact_schemas.#RepoStructure & {
 	rationale: "Separar escopo de validação (aqui) de regras por tipo (nos schemas) evita arquivo central monolítico e elimina single point of failure."
 
 	scope: {
@@ -304,15 +230,11 @@ repoStructure: {
 // ── Contrato estável para tooling ──
 //
 // Entrypoint que desacopla scripts da forma interna do artefato.
-// Tooling consome `tooling.excludedPaths` (não
-// `repoStructure.scope.excluded`) para que renomeações da instância
-// não quebrem consumidores. Per ADR-051, check-readme-coevolution.sh
-// é o primeiro consumer formal.
+// Tooling consome `tooling.excludedPaths` (não `repoStructure.scope.excluded`)
+// para que renomeações da instância não quebrem consumidores. Per ADR-051,
+// check-readme-coevolution.sh é o primeiro consumer formal. Schema #Tooling
+// adotado de tekton-spec v0.3.0 junto com #RepoStructure (ADR-052).
 
-#Tooling: {
-	excludedPaths: [...string & !=""]
-}
-
-tooling: #Tooling & {
+tooling: artifact_schemas.#Tooling & {
 	excludedPaths: repoStructure.scope.excluded
 }
