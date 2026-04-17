@@ -1,54 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# pre-commit — Hook que garante coevolução README ↔ repo.
+# pre-commit — Hook que bloqueia commit se README.md estiver stale
+# em relação ao source canônico governance/readme/config.cue.
 #
-# Fluxo:
-#   1. Roda check-readme-coevolution.sh --fix (regenera blocos machine-readable)
-#   2. Se blocos mudaram, adiciona README.md ao staging
-#   3. Verifica presença textual dos items no README
-#   4. Se presença textual inconsistente → bloqueia commit com mensagem clara
+# Fluxo (per ADR-051):
+#   1. Roda check-readme-coevolution.sh em modo check.
+#   2. Se algum dos checks falhar, bloqueia commit com mensagem
+#      indicando ação corretiva.
 #
-# Blocos machine-readable são artefatos derivados do filesystem.
-# A árvore visual é autoral — exige escrita humana/agente.
-# O hook auto-corrige o derivável e bloqueia o que exige julgamento.
+# README.md é artefato derivado full-file (per ADR-051). Regeneração
+# é comando explícito documentado em governance/repo-structure.cue
+# derivedArtifacts: 'generator > path'. O hook não auto-regenera.
 #
 # Instalação: git config core.hooksPath scripts/hooks
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "FAIL: não foi possível localizar a raiz do repo via git."
+    exit 1
+}
+
 SCRIPT="$REPO_ROOT/scripts/ci/check-readme-coevolution.sh"
 README="$REPO_ROOT/README.md"
 
-# Guarda: README e script devem existir
 if [ ! -f "$README" ]; then
     echo "FAIL: README.md não encontrado."
     exit 1
 fi
 
 if [ ! -x "$SCRIPT" ]; then
-    echo "WARN: $SCRIPT não encontrado ou não executável — hook inoperante."
-    exit 0
-fi
-
-# Capturar estado do README antes do fix
-readme_hash_before=$(git hash-object "$README")
-
-# Rodar o check com --fix (a partir da raiz do repo)
-cd "$REPO_ROOT"
-if ! "$SCRIPT" --fix; then
-    echo ""
-    echo "══════════════════════════════════════════════════════════════"
-    echo "  README.md precisa de atualização manual."
-    echo "  Os blocos machine-readable foram atualizados automaticamente."
-    echo "  Adicione as entradas faltantes no texto do README e tente"
-    echo "  novamente."
-    echo "══════════════════════════════════════════════════════════════"
+    echo "FAIL: $SCRIPT não encontrado ou não executável."
     exit 1
 fi
 
-# Se README mudou (blocos regenerados), adicionar ao staging
-readme_hash_after=$(git hash-object "$README")
-if [ "$readme_hash_before" != "$readme_hash_after" ]; then
-    git add "$README"
-    echo "README.md atualizado e adicionado ao staging (blocos regenerados)."
+cd "$REPO_ROOT"
+if ! "$SCRIPT"; then
+    echo ""
+    echo "══════════════════════════════════════════════════════════════"
+    echo "  Commit bloqueado: README derivado ou tree.entries inconsistentes."
+    echo ""
+    echo "  Corrija os findings acima no source canônico:"
+    echo "    • governance/readme/config.cue"
+    echo "    • filesystem governado do repo"
+    echo ""
+    echo "  Se o problema for README stale, regenere com:"
+    echo "    cue export ./governance/readme -e output --out text > README.md"
+    echo "══════════════════════════════════════════════════════════════"
+    exit 1
 fi
