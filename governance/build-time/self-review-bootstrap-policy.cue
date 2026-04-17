@@ -53,12 +53,19 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 	}, {
 		artifactPath: "architecture/adrs/adr-015-self-review-bootstrap-exception.cue"
 		rationale:    "ADR que documenta esta própria exceção; circularidade de terceira ordem."
+	}, {
+		artifactPath: "architecture/adrs/adr-016-readme-coevolution.cue"
+		rationale:    "ADR de 2026-03-19 predecede o mecanismo de self-review. Editado posteriormente apenas para supersession mecânica (status + supersededBy) per protocolo de supersession do CLAUDE.md. Superseded por ADR-051."
+	}, {
+		artifactPath: "architecture/adrs/adr-017-readme-blocks-as-derived-artifacts.cue"
+		rationale:    "Mesmo padrão de ADR-016: 2026-03-19, predecede self-review, editado apenas para supersession mecânica. Superseded por ADR-051."
 	}]
 
 	rationale: """
-		A exceção é estritamente limitada aos 4 artefatos governados
-		(3 ADRs + 1 schema modificado) do commit inaugural. Artefatos
-		build-time não precisam de exceção porque não são governedTypes.
-		Após o commit inaugural, transicionar para strict-from-start.
+		Exceções cobrem 4 artefatos do commit inaugural do sistema de
+		self-review (ADR-013/014/015 + quality-criteria.cue) e 2 ADRs
+		que predecedem o mecanismo e foram editados apenas para
+		supersession mecânica (ADR-016/017). Artefatos build-time não
+		precisam de exceção porque não são governedTypes.
 		"""
 }
