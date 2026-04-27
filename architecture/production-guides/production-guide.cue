@@ -6,19 +6,23 @@ import (
 
 // production-guide.cue — Meta-guide para autoria de production guides.
 //
-// PARTIAL — commit 1 da sequência (scaffold).
-// _schema, _qualityCriteria e prerequisites substantivos.
-// workOrder, sections e finalValidation com placeholders TBD a serem
-// substituídos em commits 2 e 3.
-//
 // Schema alvo: #ProductionGuide em architecture/artifact-schemas/production-guide.cue
 // (adotado verbatim de tekton-spec/portfolio/artifact-schemas/production-guide.cue).
 //
 // Auto-referencial: este guide é ele próprio uma instância de #ProductionGuide
-// e satisfaz os critérios tq-pg-XX e tq-pgpg-XX que ensina.
+// e satisfaz os critérios tq-pg-XX e tq-pgpg-XX que ensina. Quem ler este guide
+// pode usá-lo como template para escrever production guides para outros schemas.
 //
 // Resolve auto-violação de tq-as-05 latente em tekton e mesh (schema
-// #ProductionGuide instanciável sem guide próprio).
+// #ProductionGuide instanciável sem guide próprio). Tekton continua sem
+// guide upstream — dívida pode ser fechada por promoção FP-02 ou equivalente.
+//
+// Adaptado mecanicamente do meta-guide auster-spec (origin/main commit 2dc4a1e,
+// sessão 2026-04-26, produzido via 3 ciclos de red team) em 2026-04-27.
+// Adaptações: import path mesh-spec; sources cross-repo apontando para
+// tekton-spec/portfolio/production-guides/ (evita coupling com auster);
+// package, variable name, canonicalPathRegex e quality criteria preservados.
+// Materializado em 3 commits sequenciais (scaffold → sections → finalValidation).
 
 productionGuideGuide: artifact_schemas.#ProductionGuide & {
 
@@ -182,7 +186,14 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 
 	finalValidation: {
 		steps: [
-			"TBD — finalValidation substantiva em commit 3 da sequência.",
+			"Verificar shape: instância valida contra #ProductionGuide (todos os campos obrigatórios presentes; tipos corretos).",
+			"Verificar tq-pg-01 / tq-pgpg-01: workOrder é permutação exata das chaves de sections (sem redundância, sem omissão, sem duplicatas).",
+			"Verificar tq-pg-02: cada section.target é referência a tipo existente em schema adotado (não inventado).",
+			"Verificar tq-pg-04 / tq-pgpg-04: prerequisites.gapPolicy ≥50 runes E declara explicitamente comportamento anti-invenção (cláusula com 'NÃO invent' ou 'NÃO infer' ou equivalente).",
+			"Verificar tq-pg-05 / tq-pgpg-03: finalValidation.steps[-1] menciona submissão/revisão/aprovação do founder.",
+			"Verificar tq-pg-06 / tq-pgpg-02: cada section.process[].action começa com verbo imperativo concreto (lista canônica em heuristics da section sections-and-workorder deste guide).",
+			"Verificar coerência semântica: process steps de cada section orientam autoria do tipo declarado em target — não duplicam guidance de outras sections nem omitem etapas necessárias.",
+			"Submeter ao founder para aprovação antes de commit.",
 		]
 	}
 }
