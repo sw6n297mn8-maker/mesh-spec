@@ -75,17 +75,108 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 		outputNote:    "Output é arquivo único <schema-basename>.cue em architecture/production-guides/, instanciando #ProductionGuide. Tamanho típico: 30-150 linhas dependendo da complexidade do schema alvo. Para schemas triviais (3-5 campos), guide minimalista de 30-50 linhas é aceitável e esperado."
 	}
 
-	workOrder: ["tbd"]
+	workOrder: [
+		"target-and-prerequisites",
+		"sections-and-workorder",
+		"validation-and-meta",
+	]
 
 	sections: {
-		"tbd": {
+		"target-and-prerequisites": {
 			target:    "#ProductionGuide"
-			objective: "TBD — section substantiva em commit 2 da sequência."
+			objective: "Estabelecer schema alvo do guide (target type ref) e definir prerequisites — collectFromFounder, gapPolicy, validatorNote, outputNote — antes de qualquer trabalho de seção substantiva."
 			process: [{
-				action: "TBD substituído em commit 2 da sequência ADR"
-				detail: "Placeholder mínimo satisfazendo schema MinRunes(10)."
+				action: "Identificar schema alvo"
+				detail: "Localizar arquivo do schema em architecture/artifact-schemas/ (ou portfolio/ em tekton). Verificar nome do tipo (ex.: '#BusinessCase' em business-case.base.cue). target deve seguir regex ^#[A-Z][A-Za-z]+$ — nome de tipo CUE válido."
+			}, {
+				action: "Ler schema completo + comments + quality criteria + 1-3 instâncias existentes (se houver)"
+				detail: "Schema é fonte primária para process steps. Comments de campos revelam intent. Quality criteria do schema (tq-XX) revelam o que validar. Instâncias revelam variance prática. Sem schema lido, guide é fabricação."
+			}, {
+				action: "Coletar collectFromFounder"
+				detail: "Liste itens substantivos que o founder fornece antes de instanciar o schema alvo. Específico ao schema (ex.: para #BusinessCase, 'thesis hypothesis em uma frase + métrica âncora preferida + ask em moeda+valor'). Evite genérico tipo 'intent do projeto'."
+			}, {
+				action: "Compor gapPolicy com cláusula anti-invenção explícita"
+				detail: "Regra explícita anti-invenção: declarar o que agente NÃO faz quando dado falta (NÃO inventa, NÃO infere, NÃO copia de outro guide). Mínimo 50 runes (schema constraint). Inclua opções concretas: pergunta direta, postergação, omissão de seção opcional. NUNCA: 'usar melhor julgamento'."
+			}, {
+				action: "Avaliar validatorNote e outputNote (opcionais mas recomendados)"
+				detail: "validatorNote indica quem valida na fase atual (founder em Fase 0, structural-check em fase posterior). outputNote indica formato esperado e tamanho típico do arquivo. Omita se trivialmente óbvio do schema."
 			}]
-			doneCriteria: "TBD — substituído em commit 2 da sequência."
+			sources: [
+				"architecture/artifact-schemas/production-guide.cue (schema #ProductionGuide, adotado verbatim)",
+				"tekton-spec/portfolio/production-guides/business-case.base.cue (guide complexo, 14+ sections com targets sub-tipados)",
+				"tekton-spec/portfolio/production-guides/repo-bootstrap-plan.cue (guide rico em heurísticas, 9 sections)",
+				"tekton-spec/portfolio/production-guides/claude-config.cue (guide minimalista, 2 sections)",
+			]
+			heuristics: [
+				"target deve ser TypeRef de tipo CONCRETO instanciável, não definição abstrata. Ex.: '#BusinessCase' (concreto) é válido; '#Schema' (abstrato/meta) não é alvo direto.",
+				"collectFromFounder mínimo: 1 item substantivo. Schema trivial (3 campos) pode ter 1-2 itens; schema complexo (#BusinessCase) tem 4-6.",
+				"gapPolicy declara explicitamente que agente NÃO inventa quando dado faltar; deve perguntar ao founder ou postergar; nunca preencher por analogia ou inferência heurística.",
+			]
+			doneCriteria: "target apontando para tipo válido do schema alvo, prerequisites com description (≥20 runes), collectFromFounder (≥1 item substantivo) e gapPolicy (≥50 runes anti-invenção) preenchidos. validatorNote e outputNote presentes se agregam clareza sobre fase ou formato; omitidos se não."
+			ifGap:        "Se target não existe ou não é tipo válido, schema alvo não está adotado — postergue criação do guide. Se collectFromFounder for < 1 item, founder não tem clareza do que coletar — pergunte explicitamente antes de prosseguir."
+		}
+
+		"sections-and-workorder": {
+			target:    "#ProductionGuide"
+			objective: "Definir sections (chave + #SectionSpec) e workOrder consistente. Sections cobrem o conteúdo substantivo do guide; workOrder é a sequência de produção."
+			process: [{
+				action: "Identificar partição natural do schema alvo em sections, por atividade autoral lógica"
+				detail: "Particionamento por atividade lógica do autor, NÃO estritamente por campo top-level do schema. Schema com 1-3 campos: 1 section única (ex.: #DirectoryMeta → 1 section 'meta'). Schema com 4-15 campos: agrupar campos relacionados em 2-5 sections (ex.: #ProductionGuide tem 7 campos top-level mas 3 sections agrupam por atividade). Schema com 14+ campos (#BusinessCase): granularidade fina, ~14 sections."
+			}, {
+				action: "Para cada section: definir target, objective, process, heuristics, doneCriteria, ifGap"
+				detail: "target da section pode ser igual ao target do guide (instância completa) OU sub-tipo (ex.: guide para #BusinessCase tem section com target #StructuralOpportunity). objective ≥20 runes. process ≥1 step com action+detail concretos. doneCriteria ≥20 runes avaliável. ifGap opcional mas recomendado para schemas com risco de gap em produção."
+			}, {
+				action: "Compor workOrder como permutação exata de keys(sections)"
+				detail: "Lista ordenada dos nomes de section. Ordem reflete dependência causal: section A vem antes de B se conteúdo de A é insumo de B. Ex.: structuralOpportunity antes de market porque mercado deriva da oportunidade."
+			}, {
+				action: "Verificar tq-pg-01: workOrder é permutação exata das chaves de sections"
+				detail: "Mesmos elementos (set equality), sem duplicatas em workOrder, sem omissões em qualquer direção. Conferência manual antes de submeter. Inconsistência aciona tq-pg-01 fail."
+			}]
+			sources: [
+				"architecture/artifact-schemas/production-guide.cue (#SectionSpec, #ProcessStep)",
+				"tekton-spec/portfolio/production-guides/business-case.base.cue (granularidade fina, 14+ sections com targets sub-tipados)",
+				"tekton-spec/portfolio/production-guides/claude-config.cue (granularidade trivial, 2 sections)",
+				"tekton-spec/portfolio/production-guides/repo-bootstrap-plan.cue (granularidade média, 9 sections)",
+			]
+			heuristics: [
+				"process[].action começa com verbo imperativo concreto (Identificar, Declarar, Coletar, Compor, Verificar, Documentar, Pesquisar, Avaliar, Ler, Listar) — não com instrução vaga (Considerar, Pensar sobre, Explorar, Refletir).",
+				"Para schemas autorais com múltiplas instâncias previstas, sources (referências externas que o agente consulta) é útil; para schemas locais raros, omita sources.",
+				"heuristics na section são juízos de qualidade que não cabem em shape do schema; tipicamente regras de 'não X; X' ou 'preferir A a B' ou 'evite Y'.",
+				"doneCriteria deve ser AVALIÁVEL — descreve condição verificável por humano ou agente. 'É bom' não é avaliável; 'Tem ≥3 evidências com source datado' é.",
+				"Particionamento ideal: cada section corresponde a UMA atividade cognitiva coesa; transições entre sections devem coincidir com mudanças de modo cognitivo (research → modelagem → validação).",
+			]
+			doneCriteria: "sections é mapa não-vazio com cada entrada satisfazendo #SectionSpec; workOrder é lista de strings cujos valores correspondem 1:1 às chaves de sections (sem duplicatas, sem omissões); cada section tem target válido, objective ≥20 runes, process com ≥1 step acionável, doneCriteria ≥20 runes avaliável."
+			ifGap:        "Se schema alvo é tão simples que 1 section parece artificial mas 0 sections é inválido, use 1 section nomeada apropriadamente (ex.: 'meta' para #DirectoryMeta). Se workOrder e sections desincronizam, reconsidere partição — costuma ser sinal de section duplicada ou ausente."
+		}
+
+		"validation-and-meta": {
+			target:    "#ProductionGuide"
+			objective: "Definir finalValidation (com founder approval explícito como ÚLTIMO step) e os campos meta (_schema.location + _qualityCriteria) que o guide próprio satisfaz."
+			process: [{
+				action: "Compor finalValidation.steps com último step obrigatório de submissão ao founder"
+				detail: "Lista de steps verificáveis por humano ou agente. Inclua passos de shape validation (cue vet quando disponível), critérios advisory específicos (tq-XX do schema alvo). REGRA INVARIÁVEL: ÚLTIMO step de finalValidation.steps DEVE mencionar submissão, revisão ou aprovação do founder. Sem este step, ciclo propor→aprovar→escrever quebra (tq-pg-05 fail)."
+			}, {
+				action: "Avaliar inclusão de finalValidation.reconciliation (opcional)"
+				detail: "Se schema alvo tem invariantes cross-field (ex.: BC ask amount alinha com investmentPlan rounds[0]), declare reconciliation com pairs de itens a verificar. Sem invariantes cross-field, omita."
+			}, {
+				action: "Compor _schema.location"
+				detail: "canonicalPathRegex e fileNameRegex regex para o GUIDE em si (ex.: '^architecture/production-guides/foo\\\\.cue$'). description curta. rationale explicando localização. cardinality 'singleton' (1 guide por schema)."
+			}, {
+				action: "Compor _qualityCriteria com critérios e rationale do conjunto"
+				detail: "Critérios tq-pg<XX>-Y onde <XX> é abreviação do schema alvo. Tipicamente 1-4 critérios cobrindo as falhas previstas mais críticas para o guide alvo. Rationale do conjunto explica que aspecto da autoria é coberto coletivamente — não é repetição dos rationales individuais."
+			}, {
+				action: "Verificação final cross-field do guide composto"
+				detail: "Confira: target em todas as sections é válido? workOrder é permutação exata de keys(sections)? doneCriteria avaliável? gapPolicy ≥50 runes com cláusula anti-invenção? Último step de finalValidation menciona founder? Se algum NÃO, voltar para section correspondente."
+			}]
+			heuristics: [
+				"finalValidation.steps[-1] sempre menciona submissão/revisão/aprovação do founder — sem isso, ciclo propor→aprovar→escrever está quebrado (tq-pg-05).",
+				"_schema.cardinality é 'singleton' para production guide (sempre 1 guide por schema alvo, não múltiplos).",
+				"_qualityCriteria mínimo: 1 critério com severity 'fail'. Schema trivial com guide minimalista pode ter só 1-2 critérios; schema complexo merece 3-5.",
+				"Rationale do conjunto não é repetição dos rationales individuais — explica a COBERTURA agregada (que aspectos do guide os critérios protegem).",
+				"Considere hardening de severities: critérios advisory (warn) do schema alvo podem virar fail no guide quando risco de fabricação por agente for crítico.",
+			]
+			doneCriteria: "finalValidation.steps tem ≥1 entrada com último step mencionando founder. _schema.location preenchido com 5 campos não-vazios. _qualityCriteria.criteria não-vazia, cada critério com id/description/test/severity/rationale, e rationale do conjunto presente e substantivo (não-redundante com rationales individuais)."
+			ifGap:        "Se _qualityCriteria parece vazio porque schema é trivial, force ao menos 1 critério obrigatório: 'guide produz instância que satisfaz shape do schema alvo' (severity fail). Sempre há algo a validar."
 		}
 	}
 
