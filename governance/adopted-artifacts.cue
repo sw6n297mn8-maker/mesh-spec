@@ -14,7 +14,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 adoptedArtifacts: artifact_schemas.#AdoptedArtifactsManifest & {
 	repoId:      "sw6n297mn8-maker/mesh-spec"
-	lastUpdated: "2026-04-17"
+	lastUpdated: "2026-04-27"
 
 	artifacts: [{
 		artifact:         "architecture/artifact-schemas/adopted-artifacts.cue"
@@ -43,5 +43,14 @@ adoptedArtifacts: artifact_schemas.#AdoptedArtifactsManifest & {
 		localContentHash: "sha256:fcf0c5a91f323249583c8b9c2abdd51501afd7c2c03b658ed5153d2da3e107f9"
 		adoptionMode:     "verbatim"
 		adoptedAt:        "2026-04-17"
+	}, {
+		artifact:         "architecture/artifact-schemas/production-guide.cue"
+		sourceRepo:       "sw6n297mn8-maker/tekton-spec"
+		sourcePath:       "portfolio/artifact-schemas/production-guide.cue"
+		sourceVersion:    "0.3.0"
+		sourceCommitHash: "919f3e886e76ce4b57c951cae2a5a53e5bce7d03"
+		localContentHash: "sha256:0019ced779eea26181045a37e0f73ede49d45464c3b9c7f72f1046d65fd9620c"
+		adoptionMode:     "verbatim"
+		adoptedAt:        "2026-04-27"
 	}]
 }
