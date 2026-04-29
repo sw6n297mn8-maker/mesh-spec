@@ -4,11 +4,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 // adr-053 — Adoção universal de #ProductionGuide com phasing.
 //
-// PARTIAL — commit 1 da sequência (scaffold).
-// Metadata estrutural completa (id, title, date, decisionClass, decider,
-// status, reversibility, blastRadius, affectedArtifacts, derivedArtifacts,
-// principlesApplied). context, decision, consequences e rationale com
-// placeholders TBD a serem substituídos em commits 2 e 3.
+// Materializado em 3 commits sequenciais (scaffold → context+decision →
+// consequences+rationale).
 
 adr053: artifact_schemas.#ADR & {
 	id:    "adr-053"
@@ -151,7 +148,57 @@ adr053: artifact_schemas.#ADR & {
 		variance de qualidade); (R2) emergência de schema que
 		fundamentalmente não admite guide (cenário hoje hipotético).
 		"""
-	consequences: "TBD — consequences substantivo em commit 3 da sequência."
+	consequences: """
+		Positivas:
+
+		(P1) Eliminação por construção do drift implícito com convenção
+		tq-as-05 do portfolio upstream — regra universal garante satisfação
+		100%.
+
+		(P2) Onboarding de novos autores (humanos ou agentes) reduz de "ler
+		múltiplos exemplares para inferir patterns" para "ler 1 guide".
+
+		(P3) Variance de qualidade entre instâncias do mesmo schema é reduzida
+		— guide nivela.
+
+		(P4) Decisões de produção (gapPolicy, workOrder, heuristics) viram
+		artefato auditável em vez de memória tácita.
+
+		(P5) Cobertura é binária e verificável quando structural-check for
+		materializado em ADR posterior; em Fase 0, é verificável por
+		founder review.
+
+		(P6) Princípio "regras universais > juízo casuístico" reforçado
+		(consistente com filosofia de schemas e lenses em mesh).
+
+		(P7) Forward-compat: schemas futuros nunca quebram a regra; guide é
+		parte da definição de "schema completo".
+
+		(P8) Adoção verbatim de schema cross-repo preserva coerência
+		portfolio-wide e evita reinvenção local.
+
+		Negativas:
+
+		(N1) Custo de autoria inicial: ~24 guides em fases. Estimativa 80–150
+		horas de trabalho autoral total entre triviais e complexos. Mitigação:
+		phasing prioriza alto-valor; triviais em batch.
+
+		(N2) Manutenção: schemas evoluem → guides desincronizam. Mitigação:
+		convenção de "schema + guide no mesmo PR" + structural-check em fase
+		posterior.
+
+		(N3) Curva de aprendizado: autores acostumados a referência por
+		exemplar precisam adaptar para guide-driven authoring.
+
+		(N4) Risco de guides "fantasma" sem substância real para schemas
+		triviais — guide existe mas não orienta nada além do óbvio. Aceito
+		como custo de regra universal; alternativa selective tem custos
+		próprios maiores (item (a) em context).
+
+		(N5) Em Fase 0 (sem structural-check), enforcement depende de
+		disciplina + founder review. Risco mitigado pelo critério de ativação
+		do gate determinístico (decision item 7).
+		"""
 
 	reversibility: "medium"
 	blastRadius:   "repo-wide"
@@ -173,5 +220,53 @@ adr053: artifact_schemas.#ADR & {
 		"P12",
 	]
 
-	rationale: "TBD — rationale substantivo em commit 3 da sequência."
+	rationale: """
+		P0 (localização canônica única) é o princípio motivador central.
+		Production guide é localização canônica única para "como produzir
+		instância de schema X". Ausência cria dispersão (orientação inferida
+		de exemplares + memória tácita + leitura cruzada de schema),
+		violando P0 por construção. O guide não duplica conteúdo do schema
+		(não copia tipos, constraints, _qualityCriteria); adiciona camada
+		distinta (process, gapPolicy, heuristics, doneCriteria) que não
+		vive em outro lugar.
+
+		P10 (agentes recomendam, gates determinísticos validam) sustenta a
+		arquitetura em duas camadas: convenção operacional + founder review
+		em Fase 0; structural-check determinístico em fase posterior. P10
+		proíbe LLM como gate (per ten-006 e adr-040); o ADR respeita ao
+		manter gate humano explícito enquanto o gate determinístico é
+		desenhado em ADR próprio.
+
+		P12 (governança como código) sustenta a forma do guide: instância
+		CUE conformante a #ProductionGuide, não markdown narrativo.
+		Verificável estruturalmente, evolui via diff, auditável.
+
+		Adoção verbatim (decision item 1) segue precedente estabelecido por
+		adr-050 (#ReadmeConfig) e adr-052 (#RepoStructure): mesh consome
+		schemas de tekton-spec/portfolio com double-anchor version+commit
+		hash em adopted-artifacts.cue. Sem reinvenção local.
+
+		Reversibility "medium": ~24 guides materializados ao longo de fases
+		criam acoplamento (cada schema vinculado a guide; cada PR de schema
+		toca guide). Reverter a regra exige (a) decidir quais guides
+		desativar, (b) reintroduzir orientação substituta, (c) atualizar
+		convenção e (eventual) structural-check. Custo modesto se feito early
+		(antes da Fase 1 produzir muitos guides); cresce com volume.
+
+		BlastRadius "repo-wide": regra governa todo schema futuro de mesh.
+		Mudança em um schema requer touch em guide. Onboarding de novo
+		autor/agente muda. Toolchain (CI, eventual structural-check) muda.
+
+		Lenses consultadas: lens-real-options (phasing como sequência de
+		gates de decisão; cada fase compra opção sobre se a regra continua
+		gerando valor), lens-technical-debt-as-strategic-instrument (drift
+		entre convenção upstream e prática local é debt deliberada;
+		registro do trigger de structural-check converte em
+		deliberate-prudent), lens-organizational-resource-allocation
+		(priorização das 4 fases por valor autoral por unidade de esforço).
+
+		Trade-off com P0 explicitamente avaliado: o guide é nova camada,
+		não cópia de informação existente. Sem tensão registrada com axiomas
+		(ax-XX) de domain/domain-definition.cue.
+		"""
 }
