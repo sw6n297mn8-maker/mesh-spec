@@ -14,7 +14,7 @@ adr053: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	context: """
 		Mesh-spec opera padrão "schema + exemplares" para orientar autoria de
