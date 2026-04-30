@@ -110,7 +110,7 @@ glossary: artifact_schemas.#Glossary & {
 	}, {
 		code:       "term-enderecamento-cas"
 		name:       "Endereçamento CAS"
-		termEn:     "Content-Addressable Storage"
+		termEn:     "Content Addressable Storage"
 		definition: "Esquema de armazenamento onde o endereço do conteúdo é seu próprio hash criptográfico — qualquer modificação do conteúdo muda o endereço, garantindo integridade por construção."
 		category:   "classification"
 		rationale:  "Mecanismo que sustenta provas de integridade (capability cc-01) sob ownership exclusivo de IDC (bd-crypto-single-owner). Distinto de armazenamento por path/UUID que LOG usa para metadata."
