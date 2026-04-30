@@ -4,11 +4,11 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 // adr-054 — Declarative authoring policy para subagent-drafted artifacts.
 //
-// PARTIAL — commit 1 da sequência (scaffold).
-// Metadata estrutural completa (id, title, date, decisionClass, decider,
-// status, reversibility, blastRadius, affectedArtifacts, derivedArtifacts,
-// principlesApplied). context, decision, consequences e rationale com
-// placeholders TBD a serem substituídos em commits 2 e 3.
+// Materializado em 3 commits sequenciais (scaffold → context+decision →
+// consequences+rationale). Versão produzida via 3 ciclos de red team em
+// sessão 2026-04-30 (separation of concerns authoring vs review, trigger
+// phasing Phase 0 manual vs future file-pair-coverage, fallback policy
+// explícita, P0 enforcement no promptTemplate).
 
 adr054: artifact_schemas.#ADR & {
 	id:    "adr-054"
@@ -144,7 +144,58 @@ adr054: artifact_schemas.#ADR & {
 		subagent. Subagent applies protocol; main agent + founder
 		define escopo.
 		"""
-	consequences: "TBD — consequences substantivo em commit 3 da sequência."
+	consequences: """
+		Positivas:
+
+		(P1) Variance reduction: aplicação do meta-guide protocol fica
+		enforced via dispatch, não dependente de memória do agente.
+
+		(P2) Custo reduction: ~22 PGs restantes via subagent custam
+		dispatch (tokens) vs sessão dedicada (founder time). Economia
+		potencial de 11-33h founder time.
+
+		(P3) Codifica meta-guide application como repetível e auditável.
+		Logs de dispatch + draft + review trail são evidência reusable.
+
+		(P4) Cria pattern reusable para future "X-via-subagent"
+		automations (ex.: glossary instances, validation-prompts,
+		structural-checks).
+
+		(P5) Founder gate preservado (P10) — subagent draft é proposta,
+		não decisão. Founder retém autoridade exclusiva.
+
+		(P6) Self-review preservado — review subagent (separado do
+		authoring) reduz viés de auto-ratificação per CLAUDE.md
+		"Autovalidação Pré-Proposta".
+
+		(P7) Cross-repo padrão potencial: tekton/portfolio pode adotar
+		authoring-policy análoga via promoção FP-XX se padrão validar.
+
+		(P8) Métrica observable: failure rate de subagent dispatches
+		permite calibração de promptTemplate ao longo do tempo (Q1 da
+		WI-069).
+
+		Negativas:
+
+		(N1) Adiciona arquivo novo (authoring-policy.cue) e schema novo
+		(#AuthoringPolicy + sub-types). Manutenção crescente.
+
+		(N2) Custo operacional de subagent dispatch por PG criado
+		(~5-15k tokens por execução). Bounded pelo número total de PGs
+		mas não-trivial em soma.
+
+		(N3) Couples authoring quality a meta-guide quality. Mudança ao
+		meta-guide afeta todos PGs futuros via dispatch. Risk mitigado
+		pelo founder review residual.
+
+		(N4) Trigger automatizado depende de WI-068 + ADR posterior;
+		Phase 0 trigger manual é menos rigoroso que future. Aceito como
+		bridging temporário.
+
+		(N5) Fallback policy adiciona complexidade — main agent precisa
+		distinguir "subagent failure" de "founder não-aprovou" e
+		escolher caminho. Documentado mas não trivial.
+		"""
 
 	reversibility: "medium"
 	blastRadius:   "cross-cutting"
@@ -165,5 +216,60 @@ adr054: artifact_schemas.#ADR & {
 		"P12",
 	]
 
-	rationale: "TBD — rationale substantivo em commit 3 da sequência."
+	rationale: """
+		P0 (localização canônica única) sustenta a separação
+		authoring-policy.cue vs quality-gate.cue: cada arquivo tem
+		responsabilidade canônica única (creation vs review). Reusar
+		quality-gate.cue para authoring criaria sobrecarga de concerns.
+
+		P10 (agentes recomendam, gates determinísticos validam) é
+		preservado: subagent draft é proposta, founder review é gate.
+		Adicionalmente, separação authoring-subagent vs review-subagent
+		(decisão item 10) reduz viés de auto-ratificação.
+
+		P12 (governança como código) sustenta a forma da policy:
+		authoring-policy.cue é instância de schema CUE conformante,
+		não markdown narrativo. Verificável estruturalmente, evolui
+		via diff, auditável.
+
+		ADR-054 NÃO cria política nova de authoring — codifica e
+		operacionaliza o que o meta-guide (architecture/production-
+		guides/production-guide.cue) já estabelece como protocol.
+		Transição é de "aplicação manual ad-hoc" para "aplicação
+		declarativa via dispatch". Meta-guide permanece SoT do protocol;
+		ADR-054 + authoring-policy.cue são layer de execução.
+
+		Reversibility "medium": rollout vazio = high (apenas remover
+		entry); rollout com N entries usados = decresce com N (PGs
+		criados via subagent existem; reverter exige re-criação manual
+		caso authoring-policy seja descontinuada). Lens-real-options:
+		ativação do rollout compra opção sobre automação; preservar
+		rollout vazio mantém opção sem comprometer.
+
+		BlastRadius "cross-cutting": afeta governance + futura criação
+		de PGs + comportamento agente. Não repo-wide porque não muda
+		convenções de todo artifact (apenas authoring de tipos
+		registrados em rollout).
+
+		Lenses consultadas: lens-real-options (rollout é opção que pode
+		ser revertida — low cost se vazia; ativação progressiva por
+		artifactType preserva phasing); lens-organizational-resource-
+		allocation (priorização entre automação inicial — custo ADR +
+		schema + WI — vs trabalho manual repetido em ~22 PGs × 30-90 min;
+		ROI esperado positivo após ~5-8 PGs via subagent).
+
+		Precedente: adr-040 estabeleceu separação categórica entre
+		structural (deterministic gate) e semântica (advisory).
+		ADR-054 estende a discriminação para authoring vs review como
+		dois concerns separados de governança agente.
+
+		Trade-off com axiomas (ax-XX): nenhuma tensão registrada.
+		Foundational principle de delegação a subagentes preserva
+		autonomia do founder via gate final.
+
+		Relação com adr-053: adr-053 estabelece a regra (todo schema
+		instanciável tem PG); adr-054 estabelece o método de criar os
+		PGs em escala. adr-053 cria a obrigação; adr-054 viabiliza o
+		cumprimento.
+		"""
 }
