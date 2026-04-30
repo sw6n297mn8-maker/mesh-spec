@@ -89,7 +89,10 @@ adr053: artifact_schemas.#ADR & {
 		tekton-spec/portfolio/production-guides/ (cross-repo discipline,
 		evita coupling com auster); preservar package
 		(production_guides), variable name (productionGuideGuide),
-		canonicalPathRegex e quality criteria (tq-pgpg-01..04). Referências
+		canonicalPathRegex e quality criteria (renomeados de tq-pgpg-01..04
+		para tq-mg-01..04 para conformidade com regex
+		^(uq|tq-[a-z]{2,3})-[0-9]{2}$ de #QualityCriterion.id em
+		mesh; conteúdo preservado verbatim). Referências
 		upstream preservadas por adoção verbatim.
 
 		(3) REGRA UNIVERSAL POR CONVENÇÃO: todo artifact-schema em
