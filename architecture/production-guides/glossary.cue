@@ -4,15 +4,20 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 // glossary.cue — Production guide para Ubiquitous Language Glossary.
 //
-// PARTIAL — commit 1 da sequência (scaffold).
-// _schema, _qualityCriteria e prerequisites substantivos.
-// workOrder, sections e finalValidation com placeholders TBD a serem
-// substituídos em commits 2 e 3.
-//
 // Schema alvo: #Glossary (architecture/artifact-schemas/glossary.cue).
 // Escopo: cada glossário governa um único bounded context.
 // Phase 2 da regra universal de adr-053. Lens aplicada:
-// lens-domain-language-and-terminology-design.
+// lens-domain-language-and-terminology-design (dl-bilingual-terminology,
+// dl-term-selection-criteria, dl-cross-layer-consistency).
+//
+// Versão produzida via 3 ciclos de red team em sessão 2026-04-30 +
+// 2 rounds de review do founder com 12 ajustes totais (correção de
+// count, hardening de tq-gg-02/04, evolução de validation policy,
+// non-normatividade de exemplos, idiomática de termEn, conflito
+// glossary↔canvas, anti-fragmentação, 1 conceito por term,
+// anti-circularidade, risco de variância em validação visual,
+// consistência Phase, atomicidade no checklist final).
+// Materializado em 3 commits sequenciais (scaffold → sections → finalValidation).
 
 glossaryGuide: artifact_schemas.#ProductionGuide & {
 
@@ -197,7 +202,15 @@ glossaryGuide: artifact_schemas.#ProductionGuide & {
 
 	finalValidation: {
 		steps: [
-			"TBD — finalValidation substantiva em commit 3 da sequência.",
+			"Verificar shape: instância valida contra #Glossary (boundedContextRef regex, terms[] não-vazio, cada #GlossaryTerm com 6 campos obrigatórios + ancoragem).",
+			"Verificar unicidade tq-gl-01/12/13: code, termEn e name únicos em terms[] (sem duplicatas em qualquer dos 3).",
+			"Verificar integridade referencial tq-gl-02 / tq-gl-08: relatedTerms refs existem no mesmo glossary E nenhum termo inclui o próprio code.",
+			"Verificar qualidade semântica tq-gl-05 / tq-gg-03 (hardened fail): definition ≠ name; definition ≠ synonym; synonym ≠ name/termEn.",
+			"Verificar ancoragem tq-gl-09 / tq-gg-02 (hardened fail): cada terms[] declara ≥1 entre examples/antiTerms/relatedTerms/domainModelRefs.",
+			"Verificar atomicidade semântica e anti-fragmentação: cada term representa um único conceito (sem agregadores como 'X e Y'); variações de estado/atributo não viram terms separados; definitions não são circulares (não dependem do próprio termo nem de sinônimos).",
+			"Verificar alinhamento cross-artifact tq-gl-07: boundedContextRef === canvas.code do BC.",
+			"Verificar tq-gl-06 e tq-gl-10/11: antiTerms não repetem terms[].name|synonyms; layerMapping (se presente) tem ≥1 campo não-vazio; termEn semanticamente adequado.",
+			"Submeter ao founder para aprovação antes de commit.",
 		]
 	}
 }
