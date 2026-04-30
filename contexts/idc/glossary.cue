@@ -5,10 +5,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // glossary.cue — Ubiquitous Language do BC Identity & Data Governance.
 // Instância de #Glossary (architecture/artifact-schemas/glossary.cue).
 //
-// PARTIAL — commit 1 de 4 (identity foundation cluster).
-// Materializa 4 dos 13 terms aprovados: Identidade Organizacional,
-// Verificação de Identidade Organizacional, Primitiva de Confiança,
-// Raiz de Confiança. Demais 9 terms em commits 2-4.
+// PARTIAL — commit 2 de 4 (identity foundation + cryptographic mechanisms).
+// Materializa 7 dos 13 terms aprovados. Demais 6 terms em commits 3-4.
 //
 // Materializa a UL emergente do canvas IDC: 3 pilares (verificação,
 // integridade criptográfica, autorização) + boundary com fontes oficiais
@@ -91,6 +89,48 @@ glossary: artifact_schemas.#Glossary & {
 		}, {
 			term:   "Authority"
 			reason: "Sugere autoridade regulatória, não papel arquitetural. ten-002 registra falta de archetype 'authority' no schema #Canvas como tensão."
+		}]
+	}, {
+		code:       "term-assinatura-dsse"
+		name:       "Assinatura DSSE"
+		termEn:     "DSSE Signature"
+		definition: "Envelope criptográfico no padrão Dead Simple Signing Envelope que vincula payload (evidência operacional) a Identidade Organizacional verificada. Inclui assinatura, payload type e metadata de verificação."
+		category:   "document"
+		rationale:  "Output de SignEvidence (canvas command), consumido primariamente por LOG. Distinto de assinatura digital ICP-Brasil (que vincula a pessoa física via certificado A1/A3) — DSSE vincula a Identidade Organizacional verificada por IDC."
+		relatedTerms: ["term-identidade-organizacional", "term-prova-de-integridade", "term-trilha-de-auditoria-criptografica"]
+		examples: [{
+			context:   "LOG registra evidência de entrega"
+			instance:  "Envelope DSSE contendo {payloadType: 'application/vnd.mesh.evidence-delivery+json', payload: <NF-e + GR>, signatures: [{keyid: <idc-key-id>, sig: <base64>}]}"
+			rationale: "Caso típico onde LOG consome SignEvidence para vincular evidência à organização emissora verificada."
+		}]
+		rejectedAlternatives: [{
+			term:   "Assinatura Digital"
+			reason: "Termo legal genérico associado a ICP-Brasil; ambíguo em escopo cripto da Mesh. DSSE é específico ao protocolo escolhido (bd-crypto-single-owner)."
+		}]
+	}, {
+		code:       "term-enderecamento-cas"
+		name:       "Endereçamento CAS"
+		termEn:     "Content-Addressable Storage"
+		definition: "Esquema de armazenamento onde o endereço do conteúdo é seu próprio hash criptográfico — qualquer modificação do conteúdo muda o endereço, garantindo integridade por construção."
+		category:   "classification"
+		rationale:  "Mecanismo que sustenta provas de integridade (capability cc-01) sob ownership exclusivo de IDC (bd-crypto-single-owner). Distinto de armazenamento por path/UUID que LOG usa para metadata."
+		relatedTerms: ["term-merkle-proof", "term-prova-de-integridade"]
+		antiTerms: [{
+			term:          "Armazenamento por Path"
+			clarification: "Path-based addressing (filesystem, S3 keys) não garante integridade — modificação do conteúdo preserva o path. CAS por construção detecta qualquer modificação."
+		}]
+	}, {
+		code:       "term-merkle-proof"
+		name:       "Merkle Proof"
+		termEn:     "Merkle Proof"
+		definition: "Sequência de hashes criptográficos que prova inclusão de uma evidência em um conjunto sem expor o conjunto inteiro. Permite verificação independente de integridade por terceiros (IF parceira, regulador)."
+		category:   "document"
+		rationale:  "Componente da Prova de Integridade (capability cc-01); habilita verificação criptográfica por sh-03 e sh-04 sem confiança em Mesh como intermediária. Termo técnico universalmente reconhecido em criptografia — preservado em inglês por idiomática (per heuristic termEn)."
+		relatedTerms: ["term-enderecamento-cas", "term-prova-de-integridade"]
+		examples: [{
+			context:   "Verificação independente por instituição financeira parceira"
+			instance:  "Merkle proof com 12 hashes (path da folha até a raiz da árvore) verifica que NF-e #X faz parte do conjunto de evidências do contrato Y, sem expor outras NFs do mesmo contrato."
+			rationale: "Caso típico onde sh-03 valida lastro sem precisar acessar evidências de outras operações — privacy-preserving verification."
 		}]
 	}]
 
