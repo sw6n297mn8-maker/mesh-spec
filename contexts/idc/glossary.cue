@@ -5,8 +5,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // glossary.cue — Ubiquitous Language do BC Identity & Data Governance.
 // Instância de #Glossary (architecture/artifact-schemas/glossary.cue).
 //
-// PARTIAL — commit 2 de 4 (identity foundation + cryptographic mechanisms).
-// Materializa 7 dos 13 terms aprovados. Demais 6 terms em commits 3-4.
+// PARTIAL — commit 3 de 4 (foundation + crypto mechanisms + composite/audit/boundary).
+// Materializa 10 dos 13 terms aprovados. Demais 3 terms em commit 4.
 //
 // Materializa a UL emergente do canvas IDC: 3 pilares (verificação,
 // integridade criptográfica, autorização) + boundary com fontes oficiais
@@ -131,6 +131,50 @@ glossary: artifact_schemas.#Glossary & {
 			context:   "Verificação independente por instituição financeira parceira"
 			instance:  "Merkle proof com 12 hashes (path da folha até a raiz da árvore) verifica que NF-e #X faz parte do conjunto de evidências do contrato Y, sem expor outras NFs do mesmo contrato."
 			rationale: "Caso típico onde sh-03 valida lastro sem precisar acessar evidências de outras operações — privacy-preserving verification."
+		}]
+	}, {
+		code:       "term-prova-de-integridade"
+		name:       "Prova de Integridade"
+		termEn:     "Integrity Proof"
+		definition: "Artefato composto retornado por GenerateIntegrityProof que combina Merkle Proof + Assinatura DSSE para verificação criptográfica end-to-end de evidência: assinada por identidade verificada e não-adulterada desde a origem."
+		category:   "document"
+		rationale:  "Output primário consumido por DLV; torna verificação de lastro independente de confiança institucional em Mesh — qualquer parte com o proof pode verificar criptograficamente. Distinto de Merkle Proof simples (que apenas prova inclusão sem ligação a identidade)."
+		relatedTerms: ["term-merkle-proof", "term-assinatura-dsse", "term-identidade-organizacional", "term-enderecamento-cas"]
+		antiTerms: [{
+			term:          "Atestado"
+			clarification: "Atestado é declaração emitida por autoridade reconhecida (cartório, Junta); Prova de Integridade é verificável criptograficamente por qualquer parte sem confiança em emissor."
+		}]
+	}, {
+		code:       "term-trilha-de-auditoria-criptografica"
+		name:       "Trilha de Auditoria Criptográfica"
+		termEn:     "Cryptographic Audit Trail"
+		definition: "Registro auditável de toda operação de verificação, assinatura e geração de prova executada por IDC, com hash criptográfico verificável independentemente. Reconstituível em qualquer data por regulador ou parceiro autorizado."
+		category:   "document"
+		rationale:  "Materializa capability cc-04 (auditoria contínua) e atende sh-04 (regulador). Distinto de log operacional convencional por ser criptograficamente verificável — operadores não podem alterar trilha sem deixar evidência de adulteração."
+		relatedTerms: ["term-verificacao-de-identidade-organizacional", "term-assinatura-dsse", "term-prova-de-integridade", "term-raiz-de-confianca"]
+		rejectedAlternatives: [{
+			term:   "Audit Log"
+			reason: "Anglicismo que sugere log convencional; perde a propriedade cripto-verificável que diferencia esta trilha."
+		}, {
+			term:   "Registro de Auditoria"
+			reason: "Genérico demais; não distingue de logs de aplicação. 'Trilha Criptográfica' enfatiza propriedade central (verificabilidade independente)."
+		}]
+	}, {
+		code:       "term-fonte-oficial-de-verificacao"
+		name:       "Fonte Oficial de Verificação"
+		termEn:     "Verification Source"
+		definition: "Sistema externo autoritativo (Receita Federal, Junta Comercial, bureaus de crédito) consultado por IDC como ground truth de identidade organizacional. Disponibilidade e qualidade são premissas registradas em as-idc-1."
+		category:   "role"
+		rationale:  "Boundary externa de IDC: input crítico do qual depende toda Verificação de Identidade Organizacional. Tratada como classe (não fonte específica) porque: composição pode evoluir, fontes alternativas podem ser adicionadas, fontes podem falhar individualmente."
+		relatedTerms: ["term-verificacao-de-identidade-organizacional", "term-identidade-organizacional"]
+		examples: [{
+			context:   "Consulta padrão de verificação"
+			instance:  "Receita Federal (consulta de CNPJ, situação cadastral); Junta Comercial (quadro societário, atos constitutivos); bureaus de crédito (Serasa, Boa Vista) para histórico complementar."
+			rationale: "Composição típica para verificação de organização brasileira — múltiplas fontes cruzadas reduzem custo de manipulação (vsBenefit em incentiveAnalysis sh-01)."
+		}]
+		antiTerms: [{
+			term:          "Self-Attestation"
+			clarification: "Fonte Oficial é externa e autoritativa; self-attestation (declaração da própria organização) não substitui — IDC nunca opera apenas com self-attestation por restrição regulatória (sh-04)."
 		}]
 	}]
 
