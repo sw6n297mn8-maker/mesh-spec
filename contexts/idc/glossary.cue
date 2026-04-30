@@ -5,9 +5,6 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // glossary.cue — Ubiquitous Language do BC Identity & Data Governance.
 // Instância de #Glossary (architecture/artifact-schemas/glossary.cue).
 //
-// PARTIAL — commit 3 de 4 (foundation + crypto mechanisms + composite/audit/boundary).
-// Materializa 10 dos 13 terms aprovados. Demais 3 terms em commit 4.
-//
 // Materializa a UL emergente do canvas IDC: 3 pilares (verificação,
 // integridade criptográfica, autorização) + boundary com fontes oficiais
 // + revogação e cache invalidation. domainModelRefs ficam vazios pois
@@ -15,7 +12,15 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // incrementalmente quando WI futura materializar o domain model.
 //
 // Lens aplicada: lens-domain-language-and-terminology-design.
-// Production-guide aplicado: architecture/production-guides/glossary.cue.
+// Production-guide aplicado: architecture/production-guides/glossary.cue
+// (Phase 2 da regra universal de adr-053).
+//
+// Versão produzida via 3 ciclos de red team (escolha de termos +
+// linguajar BR cadeia de suprimentos) + review do founder (avaliação
+// de pertinência por entrega de IDC) + 1 ajuste pós-vet (termEn
+// "Content Addressable Storage" sem hífen). Materializada em 4
+// commits sequenciais (foundation → crypto mechanisms → composite/
+// audit/boundary → lifecycle/authorization/finalize).
 
 glossary: artifact_schemas.#Glossary & {
 	code:              "idc"
@@ -175,6 +180,49 @@ glossary: artifact_schemas.#Glossary & {
 		antiTerms: [{
 			term:          "Self-Attestation"
 			clarification: "Fonte Oficial é externa e autoritativa; self-attestation (declaração da própria organização) não substitui — IDC nunca opera apenas com self-attestation por restrição regulatória (sh-04)."
+		}]
+	}, {
+		code:       "term-revogacao-de-identidade"
+		name:       "Revogação de Identidade"
+		termEn:     "Identity Revocation"
+		definition: "Processo de marcar Identidade Organizacional previamente verificada como não-vigente após perda de elegibilidade (baixa de CNPJ, decisão regulatória, comprometimento detectado). Protocolo em formalização (oq-idc-1)."
+		category:   "process"
+		rationale:  "Lifecycle critical: sem revogação, identidade comprometida segue sendo aceita por consumers que cachearam resultado anterior. Distinta de Suspensão temporária (não-modelada formalmente) e de exclusão (revogação preserva trail criptográfico para auditoria)."
+		relatedTerms: ["term-identidade-organizacional", "term-janela-de-inconsistencia", "term-trilha-de-auditoria-criptografica"]
+		antiTerms: [{
+			term:          "Exclusão de Identidade"
+			clarification: "Revogação marca como não-vigente preservando histórico verificável; exclusão removeria o registro, quebrando audit trail e impossibilitando reconstrução regulatória."
+		}]
+	}, {
+		code:       "term-janela-de-inconsistencia"
+		name:       "Janela de Inconsistência"
+		termEn:     "Inconsistency Window"
+		definition: "Intervalo temporal entre o instante de Revogação de Identidade em IDC e o instante em que cada consumer (NPM, LOG, DLV) reflete a revogação em seu cache local. Determinado por TTL do consumer e frequência de reconciliação ou propagação ativa."
+		category:   "metric"
+		rationale:  "Concern operacional central no incentive analysis vetor cache stale (canvas) e em ten-003. Conceito explícito porque consumers precisam projetar TTL e fallback para minimizar exposição. Resolução estrutural depende de protocolo de invalidação ativa (oq-idc-1)."
+		relatedTerms: ["term-revogacao-de-identidade", "term-identidade-organizacional"]
+		rejectedAlternatives: [{
+			term:   "Cache TTL"
+			reason: "TTL é parâmetro técnico do consumer; janela é o intervalo de exposição que TTL produz. Confunde causa (TTL) com efeito (window)."
+		}, {
+			term:   "Janela de Propagação"
+			reason: "Sugere propagação ativa garantida; em Phase 0 a propagação depende de TTL passivo + reconciliação periódica. 'Inconsistência' descreve precisamente o estado durante o intervalo."
+		}]
+	}, {
+		code:       "term-autorizacao"
+		name:       "Autorização"
+		termEn:     "Authorization"
+		definition: "Primitiva que responde se uma Identidade Organizacional verificada possui determinada permissão, sem implementar engine de políticas complexa. Modelo (binário, RBAC ou ABAC) em definição em oq-idc-2."
+		category:   "process"
+		rationale:  "Terceiro pilar de IDC (junto com verificação e integridade) per capability cap-4 do canvas. Distinta de política de negócio (KYC/AML em NPM, regras de assinatura em LOG) — IDC responde apenas sobre permissão sob modelo declarado, não sobre se a operação faz sentido para o domínio."
+		relatedTerms: ["term-identidade-organizacional", "term-primitiva-de-confianca", "term-verificacao-de-identidade-organizacional"]
+		antiTerms: [{
+			term:          "Política de Acesso"
+			clarification: "Política de acesso codifica regras de negócio (quem pode fazer o quê em que circunstância) — escopo de cada BC consumer. Autorização em IDC apenas verifica permissão atribuída, não decide a regra."
+		}]
+		rejectedAlternatives: [{
+			term:   "Permissão"
+			reason: "Resultado da autorização, não a operação. Termo correto seria 'Verificação de Permissão' mas isso confunde com Verificação de Identidade Organizacional."
 		}]
 	}]
 
