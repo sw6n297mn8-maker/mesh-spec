@@ -43,12 +43,12 @@ productionGuideMetaInstance: build_time.#SelfReviewReport & {
 		summary: """
 			Auto-avaliação contra 14 critérios protocolarmente aplicáveis
 			(uq-01..08 universais + tq-pg-01..06 type-specific do schema
-			production-guide.cue). Critérios tq-pgpg-01..04 declarados
+			production-guide.cue). Critérios tq-mg-01..04 declarados
 			no _qualityCriteria do próprio artefato instância NÃO são
 			aplicados aqui por convenção do protocolo — quality-gate.cue
 			criteriaResolution.typeSpecific manda carregar _qualityCriteria
 			do artifact schema correspondente, não do artefato instância.
-			Os tq-pgpg foram autoaplicados pelo guide durante sua autoria
+			Os tq-mg foram autoaplicados pelo guide durante sua autoria
 			(red team 3 ciclos auster + adaptação mesh) por construção.
 			uq-01: rationale do _qualityCriteria explica WHY (4 falhas
 			estruturais previstas + hardening warn→fail onde fabricação
@@ -81,5 +81,5 @@ productionGuideMetaInstance: build_time.#SelfReviewReport & {
 
 	findings: {}
 
-	summary: "Meta-guide instância estável no round 1 com 0 findings. Adaptação mecânica de auster origin/main commit 2dc4a1e. 14 critérios protocolarmente aplicáveis (uq-01..08 + tq-pg-01..06) satisfeitos; tq-pgpg-01..04 do próprio artefato fora do escopo protocolar (autoaplicados durante autoria upstream + adaptação)."
+	summary: "Meta-guide instância estável no round 1 com 0 findings. Adaptação mecânica de auster origin/main commit 2dc4a1e. 14 critérios protocolarmente aplicáveis (uq-01..08 + tq-pg-01..06) satisfeitos; tq-mg-01..04 do próprio artefato fora do escopo protocolar (autoaplicados durante autoria upstream + adaptação)."
 }

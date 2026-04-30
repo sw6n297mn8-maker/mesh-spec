@@ -10,7 +10,7 @@ import (
 // (adotado verbatim de tekton-spec/portfolio/artifact-schemas/production-guide.cue).
 //
 // Auto-referencial: este guide é ele próprio uma instância de #ProductionGuide
-// e satisfaz os critérios tq-pg-XX e tq-pgpg-XX que ensina. Quem ler este guide
+// e satisfaz os critérios tq-pg-XX e tq-mg-XX que ensina. Quem ler este guide
 // pode usá-lo como template para escrever production guides para outros schemas.
 //
 // Resolve auto-violação de tq-as-05 latente em tekton e mesh (schema
@@ -39,31 +39,31 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 
 	_qualityCriteria: {
 		criteria: [{
-			id:          "tq-pgpg-01"
+			id:          "tq-mg-01"
 			description: "Guide produz instância que satisfaz tq-pg-01 (workOrder == keys(sections))"
 			test:        "Process inclui passo explícito de verificar workOrder como permutação exata das chaves de sections (mesmos elementos, sem duplicatas, sem omissões) ANTES de finalização. Verificado por inspeção do guide."
 			severity:    "fail"
 			rationale:   "Inconsistência workOrder ↔ sections é a falha #1 prevista para production guides; este meta-guide deve preveni-la por construção."
 		}, {
-			id:          "tq-pgpg-02"
+			id:          "tq-mg-02"
 			description: "Guide produz process steps com verbos imperativos concretos"
 			test:        "Para cada section.process[].action: começa com verbo imperativo concreto da lista (Identificar, Declarar, Coletar, Compor, Verificar, Documentar, Pesquisar, Avaliar, Ler, Listar) ou sinônimo equivalente. Heuristics da section repete a regra. Inspeção determinística por análise da primeira palavra de cada action."
 			severity:    "warn"
 			rationale:   "tq-pg-06 (advisory) do schema requer ações acionáveis; este meta-guide é onde a disciplina é instilada antes da escrita."
 		}, {
-			id:          "tq-pgpg-03"
+			id:          "tq-mg-03"
 			description: "Guide produz finalValidation que termina com submissão ao founder"
 			test:        "finalValidation.steps[-1] menciona explicitamente submissão, revisão ou aprovação do founder. Process do guide inclui passo declarando esta exigência. Verificado por inspeção."
 			severity:    "fail"
 			rationale:   "tq-pg-05 (warn no schema, fail aqui no meta-guide) garante o ciclo propor→aprovar→escrever. Quebra elimina o gate humano."
 		}, {
-			id:          "tq-pgpg-04"
+			id:          "tq-mg-04"
 			description: "Guide produz gapPolicy que declara comportamento anti-invenção"
 			test:        "gapPolicy declara explicitamente comportamento anti-invenção (contém substring 'NÃO invent' ou 'NÃO infer' ou equivalente direto). E heuristics em pelo menos 1 section reforça o princípio. Inspeção determinística por presença de cláusula proibitiva."
 			severity:    "fail"
 			rationale:   "tq-pg-04 advisory requer gapPolicy substantiva; meta-guide eleva a fail para forçar disciplina anti-fabulação. Sem cláusula proibitiva explícita, agente preenche por analogia ou inferência heurística — fonte primária de drift."
 		}]
-		rationale: "Critérios cobrem as quatro falhas estruturais previstas para production guides: inconsistência workOrder↔sections (tq-pgpg-01), process vago (tq-pgpg-02), finalValidation sem founder gate (tq-pgpg-03), gapPolicy permissiva à invenção (tq-pgpg-04). Schema #ProductionGuide tem tq-pg-XX cobrindo subconjunto; meta-guide hardens severities (warn→fail em 01, 03, 04) onde fabricação por agente é risco crítico."
+		rationale: "Critérios cobrem as quatro falhas estruturais previstas para production guides: inconsistência workOrder↔sections (tq-mg-01), process vago (tq-mg-02), finalValidation sem founder gate (tq-mg-03), gapPolicy permissiva à invenção (tq-mg-04). Schema #ProductionGuide tem tq-pg-XX cobrindo subconjunto; meta-guide hardens severities (warn→fail em 01, 03, 04) onde fabricação por agente é risco crítico."
 	}
 
 	prerequisites: {
@@ -187,11 +187,11 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 	finalValidation: {
 		steps: [
 			"Verificar shape: instância valida contra #ProductionGuide (todos os campos obrigatórios presentes; tipos corretos).",
-			"Verificar tq-pg-01 / tq-pgpg-01: workOrder é permutação exata das chaves de sections (sem redundância, sem omissão, sem duplicatas).",
+			"Verificar tq-pg-01 / tq-mg-01: workOrder é permutação exata das chaves de sections (sem redundância, sem omissão, sem duplicatas).",
 			"Verificar tq-pg-02: cada section.target é referência a tipo existente em schema adotado (não inventado).",
-			"Verificar tq-pg-04 / tq-pgpg-04: prerequisites.gapPolicy ≥50 runes E declara explicitamente comportamento anti-invenção (cláusula com 'NÃO invent' ou 'NÃO infer' ou equivalente).",
-			"Verificar tq-pg-05 / tq-pgpg-03: finalValidation.steps[-1] menciona submissão/revisão/aprovação do founder.",
-			"Verificar tq-pg-06 / tq-pgpg-02: cada section.process[].action começa com verbo imperativo concreto (lista canônica em heuristics da section sections-and-workorder deste guide).",
+			"Verificar tq-pg-04 / tq-mg-04: prerequisites.gapPolicy ≥50 runes E declara explicitamente comportamento anti-invenção (cláusula com 'NÃO invent' ou 'NÃO infer' ou equivalente).",
+			"Verificar tq-pg-05 / tq-mg-03: finalValidation.steps[-1] menciona submissão/revisão/aprovação do founder.",
+			"Verificar tq-pg-06 / tq-mg-02: cada section.process[].action começa com verbo imperativo concreto (lista canônica em heuristics da section sections-and-workorder deste guide).",
 			"Verificar coerência semântica: process steps de cada section orientam autoria do tipo declarado em target — não duplicam guidance de outras sections nem omitem etapas necessárias.",
 			"Submeter ao founder para aprovação antes de commit.",
 		]
