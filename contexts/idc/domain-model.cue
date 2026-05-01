@@ -112,7 +112,15 @@ domainModel: artifact_schemas.#DomainModel & {
 		code: "inv-signature-requires-active-identity"
 		name: "Signature Requires Active Identity"
 		rule: "Assinatura DSSE NUNCA é emitida sem identidade signatária em estado ativo (verificada e não-revogada); estados unverified, rejected e revoked são considerados não-vigentes para efeitos de assinatura."
-		rationale: "Gate determinístico (2) per canvas autonomousDecisions sign-evidence. Estado ativo é definido como exclusivamente 'verified' no lifecycle do agg-organizational-identity; rejected, unverified e revoked são explicitamente excluídos como não-vigentes. Dependência cross-aggregate: invariant é protected por agg-evidence-cryptography mas depende de state vigente em agg-organizational-identity (acoplamento read-only via projection prj-identity-verification-status; agg-evidence-cryptography NÃO muta state de identidade). Schema #DomainModel não modela cross-aggregate state-dependency como first-class — relação vive aqui no rationale e na heuristic de protected-invariant. Em Phase 0 antes de oq-idc-1 resolver, sustentado por configuração operacional + escalation sign-evidence-gap. Pós-oq-idc-1 vira gate por construção."
+		rationale: "Gate determinístico (2) per canvas autonomousDecisions sign-evidence. Estado ativo é definido como exclusivamente 'verified' no lifecycle do agg-organizational-identity; rejected, unverified e revoked são explicitamente excluídos como não-vigentes. Dependência cross-aggregate declarada em dependsOnAggregateState per adr-055. Em Phase 0 antes de oq-idc-1 resolver, sustentado por configuração operacional + escalation sign-evidence-gap. Pós-oq-idc-1 vira gate por construção."
+		dependsOnAggregateState: {
+			aggregateRef: "agg-organizational-identity"
+			accessVia: {
+				kind:          "projection"
+				projectionRef: "prj-identity-verification-status"
+			}
+			rationale: "Intra-BC: agg-evidence-cryptography lê state de agg-organizational-identity via projection prj-identity-verification-status (read-only; cryptography aggregate NÃO muta identity state). Não modelar como invariant local em agg-organizational-identity porque o gate de assinatura é decisão de cryptography — identity provê fonte de verdade sobre estado, cryptography consome no momento de SignEvidence."
+		}
 	}, {
 		code: "inv-cas-content-immutability"
 		name: "CAS Content Immutability"

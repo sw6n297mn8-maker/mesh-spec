@@ -322,7 +322,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:      "inv-terms-reference-valid"
 		name:      "Referência a Termos Contratuais Válida"
 		rule:      "Proposta de compromisso só é aceita se os termos contratuais referenciados existem e estão vigentes em CTR. Validação sync via QueryContractTerms."
-		rationale: "Canvas bd-terms-validation: compromisso sem lastro contratual é risco jurídico. Validação determinística — agente pode executar autonomamente (canvas: validate-terms-reference)."
+		rationale: "Canvas bd-terms-validation: compromisso sem lastro contratual é risco jurídico. Validação determinística — agente pode executar autonomamente (canvas: validate-terms-reference). Dependência cross-aggregate declarada em dependsOnAggregateState per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "ctr"
+			aggregateRef:      "agg-contract-terms"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QueryContractTerms"
+			}
+			rationale: "Termos contratuais são owned por CTR (single-owner per dp-04); CMT lê via canvas query-surface no momento de aceite. Não modelar como invariant local em CTR porque o gate de aceite é decisão do CMT — CTR provê fonte de verdade, CMT consome."
+		}
 	}, {
 		code:      "inv-commitment-id-uniqueness"
 		name:      "Unicidade de CommitmentId"

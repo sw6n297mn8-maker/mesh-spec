@@ -229,7 +229,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:      "inv-valid-participant-qualification"
 		name:      "Participantes Qualificados em NPM"
 		rule:      "Registro de termos contratuais só é aceito se todas as partes referenciadas existem e estão qualificadas em NPM. Validação sync via QueryParticipantStatus."
-		rationale: "Canvas autonomous decision: validate-participant-qualification. Canvas query dependency: NPM. Termos com partes não qualificadas são risco jurídico."
+		rationale: "Canvas autonomous decision: validate-participant-qualification. Canvas query dependency: NPM. Termos com partes não qualificadas são risco jurídico. Dependência cross-aggregate declarada em dependsOnAggregateState per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "npm"
+			aggregateRef:      "agg-participant"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QueryParticipantStatus"
+			}
+			rationale: "Qualificação de participantes é owned por NPM (single-owner per dp-04); CTR lê via canvas query-surface no momento de registro de termos. Gate é responsabilidade de CTR — NPM provê fonte de verdade sobre qualificação, CTR consome para validar termos."
+		}
 	}, {
 		code:      "inv-lineage-integrity"
 		name:      "Integridade de Lineage"
