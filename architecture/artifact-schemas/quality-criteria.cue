@@ -50,6 +50,7 @@ package artifact_schemas
 // sm (stakeholder-map), tt (task-template), wp (wave-plan), te (tension-entry),
 // sc (structural-check), srr (self-review-report), pg (production-guide),
 // mg (meta-guide), gg (glossary-guide), dmg (domain-model-guide),
+// agg (agent-spec-guide), gvg (agent-governance-guide),
 // oas (openapi-spec), aas (asyncapi-spec), ct (service-contract).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
