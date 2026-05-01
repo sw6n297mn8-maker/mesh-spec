@@ -4,16 +4,18 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 // domain-model.cue — Production guide para Domain Model (DDD tactical design).
 //
-// PARTIAL — commit 1 da sequência (scaffold).
-// _schema, _qualityCriteria e prerequisites substantivos.
-// workOrder, sections e finalValidation com placeholders TBD a serem
-// substituídos em commits 2 e 3.
-//
 // Schema alvo: #DomainModel (architecture/artifact-schemas/domain-model.cue).
 // Escopo: cada domain model formaliza building blocks DDD de um BC.
 // Phase 2 da regra universal de adr-053. Cascade ordering: este PG é
 // pré-condição para criar instâncias de #DomainModel (per adr-054
 // decision item 13).
+//
+// Versão produzida via 3 ciclos red team em sessão 2026-05-01 +
+// 5 correções founder (tq-dmg-04 substring→observável; cue vet
+// ordering; commands não derivam causalmente de events; anti-events-
+// técnicos heurística; aggregate não é módulo funcional). Authoring
+// manual Phase 0 de adr-054 (pre-WI-069). Materializado em 3 commits
+// sequenciais (scaffold → sections → finalValidation).
 
 domainModelGuide: artifact_schemas.#ProductionGuide & {
 
@@ -199,7 +201,16 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 
 	finalValidation: {
 		steps: [
-			"TBD — finalValidation substantiva em commit 3 da sequência.",
+			"Verificar shape: instância valida contra #DomainModel (boundedContextRef, events/commands/invariants/aggregates não-vazios, rationale).",
+			"Verificar integridade referencial catalog↔aggregates (tq-dm-01/02/03 + tq-dmg-01): cada command em exactly 1 aggregate; cada event em ≥1; cada invariant em ≥1.",
+			"Verificar refs de policies/projections/services/modules (tq-dm-05/06/09/10): triggeredByEvent, issuesCommand, guards, consumesEvents, orchestrates, aggregateRefs todos resolvendo; aggregates não em múltiplos modules.",
+			"Verificar lifecycle (tq-dm-07/08 + tq-dmg-03): para cada aggregate com lifecycle, transitions referenciam cmd/evt/inv existentes; from/to/initialState existem em states[].",
+			"Verificar atomicidade e behavior-first ordering (tq-dmg-02): catalog populado em ordem events→commands→invariants→value-objects antes de aggregates; aggregates wiring derivado, não inventado.",
+			"Verificar cross-canvas alignment (tq-dm-11/12): events 'published' têm correspondência em canvas outbound; commands handled têm correspondência em canvas inbound (warn).",
+			"Verificar prefixos e unicidade (tq-dm-13): cada code segue prefix do catálogo; nenhum code duplicado.",
+			"Verificar value-object usage (tq-dm-04 warn): se valueObjects[] presente, cada vo usado em ≥1 aggregate ou entity.",
+			"Verificar glossary alignment (tq-dmg-04 warn): terminologia em event/command/aggregate names alinha com glossary do BC quando glossary existir; divergências registradas como tension ou propostas como upstream update.",
+			"Submeter ao founder para aprovação antes de commit.",
 		]
 	}
 }
