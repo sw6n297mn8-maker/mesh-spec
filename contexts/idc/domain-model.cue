@@ -37,10 +37,16 @@ domainModel: artifact_schemas.#DomainModel & {
 	// =============================================
 
 	events: [{
-		code:        "evt-identity-verification-completed"
-		name:        "IdentityVerificationCompleted"
-		description: "Verificação de identidade organizacional concluída com resultado (verificada ou não); inclui metadata de fontes consultadas e timestamp."
-		rationale:   "Event publisher declarado em canvas.communication.outbound[]. Consumido por NPM como trigger de avanço em qualificação. Query QueryIdentityVerificationStatus é SoT no momento da decisão (per canvas — query prevalece sobre evento previamente recebido)."
+		code:        "evt-identity-verified"
+		name:        "IdentityVerified"
+		description: "Identidade organizacional confirmada via cruzamento com fontes oficiais autoritativas; inclui metadata de fontes consultadas e timestamp da verificação."
+		rationale:   "Event publisher declarado em canvas.communication.outbound[]. Consumido por NPM como trigger de avanço em qualificação. Split de outcome de cmd-verify-organization-identity em sucesso (este event) vs rejeição evita payload polimórfico e ambiguidade na semântica do published event. Query QueryIdentityVerificationStatus é SoT no momento da decisão (per canvas — query prevalece sobre evento previamente recebido)."
+		visibility:  "published"
+	}, {
+		code:        "evt-identity-verification-rejected"
+		name:        "IdentityVerificationRejected"
+		description: "Verificação de identidade organizacional não atingiu critérios mínimos de confirmação em fontes autoritativas (dados ausentes, inconsistência temporária, divergência crítica entre fontes). Não implica fraude nem erro técnico — apenas insuficiência de confirmação relativa aos critérios atuais."
+		rationale:   "Counterpart de evt-identity-verified per split do outcome de cmd-verify-organization-identity. Published para que NPM possa diferenciar não-verificação de ausência total de tentativa. Reversibilidade futura (rejected→unverified ou rejected→verified após recheck) não modelada em Phase 0; aguarda oq-idc-1."
 		visibility:  "published"
 	}, {
 		code:        "evt-identity-revoked"
@@ -103,15 +109,15 @@ domainModel: artifact_schemas.#DomainModel & {
 		rule: "Revogação de identidade marca como não-vigente preservando histórico criptográfico verificável; NUNCA exclui registros que invalidem auditoria retrospectiva."
 		rationale: "Capability cc-04 (auditoria contínua) exige reconstituição regulatória. Distinção fundamental entre revogação (estado) e exclusão (apagamento) — confundir cria risco regulatório."
 	}, {
-		code: "inv-signature-requires-vigent-identity"
-		name: "Signature Requires Vigent Identity"
-		rule: "Assinatura DSSE NUNCA é emitida com identidade revogada ou suspensa; identidade signatária deve estar em estado vigente no momento da emissão."
-		rationale: "Gate determinístico (2) per canvas autonomousDecisions sign-evidence. Em Phase 0 antes de oq-idc-1 resolver, sustentado por configuração operacional + escalation sign-evidence-gap. Pós-oq-idc-1 vira gate por construção."
+		code: "inv-signature-requires-active-identity"
+		name: "Signature Requires Active Identity"
+		rule: "Assinatura DSSE NUNCA é emitida sem identidade signatária em estado ativo (verificada e não-revogada); estados unverified, rejected e revoked são considerados não-vigentes para efeitos de assinatura."
+		rationale: "Gate determinístico (2) per canvas autonomousDecisions sign-evidence. Estado ativo é definido como exclusivamente 'verified' no lifecycle do agg-organizational-identity; rejected, unverified e revoked são explicitamente excluídos como não-vigentes. Em Phase 0 antes de oq-idc-1 resolver, sustentado por configuração operacional + escalation sign-evidence-gap. Pós-oq-idc-1 vira gate por construção."
 	}, {
 		code: "inv-cas-content-immutability"
 		name: "CAS Content Immutability"
 		rule: "Endereço CAS de qualquer conteúdo armazenado é o hash criptográfico do próprio conteúdo; modificação do conteúdo muda o endereço por construção, tornando adulteração detectável."
-		rationale: "Propriedade fundamental de CAS Addressing per bd-crypto-single-owner. Não é regra de negócio em sentido estrito — é invariante físico do esquema de armazenamento que IDC owns."
+		rationale: "Propriedade fundamental de CAS Addressing per bd-crypto-single-owner. Não é regra de negócio em sentido estrito — é invariante físico do esquema de armazenamento. Modelada aqui porque IDC owns CAS addressing como capability declarada (cap-1 do canvas) e consumers (LOG, DLV) dependem dela como garantia de domínio — não como detalhe de implementação que poderia mudar sem ruptura contratual."
 	}, {
 		code: "inv-signature-idempotency"
 		name: "Signature Idempotency"
@@ -251,7 +257,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	aggregates: [{
 		code:        "agg-organizational-identity"
 		name:        "OrganizationalIdentity"
-		description: "Aggregate root da Identidade Organizacional. Consistency boundary para verificação inicial, manutenção de estado de elegibilidade, e revogação. Cada CNPJ tem exatamente uma Identidade Organizacional em IDC; mutações de estado (verificação concluída, suspensão, revogação) são atômicas no escopo deste aggregate."
+		description: "Aggregate root da Identidade Organizacional. Consistency boundary para verificação inicial, rejeição de verificação, manutenção de estado de elegibilidade, e revogação. Cada CNPJ tem exatamente uma Identidade Organizacional em IDC; mutações de estado (verificação, rejeição, revogação) são atômicas no escopo deste aggregate."
 		rootIdentity: {
 			field: "cnpj"
 			type: {
@@ -277,7 +283,8 @@ domainModel: artifact_schemas.#DomainModel & {
 			"cmd-revoke-identity",
 		]
 		emitsEvents: [
-			"evt-identity-verification-completed",
+			"evt-identity-verified",
+			"evt-identity-verification-rejected",
 			"evt-identity-revoked",
 		]
 		protectsInvariants: [
@@ -294,16 +301,23 @@ domainModel: artifact_schemas.#DomainModel & {
 			states: [
 				"unverified",
 				"verified",
-				"suspended",
+				"rejected",
 				"revoked",
 			]
 			transitions: [{
 				from:               "unverified"
 				to:                 "verified"
 				triggeredByCommand: "cmd-verify-organization-identity"
-				emitsEvents:        ["evt-identity-verification-completed"]
+				emitsEvents:        ["evt-identity-verified"]
 				guards:             ["inv-source-authority-required"]
-				description:        "Verificação concluída com sucesso contra fontes oficiais; identidade torna-se base de confiança para operações downstream."
+				description:        "Verificação confirmada via fontes oficiais autoritativas; identidade torna-se base de confiança para operações downstream."
+			}, {
+				from:               "unverified"
+				to:                 "rejected"
+				triggeredByCommand: "cmd-verify-organization-identity"
+				emitsEvents:        ["evt-identity-verification-rejected"]
+				guards:             ["inv-source-authority-required"]
+				description:        "Verificação não atingiu critérios mínimos de confirmação em fontes autoritativas. Estado rejected é não-vigente para assinatura. Reversibilidade (rejected→unverified ou rejected→verified após recheck) não modelada em Phase 0; aguarda oq-idc-1."
 			}, {
 				from:               "verified"
 				to:                 "revoked"
@@ -311,16 +325,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				emitsEvents:        ["evt-identity-revoked"]
 				guards:             ["inv-revocation-preserves-trail"]
 				description:        "Revogação após perda de elegibilidade; trail preservado per inv-revocation-preserves-trail."
-			}, {
-				from:               "suspended"
-				to:                 "revoked"
-				triggeredByCommand: "cmd-revoke-identity"
-				emitsEvents:        ["evt-identity-revoked"]
-				guards:             ["inv-revocation-preserves-trail"]
-				description:        "Revogação direta de estado suspenso quando comprometimento é confirmado."
 			}]
 		}
-		rationale: "Consistency boundary natural — cada CNPJ tem exactly um Identidade Organizacional; transições de estado (verificação, revogação) devem ser atômicas para evitar identidades em estado inconsistente. Lifecycle explícito porque states são canonicalmente declarados em ten-003 e canvas incentiveAnalysis cache stale vector."
+		rationale: "Consistency boundary natural — cada CNPJ tem exactly um Identidade Organizacional; transições de estado (verificação, rejeição, revogação) devem ser atômicas para evitar identidades em estado inconsistente. Lifecycle explícito porque states são canonicalmente declarados em ten-003 e canvas incentiveAnalysis cache stale vector. Estado 'suspended' deferido — exigiria comando, evento e protocolo de retorno não modelados em canvas; reabrir avaliação quando oq-idc-1 (revocation protocol) resolver. Estado 'rejected' não declarado terminal: reentrada (rejected→unverified ou rejected→verified pós-recheck) não definida em Phase 0; aguarda oq-idc-1."
 	}, {
 		code:        "agg-evidence-cryptography"
 		name:        "EvidenceCryptography"
@@ -341,7 +348,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-integrity-proof-generated",
 		]
 		protectsInvariants: [
-			"inv-signature-requires-vigent-identity",
+			"inv-signature-requires-active-identity",
 			"inv-cas-content-immutability",
 			"inv-signature-idempotency",
 			"inv-evidence-class-conforms-taxonomy",
@@ -353,7 +360,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-integrity-proof",
 			"vo-cnpj-identifier",
 		]
-		rationale: "Consistency boundary separado de OrganizationalIdentity por: (1) operações criptográficas dependem de identidade vigente mas não mutam identidade (referência cross-aggregate via inv-signature-requires-vigent-identity); (2) idempotência de assinatura (inv-signature-idempotency) é invariante exclusivo deste aggregate; (3) escala operacional distinta — assinaturas/proofs são alta-frequência, verificação de identidade é baixa-frequência. Sem lifecycle — operações são atômicas e immutáveis após emissão; lifecycle especulativo violaria heuristic do PG."
+		rationale: "Consistency boundary separado de OrganizationalIdentity por: (1) operações criptográficas dependem de identidade ativa mas não mutam identidade (referência cross-aggregate via inv-signature-requires-active-identity); (2) idempotência de assinatura (inv-signature-idempotency) é invariante exclusivo deste aggregate; (3) escala operacional distinta — assinaturas/proofs são alta-frequência, verificação de identidade é baixa-frequência. É aggregate (não service) porque persiste ledger/idempotency record de operações criptográficas emitidas — signingOperationId é raiz da identidade do registro persistente, e a tupla (content+class+BC) carrega invariant de idempotência (inv-signature-idempotency) que só pode ser enforced se há estado persistente. Não há state machine, mas há identidade persistente e invariants compartilhados — por isso aggregate e não service. Sem lifecycle — operações são atômicas e immutáveis após emissão; lifecycle especulativo violaria heuristic do PG."
 	}]
 
 	// =============================================
@@ -365,12 +372,13 @@ domainModel: artifact_schemas.#DomainModel & {
 		name:        "IdentityVerificationStatusProjection"
 		description: "Read model que materializa estado vigente de verificação de identidade por CNPJ; consumido por NPM via QueryIdentityVerificationStatus como SoT no momento da qualificação."
 		consumesEvents: [
-			"evt-identity-verification-completed",
+			"evt-identity-verified",
+			"evt-identity-verification-rejected",
 			"evt-identity-revoked",
 		]
 		queryCapabilities: [{
 			code:        "qry-identity-verification-status"
-			description: "Retorna IdentityVerificationResult vigente para um CNPJ específico, ou not-found se identidade não foi verificada."
+			description: "Retorna IdentityVerificationResult vigente para um CNPJ específico (status verified, rejected ou revoked), ou not-found se nenhuma verificação foi tentada."
 			rationale:   "SoT no momento de qualificação por NPM; query determinística que prevalece sobre eventos previamente recebidos em caso de divergência (per canvas)."
 		}]
 		rationale: "Per canvas query-surface QueryIdentityVerificationStatus consumida por NPM. Projection mantém estado vigente sintético derivado de events; query prevalece sobre eventos previamente recebidos em caso de divergência (per canvas)."
@@ -414,7 +422,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		"lifecycle especulativo é pior que sem lifecycle".
 
 		Behavior-first ordering aplicado: events emergem do canvas
-		(2 published em outbound + 2 internal em audit trail);
+		(3 published + 2 internal em audit trail);
 		commands derivam de intenções (canvas inbound + revocation
 		anchor); invariants protegidos derivados de gates determinísticos
 		da autonomousDecisions e businessDecisions; value-objects
@@ -425,18 +433,23 @@ domainModel: artifact_schemas.#DomainModel & {
 		Aggregate split rationale: OrganizationalIdentity vs
 		EvidenceCryptography são separadas por (a) consistency
 		boundary distinta — operações criptográficas dependem de
-		identidade vigente (referência cross-aggregate via inv-
-		signature-requires-vigent-identity) mas não mutam identidade;
+		identidade ativa (referência cross-aggregate via inv-
+		signature-requires-active-identity) mas não mutam identidade;
 		(b) escala operacional distinta — assinaturas são alta-
 		frequência, verificação de identidade é baixa-frequência;
 		(c) idempotência criptográfica é invariante exclusivo de
 		EvidenceCryptography.
 
-		Lifecycle apenas em OrganizationalIdentity — states
-		(unverified→verified→suspended→revoked) são canonicalmente
-		declarados em canvas incentiveAnalysis cache stale vector e
-		ten-003. EvidenceCryptography é stateless por construção
-		(operações atômicas idempotentes).
+		Lifecycle apenas em OrganizationalIdentity — caminho principal
+		unverified → verified → revoked, com branch unverified →
+		rejected em Phase 0 (rejected é estado sem saída modelada —
+		não terminal, mas reentrada não definida; aguarda oq-idc-1).
+		Estado 'suspended' deferido (exigiria command + protocolo de
+		retorno não modelados). Ambas as deferrals aguardam oq-idc-1.
+		EvidenceCryptography é stateless por construção — não tem
+		state machine mas é aggregate por persistir ledger/idempotency
+		record (signingOperationId é raiz) e por enforcer invariants
+		compartilhados.
 
 		Projections cobrem 3 query-surfaces declaradas no canvas
 		(QueryIdentityVerificationStatus, QueryEvidenceIntegrity,
@@ -444,7 +457,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		em caso de divergência per canvas.
 
 		Phase 0 caveats:
-		- inv-signature-requires-vigent-identity sustentada por
+		- inv-signature-requires-active-identity sustentada por
 		  configuração operacional + escalation sign-evidence-gap
 		  até oq-idc-1 (revocation protocol) resolver — pós-resolução,
 		  vira gate por construção.
@@ -454,6 +467,11 @@ domainModel: artifact_schemas.#DomainModel & {
 		- evt-identity-revoked modelado mas protocolo de propagação
 		  ativa não formalizado (oq-idc-1); Janela de Inconsistência
 		  permanece com cobertura parcial até resolução estrutural.
+		- Estado 'rejected' não declarado terminal — reversibilidade
+		  (rejected→unverified ou rejected→verified após recheck)
+		  aguarda definição em oq-idc-1.
+		- Estado 'suspended' deferido — reabrir avaliação quando
+		  oq-idc-1 resolver.
 		- Authorization (3º pilar) ausente do modelo — registrar como
 		  gap conhecido em ten-XXX se evolução futura requerer
 		  decisão estrutural.
