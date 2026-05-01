@@ -70,17 +70,130 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 		outputNote:    "Output é arquivo único contexts/{bc}/domain-model.cue conformante a #DomainModel. Tamanho típico: 440-650 linhas (per cmt 647, ctr 551, npm 443). Domain-model inicial pode focar em 2-4 aggregates centrais e crescer incrementalmente; sagas/process managers e projections são opcionais e podem entrar em sessões posteriores."
 	}
 
-	workOrder: ["tbd"]
+	workOrder: [
+		"context-and-behavior-first-catalog",
+		"aggregates-and-wiring",
+		"cross-aggregate-and-validation",
+	]
 
 	sections: {
-		"tbd": {
+		"context-and-behavior-first-catalog": {
 			target:    "#DomainModel"
-			objective: "TBD — section substantiva em commit 2 da sequência."
+			objective: "Estabelecer BC alvo, ler canvas + glossary + lens (se existir), e popular catálogos top-level (events, commands, invariants, value-objects) em ordem behavior-first antes de modelar aggregates."
 			process: [{
-				action: "TBD substituído em commit 2 da sequência"
-				detail: "Placeholder mínimo satisfazendo schema MinRunes(10)."
+				action: "Localizar canvas + glossary do BC alvo"
+				detail: "Verificar contexts/{bc}/canvas.cue existe e canvas.code está estável. Verificar contexts/{bc}/glossary.cue (recomendado). canvas.code determina boundedContextRef e domainModel.code (alinhamento por construção)."
+			}, {
+				action: "Identificar events emergentes do canvas"
+				detail: "Events vêm de: (a) canvas.communication.outbound[] type='event-publisher' (events publicados externamente — visibility 'published'); (b) canvas.communication.inbound[] resultingEvents (events resultantes de commands handled); (c) canvas.businessDecisions que descrevem fatos. NÃO inventar events sem origem em canvas."
+			}, {
+				action: "Identificar commands derivados de intenções de mudança de estado"
+				detail: "Commands são identificados por intenções de mudança de estado: (a) canvas.communication.inbound[] type='command-handler' command names; (b) commands internos que policies emitirão para reagir a events. Para cada event identificado, perguntar qual command/intenção normalmente o produz. Behavior-first ordering começa por events porque são fatos observáveis no canvas, não porque commands derivam de events causalmente — events são consequências, commands são causas."
+			}, {
+				action: "Identificar invariants protegidos"
+				detail: "Invariants vêm de: (a) canvas.businessDecisions com 'NÃO' (proibições explícitas); (b) regras implícitas em canvas.purpose/capabilities (ex.: 'autorização exige identidade verificada' → invariant); (c) constraints regulatórios mencionados em canvas.stakeholders (regulator)."
+			}, {
+				action: "Catalog value-objects emergentes de event/command payloads"
+				detail: "Value-objects são tipos imutáveis sem identidade que aparecem em event/command structures (ex.: Money, CNPJ, Score). Catalog top-level se reusados entre múltiplos aggregates; nested em aggregate se exclusivos. Per schema, value-objects são opcionais."
+			}, {
+				action: "Confirmar catalog inicial com founder"
+				detail: "Apresentar catalog: lista de events/commands/invariants/value-objects nomeados + 1-line de cada. Founder filtra: quais são genuínos do domínio, quais são técnicos (não-domain), quais são duplicatas. Compor catalog confirmado antes de section 2."
 			}]
-			doneCriteria: "TBD — substituído em commit 2 da sequência."
+			sources: [
+				"architecture/artifact-schemas/domain-model.cue (schema #DomainModel + 13+ tq-dm-XX)",
+				"architecture/production-guides/glossary.cue (production-guide irmão; glossary precede domain-model em phasing)",
+				"contexts/cmt/domain-model.cue (exemplo completo, 647 linhas)",
+				"contexts/ctr/domain-model.cue (exemplo, 551 linhas)",
+				"architecture/design-principles.cue (P3 — Event Log SoT; behavior-first ordering)",
+			]
+			heuristics: [
+				"Behavior-first: events → commands → invariants → value-objects → aggregates. Inverter ordem produz aggregates artificiais.",
+				"Events emergem do canvas; não inventar events ausentes do canvas (mesma regra que glossary terms).",
+				"Events representam fatos de domínio, não acontecimentos técnicos de infraestrutura — evitar RequestReceived, RecordSaved, ValidationExecuted salvo se forem conceitos de domínio auditáveis no BC.",
+				"Glossary alignment: terminologia em event/command names alinha com terms canônicos do glossary do BC quando glossary existir.",
+				"Visibility em events: 'published' = aparece em canvas outbound event-publishers (cross-BC contract); 'internal' = audit trail / domain-internal.",
+				"sourceContext em events marca traduções ACL de sinais externos (referenciar BC origem).",
+				"Catalog cresce incrementalmente: começar com 5-10 events centrais; adicionar conforme aggregates revelam novas interações.",
+			]
+			doneCriteria: "BC identificado com canvas estável; glossary do BC consultado se existir; events identificados de origem clara no canvas; commands derivados; invariants enumerados; value-objects catalog (opcional); founder confirmou catalog."
+			ifGap:        "Se canvas em flux ativo, postergar (domain-model precede stability do canvas é receita para retrabalho). Se events não emergem do canvas (canvas é puramente abstrato), pedir founder esclarecimento — domain-model sem origem em canvas é fabricação."
+		}
+
+		"aggregates-and-wiring": {
+			target:    "#Aggregate"
+			objective: "Definir aggregates como consistency boundaries que conectam catalog (events, commands, invariants, value-objects). Aggregate é a wiring layer: declara o que handla, emite, protege, usa."
+			process: [{
+				action: "Agrupar commands por consistency boundary"
+				detail: "Cada command é handled por exactly UM aggregate (tq-dm-01 fail). Pergunta-chave: 'quais commands compartilham state que muda atomicamente?' → mesmo aggregate. Tipicamente 3-7 commands por aggregate. Aggregate com 1 command isolado é candidato a merge; aggregate com 15+ commands é candidato a split."
+			}, {
+				action: "Para cada aggregate definir handlesCommands, emitsEvents, protectsInvariants, usesValueObjects"
+				detail: "handlesCommands: refs (cmd-XX) handled exclusivamente. emitsEvents: refs (evt-XX) (≥1 aggregate emit cada event per tq-dm-02). protectsInvariants: refs (inv-XX) (≥1 aggregate protect cada per tq-dm-03). usesValueObjects: refs (vo-XX) reusados."
+			}, {
+				action: "Nest entities dentro de aggregates"
+				detail: "Entities são owned por exactly um aggregate (ownership) — nested em aggregate.entities[]. Cada entity tem prefix ent-. Distinção entity vs value-object: entity tem identity e lifecycle; value-object é imutável sem identity."
+			}, {
+				action: "Definir lifecycle quando aggregate tem state machine clara"
+				detail: "Lifecycle é state machine com states[] + transitions[]. Cada transition declara: from, to, triggeredByCommand, emitsEvents, guards (todos refs em catálogos existentes). initialState existe em states[]. Cobre tq-dm-07/08 fail. Lifecycle é OPCIONAL — omit se aggregate não tem state machine clara."
+			}, {
+				action: "Verificar integridade referencial intra-domain-model"
+				detail: "tq-dmg-01 / tq-dm-01/02/03: cada commands[] em exactly 1 aggregate; cada events[] em ≥1 aggregate; cada invariants[] em ≥1 aggregate. Conferência manual antes de avançar. Inconsistência aciona fail."
+			}]
+			sources: [
+				"architecture/artifact-schemas/domain-model.cue (#Aggregate, #Entity, #Lifecycle, #Transition sub-types)",
+				"contexts/cmt/domain-model.cue (exemplo de aggregates com lifecycle complexo)",
+				"contexts/npm/domain-model.cue (exemplo de aggregates simples sem lifecycle)",
+			]
+			heuristics: [
+				"Aggregate é consistency boundary: state que muda atomicamente fica junto.",
+				"Aggregate não é pasta funcional nem feature group; é boundary de consistência transacional.",
+				"Tipicamente 3-7 commands por aggregate; >15 sugere split; 1 isolado sugere merge ou re-modelar.",
+				"Aggregate root é único ponto de entrada de mutation; entities nested são owned exclusivamente.",
+				"Entity vs Value-object: entity tem identity (id distinto que persiste com mudança de atributos); value-object é imutável e identidade vem de atributos.",
+				"Lifecycle é OPCIONAL — usar apenas quando state machine é clara e estável; lifecycle especulativo é pior que sem lifecycle.",
+				"Cada lifecycle.transition referencia cmd/evt/inv existentes — validar refs antes de finalizar (tq-dm-07).",
+				"Aggregate names em PascalCase; codes com prefix agg- (ex.: agg-commitment).",
+				"Glossary alignment: aggregate name corresponde a term canônico do glossary quando aplicável.",
+			]
+			doneCriteria: "Cada aggregate tem handlesCommands/emitsEvents/protectsInvariants populados com refs válidas; cada command em exactly 1 aggregate; cada event em ≥1; cada invariant em ≥1; entities nested onde aplicável; lifecycle definido apenas onde state machine é clara."
+			ifGap:        "Se 2+ aggregates parecem competir pelo mesmo command, reconsiderar consistency boundary. Se nenhum aggregate naturally handla um command, pode ser misclassified como command vs event/query. Se lifecycle states não emergem claramente, omitir lifecycle."
+		}
+
+		"cross-aggregate-and-validation": {
+			target:    "#DomainModel"
+			objective: "Definir cross-aggregate concerns (domain services, policies, projections, modules) e executar 13+ tq-dm-XX checks intra-domain-model + cross-canvas + cue vet + finalValidation com submissão ao founder."
+			process: [{
+				action: "Identificar cross-aggregate concerns"
+				detail: "Domain services: lógica que coordena 2+ aggregates. Policies: automação event → command com guards. Projections: read models derivados de events. Modules: agrupamento organizacional de aggregates (futura extração para microservices)."
+			}, {
+				action: "Validar policies/projections refs (tq-dm-05/06)"
+				detail: "policies[].triggeredByEvent existe em events[]. policies[].issuesCommand existe em commands[]. policies[].guards existem em invariants[]. projections[].consumesEvents existem em events[]. Quebra aciona fail."
+			}, {
+				action: "Validar domain services e modules (tq-dm-09/10)"
+				detail: "domainServices[].orchestrates existem em aggregates[]. modules[].aggregateRefs existem em aggregates[] e nenhum aggregate em 2+ modules."
+			}, {
+				action: "Validar cross-canvas alignment (tq-dm-11/12)"
+				detail: "events[] visibility='published' têm correspondência em canvas.communication.outbound[] event-publisher (tq-dm-11 fail). commands handled têm correspondência em canvas.communication.inbound[] command-handler quando exposto externamente (tq-dm-12 warn). Em Phase 0, validação por inspeção; runner futuro automatiza."
+			}, {
+				action: "Validar prefixos e unicidade (tq-dm-13)"
+				detail: "Cada code segue prefixo do catálogo (evt-, cmd-, inv-, vo-, agg-, mod-, svc-, pol-, prj-). Entities ent-. Query capabilities qry-. Nenhum code duplicado em qualquer catalog."
+			}, {
+				action: "Executar cue vet ./contexts/{bc}/ ./architecture/artifact-schemas/"
+				detail: "Validação de shape final. Falha aqui bloqueia avanço."
+			}, {
+				action: "Submeter ao founder para aprovação antes de commit"
+				detail: "Apresentar domain-model completo com sumário: BC, número de events/commands/invariants/value-objects/aggregates, lifecycle present/absent, services/policies/projections/modules. Founder aprova antes de write."
+			}]
+			heuristics: [
+				"Domain services para coordenação cross-aggregate; policies para automação event → command simples; ambos opcionais.",
+				"Projections são read-only views — nunca emitem events ou alteram state.",
+				"Modules são organizacional, não technical: aggregate em modulo X não impede emit events para modulo Y.",
+				"tq-dm-04 (vo orphan) é warn — value-object catalog item sem uso é ok durante evolução.",
+				"Cross-canvas alignment (tq-dm-11/12) é runner-dependent; em Phase 0 valida por inspeção visual.",
+				"cue vet deve ocorrer antes do fechamento final; quando possível, rodar antes e depois dos checks semânticos para detectar shape issues cedo e confirmar correções.",
+				"finalValidation.steps[-1] sempre menciona submissão ao founder — sem isso, ciclo propor→aprovar→escrever está quebrado.",
+			]
+			doneCriteria: "cue vet recursive limpo; tq-dm-01/02/03/05/06/07/08/09/10/13 verificados intra-domain-model; tq-dm-04/11/12 reportados (warn ou cross-file advisory) com nota de cobertura parcial em Phase 0; founder aprovou."
+			ifGap:        "Se cue vet falhar, corrigir sintaxe. Se tq-dm-01 falhar (command em 2 aggregates), reconsiderar consistency boundary. Se tq-dm-11 falhar (event published sem canvas counterpart), reconciliar canvas (pode ser canvas obsoleto) ou domain-model (event não deveria ser published)."
 		}
 	}
 
