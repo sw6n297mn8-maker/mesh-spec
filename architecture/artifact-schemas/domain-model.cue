@@ -215,8 +215,14 @@ package artifact_schemas
 			test:        "Para cada query-surface no canvas do BC, ao menos uma projection.queryCapabilities no domain model descreve a mesma capability. Validação por runner/unificação."
 			severity:    "warn"
 			rationale:   "Sem este critério, canvas pode declarar query-surface sem modelo de projeção correspondente, criando contrato sem implementação conceitual."
+		}, {
+			id:          "tq-dm-17"
+			description: "Cross-aggregate state dependency refs (intra-BC) resolvem"
+			test:        "Para cada invariant com dependsOnAggregateState onde boundedContextRef está ausente: aggregateRef existe em aggregates[].code do mesmo domain-model. Quando accessVia.kind='projection', projectionRef existe em projections[].code. Refs cross-BC (boundedContextRef presente) delegadas a runner cross-file."
+			severity:    "fail"
+			rationale:   "Dependência intra-BC com ref quebrada é guard fantasma — invariant declara dependência de aggregate ou projection inexistente. Per adr-055."
 		}]
-		rationale: "Critérios cobrem integridade referencial interna (tq-dm-01 a tq-dm-10, tq-dm-13, tq-dm-14), alinhamento cross-artifact com canvas Mesh (tq-dm-11, tq-dm-12, tq-dm-15, tq-dm-16) e consistência de lifecycle com gates determinísticos (tq-dm-07, tq-dm-08)."
+		rationale: "Critérios cobrem integridade referencial interna (tq-dm-01 a tq-dm-10, tq-dm-13, tq-dm-14, tq-dm-17), alinhamento cross-artifact com canvas Mesh (tq-dm-11, tq-dm-12, tq-dm-15, tq-dm-16) e consistência de lifecycle com gates determinísticos (tq-dm-07, tq-dm-08)."
 	}
 }
 
@@ -301,6 +307,57 @@ _#DomainEventBase: {
 
 	// Rastreabilidade ao EventStorming (gates, business rules).
 	eventStormingRef?: string & !=""
+
+	// Cross-aggregate state dependency (CQRS read path).
+	// Quando esta invariant depende de state de outro aggregate
+	// (intra-BC ou cross-BC) para enforcement, declarar aqui em vez
+	// de só prose. Per adr-055.
+	// Granularidade per-invariant derivada de evidência empírica:
+	// 4 de 27 invariants em mesh-spec (~15%) são cross-aggregate;
+	// aggregate-level field super-estimaria a dependência.
+	dependsOnAggregateState?: #CrossAggregateStateDependency
+}
+
+// Dependência de state cross-aggregate. Read-only por construção
+// (CQRS). Intra-BC: aggregate alvo no mesmo domain-model. Cross-BC:
+// aggregate alvo em outro BC, acessado via canvas query-surface.
+// Per adr-055.
+#CrossAggregateStateDependency: {
+	// BC alvo. Omitido = mesma BC do parent #DomainModel.
+	// Presente = dependência cross-BC (runner cross-file futuro valida).
+	boundedContextRef?: #BoundedContextRef
+
+	// Aggregate alvo (prefix agg-). Validado por tq-dm-17 apenas
+	// quando boundedContextRef ausente (intra-BC); cross-BC delegado
+	// a runner cross-file.
+	aggregateRef: #AggregateRef
+
+	// Mecanismo de read.
+	accessVia: #AccessVia
+
+	// Por que esta dependência existe e não pode ser modelada como
+	// invariant local do aggregate dependido.
+	rationale: string & !=""
+}
+
+// Mecanismo de acesso a state cross-aggregate. Discriminated union:
+// projection (read model nomeado, intra-BC) ou sync-query (canvas
+// query-surface, intra ou cross-BC). Ambos read-only por construção.
+#AccessVia:
+	#AccessViaProjection |
+	#AccessViaSyncQuery
+
+#AccessViaProjection: {
+	kind:          "projection"
+	projectionRef: #ProjectionRef
+}
+
+#AccessViaSyncQuery: {
+	kind: "sync-query"
+	// Nome PascalCase de query-surface declarada no canvas do BC alvo
+	// (cross-BC) ou do BC corrente (intra-BC raro). Não validado
+	// sintaticamente contra canvas no schema; runner cross-file valida.
+	canvasQuerySurface: string & =~"^[A-Z][A-Za-z0-9]*$"
 }
 
 // ==============================

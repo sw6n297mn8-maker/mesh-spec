@@ -255,5 +255,93 @@ config: #AgentConfig & {
 				e evidência auditável (self-review-report.cue).
 				"""
 		},
+		{
+			title:           "Authoring Declarativo"
+			canonicalSource: "governance/build-time/authoring-policy.cue"
+			content: #"""
+				Esta seção complementa "Autovalidação Pré-Proposta": authoring é
+				a fase de criação que precede self-review. Authoring declarativo
+				substitui aplicação manual ad-hoc do meta-guide por dispatch
+				codificado em policy CUE — para tipos com volume suficiente
+				para justificar a automação.
+
+				Quando o agente identifica necessidade de criar um artefato
+				governado (artifactType com schema em architecture/artifact-
+				schemas/) cujo tipo esteja registrado em authoring-policy.cue
+				rollout com mode "subagent-drafted", deve aplicar o dispatch
+				declarativo per adr-054 em vez de authoring manual.
+
+				Esta seção não redefine a policy. O agente deve resolver mode,
+				triggerCondition, inputContract, outputContract, promptTemplate
+				e fallbackPolicy exclusivamente a partir do artefato canônico
+				governance/build-time/authoring-policy.cue.
+
+				O agente não deve reimplementar, resumir nem simplificar a
+				policy por memória. Deve consumi-la diretamente como fonte de
+				verdade operacional.
+
+				Para artifactTypes não registrados no rollout ou registrados
+				com mode "manual": agente segue authoring manual aplicando o
+				meta-guide (architecture/production-guides/production-guide.cue)
+				ou production-guide específico do tipo quando existir.
+
+				Pré-condição de instância (cascade ordering): production-guide
+				para schema X deve existir antes de authoring de qualquer
+				instância de X. Antes de criar instância de artifactType com
+				schema em architecture/artifact-schemas/, o agente verifica
+				que architecture/production-guides/{type}.cue existe. Se
+				ausente: cria PG primeiro (manual em Phase 0; via dispatch
+				em Phase 1+ quando type registrado em rollout) e aguarda
+				founder approval do PG antes de proceder à instância. Regra
+				deriva de adr-053 universal coverage + adr-054 decision
+				item 13. Recursão aplica se a instância também é registrada
+				para subagent-drafted authoring.
+
+				Phase 0: schema #AuthoringPolicy e instância authoringPolicy
+				materializadas; primeira execução real de subagent dispatch
+				para authoring ocorre após WI-069 (implementação de Phase 1).
+				Em Phase 0, o agente apenas informa que o artifactType seria
+				elegível para dispatch; NÃO invoca subagent nem trata draft
+				como subagent-drafted; authoring permanece manual até ativação
+				operacional.
+
+				Pós-dispatch (Phase 1+, quando review subagent estiver
+				operacional): draft retornado pelo subagent ainda passa por
+				self-review per "Autovalidação Pré-Proposta". Per adr-054
+				decision item 10, review subagent é SEPARADO do authoring
+				subagent — isolation reduz viés de auto-ratificação. Authoring
+				policy NÃO substitui self-review; precede e complementa.
+
+				Founder review permanece gate final em todos os casos
+				(P10 + adr-054). Subagent draft é proposta, não decisão.
+
+				Transparência obrigatória ao propor artefato subagent-drafted
+				ao founder. Veículo: registrar na proposta ao founder e, quando
+				houver commit, no commit message ou session log. Conteúdo
+				obrigatório:
+				- Registrar que houve dispatch (vs authoring manual)
+				- Apresentar reasoning report retornado pelo authoring subagent
+				- Apresentar findings do review subagent (per quality-gate.cue
+				  executionPolicy)
+				- Quando fallback manual ocorre: documentar motivo no commit
+				  message ("subagent dispatch failed: {motivo}; manual takeover")
+
+				Failure rate de subagent dispatches é métrica observável
+				registrada no execution log ou em métrica equivalente definida
+				pela quality-gate policy, usada para calibração de promptTemplate
+				ao longo do tempo.
+				"""#
+			rationale: """
+				Ativa governance/build-time/authoring-policy.cue como protocolo
+				comportamental para authoring declarativo via subagent dispatch.
+				Mantém separação entre norma (authoring-policy.cue), instrução
+				comportamental (esta seção) e meta-protocol (meta-guide). Per
+				adr-054 e adr-053: codifica meta-guide application como dispatch
+				consistente, reduzindo variance e custo de criação em escala.
+				Authoring (criação) e self-review (avaliação) são fases
+				complementares — esta seção precede "Autovalidação Pré-Proposta".
+				Founder gate via P10 preservado.
+				"""
+		},
 	]
 }

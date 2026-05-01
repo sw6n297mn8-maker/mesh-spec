@@ -135,7 +135,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:      "inv-approval-requires-identity-verification"
 		name:      "Aprovação Requer Verificação de Identidade"
 		rule:      "ApproveQualification só pode ser executado se verificação de identidade em IDC estiver confirmada. Query a QueryIdentityVerificationStatus prevalece sobre evento previamente recebido em caso de divergência."
-		rationale: "Integração dual com IDC: evento push notifica, query pull confirma no momento da decisão. Query como autoridade garante consistência temporal."
+		rationale: "Integração dual com IDC: evento push notifica, query pull confirma no momento da decisão. Query como autoridade garante consistência temporal. Dependência cross-aggregate declarada em dependsOnAggregateState per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "idc"
+			aggregateRef:      "agg-organizational-identity"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QueryIdentityVerificationStatus"
+			}
+			rationale: "Verificação de identidade organizacional é owned por IDC (single-owner per dp-04); NPM lê via canvas query-surface no momento de aprovação. Query prevalece sobre eventos previamente recebidos para resolver divergência temporal — gate determinístico no momento da decisão."
+		}
 	}, {
 		code:      "inv-termination-irreversible"
 		name:      "Terminação Irreversível"

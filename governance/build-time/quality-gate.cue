@@ -141,6 +141,10 @@ qualityGate: #QualityGateArtifact & {
 			artifactType: "adr"
 			mode:         "isolated-subagent"
 			rationale:    "Critérios type-specific (tq-adr-01/02/03) são objetivos (alternativas? metadata de risco? paths existem?). ADRs são decisões de design — viés de confirmação aqui tem custo alto."
+		}, {
+			artifactType: "production-guide"
+			mode:         "isolated-subagent"
+			rationale:    "Per adr-054 decision item 10: production-guides authored via subagent-drafted dispatch (authoring-policy.cue rollout) precisam de review subagent SEPARADO do authoring subagent. Isolation authoring vs review reduz viés de auto-ratificação. Critérios type-specific tq-pg-01..06 são objetivos (workOrder consistency, target resolution, doneCriteria avaliáveis, gapPolicy substantiva)."
 		}]
 
 		inputContract: """
