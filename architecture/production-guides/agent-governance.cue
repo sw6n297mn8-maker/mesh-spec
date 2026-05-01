@@ -211,7 +211,19 @@ agentGovernanceGuide: artifact_schemas.#ProductionGuide & {
 
 	finalValidation: {
 		steps: [
-			"Placeholder — finalValidation steps populadas no commit 3/3.",
+			"Verificar shape: instância valida contra #AgentGovernanceEnvelope (agentRef, governanceGlobalVersion, lifecycleStage, escalationRouting/blastRadiusCaps/driftDetection/calibration não-vazios, rationale).",
+			"Verificar bidirectional ref agent-spec↔envelope (tq-gv-06 + tq-gvg-01 fail): envelope.agentRef == agent-spec.code; agent-spec.governanceRef == base name do envelope file (sem .governance.cue). Inconsistência aciona hard fail.",
+			"Verificar lifecycleStage na taxonomia hardcoded (tq-gv-08 fail): lifecycleStage ∈ #LifecycleStage enum (onboarding, validation, operational, mature). Em Phase 0 sempre 'onboarding'.",
+			"Verificar escalation routing coverage (tq-gv-07 + tq-gvg-02 fail): cada category em agent-spec.escalationConditions[] tem escalationRouting com mesma category OR rationale explícito de fallback global; cada route tem channel + slaDescription + recipient + rationale.",
+			"Verificar blastRadiusCaps (tq-gv-09 fail post-global): caps ≤ blastRadiusPolicy global maxConcurrentMutations e maxDailyActions; sanity check daily ≥ concurrent. Em Phase 0 sem global materializado, validação por inspeção visual.",
+			"Verificar calibration measurable + time-bounded (tq-gv-10 + tq-gvg-03 warn): cada promotionCriteria[] / regressionTriggers[] tem métrica numérica (volume, period, approval-rate) + período declarado; critérios qualitativos ('quando estiver pronto') flagged.",
+			"Verificar autonomyOverrides ref validity (tq-gv-11 fail): cada override.actionRef existe em agent-spec.actions[].code. Override de action inexistente é configuração fantasma.",
+			"Verificar autonomyOverrides expiração (tq-gv-13 warn): cada override.validUntil >= data atual quando presente. Overrides expirados pollutam envelope e obscurecem state real de autonomia.",
+			"Verificar P10 em autonomyOverrides (tq-gv-14 + tq-gvg-04 fail): nenhum override concede overrideLevel='execute-and-log' a action cuja agent-spec.actions[].category é 'mutation'. Backdoor para autonomia ilimitada em decisões irreversíveis viola P10 unconditional.",
+			"Verificar governanceGlobalVersion match (tq-gv-12 warn): governanceGlobalVersion == architecture/agent-governance.cue version. Em Phase 0 sem global materializado, '0.1' forward-ref tolerado; warn ativa post-global quando versão divergir.",
+			"Verificar envelope unicity per agentRef (tq-gv-15 fail): scan contexts/{bc}/agents/ por arquivos .governance.cue; máximo 1 envelope com mesmo agentRef. Múltiplos envelopes criam ambiguidade indeterminada de governança.",
+			"Executar cue vet ./contexts/{bc}/agents/ ./architecture/artifact-schemas/ recursive — falha bloqueia avanço; corrigir sintaxe e re-executar antes de submeter ao founder.",
+			"Submeter ao founder para aprovação antes de commit.",
 		]
 	}
 }
