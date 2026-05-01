@@ -16,6 +16,25 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // Convenção: tq-agg-NN para critérios deste guide. Abreviação "agg"
 // declarada na legenda canônica de architecture/artifact-schemas/
 // quality-criteria.cue.
+//
+// Iteração pós-founder review (sessão 2026-05-01): 6 disciplinas
+// adicionadas a partir de gaps identificados em revisão estrutural —
+// enforcementLevel per constraint (agent/runner/domain/external),
+// derivedFromInvariant explicit ref (1:1 default), action impact
+// classification (read-only/state-change/cross-bc/external-side-effect),
+// per-action escalation override quando criticality diverge do global,
+// decision-vs-execution separation (action não mistura decidir +
+// executar irreversível), canonical test "se remover o agente, sistema
+// ainda protege os invariants?". 6 critérios tq-agg adicionados
+// (tq-agg-05..10 todos warn — heuristic-level, não enforced por schema).
+//
+// Diagnóstico capturado: spec assumia implicitamente agente como
+// centro do sistema; Mesh modela DOMÍNIO como centro, AGENTE como
+// operador. Endurecer essa hierarquia é o ponto de inflexão para
+// sair de "spec bem definido" rumo a "sistema que prova que o spec
+// é obedecido". Tq-agg-10 (canonical test) é o gate dessa inversão:
+// se remover o agente quebra invariants, agente está segurando regra
+// de domínio (bug arquitetural).
 
 agentSpecGuide: artifact_schemas.#ProductionGuide & {
 
@@ -55,8 +74,44 @@ agentSpecGuide: artifact_schemas.#ProductionGuide & {
 			test:        "Process da section context-observability-validation exige: signals[] cobre ≥1 signal por category declarada nos actions; auditTrail.fields contém ≥7 minimum (per #AuditTrail._minimumAuditFields) + ≥3 domain-specific. Empirical: cmt 10, ctr 11, npm 11. Cobre tq-ag-05/06/07 do schema."
 			severity:    "warn"
 			rationale:   "Sem signals proporcionais aos actions, audit trail é incompleto — reconstituição regulatória impossível downstream. Domain-specific fields evitam que audit vire genérico (perde valor de domínio)."
+		}, {
+			id:          "tq-agg-05"
+			description: "Guide enforça enforcementLevel declarado per constraint"
+			test:        "Heuristics da section constraints-and-escalation exige: cada constraint declara onde é enforced — enforcementLevel ∈ {agent, runner, domain, external}. agent = constraint validada in-line pelo agente antes de submit; runner = validada por runner pós-submission (deterministic gate); domain = enforced via aggregate/lifecycle no domain-model (constraint é eco/observação, não execução); external = enforced por sistema externo (gateway, API, regulator). Verificado por inspeção do rationale ou campo dedicado (heuristic-level até schema absorver)."
+			severity:    "warn"
+			rationale:   "Sem enforcementLevel declarado, constraint vira ambígua — não se sabe se agente, runner, domain, ou external executa. Ambiguidade gera duplicação (agente + runner valida mesma coisa), gap (ninguém valida), ou drift (validação muda sem ninguém notar). Heuristic-level: schema não modela hoje; PG documenta convenção e protocolo de declaração."
+		}, {
+			id:          "tq-agg-06"
+			description: "Guide enforça derivedFromInvariant explicit ref per constraint"
+			test:        "Heuristics da section constraints-and-escalation exige: cada constraint declara derivedFromInvariant: 'inv-XYZ' (ref ao invariant do domain-model que origina a constraint). Default 1:1 — uma constraint deriva de exatamente uma invariant. Constraint sem invariant origem é guideline ou enforcement técnico (ambos suspeitos); constraint derivada de múltiplas invariants é candidate a split. Verificado por inspeção do rationale ou campo dedicado."
+			severity:    "warn"
+			rationale:   "Coverage invariant→constraint hoje vive em prosa de rationale, não em ref estruturada — runner futuro não consegue validar coverage automaticamente nem detectar drift quando invariant é renomeada/removida. Heuristic-level: schema não modela hoje; PG documenta convenção. Aligns com adr-055 pattern (cross-aggregate-state-dependency como first-class)."
+		}, {
+			id:          "tq-agg-07"
+			description: "Guide enforça action impact classification"
+			test:        "Heuristics da section scope-and-action-catalog exige: cada action declara impact ∈ {read-only, state-change, cross-bc, external-side-effect}. read-only = query sem efeito colateral; state-change = mutation no aggregate; cross-bc = afeta state de outro BC (via published event ou sync command); external-side-effect = dispara efeito em sistema externo (notification, ledger entry, regulatory submission). Verificado por inspeção do rationale ou campo dedicado."
+			severity:    "warn"
+			rationale:   "Sem impact classification, governance (caps, escalation, audit cadence) é dimensionada por action.category sozinho — perde-se sinalização de blast radius real. action category=mutation com impact=external-side-effect exige caps mais conservadores que category=mutation com impact=state-change interno. Heuristic-level: schema não modela hoje; PG documenta convenção."
+		}, {
+			id:          "tq-agg-08"
+			description: "Guide enforça per-action escalation override quando criticality diverge"
+			test:        "Heuristics da section constraints-and-escalation declara: escalationConditions[] no spec é default global; actions cuja criticality diverge significativamente (e.g., regulatory mutation vs internal validation) podem declarar escalationConditionsOverride com categories adicionais ou substitutas. Granularidade per-action é EXCEÇÃO, não regra — over-declaração polui spec. Verificado por inspeção quando spec tem ≥1 action com criticality marcadamente diferente das demais."
+			severity:    "warn"
+			rationale:   "Escalation global cobre o piso comum, mas actions de risco diferenciado (e.g., emit-published-event regulatory vs query-internal) podem precisar de categories distintas (e.g., suspicious-input para um, conflicting-signals para outro). Hoje spec só permite escalation global — gap de granularidade. Heuristic-level: schema não modela override hoje; PG documenta padrão de declaração no rationale da action."
+		}, {
+			id:          "tq-agg-09"
+			description: "Guide enforça decision-vs-execution separation em actions"
+			test:        "Heuristics da section scope-and-action-catalog declara: action NÃO deve misturar decisão (julgar/avaliar/recomendar) com execução irreversível (mutate/publish/emit) em mesmo step. Actions monolíticas que decidem + executam violam P10 — agente deveria propor decisão, gate humano/determinístico aprova, executor (potencialmente outro componente) materializa. Padrão recomendado: actions tipo decide-X (autonomyLevel propose-and-wait, output: recommendation) + tipo execute-X (autonomyLevel restricted, input: approved recommendation). Verificado por inspeção das actions com category=mutation."
+			severity:    "warn"
+			rationale:   "Action monolítica decide+executa é P10 violation por design — sem separação, autonomyLevel=propose-and-wait não tem onde inserir o human gate (decisão e execução acontecem atomicamente). Heuristic-level: schema não distingue tipos de action hoje; PG documenta padrão de split em casos de execução irreversível."
+		}, {
+			id:          "tq-agg-10"
+			description: "Guide enforça canonical test: domínio é o centro, agente é operador"
+			test:        "finalValidation declara teste canônico: 'se remover o agente do BC, o sistema ainda protege os invariants do domain-model?'. Resposta esperada: SIM (invariants vivem em aggregates/lifecycle/runner/external; agente OBSERVA e PROPÕE, não SEGURA regra de domínio). Resposta NÃO indica bug arquitetural — agente está segurando lógica de domínio que deveria estar em aggregate.invariants[] enforced via lifecycle/command-handler. Verificado por inspeção: para cada invariant do domain-model, identificar o enforcer real (lifecycle? command handler? runner? agente?); agente como ÚNICO enforcer de invariant é red flag."
+			severity:    "warn"
+			rationale:   "Mesh modela domínio como centro, agente como operador. Spec que assume agente como centro vira frágil: trocar agente quebra invariants; degradar agente compromete domínio. Inversão correta: agente segura recomendação e observação; aggregates/lifecycle/runner seguram invariants. Heuristic-level: teste mental durante autoria; canonical para evitar drift estrutural ao longo de fases."
 		}]
-		rationale: "4 critérios cobrem disciplinas core para autoria de agent-spec: integridade referencial actions↔domain-model (tq-agg-01), invariant→constraint coverage (tq-agg-02), escalation coherence (tq-agg-03), observability completude (tq-agg-04). Scope é disciplinas que protocol enforce via process; cobertura completa dos 13+ tq-ag-XX do schema vive em finalValidation.steps."
+		rationale: "10 critérios cobrem disciplinas core para autoria de agent-spec: integridade referencial actions↔domain-model (tq-agg-01), invariant→constraint coverage (tq-agg-02), escalation coherence (tq-agg-03), observability completude (tq-agg-04), enforcementLevel per constraint (tq-agg-05), derivedFromInvariant explicit ref (tq-agg-06), action impact classification (tq-agg-07), per-action escalation override (tq-agg-08), decision-vs-execution separation (tq-agg-09), canonical test domínio-é-centro (tq-agg-10). Critérios 01-04 derivam dos tq-ag-XX do schema; 05-10 derivam de revisão estrutural pós-PG-A (sessão 2026-05-01) — todos warn por enquanto, heuristic-level até schema absorver. Cobertura completa dos 13+ tq-ag-XX do schema vive em finalValidation.steps."
 	}
 
 	prerequisites: {
@@ -117,8 +172,10 @@ agentSpecGuide: artifact_schemas.#ProductionGuide & {
 				"Forward-ref de governance: governanceRef declarado como string mesmo antes de governance.cue existir; resolução cross-file por runner via tq-ag-09 (fail post-creation). Em Phase 0, ambos os arquivos são autorados em sequência (spec → governance) ou par único.",
 				"Aggregate vs feature: action é unidade comportamental, não pasta funcional. 'act-validate-X' que apenas envelopa command 'X' é misclassified — spec deve modelar decisão do agente, não pipe-through.",
 				"Glossary alignment: action names usam linguagem da Ubiquitous Language do BC; divergência terminológica registrada como tension entry.",
+				"Action impact classification (tq-agg-07): cada action declara impact ∈ {read-only (query sem efeito colateral), state-change (mutation no aggregate), cross-bc (afeta state de outro BC via published event ou sync command), external-side-effect (dispara efeito em sistema externo — notification, ledger, regulatory submission)}. impact é dimensão ortogonal a category — duas actions com category=mutation podem ter impact distintos (state-change interno vs external-side-effect regulatory) e exigem caps/escalation diferentes. Declarar no rationale da action; schema não modela como first-class hoje (heuristic-level).",
+				"Decision vs execution separation (tq-agg-09): action NÃO deve misturar decidir (julgar/avaliar/recomendar) com executar irreversível (mutate/publish/emit) em mesmo step. Pattern recomendado para execuções irreversíveis: split em par decide-X (output: recommendation) + execute-X (input: approved recommendation). Actions monolíticas decide+execute violam P10 por design — não há onde inserir human gate em propose-and-wait. Para queries/observations a separação é menos crítica (read-only).",
 			]
-			doneCriteria: "Role identificado e alinhado com canvas.ownership.domainAgentSpec; operationalScope populado com refs válidas ao domain-model; actions[] catalog com category × autonomyLevel × inputTrustLevel × domainModelRefs declarado para cada action; founder aprovou catalog antes de proceder à section 2."
+			doneCriteria: "Role identificado e alinhado com canvas.ownership.domainAgentSpec; operationalScope populado com refs válidas ao domain-model; actions[] catalog com category × autonomyLevel × inputTrustLevel × impact × domainModelRefs declarado para cada action; decision-vs-execution split aplicado em mutations irreversíveis (tq-agg-09); founder aprovou catalog antes de proceder à section 2."
 			ifGap:        "Se canvas.ownership.domainAgentSpec não declarado ou não match com agent code proposto, postergar até canvas reconciliar (tq-ag-03 fail). Se domain-model em flux ou não aprovado, postergar — cascade ordering: actions[].domainModelRefs dependem de refs estáveis. Se action não tem domainModelRefs claro no operationalScope, é misclassified — pode ser action de outro role/agente OU pipe-through que deve ser removida. Se autonomyLevel proposto não é 'propose-and-wait' em mutations Phase 0, escalar — promotion vive em governance, não em spec."
 		}
 
@@ -158,8 +215,11 @@ agentSpecGuide: artifact_schemas.#ProductionGuide & {
 				"verification mecânica: 'runner verifica X consultando Y' é concreto; 'agente respeita X' é guideline (tq-ag-04 warn). Reescrever guidelines como verifications testáveis.",
 				"Channel selection (governance concern, mas spec antecipa): sync se a condition bloqueia o pipeline inteiro; async se retém apenas o item específico. Documentar no rationale do escalation condition.",
 				"Recipient pre-PMF: 'founder' only — documentar como constraint da fase, não inventar abstração de routing inexistente. Per ADR-037 governance two-level.",
+				"enforcementLevel per constraint (tq-agg-05): cada constraint declara onde é enforced em rationale ou campo dedicado — agent (validada in-line pelo agente antes de submit), runner (validada por runner pós-submission, deterministic gate), domain (enforced via aggregate/lifecycle no domain-model — constraint é eco/observação, não execução), external (enforced por sistema externo — gateway/API/regulator). Sem essa declaração, ambiguidade entre quem realmente valida produz duplicação ou gap.",
+				"derivedFromInvariant explicit ref (tq-agg-06): cada constraint declara derivedFromInvariant: 'inv-XYZ' (ref ao invariant do domain-model que origina a constraint). Default 1:1 — uma constraint deriva de exatamente uma invariant. Constraint sem invariant origem é guideline ou enforcement técnico não-de-domínio (suspeito, escalar). Constraint derivando de múltiplas invariants é candidate a split. Permite validação automática de coverage e detecção de drift quando invariant é renomeada/removida.",
+				"Per-action escalation override (tq-agg-08): escalationConditions[] no spec é default global aplicável a todas actions. Actions cuja criticality diverge significativamente do global (e.g., regulatory mutation com input externo vs query interna) podem declarar escalationConditionsOverride no rationale ou campo dedicado, listando categories adicionais ou substitutas. Granularidade per-action é EXCEÇÃO — over-declaração polui spec. Default: 1 escalationConditions global; override só quando criticality realmente diverge.",
 			]
-			doneCriteria: "Cada invariant do domain-model tem constraint correspondente OR exceção declarada com rationale (tq-agg-02); escalationConditions cobrem categories per role + mutations declaram conflicting-signals + insufficient-context (tq-ag-10); coherence autonomyLevel × constraints verificada (tq-ag-12); founder aprovou matrix antes de proceder à section 3."
+			doneCriteria: "Cada invariant do domain-model tem constraint correspondente OR exceção declarada com rationale (tq-agg-02); cada constraint declara enforcementLevel (tq-agg-05) E derivedFromInvariant ref (tq-agg-06); escalationConditions cobrem categories per role + mutations declaram conflicting-signals + insufficient-context (tq-ag-10); per-action override declarado quando criticality diverge (tq-agg-08); coherence autonomyLevel × constraints verificada (tq-ag-12); founder aprovou matrix antes de proceder à section 3."
 			ifGap:        "Se invariant não tem constraint correspondente nem rationale de exceção, gap é silencioso — declarar exceção explícita com referência ao mecanismo alternativo de enforcement OR adicionar constraint. Se mutation não tem escalation conditions cobrindo conflicting-signals/insufficient-context, agente opera com autonomia implícita ilimitada — adicionar conditions ou reduzir autonomyLevel. Se constraint sem verification mecânica, é guideline não constraint (tq-ag-04 warn) — reescrever como verifiable ou descartar. Se onViolation='log-only' para constraint regulatory, escalar ao founder — risco de violação silenciosa de obrigação legal."
 		}
 
@@ -220,6 +280,12 @@ agentSpecGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar audit trail mínimo (tq-ag-13 fail + tq-agg-04): auditTrail.requiredFields contém ≥7 minimum (timestamp, agent-id, action-code, input-summary, output-summary, decision-rationale, governance-version) + 3-4 domain-specific (refs a entities BC, IDs de transações, hashes de payload, regulatory metadata).",
 			"Verificar observability completude (tq-ag-05 warn + tq-agg-04): signals[] cobre ≥1 por category presente em actions[] (query/mutation/validation/generation/escalation). 6 codes canônicos como base; domain-specific adicionais permitidos.",
 			"Verificar context coerência (tq-ag-06 warn): cada artifact em contextRequirements.artifacts é necessário para operar sobre ≥1 building block do operationalScope. Artifact carregado sem uso é desperdício de context window.",
+			"Verificar enforcementLevel declarado per constraint (tq-agg-05 warn): cada constraints[] declara enforcementLevel ∈ {agent, runner, domain, external} no rationale ou campo dedicado. Sem isso, ambíguo quem executa a validação (agente, runner, domain, ou sistema externo).",
+			"Verificar derivedFromInvariant explicit ref per constraint (tq-agg-06 warn): cada constraints[] declara derivedFromInvariant: 'inv-XYZ' apontando para invariant existente no domain-model do BC. Default 1:1 (uma constraint deriva de uma invariant); múltiplas refs sugere split; ausência de ref sugere constraint não-de-domínio (escalar).",
+			"Verificar action impact classification (tq-agg-07 warn): cada actions[] declara impact ∈ {read-only, state-change, cross-bc, external-side-effect} no rationale ou campo dedicado. impact é ortogonal a category — duas mutations com impact distintos (state-change interno vs external-side-effect regulatory) exigem caps/escalation diferentes.",
+			"Verificar per-action escalation override (tq-agg-08 warn): se ≥1 action tem criticality marcadamente divergente do global (e.g., regulatory mutation vs internal query), envelope spec declara escalationConditionsOverride para essa action. Granularidade é exceção, não regra; over-declaração polui spec.",
+			"Verificar decision-vs-execution separation (tq-agg-09 warn): para cada action com category=mutation e impact=external-side-effect ou cross-bc, verificar split em par decide-X (output: recommendation) + execute-X (input: approved recommendation). Actions monolíticas decide+execute em mutações irreversíveis violam P10 por design — não há onde inserir human gate em propose-and-wait.",
+			"Verificar canonical test domínio-é-centro (tq-agg-10 warn): para cada invariant do domain-model do BC, identificar o enforcer real (lifecycle do aggregate? command handler? runner? agente?). Resposta esperada: invariants são enforced por aggregates/lifecycle/runner, NÃO pelo agente sozinho. Se agente é o ÚNICO enforcer de algum invariant, é red flag arquitetural — invariant deveria estar em domain-model, não em agent-spec. Teste mental: 'se remover o agente, sistema ainda protege esse invariant?'.",
 			"Executar cue vet ./contexts/{bc}/agents/ ./architecture/artifact-schemas/ — falha bloqueia avanço; corrigir sintaxe e re-executar antes de submeter ao founder.",
 			"Submeter ao founder para aprovação antes de commit.",
 		]
