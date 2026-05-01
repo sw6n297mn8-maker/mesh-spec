@@ -207,7 +207,21 @@ agentSpecGuide: artifact_schemas.#ProductionGuide & {
 
 	finalValidation: {
 		steps: [
-			"Placeholder — finalValidation steps populadas no commit 3/3.",
+			"Verificar shape: instância valida contra #AgentSpec (boundedContextRef, role, governanceRef, operationalScope, actions/constraints/escalationConditions não-vazios, contextRequirements, observability, rationale).",
+			"Verificar integridade referencial actions↔domain-model (tq-ag-01/02 + tq-agg-01): cada ref em operationalScope existe em domain-model do BC; cada actions[].domainModelRefs ⊆ operationalScope (least privilege).",
+			"Verificar canvas alignment (tq-ag-03 fail): agent code corresponde a canvas.ownership.domainAgentSpec do BC. Validação por inspeção em Phase 0; runner futuro automatiza.",
+			"Verificar invariant→constraint coverage (tq-agg-02 fail): cada invariant do domain-model do BC tem constraint correspondente em constraints[] OR rationale explícito de exceção (enforced via lifecycle / fora do escopo do agente). Coverage ratio reportado (cmt 8/8, ctr 5/7, npm 6/6 como referência).",
+			"Verificar constraints verificáveis (tq-ag-04 warn): cada constraints[].verification descreve teste mecânico — não-aspiracional. 'Runner valida X via Y' aceito; 'agente respeita X' reescrito como verifiable ou descartado.",
+			"Verificar codes únicos (tq-ag-07/08 fail): nenhum code duplicado em actions[] (act-), constraints[] (cst-), nem signals[] (sig-).",
+			"Verificar governanceRef (tq-ag-09 fail): contexts/{boundedContextRef}/agents/{governanceRef}.governance.cue existe. Em Phase 0 pre-pair, forward-ref tolerado com nota explícita; pós-creation do governance envelope, criterion vira hard fail.",
+			"Verificar escalation coherence (tq-ag-10 + tq-agg-03 fail): escalationConditions[] não-vazio; integration/validation agents com input externo incluem ≥1 entre suspicious-input/ambiguous-case; mutations declaram ≥1 entre conflicting-signals/insufficient-context. Sem isso, autonomia implícita ilimitada.",
+			"Verificar inputTrustLevel em ações com input externo (tq-ag-11 warn): mutations e validations que processam input não-interno declaram inputTrustLevel (trusted-internal / external-structured / external-untrusted-freeform).",
+			"Verificar coherence autonomyLevel × constraints (tq-ag-12 warn): flagear combinações incoerentes — execute-and-log com TODAS constraints aplicáveis log-only (agente sem freio); no-autonomous-action com constraints log-only (constraint que nunca dispara).",
+			"Verificar audit trail mínimo (tq-ag-13 fail + tq-agg-04): auditTrail.requiredFields contém ≥7 minimum (timestamp, agent-id, action-code, input-summary, output-summary, decision-rationale, governance-version) + 3-4 domain-specific (refs a entities BC, IDs de transações, hashes de payload, regulatory metadata).",
+			"Verificar observability completude (tq-ag-05 warn + tq-agg-04): signals[] cobre ≥1 por category presente em actions[] (query/mutation/validation/generation/escalation). 6 codes canônicos como base; domain-specific adicionais permitidos.",
+			"Verificar context coerência (tq-ag-06 warn): cada artifact em contextRequirements.artifacts é necessário para operar sobre ≥1 building block do operationalScope. Artifact carregado sem uso é desperdício de context window.",
+			"Executar cue vet ./contexts/{bc}/agents/ ./architecture/artifact-schemas/ — falha bloqueia avanço; corrigir sintaxe e re-executar antes de submeter ao founder.",
+			"Submeter ao founder para aprovação antes de commit.",
 		]
 	}
 }
