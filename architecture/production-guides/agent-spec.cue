@@ -84,30 +84,124 @@ agentSpecGuide: artifact_schemas.#ProductionGuide & {
 			target:    "#AgentSpec"
 			objective: "Estabelecer BC alvo, ler canvas + glossary + domain-model + 3 BCs exemplares; popular role + operationalScope (refs a domain-model) + actions[] (catalog top-level com category × autonomyLevel × inputTrustLevel matrix)."
 			process: [{
-				action: "Placeholder — populado em commit 2/3 (sections)"
-				detail: "Conteúdo desta section é materializado no próximo commit. Scaffold mantém shape mínimo válido per schema #SectionSpec (process com ≥1 step + doneCriteria ≥20 chars)."
+				action: "Localizar canvas + glossary + domain-model + governance.cue (se já existir) + 3 BCs exemplares"
+				detail: "Verificar contexts/{bc}/canvas.cue, glossary.cue e domain-model.cue existem e estão estáveis. Verificar se contexts/{bc}/agents/{bc}-primary-agent.governance.cue já existe (forward-ref permitido se ausente). Ler contexts/{cmt,ctr,npm}/agents/{bc}-primary-agent.cue como exemplares estruturais."
+			}, {
+				action: "Determinar role + alinhar com canvas.ownership.domainAgentSpec (tq-ag-03)"
+				detail: "Role default 'domain-agent' para primary agent; outros roles (integration-agent, validation-agent, observation-agent) em fases futuras. agentSpec.code DEVE corresponder a canvas.ownership.domainAgentSpec — runner valida por tq-ag-03 (fail). Divergência aciona reconciliação canvas ou correção de code."
+			}, {
+				action: "Popular operationalScope com refs ao domain-model"
+				detail: "operationalScope.aggregates obrigatório (≥1 ref a aggregates[].code do domain-model do BC). commands/events/invariants/projections opcionais conforme escopo do agente. Refs validadas por tq-ag-01 (fail) — building block inexistente é responsabilidade fantasma."
+			}, {
+				action: "Catalog actions[] com matrix category × autonomyLevel × inputTrustLevel"
+				detail: "Cada action declara: code (act- prefix); category (query/mutation/validation/generation/escalation); autonomyLevel (default 'propose-and-wait' para mutations em onboarding — Phase 0 100% supervisão); inputTrustLevel (obrigatório se action processa input externo per tq-ag-11 warn — trusted-internal/external-structured/external-untrusted-freeform); domainModelRefs ⊆ operationalScope (tq-ag-02 fail); preconditions/postconditions opcionais. Action count proporcional à complexidade do BC."
+			}, {
+				action: "Confirmar catalog inicial com founder antes de section 2"
+				detail: "Apresentar role + operationalScope + actions[] catalog (codes + categories + autonomyLevels + inputTrustLevels). Founder filtra: actions genuínas vs inventadas; autonomyLevel apropriado para Phase 0; inputTrustLevel correto para input externo. Compor catalog confirmado antes de proceder a constraints/escalation."
 			}]
-			doneCriteria: "Placeholder — finalizado no commit 2/3."
+			sources: [
+				"architecture/artifact-schemas/agent-spec.cue (#AgentSpec + 13+ tq-ag-XX)",
+				"architecture/adrs/adr-037-* (governance two-level: global + envelope)",
+				"contexts/cmt/agents/cmt-primary-agent.cue (exemplar 370 linhas, 10 actions)",
+				"contexts/ctr/agents/ctr-primary-agent.cue (exemplar 340 linhas, 8 actions)",
+				"contexts/npm/agents/npm-primary-agent.cue (exemplar 381 linhas, 12 actions)",
+				"architecture/lenses/lens-ai-agent-governance.cue (lens primária — autonomy/escalation/observability)",
+			]
+			heuristics: [
+				"Default Phase 0: 100% mutations declaradas como autonomyLevel 'propose-and-wait' — agressive supervision é o piso de onboarding; promotion a 'execute-and-log' vive em governance envelope, não em spec.",
+				"inputTrustLevel obrigatório em mutations e validations que processam input externo; queries puramente internas omitem (default implícito trusted-internal). Per tq-ag-11 warn.",
+				"Action count proporcional à complexidade do BC (cmt 10, ctr 8, npm 12). 1 action isolada é candidata a merge; >15 actions sugere split em múltiplos agentes (specialist roles em fases futuras).",
+				"estimatedBudget heurística (informacional, não enforced por schema): heavy se action requer >5 artifacts + cross-BC reads; moderate se 4-5 artifacts; light se ≤3.",
+				"6 standard signal codes recorrentes (canonicalizar): sig-mutation-executed, sig-validation-result, sig-escalation-triggered, sig-query-served, sig-supervision-requested, sig-constraint-violation. Domain-specific signals adicionais permitidos.",
+				"domainModelRefs em actions[] DEVEM ser subset de operationalScope (least privilege per tq-ag-02 fail). Action operando fora do escopo é responsabilidade não-declarada.",
+				"Forward-ref de governance: governanceRef declarado como string mesmo antes de governance.cue existir; resolução cross-file por runner via tq-ag-09 (fail post-creation). Em Phase 0, ambos os arquivos são autorados em sequência (spec → governance) ou par único.",
+				"Aggregate vs feature: action é unidade comportamental, não pasta funcional. 'act-validate-X' que apenas envelopa command 'X' é misclassified — spec deve modelar decisão do agente, não pipe-through.",
+				"Glossary alignment: action names usam linguagem da Ubiquitous Language do BC; divergência terminológica registrada como tension entry.",
+			]
+			doneCriteria: "Role identificado e alinhado com canvas.ownership.domainAgentSpec; operationalScope populado com refs válidas ao domain-model; actions[] catalog com category × autonomyLevel × inputTrustLevel × domainModelRefs declarado para cada action; founder aprovou catalog antes de proceder à section 2."
+			ifGap:        "Se canvas.ownership.domainAgentSpec não declarado ou não match com agent code proposto, postergar até canvas reconciliar (tq-ag-03 fail). Se domain-model em flux ou não aprovado, postergar — cascade ordering: actions[].domainModelRefs dependem de refs estáveis. Se action não tem domainModelRefs claro no operationalScope, é misclassified — pode ser action de outro role/agente OU pipe-through que deve ser removida. Se autonomyLevel proposto não é 'propose-and-wait' em mutations Phase 0, escalar — promotion vive em governance, não em spec."
 		}
 
 		"constraints-and-escalation": {
 			target:    "#AgentSpec"
 			objective: "Para cada invariant do domain-model, declarar constraint correspondente em constraints[] OR justificar exceção. Definir escalation conditions per role/category cobrindo conflicting-signals + insufficient-context para mutations."
 			process: [{
-				action: "Placeholder — populado em commit 2/3 (sections)"
-				detail: "Conteúdo desta section é materializado no próximo commit."
+				action: "Mapear invariants do domain-model para constraints"
+				detail: "Para cada invariant em domain-model.invariants[], declarar constraint correspondente em constraints[] OR rationale explícito de exceção (enforced via lifecycle do aggregate / fora do escopo do agente / validado por command-handler antes do agente). Empirical: cmt 8/8, npm 6/6, ctr 5/7 com 2 gaps explicados. Cobre tq-ag-08 (codes únicos) e baseline para tq-agg-02."
+			}, {
+				action: "Para cada constraint, declarar verification + onViolation + appliesToActions"
+				detail: "verification descreve teste mecânico (não-aspiracional per tq-ag-04 warn) — 'runner valida X via Y', não 'agente deve respeitar X'. onViolation: block (hard halt antes da action), escalate (envia ao supervisor), log-only (warn em audit), halt-and-revert (rollback após detect). appliesToActions lista action codes onde a constraint dispara."
+			}, {
+				action: "Definir escalationConditions[] cobrindo categories per role"
+				detail: "Mínimo: 1 condition. Per tq-ag-10 warn: integration-agent/validation-agent que processam input externo incluem ≥1 entre suspicious-input/ambiguous-case; agentes com mutations incluem ≥1 entre conflicting-signals/insufficient-context. Mutations sem essas categories operam com autonomia implícita ilimitada — viola P10."
+			}, {
+				action: "Verificar coherence autonomyLevel × constraints (tq-ag-12 warn)"
+				detail: "Combinações incoerentes: (a) action com autonomyLevel='execute-and-log' onde TODAS constraints aplicáveis têm onViolation='log-only' — agente sem freio real; (b) action com autonomyLevel='no-autonomous-action' com constraints onViolation='log-only' — constraint que nunca dispara porque humano já controla. Reportar como warn; founder decide ajuste."
+			}, {
+				action: "Confirmar constraint × escalation × action matrix com founder"
+				detail: "Apresentar tabela: invariant → constraint (com verification + onViolation) → applies to actions [act-X, act-Y]. Apresentar escalationConditions[] por category com rationale. Founder filtra: constraints aspiracionais (reescrever ou descartar); onViolation strategy desproporcional; gaps de cobertura invariant→constraint."
 			}]
-			doneCriteria: "Placeholder — finalizado no commit 2/3."
+			sources: [
+				"architecture/artifact-schemas/agent-spec.cue (#AgentConstraint, #EscalationCondition, #EscalationCategory)",
+				"contexts/{bc}/domain-model.cue (invariants[] do BC alvo — fonte de truth para constraint coverage)",
+				"contexts/cmt/agents/cmt-primary-agent.cue (8 constraints, 8 invariants — coverage 1:1)",
+				"contexts/npm/agents/npm-primary-agent.cue (6 constraints, 6 invariants — coverage 1:1)",
+				"contexts/ctr/agents/ctr-primary-agent.cue (5 constraints, 7 invariants — 2 gaps explicados via lifecycle)",
+				"architecture/design-principles.cue (P10 — agentes recomendam, gates determinísticos validam)",
+			]
+			heuristics: [
+				"Coverage 1:1 invariant→constraint é norma; exceções declaradas explicitamente no rationale do constraint OR na rationale outer do agent-spec quando enforcement é via lifecycle do aggregate.",
+				"onViolation='block' ou 'escalate' é default para constraints regulatory (Bacen, SCD, LGPD, KYC/AML) ou irreversíveis — log-only insuficiente para audit posterior.",
+				"onViolation='log-only' apenas para soft constraints onde audit posterior + correção em batch é suficiente (ex.: padrões estilísticos, métricas de qualidade não-bloqueantes).",
+				"Mutations sem escalation routing para conflicting-signals + insufficient-context são mutações cegas — agente executa apesar de incerteza estrutural; viola P10 (gates determinísticos para decisões irreversíveis).",
+				"Constraints técnicas (formato, schema, presença de campo) → onViolation=block; constraints semânticas (regulatory, business invariant) → onViolation=escalate.",
+				"verification mecânica: 'runner verifica X consultando Y' é concreto; 'agente respeita X' é guideline (tq-ag-04 warn). Reescrever guidelines como verifications testáveis.",
+				"Channel selection (governance concern, mas spec antecipa): sync se a condition bloqueia o pipeline inteiro; async se retém apenas o item específico. Documentar no rationale do escalation condition.",
+				"Recipient pre-PMF: 'founder' only — documentar como constraint da fase, não inventar abstração de routing inexistente. Per ADR-037 governance two-level.",
+			]
+			doneCriteria: "Cada invariant do domain-model tem constraint correspondente OR exceção declarada com rationale (tq-agg-02); escalationConditions cobrem categories per role + mutations declaram conflicting-signals + insufficient-context (tq-ag-10); coherence autonomyLevel × constraints verificada (tq-ag-12); founder aprovou matrix antes de proceder à section 3."
+			ifGap:        "Se invariant não tem constraint correspondente nem rationale de exceção, gap é silencioso — declarar exceção explícita com referência ao mecanismo alternativo de enforcement OR adicionar constraint. Se mutation não tem escalation conditions cobrindo conflicting-signals/insufficient-context, agente opera com autonomia implícita ilimitada — adicionar conditions ou reduzir autonomyLevel. Se constraint sem verification mecânica, é guideline não constraint (tq-ag-04 warn) — reescrever como verifiable ou descartar. Se onViolation='log-only' para constraint regulatory, escalar ao founder — risco de violação silenciosa de obrigação legal."
 		}
 
 		"context-observability-validation": {
 			target:    "#AgentSpec"
 			objective: "Definir contextRequirements (artifacts lidos pelo agente), observabilityContract (signals ≥1 por category + auditTrail ≥7 minimum + domain-specific fields). Executar tq-ag checks intra-BC + cross-canvas alignment + cue vet."
 			process: [{
-				action: "Placeholder — populado em commit 2/3 (sections)"
-				detail: "Conteúdo desta section é materializado no próximo commit."
+				action: "Declarar contextRequirements coerente com operationalScope (tq-ag-06 warn)"
+				detail: "contextRequirements.artifacts lista canvas + glossary + domain-model do BC + lenses aplicáveis + ADRs relevantes. Cada artifact deve ser necessário para operar sobre ≥1 building block do operationalScope — artifact carregado sem uso é desperdício de context window. estimatedBudget per #BudgetEstimate (heavy/moderate/light)."
+			}, {
+				action: "Declarar observability.signals — ≥1 signal por category presente em actions[] (tq-ag-05 warn)"
+				detail: "Para cada category presente em actions[] (query/mutation/validation/generation/escalation), declarar ≥1 signal com sig- prefix em observability.signals. 6 codes canônicos recorrentes: sig-mutation-executed, sig-validation-result, sig-escalation-triggered, sig-query-served, sig-supervision-requested, sig-constraint-violation. Domain-specific signals adicionais permitidos."
+			}, {
+				action: "Declarar observability.auditTrail.requiredFields ≥7 minimum + domain-specific (tq-ag-13 fail)"
+				detail: "Mínimo 7 fields per #AuditTrail._minimumAuditFields: timestamp, agent-id, action-code, input-summary, output-summary, decision-rationale, governance-version. Adicionar 3-4 domain-specific (cmt 10, ctr 11, npm 11): refs a BC entities, IDs de transações, hashes de payload, metadata regulatory. Audit trail 'reconstrutível' é o teste canônico — dado o registro, é possível reconstruir inputs + decisão + rationale + outcome?"
+			}, {
+				action: "Verificar unicidade de codes em actions[] e constraints[] (tq-ag-07/08 fail)"
+				detail: "Nenhum code duplicado em actions[] (act- prefix) nem em constraints[] (cst- prefix) nem em observability.signals[] (sig- prefix). Code duplicado quebra rastreabilidade de auditoria/governança. Conferência manual antes de cue vet."
+			}, {
+				action: "Executar cue vet ./contexts/{bc}/agents/ ./architecture/artifact-schemas/"
+				detail: "Validação de shape final. Falha aqui bloqueia avanço — corrigir sintaxe e re-executar antes de submeter ao founder."
+			}, {
+				action: "Submeter ao founder para aprovação antes de commit"
+				detail: "Apresentar agent-spec completo com sumário: BC, role, número de actions/constraints/escalation conditions/signals, autonomyLevel distribution, audit trail field count. Founder aprova antes de write."
 			}]
-			doneCriteria: "Placeholder — finalizado no commit 2/3."
+			sources: [
+				"architecture/artifact-schemas/agent-spec.cue (#ContextRequirements, #ObservabilityContract, #AuditTrail, _minimumAuditFields)",
+				"contexts/cmt/agents/cmt-primary-agent.cue (10 audit fields, 6 signals)",
+				"contexts/ctr/agents/ctr-primary-agent.cue (11 audit fields, 6 signals)",
+				"contexts/npm/agents/npm-primary-agent.cue (11 audit fields, 6 signals)",
+			]
+			heuristics: [
+				"contextRequirements coerente com operationalScope: artifact carregado sem uso no escopo é desperdício (tq-ag-06 warn). Lista enxuta — adicionar conforme necessidade emerge, não preventivamente.",
+				"7 minimum fields são o floor regulatory-grade per ADR/lens-regulatory-compliance-as-architecture; 3-4 domain-specific cobrem reconstituição de contexto BC-específico (entity IDs, transaction refs, regulatory metadata).",
+				"Audit trail 'reconstrutível' é o teste canônico: dado o registro persistido, é possível reconstituir todos os inputs + decisão tomada + rationale + outcome? Se NÃO, fields insuficientes.",
+				"estimatedBudget proporcional a artifacts + tipo de read: heavy se cross-BC + >5 artifacts; moderate se 4-5 + same-BC; light se ≤3 + same-BC. Informacional (não enforced por schema).",
+				"Forward-ref governanceRef até governance.cue existir; PG-B finaliza o pair (instance authoring de governance). tq-ag-09 (fail) só dispara após criação do envelope — Phase 0 pre-pair tolera ausência.",
+				"Signal codes domain-specific opcionais quando 6 canônicos cobrem semântica completa do BC; preferir reuse a proliferation.",
+				"cue vet recursive antes de submeter ao founder — sintaxe inválida nunca chega à revisão.",
+			]
+			doneCriteria: "contextRequirements coerente com operationalScope; signals[] cobre ≥1 por category presente em actions[] (tq-ag-05); auditTrail.requiredFields contém ≥7 mínimo + 3-4 domain-specific (tq-ag-13); codes únicos em actions[]/constraints[]/signals[] (tq-ag-07/08); cue vet limpo; founder aprovou."
+			ifGap:        "Se signal categories não cobrem actions[] categories, observability incompleta — adicionar signals (tq-ag-05 warn). Se auditTrail.requiredFields < 7 minimum, audit trail não-regulatory-grade (tq-ag-13 fail) — adicionar fields obrigatórios. Se cue vet falha, corrigir sintaxe. Se contextRequirements lista artifacts não usados pelo operationalScope, podar (tq-ag-06 warn). Se action code, constraint code ou signal code duplicado, renomear (tq-ag-07/08 fail)."
 		}
 	}
 
