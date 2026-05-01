@@ -23,6 +23,16 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // Convenção: tq-gvg-NN para critérios deste guide. Abreviação "gvg"
 // declarada na legenda canônica em architecture/artifact-schemas/
 // quality-criteria.cue (commit 8ba35b6).
+//
+// Iteração pós-founder review (sessão 2026-05-01): 5 disciplinas
+// adicionadas a partir de gaps identificados em revisão estrutural —
+// routing precedence (concorrência entre categories), automatic
+// enforcement (drift→ação direta, sem passar por calibration),
+// lifecycleStage→caps monotonicidade, failure handling de erros do
+// próprio agente, envelope-is-control-plane anti-pattern guard.
+// 5 critérios tq-gvg adicionados (tq-gvg-05/06/07/08/09 todos warn —
+// heuristic-level, não enforced por schema; alinhamento com "no
+// guide, não precisa schema ainda").
 
 agentGovernanceGuide: artifact_schemas.#ProductionGuide & {
 
@@ -62,8 +72,38 @@ agentGovernanceGuide: artifact_schemas.#ProductionGuide & {
 			test:        "Process da section bidirectional-validation declara passo de cruzar autonomyOverrides[].overrideLevel × agent-spec actions[].category. Nenhum override concede execute-and-log a action cuja category é 'mutation'. Cobre tq-gv-14 (fail) do schema."
 			severity:    "fail"
 			rationale:   "P10: agentes recomendam, gates determinísticos validam. Mutation com execute-and-log via override viola P10 mesmo que spec declare propose-and-wait — override seria backdoor para autonomia ilimitada em decisões irreversíveis."
+		}, {
+			id:          "tq-gvg-05"
+			description: "Guide enforça routing precedence quando categories concorrem"
+			test:        "Heuristics da section routing-and-blast-radius declara precedência canônica entre categories quando múltiplas categories podem disparar simultaneamente (e.g., conflicting-signals + suspicious-input em mesma action). Precedência: blocking > non-blocking; mutation-related > informational; explicit route > fallback. Verificado por inspeção do envelope quando spec tem ≥2 categories que podem coexistir."
+			severity:    "warn"
+			rationale:   "Sem precedência declarada, múltiplas categories simultâneas geram routing ambíguo — qual rota dispara primeiro fica implícito ao runner, criando comportamento não-determinístico. Heuristic-level: schema não enforça hoje; PG documenta precedência canônica."
+		}, {
+			id:          "tq-gvg-06"
+			description: "Guide enforça automatic enforcement (drift → ação direta sem calibration)"
+			test:        "Heuristics da section drift-and-calibration distingue 3 camadas: detecção (driftDetection.metrics), adaptação (calibration), contenção automática (immediate system action ligada a thresholds críticos sem passar por calibration humana — e.g., escalation rate > X → throttle automático; audit completeness < Y → block). Envelope declara ≥1 binding direto drift→action quando aplicável."
+			severity:    "warn"
+			rationale:   "Drift detection sem ação automática direta é detecção sem contenção — métricas degradam até calibration humana intervir, criando janela de risco. Separação detecção/adaptação/contenção transforma governance em sistema dinâmico, não apenas estático. Heuristic-level: schema não modela como first-class hoje."
+		}, {
+			id:          "tq-gvg-07"
+			description: "Guide enforça caps proporcionais ao lifecycleStage (monotonicidade)"
+			test:        "Heuristics da section routing-and-blast-radius declara: blastRadiusCaps DEVEM ser função monotônica (não-decrescente) do lifecycleStage. Faixas canônicas: onboarding 1-2 concurrent / 20-50 daily; validation 2-3 / 30-70; operational 3-5 / 50-100; mature 4-8 / 80-150. Envelope com lifecycleStage='onboarding' e caps de 'mature' é incoerente (warn)."
+			severity:    "warn"
+			rationale:   "lifecycleStage e caps são acoplados na prática mas declarados em campos separados — sem heuristic explícita, autor pode declarar onboarding com caps de production, contradizendo a semântica de progressão. Heuristic-level: schema não cruza os campos hoje."
+		}, {
+			id:          "tq-gvg-08"
+			description: "Guide enforça declaração de failureHandling para erros do próprio agente"
+			test:        "Heuristics da section drift-and-calibration declara block dedicado failureHandling cobrindo: onAgentError (default 'pause-and-review'), onTimeout (default 'retry-then-escalate'), onRepeatedFailure (default 'suspend-and-escalate'). Envelope documenta failureHandling como tech debt explícita quando schema ainda não suporta como first-class field."
+			severity:    "warn"
+			rationale:   "Drift cobre desvio comportamental; escalation cobre incerteza; overrides cobrem calibração — mas falha do próprio agente (timeout, erro sistemático, comportamento não-determinístico) não tem cobertura explícita. Sistema robusto contra erro da própria IA exige failure handling declarado. Heuristic-level até schema ganhar field dedicado."
+		}, {
+			id:          "tq-gvg-09"
+			description: "Guide enforça envelope is control plane, not business logic (anti-pattern guard)"
+			test:        "Heuristics da section bidirectional-validation declara: envelope contém APENAS routing + caps + calibration + drift + lifecycle (control plane); NÃO contém regras de domínio (business logic). Sintomas de violação: route com condition que avalia conteúdo de payload do action; calibration metric específica de outcome de domínio; cap diferente por tipo de aggregate. Verificado por inspeção do rationale e structure."
+			severity:    "warn"
+			rationale:   "Envelope absorvendo business logic distorce ADR-037 (separation of concerns spec/envelope) — domain rules viram governança paralela à do agent-spec, criando dois pontos de verdade para a mesma decisão. Sintomas começam silenciosamente; documentar como anti-pattern guard previne drift."
 		}]
-		rationale: "4 critérios cobrem disciplinas core para autoria de envelope: bidirectional ref (tq-gvg-01) como fundação ADR-037, escalation routing coverage (tq-gvg-02), calibration measurable (tq-gvg-03), P10 enforcement em overrides (tq-gvg-04). Scope é disciplinas que protocol enforce via process; cobertura completa dos 10 tq-gv-XX para envelope (tq-gv-06..15) vive em finalValidation.steps."
+		rationale: "9 critérios cobrem disciplinas core para autoria de envelope: bidirectional ref (tq-gvg-01) como fundação ADR-037, escalation routing coverage (tq-gvg-02), calibration measurable (tq-gvg-03), P10 enforcement em overrides (tq-gvg-04), routing precedence (tq-gvg-05), automatic enforcement drift→action (tq-gvg-06), lifecycleStage×caps monotonicidade (tq-gvg-07), failure handling do próprio agente (tq-gvg-08), envelope-is-control-plane anti-pattern guard (tq-gvg-09). Critérios 01-04 derivam de tq-gv-XX do schema; 05-09 derivam de revisão estrutural pós-PG-B (sessão 2026-05-01) — todos warn por enquanto, heuristic-level até schema absorver. Cobertura completa dos 10 tq-gv-XX para envelope (tq-gv-06..15) vive em finalValidation.steps."
 	}
 
 	prerequisites: {
@@ -124,8 +164,11 @@ agentGovernanceGuide: artifact_schemas.#ProductionGuide & {
 				"Categories canônicas a cobrir (per agent-spec patterns): conflicting-signals, insufficient-context, out-of-scope, ambiguous-case, suspicious-input, unclassifiable-anomaly. Routing exhaustivo é norma; gaps documentam fallback global.",
 				"Forward-ref governanceGlobalVersion '0.1' é canônico Phase 0 (CMT header documenta); upgrade a '1.0' quando architecture/agent-governance.cue for materializado e versão estiver alinhada.",
 				"lifecycleStage Phase 0 sempre 'onboarding' — promoção a validation/operational/mature via calibration declarada (section 2), não autoria de novo arquivo.",
+				"Routing precedence (tq-gvg-05): quando múltiplas categories podem disparar simultaneamente em uma mesma action, declarar precedência canônica no rationale do envelope. Hierarquia: (1) blocking > non-blocking (alert-and-block precede alert-and-continue); (2) mutation-related > informational (categories ligadas a mutation precedem categories ligadas a query/observation); (3) explicit route > fallback (route declarada precede global categoryDefaults). Sem precedência, runner escolha é não-determinística.",
+				"lifecycleStage × caps monotonicidade (tq-gvg-07): blastRadiusCaps DEVEM ser função monotônica (não-decrescente) do lifecycleStage. Faixas canônicas: onboarding 1-2 concurrent / 20-50 daily; validation 2-3 / 30-70; operational 3-5 / 50-100; mature 4-8 / 80-150. Envelope onboarding com caps de mature é incoerente — promotion vive em calibration, não em autoria inicial inflada.",
+				"Envelope is control plane, not business logic (tq-gvg-09): envelope contém APENAS routing + caps + calibration + drift + lifecycle. Sintomas de violação: route com condition avaliando payload do action (pertence ao spec); cap diferente por tipo de aggregate (business rule vazada); SLA específico por outcome de domínio. Domain rules vivem em agent-spec.constraints[] / domain-model.invariants[]; envelope governa, não decide negócio.",
 			]
-			doneCriteria: "agentRef + governanceGlobalVersion + lifecycleStage declarados; cada category em agent-spec.escalationConditions[] tem escalationRouting correspondente OR rationale explícito de fallback global; blastRadiusCaps proporcionais à criticidade BC + sanity check daily ≥ concurrent; founder aprovou routing matrix antes de proceder à section 2."
+			doneCriteria: "agentRef + governanceGlobalVersion + lifecycleStage declarados; cada category em agent-spec.escalationConditions[] tem escalationRouting correspondente OR rationale explícito de fallback global; blastRadiusCaps proporcionais à criticidade BC + sanity check daily ≥ concurrent + monotonicidade vs lifecycleStage (tq-gvg-07); precedência declarada quando categories podem coexistir (tq-gvg-05); envelope contém apenas control plane (tq-gvg-09); founder aprovou routing matrix antes de proceder à section 2."
 			ifGap:        "Se agent-spec não aprovado/committed, postergar (cascade ordering: tq-gv-06 fail). Se categoria do spec não tem route declarado nem fallback explícito documentado, gap é silencioso — adicionar route ou referência a global categoryDefaults. Se caps excedem teto global (post-creation), ajustar (tq-gv-09 fail). Se lifecycleStage diferente de 'onboarding' em Phase 0, escalar ao founder — promotion vive em calibration, não em autoria inicial. Se SLA description vaga, reescrever como concreta."
 		}
 
@@ -163,8 +206,10 @@ agentGovernanceGuide: artifact_schemas.#ProductionGuide & {
 				"immediateAction enum em regressionTriggers (#ImmediateAction): suspend-and-escalate (boundary violation; tolerance-zero); reduce-autonomy (drift; gradual); pause-and-review (anomaly; investigatório).",
 				"Calibration reconstrutível como teste canônico: dado o registro de actions + outcomes, runner deriva promotion/regression sem inspect manual; se requer judgment humano, métricas insuficientes.",
 				"Métricas qualitativas ('quando estiver pronto', 'quando confiável') falham tq-gv-10 — reescrever como quantitativas ou descartar do envelope.",
+				"Automatic enforcement (tq-gvg-06): governance opera em 3 camadas distintas — detecção (driftDetection.metrics observa), adaptação (calibration ajusta autonomyLevel via promotion/regression), contenção automática (immediate system action ligada a thresholds críticos sem passar por humano). Bindings canônicos drift→action: escalation rate > threshold → throttle automático; audit completeness < threshold → block; cap breach → reduce-autonomy imediato. Declarar ≥1 binding direto quando spec tem actions com input externo ou mutations regulatory; sem isso, drift detectado degrada até calibration humana intervir (janela de risco aberta).",
+				"Failure handling (tq-gvg-08): drift cobre desvio comportamental; escalation cobre incerteza; overrides cobrem calibração — mas falha do próprio agente exige cobertura explícita. Block dedicado no envelope (tech debt declarada até schema absorver): onAgentError → 'pause-and-review' (default); onTimeout → 'retry-then-escalate' (default; max 1 retry); onRepeatedFailure → 'suspend-and-escalate' (default; threshold N falhas em janela M). Sistema robusto contra erro da própria IA é precondição de operação Mesh — agente não-determinístico sem failure handling é risco sistêmico.",
 			]
-			doneCriteria: "driftDetection.cadence + métricas mensuráveis (baseline + threshold) declaradas; calibration.promotionCriteria com volume + period + approval-rate; regressionTriggers com immediateAction enum + tolerance-zero para boundary violations; calibration reconstrutível verificada; founder aprovou thresholds antes de section 3."
+			doneCriteria: "driftDetection.cadence + métricas mensuráveis (baseline + threshold) declaradas; calibration.promotionCriteria com volume + period + approval-rate; regressionTriggers com immediateAction enum + tolerance-zero para boundary violations; calibration reconstrutível verificada; ≥1 automatic enforcement binding drift→action declarado quando aplicável (tq-gvg-06); failureHandling block declarado cobrindo onAgentError/onTimeout/onRepeatedFailure (tq-gvg-08); founder aprovou thresholds antes de section 3."
 			ifGap:        "Se métrica qualitativa, reescrever como quantitativa ou descartar (tq-gv-10 / tq-gvg-03 warn). Se promotionCriteria sem período declarado, agente promove sem track record adequado — adicionar minimumObservationPeriod. Se regressionTriggers sem immediateAction, governance não tem ação automática — adicionar enum. Se boundary violation com tolerance > 0, escalar ao founder (P10 violation: gates determinísticos exigem tolerance-zero). Se métricas não permitem reconstituição programática, expandir cobertura ou repensar promoção."
 		}
 
@@ -222,6 +267,11 @@ agentGovernanceGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar P10 em autonomyOverrides (tq-gv-14 + tq-gvg-04 fail): nenhum override concede overrideLevel='execute-and-log' a action cuja agent-spec.actions[].category é 'mutation'. Backdoor para autonomia ilimitada em decisões irreversíveis viola P10 unconditional.",
 			"Verificar governanceGlobalVersion match (tq-gv-12 warn): governanceGlobalVersion == architecture/agent-governance.cue version. Em Phase 0 sem global materializado, '0.1' forward-ref tolerado; warn ativa post-global quando versão divergir.",
 			"Verificar envelope unicity per agentRef (tq-gv-15 fail): scan contexts/{bc}/agents/ por arquivos .governance.cue; máximo 1 envelope com mesmo agentRef. Múltiplos envelopes criam ambiguidade indeterminada de governança.",
+			"Verificar routing precedence quando categories concorrem (tq-gvg-05 warn): se spec tem ≥2 categories que podem disparar simultaneamente em mesma action, envelope declara precedência canônica no rationale (blocking > non-blocking; mutation-related > informational; explicit route > fallback). Sem isso, runner choice é não-determinística.",
+			"Verificar automatic enforcement bindings drift→action (tq-gvg-06 warn): envelope declara ≥1 binding drift→immediate-action (e.g., escalation rate > threshold → throttle; audit completeness < threshold → block) quando spec tem actions com input externo ou mutations regulatory. Sem isso, drift detected degrada até calibration humana intervir.",
+			"Verificar caps × lifecycleStage monotonicidade (tq-gvg-07 warn): blastRadiusCaps dentro das faixas canônicas para o lifecycleStage declarado (onboarding 1-2/20-50; validation 2-3/30-70; operational 3-5/50-100; mature 4-8/80-150). Envelope incoerente (e.g., onboarding com caps de mature) escalado.",
+			"Verificar failureHandling declarado (tq-gvg-08 warn): envelope contém block failureHandling cobrindo onAgentError + onTimeout + onRepeatedFailure (mesmo como tech debt declarada até schema absorver como first-class). Sem isso, sistema vulnerável a erro da própria IA.",
+			"Verificar envelope-is-control-plane anti-pattern guard (tq-gvg-09 warn): envelope contém apenas routing + caps + calibration + drift + lifecycle (control plane). Sintomas de violação flagged: route com condition avaliando payload (business logic vazada); cap diferente por tipo de aggregate; SLA específico por outcome de domínio. Domain rules pertencem a spec/domain-model, não envelope.",
 			"Executar cue vet ./contexts/{bc}/agents/ ./architecture/artifact-schemas/ recursive — falha bloqueia avanço; corrigir sintaxe e re-executar antes de submeter ao founder.",
 			"Submeter ao founder para aprovação antes de commit.",
 		]
