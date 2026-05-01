@@ -25,6 +25,15 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // policy, stateless aggregate test, technical invariant admission,
 // naming quality, post-edit consistency check. 4 critérios tq-dmg
 // adicionados (tq-dmg-05/06/07/08) cobrindo dimensões testáveis.
+//
+// Iteração pós-adr-055 (mesma sessão): cross-aggregate state
+// dependency formalizada como first-class field em #Invariant
+// (#CrossAggregateStateDependency + #AccessVia). Heuristic +
+// critério tq-dmg-09 + finalValidation step adicionados para
+// guiar autores a declarar dependsOnAggregateState em vez de
+// só prose. Empirical: 4 de 27 invariants em mesh-spec hoje
+// são cross-aggregate (~15%); todas migradas em commit
+// subsequente de instantiation.
 
 domainModelGuide: artifact_schemas.#ProductionGuide & {
 
@@ -88,8 +97,14 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 			test:        "Heuristics e process da section aggregates-and-wiring exigem: aggregate com lifecycle declara fields suficientes para discriminar state vigente E timestamps de transição auditáveis. Heurística operacional: para cada state com semântica de outcome (verified, rejected, revoked), aggregate.fields[] inclui timestamp correspondente (verifiedAt, rejectedAt, revokedAt) salvo se rationale explicar omissão. Verificado por inspeção."
 			severity:    "warn"
 			rationale:   "Fields ausentes para states declarados produz audit trail incompleto downstream — projection que precisa reconstituir 'quando foi rejeitada?' não tem fonte. IDC authoring revelou: state rejected foi adicionado sem rejectedAt; agg-evidence-cryptography ficou sem fields apesar de persistir ledger."
+		}, {
+			id:          "tq-dmg-09"
+			description: "Guide enforça declaração de cross-aggregate state dependency"
+			test:        "Heuristic da section context-and-behavior-first-catalog exige: para cada invariant cuja regra ou rationale referencia state de aggregate diferente do protetor, declarar dependsOnAggregateState (com aggregateRef + accessVia) em vez de só prose. Granularidade per-invariant — não declarar no aggregate. 4 instâncias canônicas pós-adr-055 servem de exemplar (CMT inv-terms-reference-valid, CTR inv-valid-participant-qualification, IDC inv-signature-requires-active-identity, NPM inv-approval-requires-identity-verification). Verificado por inspeção."
+			severity:    "warn"
+			rationale:   "Sem declaração estrutural, dependência fica em prose e structural-check tq-dm-17 não pode validar. Empirical: 4 de 27 invariants em mesh-spec hoje (~15%) são cross-aggregate. Per adr-055."
 		}]
-		rationale: "8 critérios cobrem disciplinas core para autoria de domain-model: integridade referencial catalog↔aggregates (tq-dmg-01), behavior-first ordering (tq-dmg-02), lifecycle válido (tq-dmg-03), glossary alignment (tq-dmg-04), lifecycle reachability (tq-dmg-05), outcome split em commands (tq-dmg-06), stateless aggregate justification (tq-dmg-07), fields-states consistency (tq-dmg-08). Scope é disciplinas que protocol enforce via process; cobertura completa dos 16+ tq-dm-XX do schema vive em finalValidation.steps. Critérios 05-08 derivam de gaps revelados durante authoring de IDC (commit 14063de)."
+		rationale: "9 critérios cobrem disciplinas core para autoria de domain-model: integridade referencial catalog↔aggregates (tq-dmg-01), behavior-first ordering (tq-dmg-02), lifecycle válido (tq-dmg-03), glossary alignment (tq-dmg-04), lifecycle reachability (tq-dmg-05), outcome split em commands (tq-dmg-06), stateless aggregate justification (tq-dmg-07), fields-states consistency (tq-dmg-08), cross-aggregate state dependency declaration (tq-dmg-09). Scope é disciplinas que protocol enforce via process; cobertura completa dos 17+ tq-dm-XX do schema vive em finalValidation.steps. Critérios 05-08 derivam de gaps revelados durante authoring de IDC (commit 14063de). Critério 09 deriva de adr-055 (cross-aggregate state dependency first-class)."
 	}
 
 	prerequisites: {
@@ -135,7 +150,7 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 				detail: "Apresentar catalog: lista de events/commands/invariants/value-objects nomeados + 1-line de cada. Founder filtra: quais são genuínos do domínio, quais são técnicos (não-domain), quais são duplicatas. Compor catalog confirmado antes de section 2."
 			}]
 			sources: [
-				"architecture/artifact-schemas/domain-model.cue (schema #DomainModel + 16+ tq-dm-XX)",
+				"architecture/artifact-schemas/domain-model.cue (schema #DomainModel + 17+ tq-dm-XX)",
 				"architecture/production-guides/glossary.cue (production-guide irmão; glossary precede domain-model em phasing)",
 				"contexts/cmt/domain-model.cue (exemplo completo, 647 linhas; lifecycle exaustivo de 10 transitions)",
 				"contexts/ctr/domain-model.cue (exemplo, 551 linhas; nested entity + lineage VO)",
@@ -154,6 +169,7 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 				"Published event semantics: published event tem semântica inequívoca para consumers externos. Se consumer precisaria inspecionar payload para saber se avançou, rejeitou ou invalidou, dividir em events distintos. Heurística do produtor responsável.",
 				"Technical invariant admission: invariant técnica (criptográfica, de armazenamento, de protocolo) só entra no domain model quando é garantia de domínio exposta a outros BCs ou contrato operacional do BC. Caso contrário, mover para architecture/security policy. Quando admitida, rationale explicita por que é garantia de domínio (capability declarada no canvas, dependência de consumer cross-BC).",
 				"Naming quality: names e codes em inglês usam termo idiomático válido. Palavra duvidosa ou tradução literal (ex.: 'vigent' como tradução de 'vigente') checar contra glossary ou substituir por termo canônico antes de canonização. Evitar adjetivos que parecem termos técnicos mas não são (false-cognate risk).",
+				"Cross-aggregate state dependency: para cada invariant, perguntar 'depende de state de aggregate além do protetor?'. Se sim, declarar dependsOnAggregateState com aggregateRef + accessVia (kind='projection' + projectionRef para intra-BC; kind='sync-query' + canvasQuerySurface PascalCase para cross-BC) em vez de só prose. Granularidade per-invariant — NÃO declarar no aggregate (super-estima a dependência: empirical max 25% das invariants de um aggregate são cross-aggregate). Cobre tq-dm-17 fail. Per adr-055.",
 			]
 			doneCriteria: "BC identificado com canvas estável; glossary do BC consultado se existir; events identificados de origem clara no canvas; commands derivados; invariants enumerados; value-objects catalog (opcional); founder confirmou catalog."
 			ifGap:        "Se canvas em flux ativo, postergar (domain-model precede stability do canvas é receita para retrabalho). Se events não emergem do canvas (canvas é puramente abstrato), pedir founder esclarecimento — domain-model sem origem em canvas é fabricação."
@@ -255,6 +271,7 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar refs de policies/projections/services/modules (tq-dm-05/06/09/10): triggeredByEvent, issuesCommand, guards, consumesEvents, orchestrates, aggregateRefs todos resolvendo; aggregates não em múltiplos modules.",
 			"Verificar lifecycle (tq-dm-07/08 + tq-dmg-03): para cada aggregate com lifecycle, transitions referenciam cmd/evt/inv existentes; from/to/initialState existem em states[].",
 			"Verificar lifecycle reachability (tq-dmg-05): cada state em lifecycle.states[] é initialState ou alvo de ≥1 transition; cada state tem ≥1 transition de saída ou rationale explícito (terminal por design / branch sem saída modelada com referência a deferral).",
+			"Verificar cross-aggregate state dependency (tq-dm-17 + tq-dmg-09): para cada invariant com dependsOnAggregateState, refs intra-BC resolvem (aggregateRef em aggregates[].code; quando accessVia.kind='projection', projectionRef em projections[].code); cross-BC (boundedContextRef presente) ficam para runner cross-file (Phase 0 inspeção visual + canvas alignment manual). Invariants cuja rule/rationale referencia state externo mas não declaram dependsOnAggregateState recebem warn (tq-dmg-09).",
 			"Verificar fields-states consistency (tq-dmg-08 warn): aggregate.fields[] declara timestamp para cada state com semântica de outcome (verified/rejected/revoked/...) salvo se rationale justificar omissão; aggregates sem lifecycle têm fields persistentes que sustentam ledger/registry.",
 			"Verificar stateless aggregate justification (tq-dmg-07): aggregate sem lifecycle tem rationale identificando estado persistente mínimo (idempotency ledger / uniqueness registry / audit record / invariant compartilhado) que justifica classificação como aggregate; sem isso, reclassificar como domain service.",
 			"Verificar outcome split em commands published (tq-dmg-06): para cada command que pode produzir outcomes semanticamente distintos cujos events resultantes são published, verificar que events são separados (não payload polimórfico em event único).",
