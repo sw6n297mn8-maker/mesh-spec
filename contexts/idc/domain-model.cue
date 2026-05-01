@@ -112,7 +112,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		code: "inv-signature-requires-active-identity"
 		name: "Signature Requires Active Identity"
 		rule: "Assinatura DSSE NUNCA é emitida sem identidade signatária em estado ativo (verificada e não-revogada); estados unverified, rejected e revoked são considerados não-vigentes para efeitos de assinatura."
-		rationale: "Gate determinístico (2) per canvas autonomousDecisions sign-evidence. Estado ativo é definido como exclusivamente 'verified' no lifecycle do agg-organizational-identity; rejected, unverified e revoked são explicitamente excluídos como não-vigentes. Em Phase 0 antes de oq-idc-1 resolver, sustentado por configuração operacional + escalation sign-evidence-gap. Pós-oq-idc-1 vira gate por construção."
+		rationale: "Gate determinístico (2) per canvas autonomousDecisions sign-evidence. Estado ativo é definido como exclusivamente 'verified' no lifecycle do agg-organizational-identity; rejected, unverified e revoked são explicitamente excluídos como não-vigentes. Dependência cross-aggregate: invariant é protected por agg-evidence-cryptography mas depende de state vigente em agg-organizational-identity (acoplamento read-only via projection prj-identity-verification-status; agg-evidence-cryptography NÃO muta state de identidade). Schema #DomainModel não modela cross-aggregate state-dependency como first-class — relação vive aqui no rationale e na heuristic de protected-invariant. Em Phase 0 antes de oq-idc-1 resolver, sustentado por configuração operacional + escalation sign-evidence-gap. Pós-oq-idc-1 vira gate por construção."
 	}, {
 		code: "inv-cas-content-immutability"
 		name: "CAS Content Immutability"
@@ -133,6 +133,16 @@ domainModel: artifact_schemas.#DomainModel & {
 	// =============================================
 	// VALUE OBJECTS (catalog top-level)
 	// =============================================
+	//
+	// Convenção de list types: campos com kind "domain-type" cujo type
+	// termina em "List" denotam coleção do value-object correspondente
+	// removido o sufixo (ex.: VerificationSourceList = coleção de
+	// VerificationSourceReference; DsseSignatureList = coleção de
+	// DsseSignature; ContentHashList = coleção de ContentHash).
+	// Workaround para #DomainField não suportar kind "array" hoje;
+	// nomes preservam rastreabilidade ao VO singular catalogado.
+	// Quando o schema ganhar array kind, migrar para representação
+	// nativa em commit dedicado.
 
 	valueObjects: [{
 		code:        "vo-cnpj-identifier"
@@ -275,6 +285,10 @@ domainModel: artifact_schemas.#DomainModel & {
 			type: "datetime"
 		}, {
 			kind: "primitive"
+			name: "rejectedAt"
+			type: "datetime"
+		}, {
+			kind: "primitive"
 			name: "revokedAt"
 			type: "datetime"
 		}]
@@ -331,7 +345,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "agg-evidence-cryptography"
 		name:        "EvidenceCryptography"
-		description: "Aggregate de operações criptográficas (assinatura DSSE + geração de Merkle proof). Cada operação é uma transação atômica identificada por signingOperationId; idempotente por construção (mesma tupla retorna mesma assinatura). Aggregate é stateless em sentido tradicional — não tem state machine — mas agrupa commands que compartilham invariants criptográficas e dependem de Identidade Organizacional vigente."
+		description: "Aggregate de operações criptográficas (assinatura DSSE + geração de Merkle proof). Cada operação é uma transação atômica identificada por signingOperationId; idempotente por construção (mesma tupla retorna mesma assinatura). Aggregate é stateless em sentido tradicional — não tem state machine — mas persiste ledger/idempotency record que sustenta inv-signature-idempotency e audit trail criptográfico."
 		rootIdentity: {
 			field: "signingOperationId"
 			type: {
@@ -339,6 +353,31 @@ domainModel: artifact_schemas.#DomainModel & {
 				type: "string"
 			}
 		}
+		fields: [{
+			kind: "primitive"
+			name: "evidenceClass"
+			type: "string"
+		}, {
+			kind:           "value-object-ref"
+			name:           "contentHash"
+			valueObjectRef: "vo-content-hash"
+		}, {
+			kind:           "value-object-ref"
+			name:           "signerCnpj"
+			valueObjectRef: "vo-cnpj-identifier"
+		}, {
+			kind:           "value-object-ref"
+			name:           "dsseEnvelope"
+			valueObjectRef: "vo-dsse-envelope"
+		}, {
+			kind: "primitive"
+			name: "requestingBoundedContext"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "signedAt"
+			type: "datetime"
+		}]
 		handlesCommands: [
 			"cmd-sign-evidence",
 			"cmd-generate-integrity-proof",
