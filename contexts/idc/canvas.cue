@@ -680,7 +680,7 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	ownership: {
-		domainAgentSpec: "contexts/idc/agent-spec.cue"
+		domainAgentSpec: "contexts/idc/agents/idc-primary-agent.cue"
 		governanceScope: {
 			autonomousDecisions: [{
 				id:          "execute-identity-verification"
