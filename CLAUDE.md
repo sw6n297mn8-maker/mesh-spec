@@ -220,6 +220,18 @@ com mode "manual": agente segue authoring manual aplicando o
 meta-guide (architecture/production-guides/production-guide.cue)
 ou production-guide específico do tipo quando existir.
 
+Pré-condição de instância (cascade ordering): production-guide
+para schema X deve existir antes de authoring de qualquer
+instância de X. Antes de criar instância de artifactType com
+schema em architecture/artifact-schemas/, o agente verifica
+que architecture/production-guides/{type}.cue existe. Se
+ausente: cria PG primeiro (manual em Phase 0; via dispatch
+em Phase 1+ quando type registrado em rollout) e aguarda
+founder approval do PG antes de proceder à instância. Regra
+deriva de adr-053 universal coverage + adr-054 decision
+item 13. Recursão aplica se a instância também é registrada
+para subagent-drafted authoring.
+
 Phase 0: schema #AuthoringPolicy e instância authoringPolicy
 materializadas; primeira execução real de subagent dispatch
 para authoring ocorre após WI-069 (implementação de Phase 1).

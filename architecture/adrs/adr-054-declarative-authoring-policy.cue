@@ -143,6 +143,24 @@ adr054: artifact_schemas.#ADR & {
 		sections) são judgment do main agent + founder, não do
 		subagent. Subagent applies protocol; main agent + founder
 		define escopo.
+
+		(13) CASCADE ORDERING — production-guide para schema X é
+		pré-condição para authoring de qualquer instância de X. Antes
+		de criar instância de artifactType com schema em
+		architecture/artifact-schemas/, o agente verifica se
+		architecture/production-guides/{type}.cue existe. Se ausente:
+		Phase 0 — agente cria PG manualmente aplicando meta-guide
+		ANTES de criar a instância; founder review do PG é gate antes
+		de proceder à instância.
+		Phase 1+ (após WI-069) — se artifactType registrado em
+		authoring-policy.cue rollout com mode subagent-drafted, agente
+		dispatcha authoring subagent para o PG primeiro; aguarda PG ser
+		aprovado pelo founder; depois cria a instância (que pode ela
+		mesma ser dispatched se também registrada). Recursão aplica.
+		Regra deriva de adr-053 universal coverage rule (todo schema
+		instanciável tem PG) + adr-054 dispatch declarativo (PG é tipo
+		registrado em authoring-policy.cue). Cascade torna a
+		derivação explícita e operacionalmente enforced.
 		"""
 	consequences: """
 		Positivas:
@@ -270,6 +288,8 @@ adr054: artifact_schemas.#ADR & {
 		Relação com adr-053: adr-053 estabelece a regra (todo schema
 		instanciável tem PG); adr-054 estabelece o método de criar os
 		PGs em escala. adr-053 cria a obrigação; adr-054 viabiliza o
-		cumprimento.
+		cumprimento. Decision item 13 (cascade ordering) torna a
+		derivação operacional explícita: PG antes de instância,
+		recursivamente.
 		"""
 }
