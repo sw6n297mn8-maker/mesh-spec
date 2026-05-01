@@ -23,6 +23,24 @@ import (
 // tekton-spec/portfolio/production-guides/ (evita coupling com auster);
 // package, variable name, canonicalPathRegex e quality criteria preservados.
 // Materializado em 3 commits sequenciais (scaffold → sections → finalValidation).
+//
+// Iteração pós-PG-A/PG-B founder reviews (sessão 2026-05-01): 6 disciplinas
+// generalizadas adicionadas a partir de gaps identificados em revisão de
+// PG-A (tq-agg-05..10) — enforcement owner declarado, derived→source ref
+// explícita, impact classification ortogonal a category, default+override
+// granularity articulada, decide-vs-execute separation em units of work
+// irreversíveis, canonical removal test universal. 6 critérios tq-mg
+// adicionados (tq-mg-05..10 todos warn) representando as disciplinas no
+// nível meta — futuros PGs (lens, adr-pg, structural-check-pg, ~18+
+// pendentes) já saem com essas distinções por construção, sem depender de
+// founder review post-hoc para descobri-las.
+//
+// Diagnóstico capturado: PGs existentes (domain-model, glossary, agent-
+// spec, agent-governance) acumularam disciplinas via review iterativa.
+// Lifting disciplinas ao meta-PG é o ponto de inflexão que muda autoria
+// de "descoberta post-hoc" para "default-by-construction". PGs já
+// autorados ficam intocados — reconciliação via change-on-touch quando
+// receberem amendments futuros, não como refactor proativo.
 
 productionGuideGuide: artifact_schemas.#ProductionGuide & {
 
@@ -62,8 +80,44 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 			test:        "gapPolicy declara explicitamente comportamento anti-invenção (contém substring 'NÃO invent' ou 'NÃO infer' ou equivalente direto). E heuristics em pelo menos 1 section reforça o princípio. Inspeção determinística por presença de cláusula proibitiva."
 			severity:    "fail"
 			rationale:   "tq-pg-04 advisory requer gapPolicy substantiva; meta-guide eleva a fail para forçar disciplina anti-fabulação. Sem cláusula proibitiva explícita, agente preenche por analogia ou inferência heurística — fonte primária de drift."
+		}, {
+			id:          "tq-mg-05"
+			description: "Guide força enforcement owner declarado quando instância carrega rule/constraint/check"
+			test:        "Quando schema alvo do guide define elementos do tipo rule/constraint/check (ex.: agent-spec.constraints[], structural-check rules, validation-prompt assertions), guide produz heuristics OR critério dedicado exigindo que cada rule declare WHERE é enforced — agent (in-line), runner (deterministic gate pós-submission), domain (via aggregate/lifecycle), external (sistema externo). Heuristic-level até schema absorver como first-class. Verificado por inspeção quando schema alvo qualifica."
+			severity:    "warn"
+			rationale:   "Sem enforcement owner declarado, rule vira ambígua — duplicação (vários enforcers da mesma regra), gap (ninguém valida), drift (validação muda silenciosamente) tornam-se inevitáveis. Generalização de tq-agg-05 (enforcementLevel per constraint) descoberta via PG-A founder review; pattern aplica a todo schema com elementos rule-bearing."
+		}, {
+			id:          "tq-mg-06"
+			description: "Guide força ref explícita de derived→source quando instância carrega elementos derivados"
+			test:        "Quando schema alvo declara elementos que derivam de outro artefato (ex.: agent-spec.constraints derivam de domain-model.invariants; structural-checks derivam de ADRs; validation-prompts derivam de quality-criteria), guide produz heuristics OR critério dedicado exigindo ref explícita do elemento derivado a sua origem (e.g., derivedFromInvariant: 'inv-XYZ'). Default 1:1 — múltiplas refs sugere split. Verificado por inspeção quando schema alvo qualifica."
+			severity:    "warn"
+			rationale:   "Sem ref estruturada, coverage derived↔source vive em prosa — runner futuro não consegue validar coverage automaticamente nem detectar drift quando source é renomeado/removido. Generalização de tq-agg-06 (derivedFromInvariant). Aligns com adr-055 pattern (cross-aggregate-state-dependency como first-class)."
+		}, {
+			id:          "tq-mg-07"
+			description: "Guide força impact classification ortogonal a category quando instância carrega elementos operacionais"
+			test:        "Quando schema alvo declara elementos operacionais (ex.: agent-spec.actions, domain-model.commands/events, services), guide produz heuristics OR critério dedicado exigindo declaração de impact dimension ortogonal a category — read-only / state-change / cross-bc / external-side-effect (taxonomia adaptável ao tipo). impact informa governance (caps, escalation, audit cadence). Verificado por inspeção quando schema alvo qualifica."
+			severity:    "warn"
+			rationale:   "Category sozinho perde sinalização de blast radius real — duas mutations com impact distintos (state-change interno vs external-side-effect regulatory) exigem governance diferente. Generalização de tq-agg-07 (action impact classification)."
+		}, {
+			id:          "tq-mg-08"
+			description: "Guide força articulação de default+override granularity quando padrão aparece"
+			test:        "Quando schema alvo carrega configuração que admite default global + override per-element (ex.: escalation conditions global + per-action; SLA global + per-route; autonomyLevel default + override), guide produz heuristics OR critério dedicado exigindo articulação de QUANDO override aplica (exceção vs regra). Default 'override é exceção' — over-declaração polui artefato. Verificado por inspeção quando schema alvo qualifica."
+			severity:    "warn"
+			rationale:   "Default+override pattern sem articulação explícita gera over-declaração (overrides sempre presentes mascaram default) ou under-declaração (override genuíno necessário fica implícito). Generalização de tq-agg-08 (per-action escalation override) — pattern aparece em vários schemas."
+		}, {
+			id:          "tq-mg-09"
+			description: "Guide força decide-vs-execute separation em units of work irreversíveis"
+			test:        "Quando schema alvo carrega units of work que podem combinar decisão (julgar/avaliar/recomendar) com execução irreversível (mutate/publish/emit), guide produz heuristics OR critério dedicado proibindo unidades monolíticas decide+execute em irreversíveis. Pattern recomendado: split em par decide-X (output: recommendation) + execute-X (input: approved recommendation), permitindo human gate entre os dois steps. Verificado por inspeção quando schema alvo qualifica."
+			severity:    "warn"
+			rationale:   "Unidade monolítica decide+executa em irreversíveis viola P10 por design — não há onde inserir human gate em propose-and-wait, decisão e execução acontecem atomicamente. Generalização de tq-agg-09 (action decision-execution split). Pattern aplica a actions, commands, workflows, sagas."
+		}, {
+			id:          "tq-mg-10"
+			description: "Guide força canonical removal test (universal)"
+			test:        "Guide produz finalValidation step OR heuristic dedicada com teste canônico: 'se remover este artifact type do sistema, invariants críticos do BC/sistema permanecem protegidos por outros enforcers (lifecycle, command handler, runner, gate determinístico, sistema externo)?'. Resposta esperada: SIM — artefato é OPERADOR/OBSERVADOR, não único enforcer. Resposta NÃO indica bug arquitetural — artefato está segurando lógica que deveria estar em outra camada. UNIVERSAL: aplica a TODO schema, não apenas agent-spec."
+			severity:    "warn"
+			rationale:   "Canonical test enforça a inversão domínio-é-centro: cada artifact type é OPERADOR sobre invariants do domínio, não SEGURADOR. Sem este teste durante autoria, agentes/projections/services/etc. acumulam silenciosamente lógica que pertence ao domínio — frágil em escala. Generalização de tq-agg-10. Universal porque a pergunta 'quem é o real enforcer?' é independente do tipo do artefato."
 		}]
-		rationale: "Critérios cobrem as quatro falhas estruturais previstas para production guides: inconsistência workOrder↔sections (tq-mg-01), process vago (tq-mg-02), finalValidation sem founder gate (tq-mg-03), gapPolicy permissiva à invenção (tq-mg-04). Schema #ProductionGuide tem tq-pg-XX cobrindo subconjunto; meta-guide hardens severities (warn→fail em 01, 03, 04) onde fabricação por agente é risco crítico."
+		rationale: "10 critérios cobrem disciplinas core para autoria de production guides: 4 originais (inconsistência workOrder↔sections, process vago, finalValidation sem founder gate, gapPolicy permissiva) + 6 derivados de PG-A founder review (sessão 2026-05-01) generalizando patterns que apareceram em agent-spec PG: enforcement owner (tq-mg-05), derived→source ref (tq-mg-06), impact classification (tq-mg-07), default+override granularity (tq-mg-08), decide-vs-execute separation (tq-mg-09), canonical removal test (tq-mg-10). Schema #ProductionGuide tem tq-pg-XX cobrindo subconjunto; meta-guide hardens severities (warn→fail em 01, 03, 04) onde fabricação por agente é risco crítico, e adiciona disciplinas meta (05-10 warn) que propagam para futuros PGs. Lifting de disciplinas descobertas em PGs concretos para o meta-PG é o pattern canônico de evolução do sistema (PG-A descoberta → meta-PG código → futuros PGs default)."
 	}
 
 	prerequisites: {
@@ -178,6 +232,12 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 				"_qualityCriteria mínimo: 1 critério com severity 'fail'. Schema trivial com guide minimalista pode ter só 1-2 critérios; schema complexo merece 3-5.",
 				"Rationale do conjunto não é repetição dos rationales individuais — explica a COBERTURA agregada (que aspectos do guide os critérios protegem).",
 				"Considere hardening de severities: critérios advisory (warn) do schema alvo podem virar fail no guide quando risco de fabricação por agente for crítico.",
+				"Enforcement owner discipline (tq-mg-05): se o schema alvo declara elementos rule/constraint/check (ex.: agent-spec.constraints, structural-check rules, validation-prompt assertions), perguntar durante autoria: 'cada rule declara WHERE é enforced (agent / runner / domain / external)?'. Se não, adicionar heuristic OR critério dedicado que force a declaração. Sem enforcement owner declarado, rule vira ambígua — múltiplos enforcers ou nenhum, drift garantido em escala.",
+				"Derived→source ref discipline (tq-mg-06): se o schema alvo carrega elementos derivados de outro artefato (ex.: agent-spec.constraints derivam de domain-model.invariants; structural-checks derivam de ADRs), perguntar: 'cada elemento derivado tem ref explícita à origem?'. Se não, adicionar heuristic OR critério forçando ref (e.g., derivedFromInvariant: 'inv-XYZ'). Default 1:1 origem→derivado. Sem ref, coverage e drift detection automatizáveis ficam impossíveis.",
+				"Impact classification discipline (tq-mg-07): se o schema alvo declara elementos operacionais (actions, commands, events, services), perguntar: 'cada elemento operacional declara impact ortogonal a category (read-only / state-change / cross-bc / external-side-effect)?'. Taxonomia adapta ao tipo. Se não, governance (caps, escalation) opera sobre dimensão única (category) — perde sinalização de blast radius real.",
+				"Default+override granularity discipline (tq-mg-08): se o schema alvo carrega config que admite default global + override per-element (escalation, SLA, autonomy, etc.), perguntar: 'guide articula QUANDO override aplica (exceção vs regra)?'. Default canônico: 'override é exceção' — over-declaração polui artefato. Sem articulação, override implícito (sempre presente) ou ausente (genuíno necessário não declarado) tornam-se silenciosos.",
+				"Decide-vs-execute separation discipline (tq-mg-09): se o schema alvo declara units of work que podem combinar decisão + execução irreversível (actions, commands, workflows, sagas), perguntar: 'guide proíbe unidades monolíticas decide+execute em irreversíveis?'. Pattern recomendado: split em par decide-X (output: recommendation) + execute-X (input: approved). Sem split, propose-and-wait não tem onde inserir human gate — viola P10 por design.",
+				"Canonical removal test (tq-mg-10) — UNIVERSAL: para CADA schema alvo, durante autoria do guide, perguntar: 'se removermos este artifact type do sistema, invariants críticos permanecem protegidos por outros enforcers (lifecycle, command handler, runner, gate determinístico, sistema externo)?'. Resposta esperada: SIM. Resposta NÃO indica bug arquitetural — artefato está segurando lógica que pertence a outra camada. Aplica a TODO schema (não só agent-spec). Adicionar como finalValidation step do guide alvo.",
 			]
 			doneCriteria: "finalValidation.steps tem ≥1 entrada com último step mencionando founder. _schema.location preenchido com 5 campos não-vazios. _qualityCriteria.criteria não-vazia, cada critério com id/description/test/severity/rationale, e rationale do conjunto presente e substantivo (não-redundante com rationales individuais)."
 			ifGap:        "Se _qualityCriteria parece vazio porque schema é trivial, force ao menos 1 critério obrigatório: 'guide produz instância que satisfaz shape do schema alvo' (severity fail). Sempre há algo a validar."
@@ -193,6 +253,12 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar tq-pg-05 / tq-mg-03: finalValidation.steps[-1] menciona submissão/revisão/aprovação do founder.",
 			"Verificar tq-pg-06 / tq-mg-02: cada section.process[].action começa com verbo imperativo concreto (lista canônica em heuristics da section sections-and-workorder deste guide).",
 			"Verificar coerência semântica: process steps de cada section orientam autoria do tipo declarado em target — não duplicam guidance de outras sections nem omitem etapas necessárias.",
+			"Verificar enforcement owner discipline (tq-mg-05 warn): se schema alvo declara elementos rule/constraint/check, guide produz heuristic OR critério dedicado exigindo declaração de WHERE rule é enforced (agent / runner / domain / external). Sem isso, ambiguidade entre múltiplos enforcers ou nenhum.",
+			"Verificar derived→source ref discipline (tq-mg-06 warn): se schema alvo carrega elementos derivados de outro artefato, guide produz heuristic OR critério exigindo ref explícita do derivado a sua origem (e.g., derivedFromInvariant: 'inv-XYZ'). Default 1:1.",
+			"Verificar impact classification discipline (tq-mg-07 warn): se schema alvo declara elementos operacionais (actions/commands/events/services), guide produz heuristic OR critério exigindo impact dimension ortogonal a category (read-only / state-change / cross-bc / external-side-effect; taxonomia adaptável).",
+			"Verificar default+override granularity discipline (tq-mg-08 warn): se schema alvo carrega default global + override per-element (escalation, SLA, autonomy), guide produz heuristic OR critério articulando QUANDO override aplica (exceção vs regra; default 'override é exceção').",
+			"Verificar decide-vs-execute separation discipline (tq-mg-09 warn): se schema alvo declara units of work com potencial decide+execute irreversível, guide produz heuristic OR critério proibindo unidades monolíticas; pattern recomendado split decide-X / execute-X com human gate entre.",
+			"Verificar canonical removal test (tq-mg-10 warn) — UNIVERSAL: guide produz finalValidation step OR heuristic dedicada com pergunta 'se remover este artifact type, invariants críticos permanecem protegidos por outros enforcers?'. Resposta esperada SIM (artefato é operador, não único enforcer); resposta NÃO indica bug arquitetural.",
 			"Submeter ao founder para aprovação antes de commit.",
 		]
 	}
