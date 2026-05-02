@@ -131,10 +131,10 @@ idcPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}, {
 		code:        "act-propose-identity-revocation"
 		name:        "Propose Identity Revocation"
-		description: "Propor revogação de Identidade Organizacional verificada após perda de elegibilidade ou comprometimento detectado. Impact: state-change + cross-bc (NPM/LOG/DLV invalidam cache). Operacionalmente irreversível — afeta cadeia downstream. Phase 0: propose-and-wait obrigatório enquanto oq-idc-1 (protocolo de revogação) não resolve. Decide-vs-execute split correto: propor é decisão do agente; executar (materializar lifecycle transition + emit event) requer aprovação humana. Per canvas supervisedDecisions revoke-identity."
+		description: "Propor revogação de Identidade Organizacional verificada após perda de elegibilidade ou comprometimento detectado. Impact: state-change + cross-bc (NPM/LOG/DLV invalidam cache). Operacionalmente irreversível — afeta cadeia downstream. Phase 0: propose-and-wait obrigatório enquanto oq-idc-1 (protocolo de revogação) não resolve. Decide-vs-execute split correto: propor é decisão do agente; executar (materializar lifecycle transition + emit event) requer aprovação humana. Per canvas supervisedDecisions revoke-identity. inputTrustLevel segue a origem da evidência de revogação, não apenas o componente imediato que entregou o sinal; sinais internos derivados de RF, decisão regulatória ou comprometimento preservam classificação external-structured."
 		category:        "mutation"
 		autonomyLevel:   "propose-and-wait"
-		inputTrustLevel: "trusted-internal"
+		inputTrustLevel: "external-structured"
 		domainModelRefs: [
 			"cmd-revoke-identity",
 			"inv-revocation-preserves-trail",
