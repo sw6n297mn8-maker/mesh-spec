@@ -304,7 +304,14 @@ package artifact_schemas
 	inputTrustLevel?: #InputTrustLevel
 
 	// Building blocks do domain model envolvidos nesta ação.
-	// Devem estar dentro do operationalScope (tq-ag-02).
+	// Refs com prefixos de operationalScope (agg-/cmd-/evt-/inv-/prj-)
+	// devem estar dentro do operationalScope (tq-ag-02 least privilege).
+	// Refs com prefixos não representados diretamente em operationalScope
+	// (vo-/ent-/qry-/mod-/svc-/pol-) são permitidas pelo regex de
+	// #DomainModelRef e associadas via parent (vo-/ent- via aggregate;
+	// qry- via projection) ou por scope próprio quando declarados como
+	// building blocks top-level. Ver PG-A heuristic correspondente
+	// para discipline detalhada.
 	domainModelRefs: [#DomainModelRef, ...#DomainModelRef]
 
 	// Condições que devem ser verdadeiras para a ação ser permitida.
