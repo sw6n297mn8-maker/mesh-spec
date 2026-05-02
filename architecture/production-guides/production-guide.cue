@@ -41,6 +41,12 @@ import (
 // de "descoberta post-hoc" para "default-by-construction". PGs já
 // autorados ficam intocados — reconciliação via change-on-touch quando
 // receberem amendments futuros, não como refactor proativo.
+//
+// Iteração pós-adr-057 (sessão 2026-05-01): hardening de founder
+// confirmation como step próprio bloqueante per manualAuthoringProtocol
+// Camada 2 — process detail + heuristic + tq-mg-03 + meta-PG's own
+// finalValidation reforçados para deixar explícito que submissão ao
+// founder NÃO é absorvida em validação de critérios precedentes.
 
 productionGuideGuide: artifact_schemas.#ProductionGuide & {
 
@@ -70,10 +76,10 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 			rationale:   "tq-pg-06 (advisory) do schema requer ações acionáveis; este meta-guide é onde a disciplina é instilada antes da escrita."
 		}, {
 			id:          "tq-mg-03"
-			description: "Guide produz finalValidation que termina com submissão ao founder"
-			test:        "finalValidation.steps[-1] menciona explicitamente submissão, revisão ou aprovação do founder. Process do guide inclui passo declarando esta exigência. Verificado por inspeção."
+			description: "Guide produz finalValidation que termina com submissão ao founder como step próprio bloqueante"
+			test:        "finalValidation.steps[-1] É submissão ao founder como step próprio bloqueante distinto (NÃO ambíguo entre 'verificar X' e 'submeter ao founder'; NÃO absorvido em validação de critérios precedentes). Process do guide inclui passo declarando esta exigência E referencia adr-057 founderConfirmation como gate humano distinto. Verificado por inspeção."
 			severity:    "fail"
-			rationale:   "tq-pg-05 (warn no schema, fail aqui no meta-guide) garante o ciclo propor→aprovar→escrever. Quebra elimina o gate humano."
+			rationale:   "tq-pg-05 (warn no schema, fail aqui no meta-guide) garante o ciclo propor→aprovar→escrever. Hardening adicional per adr-057 manualAuthoringProtocol Camada 2: founder confirmation é gate humano distinto não absorvido em validação de critérios. Sem step bloqueante separado, agente pode 'absorver' submissão ao founder em generic validation step e perder gate explícito — vetor de drift observado em contextos onde authoring se confunde com inspection."
 		}, {
 			id:          "tq-mg-04"
 			description: "Guide produz gapPolicy que declara comportamento anti-invenção"
@@ -212,7 +218,7 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 			objective: "Definir finalValidation (com founder approval explícito como ÚLTIMO step) e os campos meta (_schema.location + _qualityCriteria) que o guide próprio satisfaz."
 			process: [{
 				action: "Compor finalValidation.steps com último step obrigatório de submissão ao founder"
-				detail: "Lista de steps verificáveis por humano ou agente. Inclua passos de shape validation (cue vet quando disponível), critérios advisory específicos (tq-XX do schema alvo). REGRA INVARIÁVEL: ÚLTIMO step de finalValidation.steps DEVE mencionar submissão, revisão ou aprovação do founder. Sem este step, ciclo propor→aprovar→escrever quebra (tq-pg-05 fail)."
+				detail: "Lista de steps verificáveis por humano ou agente. Inclua passos de shape validation (cue vet quando disponível), critérios advisory específicos (tq-XX do schema alvo). REGRA INVARIÁVEL: ÚLTIMO step de finalValidation.steps DEVE ser submissão ao founder como step próprio bloqueante distinto — NÃO absorvido em validação de critérios precedentes nem em self-review. Per adr-057 manualAuthoringProtocol founderConfirmation: confirmação founder é gate humano explícito, separado da inspeção de conformity. Sem este step bloqueante separado, ciclo propor→aprovar→escrever quebra (tq-pg-05 fail) — agente pode 'absorver' submissão em generic validation step e perder gate explícito."
 			}, {
 				action: "Avaliar inclusão de finalValidation.reconciliation (opcional)"
 				detail: "Se schema alvo tem invariantes cross-field (ex.: BC ask amount alinha com investmentPlan rounds[0]), declare reconciliation com pairs de itens a verificar. Sem invariantes cross-field, omita."
@@ -227,7 +233,7 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 				detail: "Confira: target em todas as sections é válido? workOrder é permutação exata de keys(sections)? doneCriteria avaliável? gapPolicy ≥50 runes com cláusula anti-invenção? Último step de finalValidation menciona founder? Se algum NÃO, voltar para section correspondente."
 			}]
 			heuristics: [
-				"finalValidation.steps[-1] sempre menciona submissão/revisão/aprovação do founder — sem isso, ciclo propor→aprovar→escrever está quebrado (tq-pg-05).",
+				"finalValidation.steps[-1] é submissão ao founder como step próprio bloqueante distinto (NÃO absorvido em validação de critérios precedentes nem em self-review); per adr-057 founderConfirmation, é gate humano explícito separado da inspeção de conformity — sem step bloqueante separado, ciclo propor→aprovar→escrever quebra (tq-pg-05).",
 				"_schema.cardinality é 'singleton' para production guide (sempre 1 guide por schema alvo, não múltiplos).",
 				"_qualityCriteria mínimo: 1 critério com severity 'fail'. Schema trivial com guide minimalista pode ter só 1-2 critérios; schema complexo merece 3-5.",
 				"Rationale do conjunto não é repetição dos rationales individuais — explica a COBERTURA agregada (que aspectos do guide os critérios protegem).",
@@ -259,7 +265,7 @@ productionGuideGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar default+override granularity discipline (tq-mg-08 warn): se schema alvo carrega default global + override per-element (escalation, SLA, autonomy), guide produz heuristic OR critério articulando QUANDO override aplica (exceção vs regra; default 'override é exceção').",
 			"Verificar decide-vs-execute separation discipline (tq-mg-09 warn): se schema alvo declara units of work com potencial decide+execute irreversível, guide produz heuristic OR critério proibindo unidades monolíticas; pattern recomendado split decide-X / execute-X com human gate entre.",
 			"Verificar canonical removal test (tq-mg-10 warn) — UNIVERSAL: guide produz finalValidation step OR heuristic dedicada com pergunta 'se remover este artifact type, invariants críticos permanecem protegidos por outros enforcers?'. Resposta esperada SIM (artefato é operador, não único enforcer); resposta NÃO indica bug arquitetural.",
-			"Submeter ao founder para aprovação antes de commit.",
+			"Submeter ao founder para aprovação explícita antes de commit — step próprio bloqueante per adr-057 founderConfirmation (NÃO absorvido na inspeção de critérios precedentes; gate humano distinto da inspeção de conformity).",
 		]
 	}
 }
