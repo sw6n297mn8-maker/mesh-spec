@@ -377,5 +377,11 @@ qualityGate: #QualityGateArtifact & {
 		test:        "O artefato é estruturalmente válido contra o schema correspondente em architecture/artifact-schemas/. Todos os campos obrigatórios do schema estão presentes, tipos conferem, constraints de domínio (regex, enums, cardinalidade) são satisfeitos. Quando o artefato avaliado é ele próprio um artifact schema, _schema.location deve estar presente e preenchido."
 		severity:    "fail"
 		rationale:   "cue vet no deterministicGate valida sintaxe CUE, não conformidade semântica com o schema do tipo. Este critério torna a conformidade estrutural parte explícita da gramática de qualidade — não apenas ritual do round, mas regra verificável que o agente aplica a cada artefato."
+	}, {
+		id:          "uq-09"
+		description: "Conformidade com manualAuthoringProtocol section gates (quando aplicável)"
+		test:        "Para artefato autorado via manualAuthoringProtocol (mode 'manual' em authoring-policy.cue rollout OU tipo não registrado caindo em defaultMode 'manual', E PG existente em architecture/production-guides/<type>.cue), self-review report registra evidência de que cada section em PG.workOrder passou por gate: (a) section content proposto ao founder com transcript de auto-checagem; (b) confirmação explícita do founder ANTES da próxima section per manualAuthoringProtocol.founderConfirmation. Trivial corrections (per manualAuthoringProtocol.trivialCorrectionException) reportadas no próximo checkpoint. roundDetails[].summary OU singleRoundRationale documenta o pattern de gate seguido. Não-conformidade: section gates pulados sem trivialCorrectionException válida OU evidence ausente no report."
+		severity:    "warn"
+		rationale:   "Camada 3 supplementary do sistema de defesa em 3 camadas (Camada 1: adr-056 production-guide-coverage structural-check; Camada 2: adr-057 manualAuthoringProtocol section-level gates). Detection post-hoc de skip de section gates durante autoria. Severity 'warn' porque correção retroativa de gates pulados é impossível (artefato já existe); detection surface a issue para founder decidir remediação (aceitar OU exigir reautoria per adr-057 failureMode). 'fail' seria circular — agente bloqueado de propor antes do founder ter visto. Composta com Camadas 1+2 preventivas: falha em uma camada é capturada por outra."
 	}]
 }
