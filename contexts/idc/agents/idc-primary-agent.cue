@@ -403,9 +403,16 @@ idcPrimaryAgent: artifact_schemas.#AgentSpec & {
 		}, {
 			code:           "sig-validation-result"
 			name:           "Validation Result"
-			description:    "Sinal emitido após act-validate-cnpj-format e act-normalize-identity-data. Reporta outcome (success/failure) + rationale técnico."
+			description:    "Sinal emitido após act-validate-cnpj-format. Reporta outcome (success/failure) + rationale técnico."
 			coversCategory: "validation"
 			trigger:        "Após validação técnica concluída"
+			level:          "info"
+		}, {
+			code:           "sig-generation-result"
+			name:           "Generation Result"
+			description:    "Sinal emitido após act-normalize-identity-data (category 'generation'). Reporta outcome (success/failure) + dados normalizados produzidos disponíveis para act-execute-identity-verification."
+			coversCategory: "generation"
+			trigger:        "Após geração de form normalizado concluída"
 			level:          "info"
 		}, {
 			code:           "sig-escalation-triggered"
@@ -493,6 +500,27 @@ idcPrimaryAgent: artifact_schemas.#AgentSpec & {
 		direto; envelope poderá declarar promotion path com
 		intermediários (collect-and-report, propose-and-wait com
 		fast-track) sem violar P10.
+
+		Decide-vs-execute pattern (tq-agg-09) em Phase 0:
+		Para actions com impacto irreversível ou que exigem julgamento
+		(regulatory ou de segurança), o padrão decide→execute NÃO é
+		modelado como pares de actions distintos. Em vez disso, o gate
+		humano é implementado via autonomyLevel "propose-and-wait".
+		Isso se aplica a:
+		- act-sign-evidence
+		- act-generate-integrity-proof
+		- act-propose-identity-revocation
+		Nestes casos, a "decisão" ocorre no momento da aprovação humana,
+		e a execução é consequência direta dessa aprovação. O split
+		literal decide-X/execute-X seria redundante neste estágio.
+		Exceção explícita: act-execute-identity-verification NÃO segue
+		este padrão porque seu outcome é determinístico (verified/
+		rejected/ambiguous) a partir do protocolo de verificação — não
+		há decisão julgativa a separar da execução.
+		Revisão futura: após promotion (governance envelope ativo), o
+		padrão pode ser reavaliado. Caso seja necessário introduzir
+		checkpoints intermediários adicionais, o split literal decide-X/
+		execute-X pode ser adotado como evolução do modelo.
 
 		Canonical removal test (tq-agg-10): SE remover agt-idc-
 		primary, 3 das 6 invariantes ficam totalmente protegidas
