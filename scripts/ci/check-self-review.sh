@@ -44,6 +44,7 @@ artifact_type_for_path() {
     architecture/production-guides/*.cue)                   echo "production-guide" ;;
     architecture/structural-checks/*.cue)                   echo "structural-check" ;;
     architecture/validation-prompts/validate-*.cue)         echo "validation-prompt" ;;
+    contexts/*/canvas.cue)                                  echo "canvas" ;;
     domain/domain-definition.cue)                           echo "domain-definition" ;;
     domain/stakeholder-map.cue)                             echo "stakeholder-map" ;;
     ai-orchestration/agent-instructions/task-templates.cue) echo "task-template" ;;

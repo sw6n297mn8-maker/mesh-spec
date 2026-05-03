@@ -170,6 +170,30 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "VP em main pre-adr-069 path-mapping; cobertura indireta por SRR do ADR originador."
+	}, {
+		artifactPath:  "contexts/cmt/canvas.cue"
+		category:      "pre-mapping-transient"
+		lifecycle:     "transient"
+		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
+		rationale:     "Canvas BC em main pre-adr-072 path-mapping. Foi revisada no contexto dos ADRs originadores (adr-028 canvas schema + ADRs de evolução do BC), mas não havia SRR path-matching porque o mapping ainda não existia."
+	}, {
+		artifactPath:  "contexts/ctr/canvas.cue"
+		category:      "pre-mapping-transient"
+		lifecycle:     "transient"
+		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
+		rationale:     "Canvas BC em main pre-adr-072 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
+	}, {
+		artifactPath:  "contexts/idc/canvas.cue"
+		category:      "pre-mapping-transient"
+		lifecycle:     "transient"
+		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
+		rationale:     "Canvas BC em main pre-adr-072 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
+	}, {
+		artifactPath:  "contexts/npm/canvas.cue"
+		category:      "pre-mapping-transient"
+		lifecycle:     "transient"
+		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
+		rationale:     "Canvas BC em main pre-adr-072 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
 	}]
 
 	rationale: """
@@ -181,14 +205,15 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		(2) predecessor-supersession-only (permanent, 2 entries): ADRs
 		predecessores ao mecanismo, editados apenas para supersession
 		mecânica (ADR-016/017).
-		(3) pre-mapping-transient (transient, 14 entries): artefatos em
+		(3) pre-mapping-transient (transient, 18 entries): artefatos em
 		main pre-path-mapping. 4 PGs (adr/agent-governance/agent-spec/
 		structural-check via adr-067) + 1 SC (canvas via adr-068) +
 		9 VPs (validate-adr/agent-governance/agent-spec/artifact-schema/
 		canvas/domain-definition/domain-model/glossary/self-review-report
-		via adr-069). Sai quando próxima modificação criar SRR matching
-		path. Cleanup mecânico (stale detection) deferido per def-012
-		até primeira stale exception observada.
+		via adr-069) + 4 canvas (cmt/ctr/idc/npm via adr-072). Sai
+		quando próxima modificação criar SRR matching path. Cleanup
+		mecânico (stale detection) deferido per def-012 até primeira
+		stale exception observada.
 
 		Artefatos build-time não precisam de exceção porque não são
 		governedTypes.
