@@ -71,6 +71,9 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 	}, {
 		artifactPath: "architecture/production-guides/structural-check.cue"
 		rationale:    "Mesma categoria pre-mapping-transient de architecture/production-guides/adr.cue: PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores. Sai desta exception na próxima modificação com SRR matching path. Schema first-class para transient lifecycle deferido per def-011."
+	}, {
+		artifactPath: "architecture/structural-checks/canvas.cue"
+		rationale:    "Categoria pre-mapping-transient (extensão de adr-067 a structural-check via adr-068): SC em main pre-adr-068 path-mapping; modificação coberta indiretamente por SRR do ADR originador. Sai desta exception na próxima modificação com SRR matching path. Schema first-class para transient lifecycle deferido per def-011."
 	}]
 
 	rationale: """
@@ -79,11 +82,12 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		ADR-013/014/015 + quality-criteria.cue) — circularidade.
 		(2) ADRs predecessores ao mecanismo, editados apenas para
 		supersession mecânica (ADR-016/017).
-		(3) PGs em main pre-adr-067 path-mapping (4 PGs: adr,
-		agent-governance, agent-spec, structural-check) — exception
-		transiente, sai quando próxima modificação criar SRR matching
-		path. Categoria/lifecycle vivem na prose rationale; promoção
-		a schema first-class deferida per def-011. Artefatos build-time
+		(3) Artefatos em main pre-path-mapping (4 PGs adr/agent-
+		governance/agent-spec/structural-check via adr-067 + 1 SC
+		canvas via adr-068) — exception transiente, sai quando
+		próxima modificação criar SRR matching path. Categoria/
+		lifecycle vivem na prose rationale; promoção a schema
+		first-class deferida per def-011. Artefatos build-time
 		não precisam de exceção porque não são governedTypes.
 		"""
 }
