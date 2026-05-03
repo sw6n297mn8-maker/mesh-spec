@@ -49,9 +49,12 @@ adr003: artifact_schemas.#ADR & {
 	blastRadius:   "repo-wide"
 
 	affectedArtifacts: [
-		"architecture/artifact-schemas/adr.cue",
 		"governance/repo-structure.cue",
 		"CLAUDE.md",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/adr.cue",
 	]
 
 	principlesApplied: [

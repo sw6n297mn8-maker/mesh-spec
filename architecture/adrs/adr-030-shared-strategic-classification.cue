@@ -70,9 +70,12 @@ adr030: artifact_schemas.#ADR & {
 	blastRadius:   "cross-artifact"
 
 	affectedArtifacts: [
-		"architecture/shared-types/strategic-classification.cue",
 		"architecture/artifact-schemas/canvas.cue",
 		"architecture/artifact-schemas/subdomain.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/shared-types/strategic-classification.cue",
 	]
 
 	supersedes: ["adr-029"]

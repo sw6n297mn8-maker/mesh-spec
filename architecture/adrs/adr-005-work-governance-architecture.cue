@@ -46,7 +46,9 @@ adr005: artifact_schemas.#ADR & {
 	reversibility: "high"
 	blastRadius:   "repo-wide"
 
-	affectedArtifacts: [
+	affectedArtifacts: []
+
+	plannedOutputs: [
 		"governance/build-time/work-governance.cue",
 	]
 

@@ -4,16 +4,20 @@ package artifact_schemas
 //
 // Per adr-040: structural verification é o lado determinístico da
 // validação, separado do design review interpretativo. Per adr-041
-// (v1), adr-049 e adr-056 (extensões incrementais): este schema é
-// deliberadamente mínimo — 8 campos, 5 kinds atualmente, rule
-// estritamente como dado estruturado. Cross-artifact reference
-// checking genérico, cardinalidade genérica, regex matching e demais
-// checks estão explicitamente fora do schema; serão adicionados
-// organicamente quando casos concretos justificarem.
-// conditional-file-presence (adr-049) e production-guide-coverage
-// (adr-056) são os kinds adicionados após a v1 original — primeiro
-// motivado por api-spec convention (adr-048), segundo por cascade-
-// ordering enforcement (adr-053 + adr-054 dec 13).
+// (v1), adr-049, adr-056 e adr-063 (extensões incrementais): este
+// schema é deliberadamente mínimo — 8 campos, 6 kinds atualmente,
+// rule estritamente como dado estruturado. Cross-artifact reference
+// checking de IDs (cross-file-id-exists) e regex pattern matching
+// permanecem fora do schema; registrados como deferimentos
+// conscientes em def-002 e def-003 (per adr-062 + adr-063).
+// Kinds adicionados após v1 original:
+//   - conditional-file-presence (adr-049) — motivado por api-spec
+//     convention (adr-048).
+//   - production-guide-coverage (adr-056) — motivado por cascade-
+//     ordering enforcement (adr-053 + adr-054 dec 13).
+//   - filesystem-path-exists (adr-063) — motivado por verificação
+//     determinística de path validity em campos como artifactPath
+//     (self-review-report) e manifestsIn (tension-entry).
 //
 // Discriminação por kind segue o padrão de #ADR (união discriminada
 // status↔supersededBy): cada kind exige um shape específico de rule.
@@ -38,6 +42,9 @@ package artifact_schemas
 } | {
 	kind: "production-guide-coverage"
 	rule: #ProductionGuideCoverageRule
+} | {
+	kind: "filesystem-path-exists"
+	rule: #FilesystemPathExistsRule
 })
 
 _#StructuralCheckBase: {
@@ -106,9 +113,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -182,4 +189,28 @@ _#StructuralCheckBase: {
 	// Cada nome resolve para architecture/production-guides/<nome>.cue.
 	// Whitelist (não auto-discovery) — expansão deliberada por commit.
 	coveredSchemas: [string & !="", ...string & !=""]
+}
+
+// Rule shape para kind=filesystem-path-exists.
+// Verifica que o valor (string ou lista de strings) no campo apontado
+// por sourcePath dentro do artefato sob validação corresponde a path
+// existente no filesystem. Per adr-063: kind narrow para verificação
+// determinística de path validity em campos que devem apontar para
+// artefatos reais (e.g., self-review-report.artifactPath, tension-
+// entry.manifestsIn).
+// V1 minimal: sourcePath aceita dot-path simples (e.g., 'artifactPath',
+// 'manifestsIn'); nested iteration sobre lists of structs (e.g.,
+// adopted-artifacts.artifacts[*].artifact) NÃO suportada — aguarda
+// kind ainda mais nuanced ou refinement deste kind.
+// Cross-file reference checking de id (vs path), regex pattern
+// matching de campo, e iteration nested permanecem fora — registrados
+// como def-002 e def-003 respectivamente.
+#FilesystemPathExistsRule: {
+	// Dot-path do campo no artefato sob validação contendo o path
+	// (ou lista de paths) a verificar. Apenas single-level lists ou
+	// strings — não suporta nested iteration em V1.
+	sourcePath: string & !=""
+	// true: sourcePath aponta para list of strings (runner itera);
+	// false (default): sourcePath aponta para single string.
+	isList: bool | *false
 }

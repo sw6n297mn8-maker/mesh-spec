@@ -39,7 +39,10 @@ package artifact_schemas
 	"asyncapi-spec" |
 	"service-contract" |
 	"production-guide" |
-	"self-review-report"
+	"self-review-report" |
+	"adopted-artifacts" |
+	"readme-config" |
+	"deferred-decision"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -51,7 +54,9 @@ package artifact_schemas
 // sc (structural-check), srr (self-review-report), pg (production-guide),
 // mg (meta-guide), gg (glossary-guide), dmg (domain-model-guide),
 // agg (agent-spec-guide), gvg (agent-governance-guide),
-// oas (openapi-spec), aas (asyncapi-spec), ct (service-contract).
+// oas (openapi-spec), aas (asyncapi-spec), ct (service-contract),
+// aa (adopted-artifacts), rc (readme-config),
+// def (deferred-decision), defg (deferred-decision-guide).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

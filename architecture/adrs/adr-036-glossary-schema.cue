@@ -72,8 +72,11 @@ adr036: artifact_schemas.#ADR & {
 	blastRadius:   "cross-artifact"
 
 	affectedArtifacts: [
-		"architecture/artifact-schemas/glossary.cue",
 		"architecture/artifact-schemas/quality-criteria.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/glossary.cue",
 	]
 
 	principlesApplied: [

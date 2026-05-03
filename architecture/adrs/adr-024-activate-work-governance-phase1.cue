@@ -61,10 +61,13 @@ adr024: artifact_schemas.#ADR & {
 	affectedArtifacts: [
 		"governance/build-time/work-governance.cue",
 		"governance/build-time/work-graph.cue",
+		"governance/build-time/projections/",
+	]
+
+	plannedOutputs: [
 		"governance/build-time/command-rights.cue",
 		"governance/build-time/task-governance.cue",
 		"governance/build-time/work-events/",
-		"governance/build-time/projections/",
 	]
 
 	principlesApplied: [

@@ -45,8 +45,11 @@ adr014: artifact_schemas.#ADR & {
 		"""
 
 	affectedArtifacts: [
-		"governance/build-time/self-review-ci-policy.cue",
 		"governance/repo-structure.cue",
+	]
+
+	plannedOutputs: [
+		"governance/build-time/self-review-ci-policy.cue",
 		"scripts/ci/check-self-review.sh",
 		".github/workflows/self-review-check.yml",
 	]

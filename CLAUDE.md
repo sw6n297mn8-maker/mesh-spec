@@ -262,9 +262,12 @@ obrigatório:
   message ("subagent dispatch failed: {motivo}; manual takeover")
 
 Failure rate de subagent dispatches é métrica observável
-registrada no execution log ou em métrica equivalente definida
-pela quality-gate policy, usada para calibração de promptTemplate
-ao longo do tempo.
+registrada em governance/build-time/subagent-execution-log.cue
+(canonical path; V1 simples sem schema first-class per WI-069
+close-out — formalizar como artifact type só quando volume de
+dispatches justifique recorrência), usada para calibração de
+promptTemplate ao longo do tempo. Cada nova dispatch adiciona
+entry append-only (não editar entries existentes — audit trail).
 
 ## Aplicação de Production Guides
 
@@ -299,3 +302,61 @@ dispatch authoring subagent per "Authoring Declarativo";
 manualAuthoringProtocol NÃO aplica (subagentes não são
 governados por este protocolo; seguem inputContract/output-
 Contract e quality-gate próprios per adr-054).
+
+## Deferimento Consciente Governado
+
+Quando o agente ou founder decidem NÃO resolver agora um
+problema identificado — tipicamente ao escolher cobertura
+parcial em vez de completa — o deferimento consciente deve
+ser registrado per adr-062 como instância de
+#DeferredDecision em architecture/deferred-decisions/, NÃO
+como prose em "Known gaps declarados" em ADR e NÃO como
+WI rotineiro em task-approved sem trigger.
+
+Esta seção não redefine o schema. O agente deve resolver
+lifecycle, kinds de trigger, contratos de OriginRef e
+constraints exclusivamente a partir do artefato canônico
+architecture/artifact-schemas/deferred-decision.cue + PG
+correspondente architecture/production-guides/deferred-
+decision.cue.
+
+O agente não deve reimplementar, resumir nem simplificar
+o protocolo por memória. Deve consumi-lo diretamente como
+fonte de verdade operacional.
+
+Critério de pertinência (anti-catch-all):
+- Deferimento consciente: decisão explícita de não
+  resolver agora COM trade-off articulado (custo evitado
+  vs custo de continuar) E condição codificada de
+  revisita.
+- NÃO é deferred-decision: trabalho rotineiro pendente
+  sem trade-off (esses são WIs em task-approved); tensão
+  de design entre forças concorrentes (essas são
+  tension-entries); bug ou gap travestido (esses
+  deveriam virar WI per vc-te-01).
+
+Naming: "deferimento consciente governado" — o termo
+restrito evita o tipo virar dumping ground para
+qualquer dívida técnica genérica.
+
+Lifecycle automatizado:
+- Status inicial 'open' no commit que cria def-XXX.
+- Runner determinístico (scripts/ci/evaluate-deferred-
+  triggers.sh) avalia triggers a cada commit em CI.
+- Trigger fired → annotations no PR + step summary;
+  runner NÃO muta arquivos.
+- Founder revisa annotations e edita status manualmente
+  (open → triggered) ou age sobre o deferimento (cria
+  ADR/WI de resolução; status → resolved com resolvedBy
+  populado).
+
+ADRs pós-adr-062 SHOULD usar field defersTo (em #ADR
+schema) referenciando def-XXX em vez de prose 'Known
+gaps declarados'. ADRs pré-adr-062 mantêm prose
+grandfathered; backfill é separate WI futuro.
+
+Quando deferimento NÃO admite trigger automático
+(decisão estratégica que só founder revisita; condição
+não machine-evaluable): trigger kind 'manual-review' com
+reason articulando POR QUE automação não é viável neste
+caso — não usar como default por preguiça.

@@ -77,6 +77,9 @@ adr016: artifact_schemas.#ADR & {
 
 	affectedArtifacts: [
 		"governance/repo-structure.cue",
+	]
+
+	plannedOutputs: [
 		"scripts/ci/check-readme-coevolution.sh",
 	]
 

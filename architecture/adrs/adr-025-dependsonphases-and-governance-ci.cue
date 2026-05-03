@@ -66,6 +66,10 @@ adr025: artifact_schemas.#ADR & {
 	affectedArtifacts: [
 		"governance/build-time/work-governance.cue",
 		"governance/build-time/work-graph.cue",
+		"governance/build-time/projections/ready-queue.cue",
+	]
+
+	plannedOutputs: [
 		"governance/build-time/task-specs/wi-015.cue",
 		"governance/build-time/task-specs/wi-016.cue",
 		"governance/build-time/task-specs/wi-017.cue",
@@ -76,7 +80,6 @@ adr025: artifact_schemas.#ADR & {
 		"governance/build-time/work-events/wi-017.cue",
 		"governance/build-time/work-events/wi-018.cue",
 		"governance/build-time/work-events/wi-019.cue",
-		"governance/build-time/projections/ready-queue.cue",
 	]
 
 	principlesApplied: [
