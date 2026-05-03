@@ -151,5 +151,24 @@ ctrPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 		rationale: "Promoção em dois estágios: onboarding→validation (30 registros, 30 dias) e validation→operational (100 registros, 60 dias). Regressão com tolerância zero para violação de invariante (integridade jurídica), detecção precoce para drift de escalação (2 semanas), e threshold relativo para rejeição de recomendações (20%+3). Calibração conservadora para fase pré-PMF em domínio regulado — CTR como base jurídica exige priorizar safety sobre speed."
 	}
 
+	failureHandling: {
+		onAgentError: {
+			action:      "suspend-and-escalate"
+			description: "Erro interno do agente (exception, comportamento não-determinístico): halt operations, escalate to founder for root cause analysis antes de retomar."
+		}
+		onTimeout: {
+			action:      "suspend-and-escalate"
+			retryPolicy: "Max 1 retry com exponential backoff (initial 2s)"
+			description: "Timeout em operação: retry once; falha persiste = suspend e escalate via insufficient-context routing."
+		}
+		onRepeatedFailure: {
+			action:      "suspend-and-escalate"
+			threshold:   "3 failures"
+			timeWindow:  "24h"
+			description: "3 falhas em 24h sugerem issue sistêmico: suspend agent operations + immediate founder notification."
+		}
+		rationale: "Per adr-058 promotion de tech debt narrative para field first-class. Defaults conservadores Phase 0: suspend-and-escalate em todos 3 eventos; retry once em onTimeout; threshold 3/24h para repeated failure. Calibração BC-specific futura via amendment se padrões operacionais justificarem."
+	}
+
 	rationale: "Envelope de governança do agt-ctr-primary em lifecycle onboarding. Quatro rotas de escalação: sync-human-review para out-of-scope e ambiguous-case (decisões bloqueantes com impacto jurídico, SLA 2-4h), alert-and-block para suspicious-input e insufficient-context (bloquear antes de registrar é contenção upstream). Blast radius caps conservadores (3 concurrent, 50 daily) para fase pré-PMF com throughput mínimo operacional. Drift detection semanal com 3 métricas cobrindo comportamento do agente, qualidade de input e saúde do lifecycle. Calibração: promoção com critérios mensuráveis (volume, aprovação, drift, audit trail), regressão com tolerância zero para violação de invariante. Threshold de valor contratual (canvas oq-ctr-1) operacionalmente deferido — em onboarding, 100% das ativações são supervisionadas por spec. Lenses: aag (primária: autonomia, escalation, blast radius, lifecycle, calibração, drift), sti (secundária: caps conservadores), cl (secundária: impacto jurídico informa routing), rc (terciária: compliance rastreável)."
 }

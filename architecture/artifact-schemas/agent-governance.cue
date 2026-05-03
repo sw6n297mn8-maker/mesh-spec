@@ -164,6 +164,10 @@ package artifact_schemas
 	// Regras de calibração — promoção e regressão de autonomia.
 	calibration: #CalibrationRules
 
+	// Failure handling para erros do próprio agente (não cobertos por
+	// drift detection, escalation ou autonomy overrides). Per adr-058.
+	failureHandling: #FailureHandling
+
 	rationale: string & !=""
 
 	_schema: {
@@ -457,3 +461,31 @@ package artifact_schemas
 	"reduce-autonomy" |           // Reduz autonomyLevel das ações afetadas
 	"revert-to-previous-stage" |  // Volta ao lifecycle stage anterior
 	"suspend-and-escalate"        // Suspende o agente e escala para humano
+
+// Failure handling para erros do próprio agente (não cobertos por
+// drift detection, escalation ou autonomy overrides). Per adr-058:
+// promotion de tq-gvg-08 tech debt narrative para field first-class
+// enforced. Reusa #RegressionAction enum sem expansion — semantic
+// distinction via description e retryPolicy fields. retry-then-escalate
+// semantics expressa via retryPolicy + action='suspend-and-escalate'
+// quando retry exausto. Pause-and-review semantics expressa via
+// action='suspend-and-escalate' + description articulando modo
+// 'halt and review'.
+#FailureHandling: {
+	onAgentError: {
+		action:      #RegressionAction
+		description: string & !=""
+	}
+	onTimeout: {
+		action:       #RegressionAction
+		retryPolicy?: string & !=""
+		description:  string & !=""
+	}
+	onRepeatedFailure: {
+		action:      #RegressionAction
+		threshold:   string & !=""
+		timeWindow:  string & !=""
+		description: string & !=""
+	}
+	rationale: string & !=""
+}

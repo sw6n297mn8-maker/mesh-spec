@@ -152,5 +152,24 @@ npmPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 		rationale: "Promoção em dois estágios com critérios proporcionais ao papel de gateway do NPM na rede. Regressão com tolerância zero para violação de autonomy boundary (suspend-and-escalate), detecção precoce para drift sustentado (2 semanas, reduce-autonomy), e contenção imediata para breach de blast radius. Calibração conservadora para BC core em fase pré-PMF."
 	}
 
+	failureHandling: {
+		onAgentError: {
+			action:      "suspend-and-escalate"
+			description: "Erro interno do agente (exception, comportamento não-determinístico): halt operations, escalate to founder for root cause analysis antes de retomar."
+		}
+		onTimeout: {
+			action:      "suspend-and-escalate"
+			retryPolicy: "Max 1 retry com exponential backoff (initial 2s)"
+			description: "Timeout em operação: retry once; falha persiste = suspend e escalate via insufficient-context routing."
+		}
+		onRepeatedFailure: {
+			action:      "suspend-and-escalate"
+			threshold:   "3 failures"
+			timeWindow:  "24h"
+			description: "3 falhas em 24h sugerem issue sistêmico: suspend agent operations + immediate founder notification."
+		}
+		rationale: "Per adr-058 promotion de tech debt narrative para field first-class. Defaults conservadores Phase 0: suspend-and-escalate em todos 3 eventos; retry once em onTimeout; threshold 3/24h para repeated failure. Calibração BC-specific futura via amendment se padrões operacionais justificarem."
+	}
+
 	rationale: "NPM é gateway da rede Mesh — nenhum participante opera sem qualificação NPM. Decisões do agente (qualificar, suspender, terminar) propagam para todos os BCs downstream que consomem status de participante (CTR, SSC, e indiretamente BDG, TCM, DRC via contratos). Envelope calibrado para onboarding: blast radius conservador (3 concurrent, 50 daily), escalation routing completo para as 4 categorias do agent-spec (async-queue para out-of-scope, sync-human-review para ambiguous-case e conflicting-signals, alert-and-block para insufficient-context), drift detection semanal com 3 métricas cobrindo saúde de qualificação, latência de supervisão e utilização de capacidade. Calibração: promoção com critérios mensuráveis (10 qualificações/30d para validation, 40 qualificações/60d para operational), regressão com tolerância zero para violação de boundary. Lenses: aag (primária: autonomia, escalation, blast radius, lifecycle, calibração, drift), sti (secundária: caps conservadores), rc (terciária: compliance rastreável)."
 }

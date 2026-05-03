@@ -26,19 +26,15 @@ package idc
 // Limitações conhecidas (Phase 0):
 // - governanceGlobalVersion "0.1" é forward reference para
 //   architecture/agent-governance.cue que ainda não existe (canônico Phase 0).
-// - failureHandling block (tq-gvg-08) documentado em comment + driftDetection.
-//   rationale como tech debt até schema absorver como first-class field:
-//     onAgentError → pause-and-review (halt operations, escalate to founder
-//       para root cause analysis antes de retomar)
-//     onTimeout → retry-then-escalate (max 1 retry exponential backoff;
-//       falha persiste = escalation via insufficient-context routing)
-//     onRepeatedFailure → suspend-and-escalate (3 falhas em 24h = suspend
-//       agent operations + immediate founder notification)
+// - failureHandling declarado em envelope.failureHandling field per
+//   #FailureHandling shape (schema first-class per adr-058). Narrative
+//   anterior em comment block + driftDetection.rationale removida per P0
+//   (single source of truth no field declarativo).
 // - Cobertura parcial Phase 0 de 3 dos 6 invariants (IDC é único enforcer
 //   pré-resolução de ten-003 e ten-004 — declarado em agent-spec rationale).
 // - Caps 2/40 dentro da faixa onboarding canônica (1-2/20-50 per tq-gvg-07);
 //   conservadorismo Phase 0 reforçado dado raiz-de-confiança status sem
-//   global governance e sem failureHandling first-class — promoção via
+//   global governance — promoção via
 //   calibration declarada, não inflação inicial.
 //
 // Per PG-B (architecture/production-guides/agent-governance.cue): 3 sections
@@ -112,22 +108,22 @@ idcPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 	blastRadiusCaps: {
 		maxConcurrentMutations: 2
 		maxDailyActions:        40
-		rationale: "IDC tem 10 ações declaradas (3 queries execute-and-log + 1 generation execute-and-log + 1 validation execute-and-log + 4 mutations propose-and-wait + 1 escalation collect-and-report). maxConcurrentMutations: 2 limita execução paralela conservadoramente em onboarding — IDC é raiz de confiança regulatory sem global governance materializado e sem failureHandling first-class no schema; breach amplifica risco cross-BC (NPM/LOG/DLV são consumers). maxDailyActions: 40 reflete throughput esperado em onboarding (verificações organizacionais não são alto volume; assinaturas vêm em lotes via LOG conforme demanda construtiva). Caps abaixo do patamar ctr/npm (3/50) reflete maior conservadorismo Phase 0 dado raiz-de-confiança status — promoção via calibration declarada, não inflação inicial. Sanity check: 40 daily ≥ 2 concurrent ✓. Lifecycle×caps monotonicidade (tq-gvg-07): faixa onboarding canônica 1-2 / 20-50; 2/40 está dentro. (aag-blast-radius-containment: capability nova inicia conservadora, expande com track record via calibration.)"
+		rationale: "IDC tem 10 ações declaradas (3 queries execute-and-log + 1 generation execute-and-log + 1 validation execute-and-log + 4 mutations propose-and-wait + 1 escalation collect-and-report). maxConcurrentMutations: 2 limita execução paralela conservadoramente em onboarding — IDC é raiz de confiança regulatory sem global governance materializado; breach amplifica risco cross-BC (NPM/LOG/DLV são consumers). maxDailyActions: 40 reflete throughput esperado em onboarding (verificações organizacionais não são alto volume; assinaturas vêm em lotes via LOG conforme demanda construtiva). Caps abaixo do patamar ctr/npm (3/50) reflete maior conservadorismo Phase 0 dado raiz-de-confiança status — promoção via calibration declarada, não inflação inicial. Sanity check: 40 daily ≥ 2 concurrent ✓. Lifecycle×caps monotonicidade (tq-gvg-07): faixa onboarding canônica 1-2 / 20-50; 2/40 está dentro. (aag-blast-radius-containment: capability nova inicia conservadora, expande com track record via calibration.)"
 	}
 
 	// =============================================
 	// DRIFT DETECTION
 	// =============================================
 	//
-	// Failure handling tech debt (tq-gvg-08, schema sem first-class field):
-	// onAgentError → pause-and-review; onTimeout → retry-then-escalate
-	// (max 1 retry); onRepeatedFailure → suspend-and-escalate (3 falhas/24h).
-	//
 	// Automatic enforcement bindings drift→action (tq-gvg-06):
 	// - dm-escalation-response-latency threshold breach → reduce-autonomy
 	//   via regression trigger (sem necessidade de calibration humana)
 	// - dm-audit-completeness-rate < 100% → block operations imediatamente
 	//   (regulatory grade requirement; tolerance-zero; ver métrica abaixo)
+	//
+	// Failure handling per envelope.failureHandling field (schema first-class
+	// per adr-058; substituiu narrative anterior em comment block + drift
+	// Detection.rationale per P0 — single source of truth no field declarativo).
 
 	driftDetection: {
 		evaluationCadence: "weekly"
@@ -167,7 +163,7 @@ idcPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 			threshold:   "< 100% (qualquer ausência de field obrigatório)"
 			rationale:   "Audit trail incompleto compromete reconstituição regulatory (Bacen retention 5+ anos para evidência criptográfica). Tolerance-zero porque qualquer field ausente em raiz de confiança quebra cadeia de prova downstream — não é métrica de degradação gradual; é gate binário. Threshold ativo binding direto a immediate action 'block operations' (tq-gvg-06) — drift→action sem passar por calibration humana, dado severity regulatory. (aag-drift-detection: única métrica com binding automático direto a block, refletindo severity tier máximo regulatory.)"
 		}]
-		rationale: "Cinco métricas cobrem latência de supervisão (resposta tier-aware), qualidade do protocolo de verificação (completion rate), dimensionamento operacional (cap utilization), segurança criptográfica (anomaly rate IDC-specific) e completude regulatory (audit completeness com binding automático a block). Cadência semanal adequada para onboarding — volume baixo, cada semana acumula amostra suficiente. Failure handling tech debt declarada em comment block acima (onAgentError pause-and-review; onTimeout retry-then-escalate; onRepeatedFailure suspend-and-escalate) até schema absorver como first-class field per tq-gvg-08. Automatic enforcement bindings drift→action (tq-gvg-06): dm-escalation-response-latency threshold breach → reduce-autonomy via regression trigger; dm-audit-completeness-rate < 100% → block immediately (zero-tolerance regulatory; única métrica com binding direto não-mediado por calibration humana, refletindo severity tier máximo). (aag-drift-detection: drift é silencioso — detecção ativa é o mecanismo.)"
+		rationale: "Cinco métricas cobrem latência de supervisão (resposta tier-aware), qualidade do protocolo de verificação (completion rate), dimensionamento operacional (cap utilization), segurança criptográfica (anomaly rate IDC-specific) e completude regulatory (audit completeness com binding automático a block). Cadência semanal adequada para onboarding — volume baixo, cada semana acumula amostra suficiente. Failure handling vive em envelope.failureHandling field per #FailureHandling shape (schema first-class per adr-058) — narrative duplicada anterior removida (P0). Automatic enforcement bindings drift→action (tq-gvg-06): dm-escalation-response-latency threshold breach → reduce-autonomy via regression trigger; dm-audit-completeness-rate < 100% → block immediately (zero-tolerance regulatory; única métrica com binding direto não-mediado por calibration humana, refletindo severity tier máximo). (aag-drift-detection: drift é silencioso — detecção ativa é o mecanismo.)"
 	}
 
 	// =============================================
@@ -214,5 +210,24 @@ idcPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 		rationale: "Promoção em dois estágios: onboarding→validation (15 verificações, 60 dias) e validation→operational (50 verificações, 90 dias) com critério adicional de dm-audit-completeness-rate sustentado em 100% por 8 semanas para promoção a operational. Critérios mais conservadores que CMT (15/60 vs 20/80) refletem throughput baixo de identity verification + maior consequência por error (raiz de confiança). Regressão com tolerância zero para violação de autonomy boundary (suspend-and-escalate), detecção precoce para drift sustentado (2 semanas, reduce-autonomy), contenção imediata para breach de blast radius (reduce-autonomy), e severity máxima para anomaly criptográfica (suspend-and-escalate, tolerance 1 avaliação). dm-audit-completeness-rate tem binding automático direto a block (não regression trigger), refletindo severity regulatory máxima. Calibração conservadora para BC raiz de confiança em fase pré-PMF — IDC condiciona TODA cadeia downstream criptográfica (LOG/DLV/INV/FCE), priorizar safety sobre speed é axiomático."
 	}
 
-	rationale: "Envelope de governança do agt-idc-primary em lifecycle onboarding. IDC é a raiz de confiança regulatory da Mesh — único BC que verifica identity organizacional contra fontes autoritativas (RF/JC/bureaus), assina evidência via DSSE e gera Merkle proofs; toda cadeia downstream criptográfica (LOG/DLV/INV/FCE) depende da integridade desta raiz. Bidirectional ref validado: agent-spec.code 'agt-idc-primary' == agentRef; agent-spec.governanceRef 'idc-primary-agent' == base name deste arquivo (idc-primary-agent.governance.cue) (tq-gv-06). 6 rotas de escalação cobrindo 6 categories do agent-spec.escalationConditions: sync-human-review para conflicting-signals/suspicious-input/ambiguous-case (resolução rápida contém propagação de incerteza para downstream); alert-and-block para insufficient-context/out-of-scope (prosseguir sem fonte autoritativa ou fora de taxonomia viola integridade regulatory); alert-and-block com SLA tier-superior 1h para unclassifiable-anomaly (comprometimento de identidade ou drift criptográfico exigem contenção imediata). Routing precedence quando categories concorrem: blocking > non-blocking; mutation-related > informational; explicit > fallback (tq-gvg-05). Blast radius caps dimensionados para onboarding regulatory (2 concurrent mutations, 40 daily actions; dentro da faixa onboarding canônica 1-2/20-50 per tq-gvg-07; conservadorismo Phase 0 reforçado dado raiz-de-confiança status sem global governance e sem failureHandling first-class). Drift detection semanal com 5 métricas: latência de supervisão tier-aware, completion rate de verificações, cap utilization, anomaly criptográfica IDC-specific, e audit completeness regulatory com binding direto a block. Failure handling declarado como tech debt em comment block + driftDetection.rationale (tq-gvg-08): onAgentError pause-and-review, onTimeout retry-then-escalate, onRepeatedFailure suspend-and-escalate. Automatic enforcement bindings drift→action (tq-gvg-06): dm-escalation-response-latency threshold breach → reduce-autonomy; dm-audit-completeness-rate < 100% → block (zero-tolerance regulatory; única binding automático direto não-mediado por calibration humana). Calibração: promoção 15/60 onboarding→validation, 50/90 validation→operational com critério adicional de audit-completeness sustentado; regressão com 4 triggers incluindo tolerance 1-avaliação para anomaly criptográfica (severity máxima raiz de confiança). Envelope é control plane apenas (tq-gvg-09): routing + caps + calibration + drift + lifecycle; nenhuma business logic vazada (decisões de domain — invariants, taxonomy, source authority — vivem em agent-spec.constraints e domain-model). Sem autonomyOverrides em Phase 0 (todas mutations propose-and-wait per spec; promoção via calibration declarada, não override retroativo). Lenses: aag (primária), sti (secundária), rc (secundária). Phase 0 caveats explícitos no spec rationale (3/6 invariants com agente como único enforcer pré-resolução de ten-003/ten-004) refletidos aqui via tier-superior de severity em routing/regression para anomaly criptográfica e taxonomia, e via binding automático direto para audit completeness."
+	failureHandling: {
+		onAgentError: {
+			action:      "suspend-and-escalate"
+			description: "Erro interno do agente (exception, comportamento não-determinístico em raiz de confiança regulatory): halt operations imediatamente, escalate to founder for root cause analysis antes de retomar. IDC severity tier máximo — agente não-determinístico em raiz de confiança compromete cadeia downstream criptográfica."
+		}
+		onTimeout: {
+			action:      "suspend-and-escalate"
+			retryPolicy: "Max 1 retry com exponential backoff (initial 2s); aplicável a chamadas a fontes externas RF/JC/bureaus que retornam timeout. Sem retry para operações criptográficas internas (DSSE/Merkle) — timeout aqui é bug determinístico."
+			description: "Timeout em operação: retry once para fontes externas; falha persiste = suspend e escalate via insufficient-context routing. Escalation routing carrega contexto de qual fonte externa timeout."
+		}
+		onRepeatedFailure: {
+			action:      "suspend-and-escalate"
+			threshold:   "3 failures"
+			timeWindow:  "24h"
+			description: "3 falhas em 24h sugerem issue sistêmico (degradação de fonte externa sustentada, bug em protocolo de verificação, attacker fuzzing). Suspend + immediate founder notification — IDC raiz de confiança não tolera operação degraded sustentada."
+		}
+		rationale: "Per adr-058 promotion de tech debt narrative para field first-class. IDC severity tier máximo (raiz de confiança regulatory): suspend-and-escalate em todos 3 eventos por padrão Phase 0; retry conservador em onTimeout aplicável apenas a fontes externas (operações criptográficas internas não retentam — timeout aqui é determinístico). 3/24h threshold para repeated failure reflete tolerance baixa apropriada para criticality regulatory."
+	}
+
+	rationale: "Envelope de governança do agt-idc-primary em lifecycle onboarding. IDC é a raiz de confiança regulatory da Mesh — único BC que verifica identity organizacional contra fontes autoritativas (RF/JC/bureaus), assina evidência via DSSE e gera Merkle proofs; toda cadeia downstream criptográfica (LOG/DLV/INV/FCE) depende da integridade desta raiz. Bidirectional ref validado: agent-spec.code 'agt-idc-primary' == agentRef; agent-spec.governanceRef 'idc-primary-agent' == base name deste arquivo (idc-primary-agent.governance.cue) (tq-gv-06). 6 rotas de escalação cobrindo 6 categories do agent-spec.escalationConditions: sync-human-review para conflicting-signals/suspicious-input/ambiguous-case (resolução rápida contém propagação de incerteza para downstream); alert-and-block para insufficient-context/out-of-scope (prosseguir sem fonte autoritativa ou fora de taxonomia viola integridade regulatory); alert-and-block com SLA tier-superior 1h para unclassifiable-anomaly (comprometimento de identidade ou drift criptográfico exigem contenção imediata). Routing precedence quando categories concorrem: blocking > non-blocking; mutation-related > informational; explicit > fallback (tq-gvg-05). Blast radius caps dimensionados para onboarding regulatory (2 concurrent mutations, 40 daily actions; dentro da faixa onboarding canônica 1-2/20-50 per tq-gvg-07; conservadorismo Phase 0 reforçado dado raiz-de-confiança status sem global governance). Drift detection semanal com 5 métricas: latência de supervisão tier-aware, completion rate de verificações, cap utilization, anomaly criptográfica IDC-specific, e audit completeness regulatory com binding direto a block. Failure handling declarado em envelope.failureHandling field per #FailureHandling shape (schema first-class per adr-058): suspend-and-escalate em todos 3 eventos com severity tier máximo (raiz de confiança regulatory); narrative anterior em comment block + driftDetection.rationale removida per P0 (single source of truth no field declarativo). Automatic enforcement bindings drift→action (tq-gvg-06): dm-escalation-response-latency threshold breach → reduce-autonomy; dm-audit-completeness-rate < 100% → block (zero-tolerance regulatory; única binding automático direto não-mediado por calibration humana). Calibração: promoção 15/60 onboarding→validation, 50/90 validation→operational com critério adicional de audit-completeness sustentado; regressão com 4 triggers incluindo tolerance 1-avaliação para anomaly criptográfica (severity máxima raiz de confiança). Envelope é control plane apenas (tq-gvg-09): routing + caps + calibration + drift + lifecycle; nenhuma business logic vazada (decisões de domain — invariants, taxonomy, source authority — vivem em agent-spec.constraints e domain-model). Sem autonomyOverrides em Phase 0 (todas mutations propose-and-wait per spec; promoção via calibration declarada, não override retroativo). Lenses: aag (primária), sti (secundária), rc (secundária). Phase 0 caveats explícitos no spec rationale (3/6 invariants com agente como único enforcer pré-resolução de ten-003/ten-004) refletidos aqui via tier-superior de severity em routing/regression para anomaly criptográfica e taxonomia, e via binding automático direto para audit completeness."
 }
