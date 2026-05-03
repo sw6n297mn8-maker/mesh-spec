@@ -7,26 +7,160 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // work-events/, work-graph.cue, task-specs/, task-governance.cue.
 // Deletável sem perda (P8). Não é source of truth.
 //
-// pg1-governance-enforcement completa (WI-015 + WI-016 completed).
-// pg2-governance-robustness completa (WI-017 + WI-018 + WI-019 completed).
-// WI-007 (subdomínios), WI-011 (schema #Canvas) e WI-012 (schema #Subdomain) completed.
+// Algorithm aplicado: admission=approved + execution=unclaimed + todas
+// as deps em estado final (task-completed) + task-spec existe.
 //
-// Exclusões desta reconstrução:
-// - WI-010: dep WI-009 (approved, unclaimed) não satisfeita
+// 24 candidatos prontos para claim. 5 candidatos approved bloqueados por
+// deps inter-BC ainda em task-approved (não completed): WI-043, 044,
+// 051, 052, 059. WI-040 ainda em task-proposed (aguarda approval).
+// WI-066/067/068/069 admission=defined (task-spec existe, sem work-event).
+// WI-034 task-cancelled (final state). 35 WIs em task-completed.
 
 readyQueueProjection: {
-	rebuiltAt: "2026-03-28T01:00:00Z"
+	rebuiltAt: "2026-05-03T18:15:00Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
-		taskId:        "WI-008"
+		taskId:        "WI-014"
 		version:       1
-		title:         "Criar strategic/context-map.cue"
+		title:         "Alinhar domain/stakeholder-map.cue com glossário universal"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-027"
+		version:       1
+		title:         "Definir convenção OpenAPI/AsyncAPI por capability flags"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-030"
+		version:       1
+		title:         "Criar schema #ArchitectureCommunicationCanvas"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "high"
 	}, {
-		taskId:        "WI-009"
+		taskId:        "WI-032"
 		version:       1
-		title:         "Criar contexts/cmt/canvas.cue — primeiro BC"
+		title:         "Criar runner de validação cross-artifact"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-033"
+		version:       1
+		title:         "Criar shared-types.cue para tipos utilitários do package artifact_schemas"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "high"
+	}, {
+		taskId:        "WI-042"
+		version:       1
+		title:         "Criar artefatos de domínio para Delivery & Verification (DLV)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-045"
+		version:       1
+		title:         "Criar artefatos de domínio para Network Intelligence & Mechanism Design (NIM)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-046"
+		version:       1
+		title:         "Criar artefatos de domínio para Risk Engine & Risk Observability (REW)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-047"
+		version:       1
+		title:         "Criar artefatos de domínio para Accounting & Tax Operations (ATO)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-048"
+		version:       1
+		title:         "Criar artefatos de domínio para Budget & Approval (BDG)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-049"
+		version:       1
+		title:         "Criar artefatos de domínio para Disputes, Reversals & Corrections (DRC)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-050"
+		version:       1
+		title:         "Criar artefatos de domínio para Identity & Data Governance (IDC)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-053"
+		version:       1
+		title:         "Criar artefatos de domínio para Invoicing (INV)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-054"
+		version:       1
+		title:         "Criar artefatos de domínio para Logistics & Operational Evidence (LOG)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-055"
+		version:       1
+		title:         "Criar artefatos de domínio para Network Participant Management (NPM)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-056"
+		version:       1
+		title:         "Criar artefatos de domínio para Observability & Operational Intelligence (OBS)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-057"
+		version:       1
+		title:         "Criar artefatos de domínio para Procure-to-Pay (P2P)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-058"
+		version:       1
+		title:         "Criar artefatos de domínio para Platform & Infrastructure Services (PLT)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-060"
+		version:       1
+		title:         "Criar artefatos de domínio para Strategic Sourcing & Category (SSC)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-061"
+		version:       1
+		title:         "Criar artefatos de domínio para Treasury & Cash Management (TCM)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-062"
+		version:       1
+		title:         "Criar artefatos de domínio para Banking Rails & Settlement (BKR)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-063"
+		version:       1
+		title:         "Criar artefatos de domínio para Notifications & Communications (NTF)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-064"
+		version:       1
+		title:         "Criar artefatos de domínio para Storage & Document Management (STR)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-065"
+		version:       1
+		title:         "Criar scripts/build/generate-claude-md.sh para regenerar CLAUDE.md a partir do CUE fonte"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
 	}]
 }

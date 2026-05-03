@@ -10,8 +10,10 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Reconstrução atual: zero items em progresso.
 // Nenhuma stream possui task-claimed sem task-completed,
 // task-released ou task-claim-expired subsequente.
+// (Verificado por scan de work-events/ — nenhum eventType=task-claimed
+// como último event em qualquer stream.)
 
 inProgressProjection: {
-	rebuiltAt: "2026-03-22T12:00:00Z"
+	rebuiltAt: "2026-05-03T18:15:00Z"
 	entries: [...build_time.#InProgressEntry] & []
 }
