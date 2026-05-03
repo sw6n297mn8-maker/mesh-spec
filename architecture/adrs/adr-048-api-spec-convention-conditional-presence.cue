@@ -183,7 +183,10 @@ adr048: artifact_schemas.#ADR & {
 		- Advisory (validation prompt para convention) é
 		  follow-up separado. Custo de parsing OpenAPI/AsyncAPI
 		  para comparação com canvas justifica deferral.
-		- #Convention schema central deferido até n=2.
+		- #Convention schema central: deferimento formalizado em
+		  def-010 (backfill 2026-05-03 da prose original; trigger
+		  codificado: recurrence em architecture/conventions/
+		  threshold=2).
 		- sourceField em upstreamSources é string documental,
 		  não referência compile-time.
 
@@ -202,6 +205,10 @@ adr048: artifact_schemas.#ADR & {
 
 	plannedOutputs: [
 		"architecture/conventions/api-spec-convention.cue",
+	]
+
+	defersTo: [
+		"def-010",
 	]
 
 	principlesApplied: ["P0", "P1", "P10", "P12"]
