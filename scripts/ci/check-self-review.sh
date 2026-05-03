@@ -40,6 +40,7 @@ artifact_type_for_path() {
     architecture/adrs/*.cue)                                echo "adr" ;;
     architecture/artifact-schemas/*.cue)                    echo "artifact-schema" ;;
     architecture/lenses/*.cue)                              echo "lens" ;;
+    architecture/deferred-decisions/def-*.cue)              echo "deferred-decision" ;;
     domain/domain-definition.cue)                           echo "domain-definition" ;;
     domain/stakeholder-map.cue)                             echo "stakeholder-map" ;;
     ai-orchestration/agent-instructions/task-templates.cue) echo "task-template" ;;
