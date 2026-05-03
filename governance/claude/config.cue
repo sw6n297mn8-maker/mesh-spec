@@ -391,5 +391,80 @@ config: #AgentConfig & {
 				quality-gate.cue): falha em uma camada é capturada por outra.
 				"""
 		},
+		{
+			title:           "Deferimento Consciente Governado"
+			canonicalSource: "architecture/artifact-schemas/deferred-decision.cue"
+			content: #"""
+				Quando o agente ou founder decidem NÃO resolver agora um
+				problema identificado — tipicamente ao escolher cobertura
+				parcial em vez de completa — o deferimento consciente deve
+				ser registrado per adr-062 como instância de
+				#DeferredDecision em architecture/deferred-decisions/, NÃO
+				como prose em "Known gaps declarados" em ADR e NÃO como
+				WI rotineiro em task-approved sem trigger.
+
+				Esta seção não redefine o schema. O agente deve resolver
+				lifecycle, kinds de trigger, contratos de OriginRef e
+				constraints exclusivamente a partir do artefato canônico
+				architecture/artifact-schemas/deferred-decision.cue + PG
+				correspondente architecture/production-guides/deferred-
+				decision.cue.
+
+				O agente não deve reimplementar, resumir nem simplificar
+				o protocolo por memória. Deve consumi-lo diretamente como
+				fonte de verdade operacional.
+
+				Critério de pertinência (anti-catch-all):
+				- Deferimento consciente: decisão explícita de não
+				  resolver agora COM trade-off articulado (custo evitado
+				  vs custo de continuar) E condição codificada de
+				  revisita.
+				- NÃO é deferred-decision: trabalho rotineiro pendente
+				  sem trade-off (esses são WIs em task-approved); tensão
+				  de design entre forças concorrentes (essas são
+				  tension-entries); bug ou gap travestido (esses
+				  deveriam virar WI per vc-te-01).
+
+				Naming: "deferimento consciente governado" — o termo
+				restrito evita o tipo virar dumping ground para
+				qualquer dívida técnica genérica.
+
+				Lifecycle automatizado:
+				- Status inicial 'open' no commit que cria def-XXX.
+				- Runner determinístico (scripts/ci/evaluate-deferred-
+				  triggers.sh) avalia triggers a cada commit em CI.
+				- Trigger fired → annotations no PR + step summary;
+				  runner NÃO muta arquivos.
+				- Founder revisa annotations e edita status manualmente
+				  (open → triggered) ou age sobre o deferimento (cria
+				  ADR/WI de resolução; status → resolved com resolvedBy
+				  populado).
+
+				ADRs pós-adr-062 SHOULD usar field defersTo (em #ADR
+				schema) referenciando def-XXX em vez de prose 'Known
+				gaps declarados'. ADRs pré-adr-062 mantêm prose
+				grandfathered; backfill é separate WI futuro.
+
+				Quando deferimento NÃO admite trigger automático
+				(decisão estratégica que só founder revisita; condição
+				não machine-evaluable): trigger kind 'manual-review' com
+				reason articulando POR QUE automação não é viável neste
+				caso — não usar como default por preguiça.
+				"""#
+			rationale: """
+				Ativa architecture/artifact-schemas/deferred-decision.cue
+				+ PG-DeferredDecision como protocolo comportamental para
+				registro de decisões de deferimento. Per adr-062, substitui
+				prose 'Known gaps declarados' (não-queryable) + revisão
+				manual periódica (provadamente quebrada — projections
+				stale 5+ semanas) por máquina automática: triggers
+				codificados avaliados por runner determinístico (P10 +
+				adr-040 separation determinístico vs advisory). Naming
+				restrito ('deferimento consciente governado') evita
+				catch-all que tornaria o tipo lixeira. Lifecycle
+				automatizado endereça failure mode primário do sistema
+				atual (deferimento esquecido em prose).
+				"""
+		},
 	]
 }
