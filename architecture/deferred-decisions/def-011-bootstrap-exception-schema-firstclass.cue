@@ -103,5 +103,8 @@ deferredDecisions: "def-011": artifact_schemas.#DeferredDecision & {
 		reason: "Schema atual sem field category/lifecycle → contagem mecânica de transient exceptions requereria parser de prose rationale (frágil). Founder revisita quando próximo path-mapping ADR for redigido OR quando percepção de stale-exception accumulation justificar schema bump. Automação completa não viável até schema first-class existir (que é exatamente o que este def-011 difere)."
 	}]
 
-	status: "open"
+	status:             "resolved"
+	triggeredAt:        "2026-05-03"
+	triggeredCondition: "Trigger 1 fired duas vezes consecutivas em adr-068 (count 3→4) e adr-069 (count 4→5); founder articulou em adr-069 Known gaps que def-011 deveria ser actively reconsidered before next path-mapping ADR. Reconsideração ativa decidiu por promoção a schema first-class."
+	resolvedBy:         "architecture/adrs/adr-070-promote-bootstrap-exception-to-firstclass-schema.cue"
 }

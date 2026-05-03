@@ -11,7 +11,7 @@ set -euo pipefail
 #      + entrada em workflow output. NÃO muta arquivos.
 #   4. Exit 0 sempre (advisory; não bloqueia CI).
 #
-# Triggers machine-evaluable (per adr-062):
+# Triggers machine-evaluable (per adr-062 + adr-071):
 #   - recurrence:       grep do pattern no scope (filename/file-content/
 #                       commit-message); fires quando count >= threshold
 #   - adjacent-need:    file-exists OU file-contains; fires quando condição
@@ -20,6 +20,10 @@ set -euo pipefail
 #                       fires quando count >= threshold
 #   - temporal:         date math vs def.date; fires quando age_days >= maxAgeDays
 #   - manual-review:    skip (founder revisa via edit manual)
+#   - file-content-occurrence-count:
+#                       conta regex matches DENTRO de UM arquivo singleton
+#                       (per adr-071); USO RESTRITO a singleton governance
+#                       file (não mecanismo geral de busca no repo).
 #
 # Limitação conhecida: avaliação é sobre filesystem state atual + git log
 # para commit-message scope. Não há state persistido entre runs — trigger
@@ -172,6 +176,26 @@ def evaluate_manual_review(trigger):
     return False, f"manual-review: skip (reason: {trigger.get('reason', 'n/a')[:60]}...)"
 
 
+def evaluate_file_content_occurrence_count(trigger):
+    # Conta occurrences do regex DENTRO de UM arquivo singleton.
+    # Distinto de recurrence scope=file-content (conta arquivos com matches).
+    # Uso restrito: trigger de singleton governance file (ver schema doc).
+    path = trigger["path"]
+    pattern = trigger["pattern"]
+    threshold = trigger["threshold"]
+    if not os.path.exists(path):
+        return False, f"file-content-occurrence-count: {path} does not exist"
+    try:
+        with open(path) as f:
+            text = f.read()
+        count = len(re.findall(pattern, text))
+        if count >= threshold:
+            return True, f"file-content-occurrence-count(path={path}, pattern={pattern!r}) found {count} >= threshold {threshold}"
+        return False, f"file-content-occurrence-count: {count} < threshold {threshold}"
+    except Exception as e:
+        return False, f"file-content-occurrence-count eval error: {e}"
+
+
 for def_id, d in defs.items():
     status = d.get("status", "")
     if status != "open":
@@ -195,6 +219,8 @@ for def_id, d in defs.items():
             ok, msg = evaluate_temporal(trigger, d.get("date", ""))
         elif kind == "manual-review":
             ok, msg = evaluate_manual_review(trigger)
+        elif kind == "file-content-occurrence-count":
+            ok, msg = evaluate_file_content_occurrence_count(trigger)
         else:
             ok, msg = False, f"unknown kind: {kind}"
 
