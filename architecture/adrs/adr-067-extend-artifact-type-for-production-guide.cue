@@ -107,14 +107,23 @@ adr067: artifact_schemas.#ADR & {
 		desta branch (status stable, single round, executionMode
 		self-reported).
 
-		(4) FORA DE ESCOPO: PGs em main sem SRR matching path
-		(adr.cue, agent-governance.cue, agent-spec.cue, structural-
-		check.cue) — não modificadas nesta branch. Coverage é WI
-		separado futuro (retros de adr-067 são in-flight per
-		pattern adr-060).
+		(4) REGULARIZAÇÃO TRANSITÓRIA DE PGs EM MAIN SEM SRR: PGs
+		adr.cue, agent-governance.cue, agent-spec.cue, structural-
+		check.cue não modificadas nesta branch (verified via git diff
+		origin/main...HEAD) mas existem em main pre-path-mapping.
+		Regularizadas neste mesmo commit via 4 entries em
+		self-review-bootstrap-policy.cue (categoria pre-mapping-
+		transient). Cada exception sai quando próxima modificação
+		criar SRR matching path. Schema first-class para transient
+		lifecycle (category/lifecycle/exitCondition fields +
+		structural-check de stale detection) deferido per def-011 —
+		volume insuficiente agora para generalização (pattern ten-009
+		expand-when-needed).
 
-		(5) MATERIALIZAÇÃO: single commit com este ADR + script
-		edit + 2 retroativos + ADR-067 self-review.
+		(5) MATERIALIZAÇÃO: single commit consolidado com este ADR +
+		script edit + 2 retroativos + ADR-067 self-review + 4
+		bootstrap-policy exceptions + def-011 (deferimento de schema
+		first-class).
 
 		(6) FUTURE EXTENSION (continua pattern): outros types
 		remain candidates per adr-060 + adr-066 framing. Próximos
@@ -168,10 +177,11 @@ adr067: artifact_schemas.#ADR & {
 		- 4 PGs em main sem SRR matching path (adr.cue, agent-
 		  governance.cue, agent-spec.cue, structural-check.cue):
 		  modificadas em sessões prévias antes de path-mapping
-		  existir. Não modificadas nesta branch — não acionam
-		  enforcement no diff atual. Coverage retroativa é WI
-		  separado futuro quando algum dos 4 for modificado em
-		  branch subsequente, ou via cleanup explícito.
+		  existir. Regularização neste commit via bootstrap-exception
+		  pattern (categoria pre-mapping-transient em self-review-
+		  bootstrap-policy.cue). Schema first-class para transient
+		  lifecycle deferido per def-011. Cada exception sai quando
+		  próxima modificação criar SRR matching path.
 		- structural-check path mapping é forte candidato seguinte
 		  (6 instances, 5 modified this session). Separate ADR per
 		  progressive pattern.
@@ -189,12 +199,16 @@ adr067: artifact_schemas.#ADR & {
 
 	affectedArtifacts: [
 		"scripts/ci/check-self-review.sh",
+		"governance/build-time/self-review-bootstrap-policy.cue",
 	]
 
 	plannedOutputs: [
 		"governance/build-time/self-reviews/deferred-decision-pg-touch.self-review.cue",
 		"governance/build-time/self-reviews/tension-entry-pg-touch.self-review.cue",
+		"architecture/deferred-decisions/def-011-bootstrap-exception-schema-firstclass.cue",
 	]
+
+	defersTo: ["def-011"]
 
 	principlesApplied: [
 		"P10",

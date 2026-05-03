@@ -59,13 +59,31 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 	}, {
 		artifactPath: "architecture/adrs/adr-017-readme-blocks-as-derived-artifacts.cue"
 		rationale:    "Mesmo padrão de ADR-016: 2026-03-19, predecede self-review, editado apenas para supersession mecânica. Superseded por ADR-051."
+	}, {
+		artifactPath: "architecture/production-guides/adr.cue"
+		rationale:    "PG criada/modificada em main antes de adr-067 estabelecer path-mapping para production-guide instances. Modificações cobertas indiretamente pelos SRRs dos ADRs originadores (e.g., adr-058, adr-059) cujo artifactPath aponta para o ADR, não para a PG. Categoria pre-mapping-transient: sai desta exception quando próxima modificação criar SRR matching path. Schema first-class para transient lifecycle deferido per def-011."
+	}, {
+		artifactPath: "architecture/production-guides/agent-governance.cue"
+		rationale:    "Mesma categoria pre-mapping-transient de architecture/production-guides/adr.cue: PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores. Sai desta exception na próxima modificação com SRR matching path. Schema first-class para transient lifecycle deferido per def-011."
+	}, {
+		artifactPath: "architecture/production-guides/agent-spec.cue"
+		rationale:    "Mesma categoria pre-mapping-transient de architecture/production-guides/adr.cue: PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores. Sai desta exception na próxima modificação com SRR matching path. Schema first-class para transient lifecycle deferido per def-011."
+	}, {
+		artifactPath: "architecture/production-guides/structural-check.cue"
+		rationale:    "Mesma categoria pre-mapping-transient de architecture/production-guides/adr.cue: PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores. Sai desta exception na próxima modificação com SRR matching path. Schema first-class para transient lifecycle deferido per def-011."
 	}]
 
 	rationale: """
-		Exceções cobrem 4 artefatos do commit inaugural do sistema de
-		self-review (ADR-013/014/015 + quality-criteria.cue) e 2 ADRs
-		que predecedem o mecanismo e foram editados apenas para
-		supersession mecânica (ADR-016/017). Artefatos build-time não
-		precisam de exceção porque não são governedTypes.
+		Três categorias de exceções:
+		(1) Commit inaugural do sistema de self-review (4 artefatos:
+		ADR-013/014/015 + quality-criteria.cue) — circularidade.
+		(2) ADRs predecessores ao mecanismo, editados apenas para
+		supersession mecânica (ADR-016/017).
+		(3) PGs em main pre-adr-067 path-mapping (4 PGs: adr,
+		agent-governance, agent-spec, structural-check) — exception
+		transiente, sai quando próxima modificação criar SRR matching
+		path. Categoria/lifecycle vivem na prose rationale; promoção
+		a schema first-class deferida per def-011. Artefatos build-time
+		não precisam de exceção porque não são governedTypes.
 		"""
 }
