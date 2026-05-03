@@ -66,7 +66,13 @@ package artifact_schemas
 	// Per adr-059: paths novos criados pela decisão devem ir em
 	// plannedOutputs (não aqui). ADRs anteriores a adr-059 grandfathered:
 	// podem conter mix de existing-altered + new-created neste field.
-	affectedArtifacts: [string & !="", ...string & !=""]
+	// Relaxado para optional non-empty list (era required ≥1) per adr-059
+	// follow-up: ADRs cuja única atividade é criar paths novos têm
+	// affectedArtifacts vazio + plannedOutputs preenchido. At-least-one
+	// across {affectedArtifacts, plannedOutputs, derivedArtifacts} é
+	// discipline narrative em PG-ADR (não enforced por schema dado limites
+	// de disjunção CUE sobre fields opcionais; runner futuro pode validar).
+	affectedArtifacts: [...string & !=""]
 
 	// Artefatos novos criados pela decisão como output direto.
 	// Per adr-059: optional, separação explícita de affectedArtifacts

@@ -219,9 +219,12 @@ adr054: artifact_schemas.#ADR & {
 	blastRadius:   "cross-cutting"
 
 	affectedArtifacts: [
-		"governance/build-time/authoring-policy.cue",
 		"governance/build-time/quality-gate.cue",
 		"governance/readme/config.cue",
+	]
+
+	plannedOutputs: [
+		"governance/build-time/authoring-policy.cue",
 	]
 
 	derivedArtifacts: [

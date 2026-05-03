@@ -198,7 +198,9 @@ adr048: artifact_schemas.#ADR & {
 	reversibility: "high"
 	blastRadius:   "cross-artifact"
 
-	affectedArtifacts: [
+	affectedArtifacts: []
+
+	plannedOutputs: [
 		"architecture/conventions/api-spec-convention.cue",
 	]
 

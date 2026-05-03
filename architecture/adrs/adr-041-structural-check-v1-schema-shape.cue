@@ -171,7 +171,9 @@ adr041: artifact_schemas.#ADR & {
 	reversibility: "medium"
 	blastRadius:   "cross-cutting"
 
-	affectedArtifacts: [
+	affectedArtifacts: []
+
+	plannedOutputs: [
 		"architecture/artifact-schemas/structural-check.cue",
 	]
 

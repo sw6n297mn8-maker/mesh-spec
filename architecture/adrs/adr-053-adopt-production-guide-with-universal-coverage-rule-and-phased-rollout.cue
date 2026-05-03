@@ -207,10 +207,13 @@ adr053: artifact_schemas.#ADR & {
 	blastRadius:   "repo-wide"
 
 	affectedArtifacts: [
-		"architecture/artifact-schemas/production-guide.cue",
-		"architecture/production-guides/production-guide.cue",
 		"governance/adopted-artifacts.cue",
 		"governance/readme/config.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/production-guide.cue",
+		"architecture/production-guides/production-guide.cue",
 	]
 
 	derivedArtifacts: [

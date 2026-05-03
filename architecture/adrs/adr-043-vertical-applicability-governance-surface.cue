@@ -236,10 +236,13 @@ adr043: artifact_schemas.#ADR & {
 	blastRadius:   "cross-cutting"
 
 	affectedArtifacts: [
-		"architecture/shared-types/vertical-applicability.cue",
 		"architecture/artifact-schemas/subdomain.cue",
 		"architecture/artifact-schemas/canvas.cue",
 		"architecture/artifact-schemas/lens.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/shared-types/vertical-applicability.cue",
 	]
 
 	principlesApplied: [

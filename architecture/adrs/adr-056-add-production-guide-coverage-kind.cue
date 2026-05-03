@@ -198,6 +198,9 @@ adr056: artifact_schemas.#ADR & {
 
 	affectedArtifacts: [
 		"architecture/artifact-schemas/structural-check.cue",
+	]
+
+	plannedOutputs: [
 		"architecture/structural-checks/production-guide.cue",
 	]
 

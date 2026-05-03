@@ -147,11 +147,14 @@ adr050: artifact_schemas.#ADR & {
 	blastRadius:   "repo-wide"
 
 	affectedArtifacts: [
+		"governance/repo-structure.cue",
+	]
+
+	plannedOutputs: [
 		"governance/adopted-artifacts.cue",
 		"architecture/artifact-schemas/readme-config.cue",
 		"governance/readme/output.cue",
 		"governance/readme/config.cue",
-		"governance/repo-structure.cue",
 	]
 
 	derivedArtifacts: [

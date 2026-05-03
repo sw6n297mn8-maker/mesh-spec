@@ -165,6 +165,9 @@ adr058: artifact_schemas.#ADR & {
 		"contexts/ctr/agents/ctr-primary-agent.governance.cue",
 		"contexts/npm/agents/npm-primary-agent.governance.cue",
 		"contexts/idc/agents/idc-primary-agent.governance.cue",
+	]
+
+	plannedOutputs: [
 		"governance/build-time/self-reviews/adr-058.self-review.cue",
 		"governance/build-time/self-reviews/agent-governance-schema-failurehandling.self-review.cue",
 	]
