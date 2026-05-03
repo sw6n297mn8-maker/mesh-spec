@@ -62,8 +62,17 @@ package artifact_schemas
 
 	// ── Rastreabilidade ──
 
-	// Artefatos normativos criados ou alterados por esta decisão.
+	// Artefatos normativos existentes alterados por esta decisão.
+	// Per adr-059: paths novos criados pela decisão devem ir em
+	// plannedOutputs (não aqui). ADRs anteriores a adr-059 grandfathered:
+	// podem conter mix de existing-altered + new-created neste field.
 	affectedArtifacts: [string & !="", ...string & !=""]
+
+	// Artefatos novos criados pela decisão como output direto.
+	// Per adr-059: optional, separação explícita de affectedArtifacts
+	// para discipline 3-way (existing-altered / new-created / derived-
+	// regenerated). ADRs pré-adr-059 grandfathered sem este field.
+	plannedOutputs?: [...string & !=""]
 
 	// Artefatos regenerados ou ajustados como consequência (não como decisão direta).
 	derivedArtifacts?: [...string & !=""]
