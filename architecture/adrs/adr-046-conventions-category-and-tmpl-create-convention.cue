@@ -212,10 +212,12 @@ adr046: artifact_schemas.#ADR & {
 
 		Known gaps declarados (não omitidos):
 
-		- #Convention schema central deferido até n=2
-		  convenções concretas (pattern ten-009). Warn
-		  transitório no file classification é aceito
-		  conscientemente.
+		- #Convention schema central: deferimento formalizado em
+		  def-010 (backfill 2026-05-03 da prose original; pattern
+		  ten-009 expand-when-needed mantido). Trigger codificado:
+		  recurrence em architecture/conventions/ threshold=2.
+		  Warn transitório no file classification permanece aceito
+		  conscientemente até def-010 disparar.
 
 		- Enquadramento das 3 camadas (schema/princípio/
 		  convenção) é local a esta ADR. design-principles.cue
@@ -249,6 +251,10 @@ adr046: artifact_schemas.#ADR & {
 		"ai-orchestration/agent-instructions/task-templates.cue",
 		"governance/build-time/task-governance.cue",
 		"governance/build-time/task-specs/wi-027.cue",
+	]
+
+	defersTo: [
+		"def-010",
 	]
 
 	principlesApplied: ["P0", "P1", "P12"]

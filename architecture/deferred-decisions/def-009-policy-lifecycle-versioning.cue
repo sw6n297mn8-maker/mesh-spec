@@ -31,26 +31,28 @@ deferredDecisions: "def-009": artifact_schemas.#DeferredDecision & {
 		é discipline (tq-pol-04 warn). Sem migration cases, rollout
 		semantics + compatibility matrices + deprecation lifecycle são
 		over-specification. Custo de continuar deferindo: zero HOJE
-		(version: 1 default); cresce quando 1ª policy precisar bump
-		para version: 2 com clientes existentes.
+		(version 1 default); cresce quando 1ª policy precisar bump
+		para v<N+1> com clientes existentes.
 		"""
 
 	triggerCalibrationRationale: """
 		Trigger 1 (recurrence file-content) detecta version increment
-		via pattern 'version:\\s+[2-9]' — qualquer file com version
-		field >= 2. Calibration challenge: pattern matches NÃO apenas
-		policy files mas também outros artifacts com 'version:' field
-		(e.g., task-specs com version: 2, lens prose discutindo event
-		versioning). Verified at calibration time: 2 baseline matches
-		em files non-policy (architecture/lenses/lens-platform-
-		evolution-and-backwards-compatibility.cue prose + governance/
-		build-time/task-specs/wi-027.cue task version=2). Threshold=3
-		absorve esses 2 baseline + exige 1 actual policy file com
-		version >= 2 = sinal genuíno de policy version increment.
-		Limitation reconhecida: trigger não path-filterable em
-		recurrence kind atual; bumping threshold é workaround
-		conservador em vez de pattern overly narrow. Para 1ª version
-		increment (sinal mais precoce), manual-review captura.
+		via pattern 'version<colon><whitespace>[2-9]' — qualquer file
+		com version field >= 2. Placeholder notation usado AQUI para
+		evitar self-match recursivo via documentação interna (pattern
+		literal seria captured pelo próprio runner contra este file).
+		Calibration challenge: pattern matches NÃO apenas policy files
+		mas também outros artifacts com version field (task-specs, lens
+		prose). Verified at calibration time: 2 baseline matches em
+		files non-policy (architecture/lenses/lens-platform-evolution-
+		and-backwards-compatibility.cue prose + governance/build-time/
+		task-specs/wi-027.cue task version=N). Threshold=3 absorve esses
+		2 baseline + exige 1 actual policy file com version >= 2 = sinal
+		genuíno de policy version increment. Limitation reconhecida:
+		trigger não path-filterable em recurrence kind atual; bumping
+		threshold é workaround conservador em vez de pattern overly
+		narrow. Para 1ª version increment (sinal mais precoce), manual-
+		review captura.
 		Trigger 2 (manual-review) escape para priorização antecipada
 		— e.g., quando founder antecipa que próxima session vai bump
 		version de policy regulatória existente.
