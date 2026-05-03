@@ -327,9 +327,12 @@ config: #AgentConfig & {
 				  message ("subagent dispatch failed: {motivo}; manual takeover")
 
 				Failure rate de subagent dispatches é métrica observável
-				registrada no execution log ou em métrica equivalente definida
-				pela quality-gate policy, usada para calibração de promptTemplate
-				ao longo do tempo.
+				registrada em governance/build-time/subagent-execution-log.cue
+				(canonical path; V1 simples sem schema first-class per WI-069
+				close-out — formalizar como artifact type só quando volume de
+				dispatches justifique recorrência), usada para calibração de
+				promptTemplate ao longo do tempo. Cada nova dispatch adiciona
+				entry append-only (não editar entries existentes — audit trail).
 				"""#
 			rationale: """
 				Ativa governance/build-time/authoring-policy.cue como protocolo
