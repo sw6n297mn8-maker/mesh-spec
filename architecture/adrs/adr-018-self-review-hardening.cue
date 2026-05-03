@@ -66,8 +66,11 @@ adr018: artifact_schemas.#ADR & {
 	affectedArtifacts: [
 		"architecture/artifact-schemas/quality-criteria.cue",
 		"governance/build-time/self-review-report.cue",
-		"architecture/artifact-schemas/artifact-schema.cue",
 		"governance/build-time/quality-gate.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/artifact-schema.cue",
 	]
 
 	principlesApplied: [

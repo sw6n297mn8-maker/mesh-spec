@@ -65,8 +65,11 @@ adr038: artifact_schemas.#ADR & {
 	blastRadius:   "cross-artifact"
 
 	affectedArtifacts: [
-		"architecture/artifact-schemas/tension-entry.cue",
 		"architecture/artifact-schemas/quality-criteria.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/tension-entry.cue",
 	]
 
 	principlesApplied: [

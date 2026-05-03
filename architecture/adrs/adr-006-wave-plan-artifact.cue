@@ -45,9 +45,12 @@ adr006: artifact_schemas.#ADR & {
 	blastRadius:   "cross-cutting"
 
 	affectedArtifacts: [
+		"governance/build-time/work-governance.cue",
+	]
+
+	plannedOutputs: [
 		"architecture/artifact-schemas/wave-plan.cue",
 		"governance/wave-plan.cue",
-		"governance/build-time/work-governance.cue",
 	]
 
 	principlesApplied: [

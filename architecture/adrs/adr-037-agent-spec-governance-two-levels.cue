@@ -76,8 +76,11 @@ adr037: artifact_schemas.#ADR & {
 	blastRadius:   "cross-artifact"
 
 	affectedArtifacts: [
-		"architecture/artifact-schemas/agent-spec.cue",
 		"architecture/artifact-schemas/quality-criteria.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/agent-spec.cue",
 	]
 
 	derivedArtifacts: [

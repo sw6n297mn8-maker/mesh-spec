@@ -48,10 +48,13 @@ adr013: artifact_schemas.#ADR & {
 		"""
 
 	affectedArtifacts: [
-		"governance/build-time/self-review-report.cue",
-		"governance/build-time/self-reviews/",
 		"governance/build-time/quality-gate.cue",
 		"architecture/artifact-schemas/quality-criteria.cue",
+	]
+
+	plannedOutputs: [
+		"governance/build-time/self-review-report.cue",
+		"governance/build-time/self-reviews/",
 	]
 
 	principlesApplied: ["P0", "P12"]

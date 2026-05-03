@@ -221,9 +221,12 @@ adr040: artifact_schemas.#ADR & {
 	blastRadius:   "cross-cutting"
 
 	affectedArtifacts: [
-		"architecture/tension-log/ten-006-validation-non-determinism.cue",
 		"governance/build-time/quality-gate.cue",
 		"CLAUDE.md",
+	]
+
+	plannedOutputs: [
+		"architecture/tension-log/ten-006-validation-non-determinism.cue",
 	]
 
 	derivedArtifacts: [

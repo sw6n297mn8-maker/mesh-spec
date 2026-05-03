@@ -52,10 +52,13 @@ adr027: artifact_schemas.#ADR & {
 	blastRadius:   "cross-artifact"
 
 	affectedArtifacts: [
-		"governance/build-time/projection-drift.cue",
 		"governance/build-time/projections/ready-queue.cue",
 		"governance/build-time/projections/blocked-items.cue",
 		"governance/build-time/projections/in-progress.cue",
+	]
+
+	plannedOutputs: [
+		"governance/build-time/projection-drift.cue",
 	]
 
 	principlesApplied: [

@@ -45,7 +45,9 @@ adr008: artifact_schemas.#ADR & {
 	reversibility: "high"
 	blastRadius:   "cross-artifact"
 
-	affectedArtifacts: [
+	affectedArtifacts: []
+
+	plannedOutputs: [
 		"governance/build-time/work-graph.cue",
 		"governance/build-time/task-specs/",
 		"governance/build-time/projections/",

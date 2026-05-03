@@ -50,8 +50,11 @@ adr028: artifact_schemas.#ADR & {
 	blastRadius:   "cross-artifact"
 
 	affectedArtifacts: [
-		"architecture/artifact-schemas/canvas.cue",
 		"governance/bounded-context-completeness.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/canvas.cue",
 	]
 
 	principlesApplied: [

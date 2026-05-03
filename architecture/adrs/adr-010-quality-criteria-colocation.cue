@@ -43,12 +43,15 @@ adr010: artifact_schemas.#ADR & {
 		"""
 
 	affectedArtifacts: [
-		"governance/build-time/quality-gate.cue",
 		"architecture/artifact-schemas/adr.cue",
 		"architecture/artifact-schemas/domain-definition.cue",
 		"architecture/artifact-schemas/stakeholder-map.cue",
 		"architecture/artifact-schemas/task-template.cue",
 		"architecture/artifact-schemas/wave-plan.cue",
+	]
+
+	plannedOutputs: [
+		"governance/build-time/quality-gate.cue",
 	]
 
 	principlesApplied: ["P0", "P12"]

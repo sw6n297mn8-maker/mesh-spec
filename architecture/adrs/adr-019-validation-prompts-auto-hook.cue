@@ -56,7 +56,9 @@ adr019: artifact_schemas.#ADR & {
 	reversibility: "high"
 	blastRadius:   "cross-cutting"
 
-	affectedArtifacts: [
+	affectedArtifacts: []
+
+	plannedOutputs: [
 		"architecture/artifact-schemas/validation-prompt.cue",
 		"architecture/validation-prompts/validate-adr.cue",
 		"architecture/validation-prompts/validate-artifact-schema.cue",

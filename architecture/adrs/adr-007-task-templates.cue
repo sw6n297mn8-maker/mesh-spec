@@ -50,9 +50,12 @@ adr007: artifact_schemas.#ADR & {
 	blastRadius:   "cross-cutting"
 
 	affectedArtifacts: [
+		"governance/build-time/work-governance.cue",
+	]
+
+	plannedOutputs: [
 		"architecture/artifact-schemas/task-template.cue",
 		"ai-orchestration/agent-instructions/task-templates.cue",
-		"governance/build-time/work-governance.cue",
 	]
 	derivedArtifacts: []
 

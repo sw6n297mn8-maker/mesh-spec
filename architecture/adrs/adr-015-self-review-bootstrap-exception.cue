@@ -41,7 +41,9 @@ adr015: artifact_schemas.#ADR & {
 		entram sem evidência de self-review.
 		"""
 
-	affectedArtifacts: [
+	affectedArtifacts: []
+
+	plannedOutputs: [
 		"governance/build-time/self-review-bootstrap-policy.cue",
 	]
 

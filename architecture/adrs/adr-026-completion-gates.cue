@@ -56,8 +56,11 @@ adr026: artifact_schemas.#ADR & {
 	blastRadius:   "cross-artifact"
 
 	affectedArtifacts: [
-		"governance/build-time/completion-gates.cue",
 		"governance/build-time/event-validation.cue",
+	]
+
+	plannedOutputs: [
+		"governance/build-time/completion-gates.cue",
 	]
 
 	principlesApplied: [

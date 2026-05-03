@@ -65,9 +65,12 @@ adr017: artifact_schemas.#ADR & {
 
 	affectedArtifacts: [
 		"scripts/ci/check-readme-coevolution.sh",
-		"scripts/hooks/pre-commit",
 		"governance/repo-structure.cue",
 		"README.md",
+	]
+
+	plannedOutputs: [
+		"scripts/hooks/pre-commit",
 	]
 
 	principlesApplied: [
