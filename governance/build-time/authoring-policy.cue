@@ -3,17 +3,17 @@ package build_time
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
 // authoring-policy.cue — Política declarativa para authoring de artefatos
-// via subagent-drafted dispatch.
+// governados.
 //
 // Peer (não filho) de quality-gate.cue: separation of concerns —
 // quality-gate trata REVIEW de artefatos existentes; authoring-policy
 // trata CRIAÇÃO de novos.
 //
-// Per adr-054. Implementa Level 3 da automação debatida em sessão
-// pós-adr-053: codifica meta-guide application como dispatch declarativo
-// substituindo aplicação manual ad-hoc.
+// Per adr-054 (subagent-drafted dispatch + cascade ordering) e adr-057
+// (manualAuthoringProtocol Camada 2 cascade-ordering defense — section-
+// level founder gates para mode 'manual').
 //
-// Fluxo conceitual:
+// Fluxo conceitual (mode subagent-drafted):
 //   1. Main agent identifica necessidade de novo artefato governado
 //      (ex.: novo schema sem PG correspondente; adr-053 Phase ativa)
 //   2. Main agent consulta authoringPolicy.rollout para artifactType
@@ -23,6 +23,10 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //   5. Main agent roda cue vet + dispatch review subagent (per quality-
 //      gate.cue rollout) → consolida findings → submete a founder
 //   6. Founder approval é gate final irreversível (P10)
+//
+// Fluxo conceitual (mode manual): per manualAuthoringProtocol — section
+// gates bloqueantes per workOrder do PG; founder confirma section-by-
+// section antes de progressão.
 //
 // Direção de dependência: governance/build-time → artifact_schemas.
 // Nunca o contrário.
@@ -48,20 +52,37 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 	rationale:        string & !=""
 }
 
+// Per adr-057: protocolo declarativo para authoring manual com section-
+// level founder gates. Camada 2 do sistema de defesa em 3 camadas
+// (Camada 1: adr-056 production-guide-coverage; Camada 3: uq-XX em
+// quality-gate.cue). Aplica a tipos em rollout com mode 'manual' OU
+// não registrados (defaultMode) quando PG correspondente existe.
+#ManualAuthoringProtocol: {
+	applicabilityCondition:     string & !=""
+	sectionGate:                string & !=""
+	founderConfirmation:        string & !=""
+	serializationRule:          string & !=""
+	selfReviewScope:            string & !=""
+	failureMode:                string & !=""
+	trivialCorrectionException: string & !=""
+	rationale:                  string & !=""
+}
+
 #AuthoringPolicySchema: {
 	type:     "authoring-policy"
 	location: "governance/build-time/authoring-policy.cue"
 }
 
 #AuthoringPolicy: {
-	_schema:        #AuthoringPolicySchema
-	defaultMode:    #AuthoringMode
-	rollout:        [...#AuthoringRolloutEntry]
-	inputContract:  string & !=""
-	outputContract: string & !=""
-	promptTemplate: string & !=""
-	fallbackPolicy: #FallbackPolicy
-	rationale:      string & !=""
+	_schema:                 #AuthoringPolicySchema
+	defaultMode:             #AuthoringMode
+	rollout:                 [...#AuthoringRolloutEntry]
+	inputContract:           string & !=""
+	outputContract:          string & !=""
+	promptTemplate:          string & !=""
+	fallbackPolicy:          #FallbackPolicy
+	manualAuthoringProtocol: #ManualAuthoringProtocol
+	rationale:               string & !=""
 }
 
 authoringPolicy: #AuthoringPolicy & {
@@ -210,6 +231,117 @@ authoringPolicy: #AuthoringPolicy & {
 			"""
 	}
 
+	manualAuthoringProtocol: {
+		applicabilityCondition: """
+			Aplica quando agente autora instância de tipo registrado em
+			rollout com mode "manual" (ou tipo não registrado, que cai
+			em defaultMode "manual"), E existe production-guide para o
+			tipo (architecture/production-guides/<type>.cue) com
+			sections + workOrder declarados. Sem PG: cascade ordering
+			(adr-054 dec 13 + adr-056 Camada 1 production-guide-coverage)
+			bloqueia primeiro.
+			"""
+
+		sectionGate: """
+			Para cada section em workOrder, na ordem declarada:
+			1. Agente autora conteúdo da section conformando com target,
+			   process, heuristics, doneCriteria do PG.
+			2. Agente executa auto-checagem da section contra section.
+			   doneCriteria E quality criteria do schema alvo aplicáveis
+			   àquela section.
+			3. Agente propõe conteúdo da section ao founder com transcript
+			   da auto-checagem (findings + decisão de prosseguir).
+			4. Agente aguarda confirmação explícita do founder antes de
+			   autorar a próxima section.
+			Section gates são bloqueantes — NÃO diferidos para final
+			submission. Sem confirmação explícita por section, agente
+			NÃO prossegue.
+			"""
+
+		founderConfirmation: """
+			Confirmação do founder por gate é step bloqueante distinto.
+			NÃO é absorvida por self-review nem por final submission.
+			Veículo: confirmação explícita referenciando a section atual
+			OU aceitação inequívoca da proposta corrente. Mensagens
+			genéricas só contam se não houver ambiguidade contextual
+			(uma única section pendente, sem outras propostas em
+			suspenso). Silêncio NÃO é aprovação. Modificações solicitadas
+			pelo founder antes da confirmação são aplicadas e a section
+			é re-proposta — não acumuladas para próxima section.
+			"""
+
+		serializationRule: """
+			Sections autoradas serialmente per workOrder, não em paralelo
+			nem em lote. Agente NÃO mantém múltiplas sections "em
+			andamento" simultaneamente. Se durante autoria de section N
+			agente identifica gap em section M < N já confirmada,
+			propõe amendment de M ao founder antes de continuar N —
+			amendment passa por gate próprio.
+
+			Founder pode aprovar múltiplas sections em batch SOMENTE se
+			todas já tiverem sido apresentadas com auto-checks separados
+			ANTES da aprovação batch; nunca aprovar section futura
+			não-apresentada (preserva o gate intermediário).
+			"""
+
+		selfReviewScope: """
+			Self-review per quality-gate.cue ocorre sobre artefato
+			integrado APÓS todas sections terem passado por section
+			gates. Self-review NÃO substitui section gates; complementa.
+			Self-review verifica: (a) critérios universal + type-specific
+			sobre artefato completo, (b) que aplicação do PG respeitou
+			section gates (critério dedicado em quality-gate.cue será
+			adicionado como Camada 3 supplementary).
+			"""
+
+		failureMode: """
+			Se agente prosseguir para próxima section sem confirmação
+			explícita do founder: violação do protocolo. Founder pode
+			rejeitar artefato em bloco e exigir reautoria desde a section
+			onde gate foi pulado. Sub-agentes via subagent-drafted
+			dispatch (rollout entries) NÃO são governados por este
+			protocolo; seguem inputContract/outputContract e quality-gate
+			próprios per adr-054. manualAuthoringProtocol aplica
+			EXCLUSIVAMENTE a authoring manual pelo main agent.
+			"""
+
+		trivialCorrectionException: """
+			Correções triviais de sintaxe/formatação sem alteração
+			semântica (typo em comentário, espaçamento, alinhamento de
+			indentação, ajuste de sintaxe CUE detectado por cue vet)
+			podem ser aplicadas sem novo section gate; devem ser
+			reportadas no próximo checkpoint (proposta de section
+			seguinte OU final submission). Exception estreita:
+			alterações que mudam significado, política, tipo, relação,
+			constraint ou critério NÃO são triviais e exigem gate
+			completo. Em dúvida sobre classificação: tratar como
+			semântica e abrir gate.
+			"""
+
+		rationale: """
+			Discovery 2026-05-01: idc-primary-agent.cue (commit b248178)
+			foi committed sem founder review section-by-section apesar
+			de PG-A (architecture/production-guides/agent-spec.cue)
+			existir. Authoring manual permitia "aplicar" o PG no abstrato
+			e propor artefato completo ao final — section gates do PG
+			ficavam implícitos. Section gates bloqueantes forçam
+			application real do protocol.
+
+			Per adr-054 dec 10, isolation reduz viés de auto-ratificação
+			em subagent dispatch; section gates resolvem o equivalente
+			para authoring manual — founder se torna o gate distribuído
+			ao longo da autoria, não apenas no final submission. P10
+			(gates determinísticos validam, agentes recomendam)
+			preservado: gates são humanos (founder confirma), agente
+			recomenda por section.
+
+			Cascade ordering com PG (adr-054 dec 13 + adr-056 Camada 1)
+			é pré-condição: sem PG, não há sections nem doneCriteria
+			para gatekeeping. Camada 2 (este campo) garante PG é seguido
+			section-by-section durante autoria. Composta com Camada 1.
+			"""
+	}
+
 	rationale: """
 		Authoring-policy é peer (não filho) de quality-gate per adr-054
 		decision item 1: separation of concerns entre review (quality-gate)
@@ -240,5 +372,13 @@ authoringPolicy: #AuthoringPolicy & {
 		Phase 1 após WI-069 verificar infraestrutura de dispatch.
 		Trigger automatizado (file-pair-coverage) é dívida planejada
 		dependente de WI-068 + ADR posterior análogo a adr-049.
+
+		manualAuthoringProtocol fecha simetria do artefato: rollout +
+		inputContract + outputContract + promptTemplate + fallbackPolicy
+		governam dispatch (subagent-drafted); manualAuthoringProtocol
+		governa o lado manual (defaultMode + tipos sem rollout entry).
+		Per adr-057, Camada 2 do sistema de defesa em 3 camadas com
+		adr-056 (Camada 1 production-guide-coverage) e Camada 3
+		(uq-XX em quality-gate.cue, sub-item subsequent).
 		"""
 }

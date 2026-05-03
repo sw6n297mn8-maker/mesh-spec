@@ -343,5 +343,53 @@ config: #AgentConfig & {
 				Founder gate via P10 preservado.
 				"""
 		},
+		{
+			title:           "Aplicação de Production Guides"
+			canonicalSource: "governance/build-time/authoring-policy.cue"
+			content: #"""
+				Esta seção complementa "Authoring Declarativo": quando o agente
+				autora instância de tipo com production-guide existente em modo
+				manual (defaultMode "manual" OU tipo sem rollout entry, caindo
+				em defaultMode "manual"), aplica manualAuthoringProtocol
+				declarado em governance/build-time/authoring-policy.cue.
+
+				Esta seção não redefine o protocolo. O agente deve resolver
+				applicabilityCondition, sectionGate, founderConfirmation,
+				serializationRule, selfReviewScope, failureMode e
+				trivialCorrectionException exclusivamente a partir do artefato
+				canônico.
+
+				O agente não deve reimplementar, resumir nem simplificar o
+				protocolo por memória. Deve consumi-lo diretamente como fonte
+				de verdade operacional.
+
+				Sistema de defesa em 3 camadas (per adr-057):
+				- Camada 1: structural-check production-guide-coverage
+				  (sc-pg-01 per adr-056) garante PG existe ANTES de instância
+				  de schema tipado.
+				- Camada 2: manualAuthoringProtocol section gates (per adr-057)
+				  garante PG é seguido section-by-section durante autoria —
+				  founder confirma cada section antes de progressão.
+				- Camada 3: uq-09 em quality-gate.cue valida post-hoc
+				  conformidade aos section gates.
+
+				Para artifactTypes em rollout com mode "subagent-drafted":
+				dispatch authoring subagent per "Authoring Declarativo";
+				manualAuthoringProtocol NÃO aplica (subagentes não são
+				governados por este protocolo; seguem inputContract/output-
+				Contract e quality-gate próprios per adr-054).
+				"""#
+			rationale: """
+				Ativa governance/build-time/authoring-policy.cue manualAuthoring-
+				Protocol (Camada 2 do sistema de defesa) como protocolo
+				comportamental para authoring manual. Mantém separação entre
+				norma (authoring-policy.cue), instrução comportamental (esta
+				seção) e meta-protocol (meta-guide). Per adr-057, distribui
+				gate humano ao longo da autoria — founder confirma section-by-
+				section, não apenas no final submission. Composta com Camada 1
+				(adr-056 production-guide-coverage) e Camada 3 (uq-09 em
+				quality-gate.cue): falha em uma camada é capturada por outra.
+				"""
+		},
 	]
 }

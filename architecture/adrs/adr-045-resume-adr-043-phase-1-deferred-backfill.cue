@@ -147,6 +147,9 @@ adr045: artifact_schemas.#ADR & {
 	affectedArtifacts: [
 		"architecture/adrs/adr-044-close-adr-043-phase-1-backfill.cue",
 		"architecture/tension-log/ten-009-decision-class-enum-lacks-governance-value.cue",
+	]
+
+	plannedOutputs: [
 		"governance/build-time/task-specs/wi-066.cue",
 	]
 

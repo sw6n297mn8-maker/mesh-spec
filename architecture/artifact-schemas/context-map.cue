@@ -227,34 +227,24 @@ package artifact_schemas
 	#InternalRelationship |
 	#ExternalRelationship
 
-// Ao menos um de events, commands ou queries deve ser não-vazio.
-// Todas as 7 combinações válidas são representadas.
-// Aberto com ... para permitir embedding em structs maiores.
-#FlowPayload:
-	{events: [#NonEmptyString, ...#NonEmptyString], ...} |
-	{commands: [#NonEmptyString, ...#NonEmptyString], ...} |
-	{queries: [#NonEmptyString, ...#NonEmptyString], ...} |
-	{
-		events:   [#NonEmptyString, ...#NonEmptyString]
-		commands: [#NonEmptyString, ...#NonEmptyString]
-		...
-	} |
-	{
-		events:  [#NonEmptyString, ...#NonEmptyString]
-		queries: [#NonEmptyString, ...#NonEmptyString]
-		...
-	} |
-	{
-		commands: [#NonEmptyString, ...#NonEmptyString]
-		queries:  [#NonEmptyString, ...#NonEmptyString]
-		...
-	} |
-	{
-		events:   [#NonEmptyString, ...#NonEmptyString]
-		commands: [#NonEmptyString, ...#NonEmptyString]
-		queries:  [#NonEmptyString, ...#NonEmptyString]
-		...
-	}
+// #FlowPayload — Data flows declarados em uma relação com communication.
+//
+// At-least-one (≥1 de events/commands/queries não-vazio) era expressa
+// como disjunção 7-way sobre open structs. CUE não colapsa disjunções
+// abertas em valores concretos — produzia "incomplete value" para TODAS
+// instâncias (válidas e inválidas indistintamente), de modo que a
+// constraint nunca discriminava de fato. Disciplina movida para
+// structural-check candidate (sc-cm-XX): communication declarado ⇒
+// ≥1 flow não-vazio. Alinha com adr-040: cross-field assertions são
+// domínio determinístico (structural-check), não shape-level.
+//
+// Asymmetry sem→sem permanece intacta via #BaseRelationshipWithoutCommunication.
+#FlowPayload: {
+	events?:   [#NonEmptyString, ...#NonEmptyString]
+	commands?: [#NonEmptyString, ...#NonEmptyString]
+	queries?:  [#NonEmptyString, ...#NonEmptyString]
+	...
+}
 
 // Campos comuns a qualquer relação.
 #_RelationshipCore: {
@@ -285,9 +275,11 @@ package artifact_schemas
 }
 
 // Relação com communication declarada.
-// #FlowPayload garante ao menos um data flow não-vazio.
-// A relação entre communication e data flows é simétrica:
-// sem communication → sem data flows; com communication → ao menos um data flow.
+// #FlowPayload provê shape opcional para events/commands/queries.
+// At-least-one (com communication ⇒ ≥1 flow não-vazio) é disciplina
+// deferida a structural-check (sc-cm-XX candidate); ver comentário
+// em #FlowPayload sobre por que constraint type-level era inviável.
+// Asymmetry sem→sem permanece via #BaseRelationshipWithoutCommunication.
 #BaseRelationshipWithCommunication: #_RelationshipCore & {
 	communication: #CommunicationPattern
 	#FlowPayload

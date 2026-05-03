@@ -178,6 +178,9 @@ adr044: artifact_schemas.#ADR & {
 		"contexts/cmt/canvas.cue",
 		"architecture/tension-log/ten-007-vertical-adaptable-vs-not-yet-validated.cue",
 		"architecture/tension-log/ten-008-platform-dynamics-lens-authoring-abstraction-level.cue",
+	]
+
+	plannedOutputs: [
 		"architecture/tension-log/ten-009-decision-class-enum-lacks-governance-value.cue",
 	]
 

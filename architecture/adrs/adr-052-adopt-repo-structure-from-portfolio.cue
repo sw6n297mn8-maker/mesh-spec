@@ -92,9 +92,12 @@ adr052: artifact_schemas.#ADR & {
 	blastRadius:   "repo-wide"
 
 	affectedArtifacts: [
-		"architecture/artifact-schemas/repo-structure.cue",
 		"governance/adopted-artifacts.cue",
 		"governance/repo-structure.cue",
+	]
+
+	plannedOutputs: [
+		"architecture/artifact-schemas/repo-structure.cue",
 	]
 
 	principlesApplied: [

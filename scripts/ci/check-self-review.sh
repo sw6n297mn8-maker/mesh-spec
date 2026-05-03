@@ -44,6 +44,8 @@ artifact_type_for_path() {
     domain/stakeholder-map.cue)                             echo "stakeholder-map" ;;
     ai-orchestration/agent-instructions/task-templates.cue) echo "task-template" ;;
     governance/wave-plan.cue)                               echo "wave-plan" ;;
+    contexts/*/agents/*-primary-agent.cue)                  echo "agent-spec" ;;
+    contexts/*/agents/*.governance.cue)                     echo "agent-governance" ;;
     *)                                                      echo "" ;;
   esac
 }

@@ -4,14 +4,16 @@ package artifact_schemas
 //
 // Per adr-040: structural verification é o lado determinístico da
 // validação, separado do design review interpretativo. Per adr-041
-// (v1) e adr-049 (extensão): este schema é deliberadamente mínimo
-// — 8 campos, 4 kinds, rule estritamente como dado estruturado.
-// Cross-artifact reference checking genérico, cardinalidade
-// genérica, regex matching e demais checks estão explicitamente
-// fora do schema; serão adicionados organicamente quando casos
-// concretos justificarem. conditional-file-presence (adr-049) é
-// o primeiro kind adicionado após a v1 original, motivado pelo
-// enforcement da convenção api-spec (adr-048).
+// (v1), adr-049 e adr-056 (extensões incrementais): este schema é
+// deliberadamente mínimo — 8 campos, 5 kinds atualmente, rule
+// estritamente como dado estruturado. Cross-artifact reference
+// checking genérico, cardinalidade genérica, regex matching e demais
+// checks estão explicitamente fora do schema; serão adicionados
+// organicamente quando casos concretos justificarem.
+// conditional-file-presence (adr-049) e production-guide-coverage
+// (adr-056) são os kinds adicionados após a v1 original — primeiro
+// motivado por api-spec convention (adr-048), segundo por cascade-
+// ordering enforcement (adr-053 + adr-054 dec 13).
 //
 // Discriminação por kind segue o padrão de #ADR (união discriminada
 // status↔supersededBy): cada kind exige um shape específico de rule.
@@ -33,6 +35,9 @@ package artifact_schemas
 } | {
 	kind: "conditional-file-presence"
 	rule: #ConditionalFilePresenceRule
+} | {
+	kind: "production-guide-coverage"
+	rule: #ProductionGuideCoverageRule
 })
 
 _#StructuralCheckBase: {
@@ -101,9 +106,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -160,4 +165,21 @@ _#StructuralCheckBase: {
 	// true: field=true exige target, field=false proíbe target.
 	// false: apenas field=true exige target.
 	biconditional: bool
+}
+
+// Rule shape para kind=production-guide-coverage.
+// Verifica que para cada nome em coveredSchemas, existe arquivo
+// architecture/production-guides/<nome>.cue. Per adr-056: kind narrow
+// para cobertura universal de PGs (materializa adr-053 cobertura
+// universal + adr-054 dec 13 cascade ordering como gating
+// determinístico). Whitelist explícita evita CI surpresa por auto-
+// discovery; cobertura cresce por change-on-touch quando novo PG é
+// committed (schema name adicionado a coveredSchemas no MESMO commit).
+// Cross-artifact reference checking genérico permanece fora do schema
+// (per adr-041); este kind cobre exclusivamente coverage de PGs.
+#ProductionGuideCoverageRule: {
+	// Lista explícita de nomes de schemas que exigem PG correspondente.
+	// Cada nome resolve para architecture/production-guides/<nome>.cue.
+	// Whitelist (não auto-discovery) — expansão deliberada por commit.
+	coveredSchemas: [string & !="", ...string & !=""]
 }
