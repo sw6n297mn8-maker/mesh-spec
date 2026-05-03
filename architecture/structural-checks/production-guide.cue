@@ -35,6 +35,7 @@ structuralChecks: "sc-pg-01": artifact_schemas.#StructuralCheck & {
 			"production-guide",
 			"structural-check",
 			"adr",
+			"deferred-decision",
 		]
 	}
 	errorMessage: "Schema '{nome}' está declarado em coveredSchemas mas o arquivo architecture/production-guides/{nome}.cue não existe. Cascade ordering (adr-054 dec 13) exige PG ANTES de autoria de qualquer instância do schema. Crie o PG via meta-PG (architecture/production-guides/production-guide.cue) ou remova o nome de coveredSchemas se cobertura para este schema foi descontinuada."

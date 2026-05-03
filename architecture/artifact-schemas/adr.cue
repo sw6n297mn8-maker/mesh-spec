@@ -83,6 +83,13 @@ package artifact_schemas
 	// Artefatos regenerados ou ajustados como consequência (não como decisão direta).
 	derivedArtifacts?: [...string & !=""]
 
+	// Deferimentos conscientes governados criados por esta decisão (per adr-062).
+	// Cada id em defersTo deve resolver para architecture/deferred-decisions/def-XXX-*.cue
+	// existente. Forward-looking: ADRs pré-adr-062 não usam (gaps prose grandfathered);
+	// ADRs pós-adr-062 SHOULD usar defersTo em vez de prose 'Known gaps declarados'
+	// quando deferimento tem trigger codificável.
+	defersTo?: [...string & =~"^def-[0-9]{3}$"]
+
 	// Princípios de design (design-principles.cue) aplicados na decisão.
 	principlesApplied: [string & !="", ...string & !=""]
 
