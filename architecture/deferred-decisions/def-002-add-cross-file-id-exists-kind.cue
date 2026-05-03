@@ -45,18 +45,24 @@ deferredDecisions: "def-002": artifact_schemas.#DeferredDecision & {
 
 	triggerCalibrationRationale: """
 		Trigger 1 (recurrence) usa pattern framing-aware
-		'(missing|needs|requires|would benefit).{0,30}cross-file-id'
-		com scope=file-content e threshold=2. Lição aprendida ao
-		calibrar: pattern simples por nome do kind ('cross-file.{0,5}id')
-		matches em todos os files que MENCIONAM o kind, incluindo o
-		próprio def-002 e adr-063 (registration vs demand confusion).
-		Pattern framing-aware captura PROSA DE DEMANDA ('needs X',
-		'missing X', 'would benefit from X') — esse pattern não aparece
-		em def-002 ou adr-063 (que usam framing declarativo: 'kind para
-		X', 'cobertura pretendida: X'). False-positive verified:
-		atualmente 0 matches em todo o repo; threshold=2 captura
-		2+ files com framing de demanda externa. Trigger 2
-		(manual-review) escape para priorização explícita.
+		'(missing|needs|requires|would benefit) [a-z ]{0,30}cross-file-id'
+		com scope=file-content e threshold=2. Calibração teve 2 rounds:
+		Round 1 (initial): pattern simples por nome do kind
+		('cross-file.{0,5}id') matches em todos os files que MENCIONAM
+		o kind, incluindo registration self-reference. Round 2 (fix):
+		pattern framing-aware ('(missing|needs|requires|would benefit).
+		{0,30}cross-file-id') captura PROSA DE DEMANDA. Round 3
+		(WI-069 first dispatch surfaced):  '.{0,30}' loose demais —
+		matches a STRING LITERAL do próprio pattern declarado em CUE
+		(que contém ')' '.' '{' '}' caracteres). Pattern atual
+		'[a-z ]{0,30}' (apenas letras minúsculas + espaços) não matches
+		string literais regex; demanda prosa em inglês ainda casa
+		(framings como 'needs <kind-name>', 'would benefit from
+		<kind-name>', etc. — placeholder usado AQUI deliberadamente
+		para evitar self-match recursivo via documentação). Post-fix
+		verified: 0 matches em todo repo; threshold=2 captura 2+ files
+		com framing genuíno externo.
+		Trigger 2 (manual-review) escape para priorização explícita.
 		"""
 
 	costOfDeferral: {
@@ -77,7 +83,7 @@ deferredDecisions: "def-002": artifact_schemas.#DeferredDecision & {
 
 	triggers: [{
 		kind:      "recurrence"
-		pattern:   "(missing|needs|requires|would benefit).{0,30}cross-file-id"
+		pattern:   "(missing|needs|requires|would benefit) [a-z ]{0,30}cross-file-id"
 		scope:     "file-content"
 		threshold: 2
 	}, {

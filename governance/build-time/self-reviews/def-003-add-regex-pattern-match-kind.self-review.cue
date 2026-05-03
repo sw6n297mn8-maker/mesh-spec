@@ -13,7 +13,7 @@ def003: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-03"
 
-	roundsExecuted: 2
+	roundsExecuted: 3
 	maxRounds:      4
 
 	status: "stable"
@@ -27,14 +27,20 @@ def003: build_time.#SelfReviewReport & {
 	}, {
 		round:     2
 		failCount: 0
+		warnCount: 1
+		infoCount: 0
+		summary:   "Round 2 (calibration fix): pattern atualizado para framing-aware '(missing|needs|requires|would benefit).{0,30}regex-pattern-match'. Post-fix verificado pré-commit: 0 matches em todo repo. WI-069 first dispatch surfaced novo false-positive paralelo a def-002: '.{0,30}' matches string literal do próprio pattern em CUE. tq-defg-02 warn persiste."
+	}, {
+		round:     3
+		failCount: 0
 		warnCount: 0
 		infoCount: 0
-		summary:   "Round 2 (calibration fix): pattern atualizado para framing-aware '(missing|needs|requires|would benefit).{0,30}regex-pattern-match'. Post-fix verificado: 0 matches em todo repo. triggerCalibrationRationale alinhado com def-002 (lição aplicada uniformemente — calibração paralela). Calibration validated end-to-end via runner."
+		summary:   "Round 3 (calibration fix WI-069 paralelo a def-002): pattern atualizado para '(missing|needs|requires|would benefit) [a-z ]{0,30}regex-pattern-match' — restringe in-between a [a-z ]+. Post-fix verificado via runner: count=0 (def-003 não tem prose example com framing demand, diferente de def-002). threshold=2 captura 2+ demand externo genuíno. Calibration validated end-to-end via runner."
 	}]
 
 	findings: {}
 
-	summary: "def-003: deferimento formal de regex-pattern-match kind. Calibração paralela a def-002 (mesma lição: framing vs declaration)."
+	summary: "def-003: deferimento formal de regex-pattern-match kind. Calibração paralela a def-002 (3 rounds: simples → framing-aware → letras-only)."
 
-	singleRoundRationale: "N/A — 2 rounds executados conforme protocolo (round 1 detectou calibration issue paralela; round 2 fixed mesmo padrão)."
+	singleRoundRationale: "N/A — 3 rounds paralelos a def-002. Cada round documentou uma classe distinta de false-positive descoberta via runner test."
 }

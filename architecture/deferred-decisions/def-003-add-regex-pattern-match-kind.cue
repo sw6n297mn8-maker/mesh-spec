@@ -48,17 +48,15 @@ deferredDecisions: "def-003": artifact_schemas.#DeferredDecision & {
 
 	triggerCalibrationRationale: """
 		Trigger 1 (recurrence) usa pattern framing-aware
-		'(missing|needs|requires|would benefit).{0,30}regex-pattern-match'
-		com scope=file-content e threshold=2. Lição aprendida ao
-		calibrar: pattern simples por nome do kind matches em todos
-		os files que MENCIONAM o kind, incluindo o próprio def-003 e
-		adr-063 (registration vs demand confusion). Pattern framing-
-		aware captura PROSA DE DEMANDA ('needs X', 'missing X', 'would
-		benefit from X') — esse pattern não aparece em def-003 ou
-		adr-063 (que usam framing declarativo). False-positive verified:
-		atualmente 0 matches em todo o repo; threshold=2 captura 2+
-		files com framing de demanda externa. Trigger 2 (manual-review)
-		escape para priorização explícita.
+		'(missing|needs|requires|would benefit) [a-z ]{0,30}regex-pattern-match'
+		com scope=file-content e threshold=2. Calibração paralela a
+		def-002 (2 rounds): Round 1 simples por nome do kind, Round 2
+		framing-aware com '.{0,30}', Round 3 (WI-069 first dispatch
+		surfaced) [a-z ]{0,30} para evitar self-match em string literais
+		regex (que contêm ')' '.' '{' '}' caracteres). Post-fix verified:
+		0 matches em todo repo; threshold=2 captura 2+ files com
+		framing genuíno externo. Trigger 2 (manual-review) escape para
+		priorização explícita.
 		"""
 
 	costOfDeferral: {
@@ -80,7 +78,7 @@ deferredDecisions: "def-003": artifact_schemas.#DeferredDecision & {
 
 	triggers: [{
 		kind:      "recurrence"
-		pattern:   "(missing|needs|requires|would benefit).{0,30}regex-pattern-match"
+		pattern:   "(missing|needs|requires|would benefit) [a-z ]{0,30}regex-pattern-match"
 		scope:     "file-content"
 		threshold: 2
 	}, {
