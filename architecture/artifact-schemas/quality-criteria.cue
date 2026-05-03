@@ -42,7 +42,8 @@ package artifact_schemas
 	"self-review-report" |
 	"adopted-artifacts" |
 	"readme-config" |
-	"deferred-decision"
+	"deferred-decision" |
+	"work-governance"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -56,7 +57,8 @@ package artifact_schemas
 // agg (agent-spec-guide), gvg (agent-governance-guide),
 // oas (openapi-spec), aas (asyncapi-spec), ct (service-contract),
 // aa (adopted-artifacts), rc (readme-config),
-// def (deferred-decision), defg (deferred-decision-guide).
+// def (deferred-decision), defg (deferred-decision-guide),
+// wg (work-governance).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

@@ -4,8 +4,8 @@ package artifact_schemas
 //
 // Per adr-040: structural verification é o lado determinístico da
 // validação, separado do design review interpretativo. Per adr-041
-// (v1), adr-049, adr-056 e adr-063 (extensões incrementais): este
-// schema é deliberadamente mínimo — 8 campos, 6 kinds atualmente,
+// (v1), adr-049, adr-056, adr-063 e adr-064 (extensões incrementais):
+// este schema é deliberadamente mínimo — 8 campos, 7 kinds atualmente,
 // rule estritamente como dado estruturado. Cross-artifact reference
 // checking de IDs (cross-file-id-exists) e regex pattern matching
 // permanecem fora do schema; registrados como deferimentos
@@ -18,6 +18,9 @@ package artifact_schemas
 //   - filesystem-path-exists (adr-063) — motivado por verificação
 //     determinística de path validity em campos como artifactPath
 //     (self-review-report) e manifestsIn (tension-entry).
+//   - directory-pair-coverage (adr-064) — motivado por bug WI-033
+//     (work-event sem task-spec); kind reusável para outros pairs
+//     de diretórios futuros.
 //
 // Discriminação por kind segue o padrão de #ADR (união discriminada
 // status↔supersededBy): cada kind exige um shape específico de rule.
@@ -45,6 +48,9 @@ package artifact_schemas
 } | {
 	kind: "filesystem-path-exists"
 	rule: #FilesystemPathExistsRule
+} | {
+	kind: "directory-pair-coverage"
+	rule: #DirectoryPairCoverageRule
 })
 
 _#StructuralCheckBase: {
@@ -113,9 +119,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -213,4 +219,35 @@ _#StructuralCheckBase: {
 	// true: sourcePath aponta para list of strings (runner itera);
 	// false (default): sourcePath aponta para single string.
 	isList: bool | *false
+}
+
+// Rule shape para kind=directory-pair-coverage.
+// Verifica pareamento de arquivos entre dois diretórios via globs com
+// wildcards compartilhados. Per adr-064: kind narrow para integridade
+// referencial cross-directory (e.g., toda wi-XXX em work-events/ exige
+// wi-XXX em task-specs/). Source set é DINÂMICO (cada arquivo matching
+// sourceGlob), não whitelist curada (vs production-guide-coverage que
+// usa whitelist).
+//
+// Wildcard '*' em sourceGlob captura identidade compartilhada com
+// targetGlob na mesma posição. Runner: para cada arquivo matching
+// sourceGlob, deriva target via mesma captura, verifica existência.
+//
+// Motivado por bug WI-033 (work-event criado sem task-spec
+// correspondente, inconsistência referencial silenciosa por ~5 semanas).
+// Reusável para outros pairs futuros (e.g., self-reviews/ ↔ governed
+// artifacts/) sem novo kind.
+#DirectoryPairCoverageRule: {
+	// Glob pattern para arquivos no source dir. Wildcard '*' captura
+	// identidade compartilhada com targetGlob.
+	sourceGlob: string & !=""
+	// Glob pattern para target dir. Wildcards '*' nas mesmas posições
+	// que sourceGlob — runner verifica que cada source file tem target
+	// file com mesmo wildcard capture.
+	targetGlob: string & !=""
+	// true: ambas direções enforced (every source ↔ every target);
+	// false (default): source-to-target only — target sem source é
+	// estado válido (e.g., task-spec sem work-event = admission=defined
+	// per work-governance state machine).
+	bidirectional: bool | *false
 }
