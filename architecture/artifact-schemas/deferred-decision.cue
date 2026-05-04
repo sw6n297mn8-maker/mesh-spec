@@ -157,7 +157,9 @@ _#DeferredDecisionBase: {
 
 // Trigger — condição codificada de revisita.
 // União discriminada por kind. Cada kind exige shape específico:
-//   recurrence:       padrão observado N+ vezes no repo
+//   recurrence:       padrão observado N+ vezes no repo (conta arquivos
+//                     com matches do pattern; scope filename/file-content/
+//                     commit-message)
 //   adjacent-need:    artefato/estado adjacente atinge condição machine-evaluable
 //   volume-threshold: contagem de tipo cruza limiar
 //   temporal:         tempo decorrido (último recurso — exige justificativa forte
@@ -165,12 +167,25 @@ _#DeferredDecisionBase: {
 //   manual-review:    bypass automático — runner não dispara; founder revisa
 //                     periodicamente. reason MinRunes(40) força articulação
 //                     de por que manual-only é apropriado.
+//   file-content-occurrence-count:
+//                     conta occurrences do pattern (regex) DENTRO de UM
+//                     arquivo singleton (path único). Distinto de
+//                     recurrence scope=file-content que conta ARQUIVOS
+//                     com matches across repo. USO RESTRITO: trigger de
+//                     singleton governance file (e.g., self-review-bootstrap-
+//                     policy.cue contagem de lifecycle:transient entries).
+//                     NÃO É mecanismo geral de busca no repo. Aplicar
+//                     apenas quando: (a) há um arquivo canônico único;
+//                     (b) o sinal é quantidade de occurrences dentro
+//                     desse arquivo; (c) recurrence scope=file-content
+//                     não serve porque conta arquivos não occurrences.
 #Trigger:
 	{kind: "recurrence", pattern: string & !="", scope:          #RecurrenceScope, threshold: int & >=2} |
 	{kind: "adjacent-need", condition:    #AdjacentCondition} |
 	{kind: "volume-threshold", artifactType: string & !="", threshold:    int & >=1} |
 	{kind: "temporal", maxAgeDays: int & >=1} |
-	{kind: "manual-review", reason:       string & strings.MinRunes(40)}
+	{kind: "manual-review", reason:       string & strings.MinRunes(40)} |
+	{kind: "file-content-occurrence-count", path: string & =~"^.+/.+$", pattern: string & !="", threshold: int & >=1}
 
 // RecurrenceScope — onde o pattern é buscado pelo runner.
 //   filename:       grep nos paths de arquivo

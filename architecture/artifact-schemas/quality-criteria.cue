@@ -44,7 +44,8 @@ package artifact_schemas
 	"readme-config" |
 	"deferred-decision" |
 	"work-governance" |
-	"policy"
+	"policy" |
+	"validation-prompt"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)

@@ -106,6 +106,52 @@ authoringPolicy: #AuthoringPolicy & {
 			(file-pair-coverage check é dívida planejada per adr-053
 			decision item 7 e WI-068).
 			"""
+	}, {
+		artifactType:     "glossary"
+		mode:             "subagent-drafted"
+		triggerCondition: "manual-invocation"
+		rationale: """
+			Glossary instances têm production-guide canônico
+			(architecture/production-guides/glossary.cue). Per adr-074,
+			extensão do rollout AUTORIZA tentativa via subagent-drafted.
+			Fallback to manual preserved.
+			"""
+	}, {
+		artifactType:     "domain-model"
+		mode:             "subagent-drafted"
+		triggerCondition: "manual-invocation"
+		rationale: """
+			Domain-model instances têm production-guide canônico
+			(architecture/production-guides/domain-model.cue). Per
+			adr-074, extensão do rollout AUTORIZA tentativa via
+			subagent-drafted. Fallback to manual preserved.
+			"""
+	}, {
+		artifactType:     "agent-spec"
+		mode:             "subagent-drafted"
+		triggerCondition: "manual-invocation"
+		rationale: """
+			Agent-spec instances têm production-guide canônico
+			(architecture/production-guides/agent-spec.cue). Per
+			adr-074, extensão do rollout AUTORIZA tentativa via
+			subagent-drafted. Fallback to manual preserved.
+			Note: agent-spec carrega contexto-heavy dependencies
+			(canvas + domain-model do BC); revisit condition (c) de
+			adr-074 cobre eventual restriction se dispatch falhar
+			por dependência contextual.
+			"""
+	}, {
+		artifactType:     "agent-governance"
+		mode:             "subagent-drafted"
+		triggerCondition: "manual-invocation"
+		rationale: """
+			Agent-governance instances têm production-guide canônico
+			(architecture/production-guides/agent-governance.cue).
+			Per adr-074, extensão do rollout AUTORIZA tentativa via
+			subagent-drafted. Fallback to manual preserved.
+			Note: agent-governance depende de agent-spec já existente;
+			ordem de execução em WI-048 respeita dependency.
+			"""
 	}]
 
 	inputContract: """
@@ -132,7 +178,7 @@ authoringPolicy: #AuthoringPolicy & {
 
 	outputContract: """
 		Subagent retorna:
-		1. Draft #ProductionGuide conformante a schema, com header
+		1. Draft de instância conformante ao schema target, com header
 		   "// PARTIAL — subagent-drafted, founder review pending".
 		   Conteúdo deve passar cue vet local antes do retorno
 		   (subagent roda cue vet internamente).
@@ -147,20 +193,22 @@ authoringPolicy: #AuthoringPolicy & {
 		"""
 
 	promptTemplate: """
-		Você é um sub-agente de authoring para production-guide. Sua
-		tarefa é produzir um draft de production-guide para um artifact
-		schema específico, aplicando o meta-guide canônico do mesh-spec.
+		Você é um sub-agente de authoring para {artifactType}. Sua
+		tarefa é produzir um draft de instância conformante ao schema
+		target, aplicando o production-guide canônico do mesh-spec
+		para esse tipo.
 
 		Você NÃO tem acesso ao histórico da conversa que motivou esta
-		criação. Aplique exclusivamente o meta-guide protocol e o
-		conteúdo dos artefatos fornecidos.
+		criação. Aplique exclusivamente o production-guide protocol
+		e o conteúdo dos artefatos fornecidos.
 
-		## Meta-guide (canônico, autoridade do protocol)
+		## Production-guide canônico (autoridade do protocol)
 		Path: {metaGuidePath}
-		Leia o arquivo. Aplique Section 1 (target-and-prerequisites),
-		Section 2 (sections-and-workorder), Section 3 (validation-and-meta)
-		em ordem. Não desvie do protocol — variance é exatamente o que
-		este dispatch corrige.
+		Leia o arquivo. Identifique workOrder declarada. Aplique as
+		sections na ordem declarada em workOrder; para cada section,
+		cumpra target/objective/process/heuristics/doneCriteria/ifGap
+		declarados. Não desvie do protocol — variance é exatamente o
+		que este dispatch corrige.
 
 		## Schema target
 		Path: {schemaTargetPath}
@@ -183,25 +231,25 @@ authoringPolicy: #AuthoringPolicy & {
 
 		## Instruções
 
-		1. Aplique meta-guide Section 1: identificar target type,
-		   compor prerequisites (description, collectFromFounder,
-		   gapPolicy com cláusula anti-invenção, validatorNote,
-		   outputNote).
-		2. Aplique meta-guide Section 2: definir sections por atividade
-		   autoral lógica (não por campo do schema), workOrder como
-		   permutação exata de keys(sections), cada section com target/
-		   objective/process/heuristics/doneCriteria/ifGap.
-		3. Aplique meta-guide Section 3: compor finalValidation com
-		   founder no último step, _schema.location, _qualityCriteria
-		   com tq-Xg-NN onde X é abreviação de 2-3 chars do schema.
+		1. Leia o production-guide; identifique workOrder e sections
+		   declaradas.
+		2. Aplique sections na ordem declarada em workOrder. Para cada
+		   section:
+		   - Cumpra target + objective declarados
+		   - Aplique process + heuristics
+		   - Verifique doneCriteria antes de prosseguir
+		   - Se gap identificado, aplique ifGap policy
+		3. Compor finalValidation per o que o production-guide declarar
+		   (incluindo founder confirmation se aplicável).
 		4. Rode cue vet localmente; se falhar, corrija; logue tentativas.
 		5. Produza reasoning report destacando inferências e priority
 		   list para founder review.
 
-		NÃO sugira corrections ao meta-guide. NÃO assuma decisões de
-		design (abreviações canônicas, hardening de severities, organização
-		de sections além do que protocol prescreve). Em ambiguidade,
-		registrar no reasoning report como "would have asked founder".
+		NÃO sugira corrections ao production-guide. NÃO assuma decisões
+		de design (abreviações canônicas, hardening de severities,
+		organização de sections além do que protocol prescreve). Em
+		ambiguidade, registrar no reasoning report como "would have
+		asked founder".
 		"""
 
 	fallbackPolicy: {
@@ -356,6 +404,19 @@ authoringPolicy: #AuthoringPolicy & {
 		scaling (~22 PGs restantes); outros types podem entrar no
 		rollout via ADR específico quando padrão validar (ex.: glossary
 		instances, validation-prompts, structural-checks).
+
+		Rollout extension via adr-074: 5 tipos de WI-048 BC bootstrap
+		(canvas, glossary, domain-model, agent-spec, agent-governance)
+		entraram no rollout simultaneamente. Extensão AUTORIZA
+		tentativa via subagent-drafted, NÃO garante sucesso. Fallback
+		per-dispatch isola risco; revisit conditions explícitas em
+		adr-074 cobrem fallback patterns observados.
+
+		promptTemplate generalizado per adr-074: substituiu hardcoded
+		"production-guide" por placeholder {artifactType}; substituiu
+		referências a Section 1/2/3 do META-PG por reference genérica
+		a workOrder do production-guide alvo. Template agora reusable
+		para qualquer tipo cujo PG declare workOrder + sections.
 
 		promptTemplate referencia meta-guide path em vez de duplicar
 		conteúdo (P0). Subagent lê meta-guide diretamente como SoT do
