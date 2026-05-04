@@ -647,43 +647,190 @@ subagentExecutionLog: {
 			reviewMs:    0
 			totalMs:     765577
 		}
+	}, {
+		dispatchId:   "disp-007"
+		workItem:     "WI-048"
+		date:         "2026-05-04"
+		target:       "contexts/bdg/agents/bdg-primary-agent.governance.cue"
+		artifactType: "agent-governance"
+
+		authoringSubagent: {
+			dispatched:     true
+			subagentType:   "general-purpose"
+			result:         "success"
+			cueVetAttempts: 1
+			cueVetExitCode: 0
+			notes: """
+				Terceiro non-PG dispatch successful — confirma adr-074
+				Known gap pattern e amplia evidência empírica para
+				governance-type. Path C founder-approved (1 tentativa
+				apenas; fallback manual no primeiro timeout). Subagent
+				produziu draft single-attempt; sem retry (cueVet passou
+				first try). PG agent-governance aplicado section-by-
+				section (3 sections: routing-and-blast-radius, drift-
+				and-calibration, bidirectional-validation). 1 self-check
+				pass conforme single-attempt rule.
+
+				Subagent honestly flagged 3 judgment calls em reasoning
+				report:
+				- 6 regression triggers (vs idc 4, cmt/npm 3) — trade-off
+				  documented entre granularidade e poluição
+				- caps 3/50 vs canonical onboarding band 1-2/20-50 (PG
+				  tq-gvg-07 warn) — escolheu ctr/npm precedent
+				- suspicious-input → alert-and-block (vs cmt/npm sync)
+				  para Fracionamento por argumento de blast radius
+				  cross-compromisso
+
+				Pattern observado: agent-governance é estruturalmente
+				intermediário (similar a domain-model em densidade — 5
+				top-level sections + cross-checks com agent-spec). Viável
+				within API timeout window per pattern. Confirma adr-074
+				Known gap subagent-drafted boundary: agent-governance
+				está dentro da fronteira viável (vs canvas que está fora).
+
+				Issue de transporte (não-semântico): subagent retornou
+				HTML entities (&amp;/&lt;/&gt;) em string output do code
+				block. Conversão para caracteres reais aplicada pre-write
+				pelo main agent — não-semântico (caracteres em strings
+				CUE; &amp; em type unification seria syntax error mas
+				teria sido detectado por cue vet). Categoria de feedback
+				possivelmente endereçável por output-format directive
+				em promptTemplate futuro.
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched: false
+			notes: """
+				Review subagent NÃO dispatched — Path C founder-approved
+				explicit single-attempt + founder review rigoroso direto
+				(continuidade do pattern emergent em disp-005/disp-006).
+				Para artefatos com nuances domain-specific densos
+				(governance é control plane com routing/caps/calibration
+				inter-relacionados), founder review direta + judgment
+				call evaluation produz mais ajustes substantivos que
+				review subagent isolado provavelmente geraria. Valid
+				bypass per CLAUDE.md "Authoring Declarativo" P10 framing.
+				"""
+		}
+
+		founderDecision: {
+			outcome: "approved-with-1-mandatory-adjustment"
+			notes: """
+				Founder review rigoroso aplicou 5 itens de revisão
+				explícitos (caps 3/50 vs 2/50; suspicious-input channel;
+				6 regression triggers; promotion thresholds 25/60d e
+				80/90d; onTimeout retry policy) e 1 ajuste obrigatório
+				pre-write:
+
+				Ajuste obrigatório: blastRadiusCaps.maxConcurrentMutations
+				3→2. Justificativa founder: 'BDG é gateway financeiro;
+				onboarding deve ser mais conservador que CTR/NPM'. Cap
+				2/50 entra na canonical onboarding band 1-2/20-50 sem
+				upper-end (vs ctr/npm 3/50 que estavam em upper-end).
+				Promoção para 3+ é decisão futura via calibration
+				crossing thresholds.
+
+				Demais decisões discricionárias aprovadas:
+				- 6 regression triggers ok (granularidade adequada para
+				  gate financeiro com 2 verificationMetrics canvas
+				  vinculadas + Fracionamento sem defesa estrutural primária)
+				- 25/60d e 80/90d promotion thresholds ok (conservador
+				  para gateway de spine commitment-lifecycle)
+				- onTimeout retry só para projeções ok (gate determinístico
+				  não retenta — timeout aqui é bug determinístico)
+				- suspicious-input alert-and-block mantido (Fracionamento
+				  é padrão coordenado; pausar autonomia per proponente
+				  contém propagação cross-compromisso)
+				- unclassifiable-anomaly SLA 4h ok (BDG é camada
+				  orçamentária prospectiva, não criptográfica imediata)
+
+				Resultado: agent-governance materializado em commit
+				9305a53 com cap 2/50, 6 escalation routes, 5 drift
+				metrics, 6 regression triggers, failureHandling per
+				adr-058. WI-048 BDG BC bootstrap closed.
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:   false
+			selfReviewFailRetry:  false
+			ambiguityEscalation:  false
+			manualTakeoverPath:   false
+			apiTimeoutTakeover:   false
+			reviewSubagentBypass: true
+			notes: """
+				Path C single-attempt successful sem fallbacks
+				exercitados. cueVet PASSED first try (sem retry);
+				API timeout não atingido (tempo total dentro de
+				window típica para non-canvas workloads); review
+				subagent intencionalmente bypassed per Path C +
+				founder review rigoroso direto.
+
+				reviewSubagentBypass NÃO é fallback — design choice
+				per Path C definition (founder pediu single attempt
+				+ review rigoroso direto). Pattern consistente com
+				disp-005/disp-006 reviewBypass classification.
+				"""
+		}
+
+		calibrationFindings: [
+			"Path C (single attempt + founder review rigoroso direto + fallback manual no primeiro timeout) é third successful non-PG pattern (após disp-005 glossary single-shot + disp-006 domain-model self-fix em retry). Confirma viability de subagent-drafted para artefatos governance-type com densidade intermediária + cross-checks moderados (3 sections + bidirectional ref ao agent-spec).",
+			"Subagent honest reporting de 3 judgment calls foi valuable — todos os items eram genuine design decisions que founder review confirmou ou ajustou. Pattern: subagent serve como first-pass design + judgment call surfacing; founder review é decision authority com domain context. Validates adr-054 dec 10 (isolation + escalation > auto-ratification) consistente em 4 non-PG dispatches successful (disp-001 PG-tension + disp-005 glossary + disp-006 domain-model + disp-007 agent-governance).",
+			"HTML entity transport issue (subagent output via tool call return) é categoria distinta de cueVet failures — não-semântico, mas requer conversion pre-write. Candidate para output-format directive em promptTemplate futuro ('do not HTML-escape characters in CUE code blocks'). Não codificado como def-XXX porque é caso único + mitigation trivial; pode virar guideline para futuras dispatches.",
+			"Failure rate atualizado: n=7 com 3 failures (disp-002/003/004) + 4 successful authoring (disp-001 + disp-005/006/007). disp-007 é third successful authoring sem full pipeline (review subagent bypass per Path C). Pattern emergent: para artefatos com domain-specific nuances, manual founder review é complemento robusto a subagent dispatch.",
+			"WI-048 BDG BC bootstrap closed: 5 phases × 5 artefatos materializados (canvas manual + glossary disp-005 + domain-model disp-006 + agent-spec manual preventive + agent-governance disp-007). Calibração subagent-drafted final WI-048: 3 successful dispatches non-PG (60% of non-canvas non-agent-spec types) + 2 manual (canvas permanently removed per adr-074 amendment 2; agent-spec preventive given PG-A iteração rica). adr-074 rollout viability: 3/5 types successful, canvas permanently excluded, agent-spec evidence pending para futuras iterations.",
+		]
+
+		pipelineOutcome: "successful-authoring-without-full-pipeline"
+
+		executionTimings: {
+			authoringMs: 395215
+			reviewMs:    0
+			totalMs:     395215
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    6
+		totalDispatches:    7
 		successfulPipeline: 1
-		failureRate:        0.5
+		failureRate:        0.43 // 3/7 failures (disp-002 + disp-003 + disp-004)
 		fallbacksExercised: 5 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
 			apiTimeout:      2 // disp-003 + disp-004
 		}
 		notes: """
-			Failure rate: amostra (n=6) com 3 failures + 1 pipeline
-			successful (WI-069 PG-tension-entry) + 2 successful authoring
+			Failure rate: amostra (n=7) com 3 failures + 1 pipeline
+			successful (WI-069 PG-tension-entry) + 3 successful authoring
 			sem full pipeline (disp-005 glossary BDG + disp-006 domain-model
-			BDG — review subagent intencionalmente bypassado por escolha
-			founder de manual review + 3-cycle red team direto).
+			BDG + disp-007 agent-governance BDG — review subagent
+			intencionalmente bypassado por escolha founder de manual
+			review + judgment call evaluation direta).
 			Honest distinction: successfulPipeline conta apenas authoring →
-			review → founder approval completo; disp-005 e disp-006 são
+			review → founder approval completo; disp-005/006/007 são
 			successfulAuthoring mas não successfulPipeline pelo bypass
 			deliberado de review subagent. fallbacksExercised conta apenas
 			recovery from failure (cascade escalation, manual takeover,
 			cueVetRetry); reviewBypass é design choice, não recovery.
 
-			disp-005 (glossary BDG) + disp-006 (domain-model BDG) confirmam
-			adr-074 Known gap pattern: subagent-drafted viável para
-			artefatos com baixa-média densidade estrutural + cross-checks
-			limitados. cueVetFailureRetry pattern exercitado consistente
-			(tq-gl-06 em disp-005 + queryCapabilities rationale em
-			disp-006) — subagent self-fix em retry é mecanismo robusto.
+			disp-005/006/007 confirmam adr-074 Known gap pattern:
+			subagent-drafted viável para artefatos com baixa-média
+			densidade estrutural + cross-checks limitados (glossary 3
+			sections + domain-model 3 sections + agent-governance 3
+			sections; canvas 8 sections falha consistentemente).
+			cueVetFailureRetry pattern exercitado em disp-005 + disp-006
+			(2/3 successful non-PG); disp-007 single-attempt sem retry
+			(cueVet PASSED first try) — Path C founder-approved.
 
-			Próximas dispatches WI-048 fase 4-5 (agent-spec, agent-governance)
-			calibram melhor — agent-spec é candidate para revisit condition (c)
-			de adr-074 (context-heavy deps; depende de canvas + domain-model
-			+ glossary completos).
+			WI-048 BDG BC bootstrap CLOSED com disp-007 (agent-governance
+			final phase). Calibração final WI-048 subagent-drafted
+			viability: glossary/domain-model/agent-governance dentro da
+			fronteira viável; canvas permanently removed per adr-074
+			amendment 2; agent-spec preventive manual takeover pending
+			evidence empírica em futuras iterations.
 			"""
 	}
 }
