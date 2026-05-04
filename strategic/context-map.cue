@@ -722,7 +722,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "SSC publica decisão de sourcing que fundamenta formalização de contrato-quadro; CTR consome para iniciar registro de termos."
 			rationale:         "Decisão de sourcing é gatilho para formalização contratual — contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P). CTR traduz decisão de sourcing para linguagem contratual via ACL."
 			communication: {type: "async"}
-			events: ["SourcingDecisionMade"]
+			events: ["StrategicAwardCompleted"]
 		},
 		{
 			code:              "npm-to-ssc"
