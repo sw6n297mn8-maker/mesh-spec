@@ -10,14 +10,15 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 24 candidatos prontos para claim. 5 candidatos approved bloqueados por
+// 23 candidatos prontos para claim. 5 candidatos approved bloqueados por
 // deps inter-BC ainda em task-approved (não completed): WI-043, 044,
 // 051, 052, 059. WI-040 ainda em task-proposed (aguarda approval).
 // WI-066/067/068/069 admission=defined (task-spec existe, sem work-event).
-// WI-034 task-cancelled (final state). 35 WIs em task-completed.
+// WI-034 task-cancelled (final state). 36 WIs em task-completed
+// (WI-048 BDG bootstrap closed 2026-05-04).
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-03T18:15:00Z"
+	rebuiltAt: "2026-05-04T00:00:30Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
@@ -70,12 +71,6 @@ readyQueueProjection: {
 		taskId:        "WI-047"
 		version:       1
 		title:         "Criar artefatos de domínio para Accounting & Tax Operations (ATO)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-048"
-		version:       1
-		title:         "Criar artefatos de domínio para Budget & Approval (BDG)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
