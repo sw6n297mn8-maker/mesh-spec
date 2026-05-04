@@ -102,24 +102,146 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// CAPABILITIES — placeholder; conteúdo em commit 2.2
+	// CAPABILITIES
 	// =============================================
 
 	capabilities: {
 		operational: [{
-			description: "Placeholder — capabilities operacionais (4 entries) entram em commit 2.2."
-			rationale:   "Skeleton commit 2.1 estabelece shape; conteúdo substantivo (cc-04 audit + cc-03 24/7 + decisionRationale capture + query SoT) entra em commit 2.2."
+			capabilityRef: "cc-04"
+			description: """
+				Auditoria contínua de decisões de sourcing: cada RFQ
+				aberta, decisão emitida (SourcingDecisionMade /
+				PreferredSupplierDesignated / StrategicAwardCompleted)
+				e cancelamento é fato imutável no Event Log com
+				decisionRationale estruturado (criteria + weights +
+				evaluatedSuppliers + tradeoffs). Auditoria interna,
+				controllers e regulador anti-corrupção podem
+				reconstituir processo de seleção competitiva em
+				qualquer data.
+				"""
+			rationale: "Trail de RFQ é evidência de processo competitivo formal — sustenta compliance anti-corrupção (Lei 12.846) sem modelar regulador como stakeholder Phase 0."
+		}, {
+			capabilityRef: "cc-03"
+			description: """
+				Decisão de sourcing 24/7 via gate determinístico:
+				agente aplica fitness rules sobre fitnessSignals
+				estruturados sem intervenção humana rotineira. Humano
+				(category manager via sh-01) atua por exceção
+				(ambiguidade de signal, override de regra, cancelamento
+				de RFQ, escopo estratégico de strategic award).
+				"""
+			rationale: "cc-03 (operação 24/7) aplica via determinismo: regras versionadas + signals estruturados + escalation por exceção = throughput operacional sem latência humana rotineira."
+		}, {
+			description: """
+				Captura estruturada de decisionRationale como dado
+				canônico: cada decisão emitida carrega criteria
+				aplicados, weights vigentes, fornecedores avaliados e
+				tradeoffs articulados. Sustenta consumo NIM futuro
+				(performance/reputation learning loop) sem virar mini-
+				NIM Phase 0 — SSC ESTRUTURA o dado, não COMPUTA
+				inferência.
+				"""
+			rationale: "Captura estruturada é o moat de inteligência da Mesh per subdomain: 'dado mais valioso para NIM é como e por que fornecedor foi escolhido'. Sem estruturação, dado vira narrativa sem grounding analítico."
+		}, {
+			description: """
+				Modelo canônico de decisão de sourcing exposto via query
+				síncrona: P2P consulta decisão vigente para categoria;
+				CTR consulta strategic award para formalização contratual;
+				controllers consultam histórico para reconciliação spend.
+				"""
+			rationale: "Múltiplos consumidores precisam referenciar mesma fonte de decisão de sourcing. SoT exposta via query elimina drift entre cópias."
 		}]
 		hasSyncSurface:  true
 		hasAsyncSurface: true
 	}
 
 	// =============================================
-	// COMMUNICATION — placeholder; conteúdo em commit 2.2
+	// COMMUNICATION
 	// =============================================
 
 	communication: {
-		rationale: "Placeholder — communication completa (6 inbound + 4 outbound) entra em commit 2.2."
+		inbound: [{
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Category manager (sh-01) decide processar demanda one-shot — necessidade pontual sem contrato-quadro nem designação preferred vigente."
+			command:         "MakeOneShotSourcingDecision"
+			resultingEvents: ["SourcingDecisionMade"]
+			description:     "Decisão atômica vinculante para P2P emitir pedido específico. Tipo declarado upfront (per bd-decision-type-is-declared-upfront)."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Category manager decide designar fornecedor preferido para categoria recurring sem contrato-quadro formal."
+			command:         "DesignatePreferredSupplier"
+			resultingEvents: ["PreferredSupplierDesignated"]
+			description:     "Designação recurring com validUntil. P2P consume como cache de policy aplicável a múltiplos pedidos da categoria."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Category manager conclui RFQ formal com volume comprometido — gatilho para formalização contratual em CTR."
+			command:         "CompleteStrategicAward"
+			resultingEvents: ["StrategicAwardCompleted"]
+			description:     "Award que precede formalização contratual. CTR é consumidor primário e obrigatório; conteúdo é input indicativo (não vinculante) — consequence de bd-sourcing-decides-not-formalizes-not-executes."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "npm"
+			event:         "NetworkParticipantStatusChanged"
+			reaction:      "SSC alerta category manager quando fornecedor relevante para RFQ ativa OU preferred designation vigente é rebaixado. Não bloqueia automaticamente — sinaliza necessidade de re-validation no próximo decision time."
+			description:   "Async alerta operacional. Decisão autoritativa em decision points usa QueryParticipantStatus (sync), não cache de events."
+		}, {
+			type:        "query-surface"
+			query:       "QuerySourcingDecision"
+			returnType:  "SourcingDecision"
+			description: "Retorna decisão de sourcing vigente para um CommitmentScope (categoria + escopo). Consumido por P2P para validar autoridade de procurement (per bd-procurement-requires-sourcing-authority) e por CTR para validar strategic award pré-formalização contratual."
+		}, {
+			type:        "query-surface"
+			query:       "QueryActiveSourcingDecisions"
+			returnType:  "ActiveSourcingDecisions"
+			description: "Retorna decisões ativas (one-shot pendentes de P2P + preferred vigentes + strategic awards aguardando contrato CTR) por categoria. Consumido por controllers para reporting + by P2P como cache de policies aplicáveis."
+		}]
+		outbound: [{
+			type:        "event-publisher"
+			trigger:     "Decisão one-shot emitida — fornecedor X selecionado para escopo Y específico."
+			event:       "SourcingDecisionMade"
+			consumers: ["p2p"]
+			description: "Hard binding para P2P (override = supervised). Phase 0 NIM consumer pendente per oq-ssc-2."
+		}, {
+			type:        "event-publisher"
+			trigger:     "Designação preferred ativada — fornecedor X designado para categoria recurring até validUntil."
+			event:       "PreferredSupplierDesignated"
+			consumers: ["p2p"]
+			description: "Soft binding para P2P (override = autonomous-with-audit). validUntil expira a preferência sem desfazer pedidos já criados — afeta apenas decisões P2P futuras. Phase 0 NIM consumer pendente per oq-ssc-2."
+		}, {
+			type:        "event-publisher"
+			trigger:     "Strategic award concluído pós-RFQ formal — gatilho para formalização contratual."
+			event:       "StrategicAwardCompleted"
+			consumers: ["ctr", "p2p"]
+			description: "CTR consumer primário e obrigatório (formaliza contrato sob input indicativo). P2P consumer secundário advisory/cache enquanto CTR materializa contrato — pós-materialização, contrato CTR é SoT vinculante. Phase 0 NIM consumer pendente per oq-ssc-2."
+		}, {
+			type:          "query-dependency"
+			targetContext: "npm"
+			query:         "QueryParticipantStatus"
+			purpose:       "Decisão autoritativa em RFQ open + decision time. Eligibilidade NPM é precondição absoluta (bd-qualification-as-absolute-precondition); rebaixados são excluídos automaticamente."
+			description:   "Sync query consultada em 2 momentos críticos. Cache via NetworkParticipantStatusChanged events serve para alertas, NÃO para decision authority."
+		}]
+		rationale: """
+			Inbound: 3 command-handlers (1 por tipo de decisão per
+			bd-decision-type-is-declared-upfront), 1 event-consumer
+			(NPM status alerts), 2 query-surfaces (P2P/CTR/controllers).
+			Outbound: 3 event-publishers (decision events com
+			consumers reais P2P/CTR), 1 query-dependency (NPM
+			eligibility). RFQ lifecycle events (RFQOpened, RFQConcluded,
+			RFQCancelled) são emitidos para subscription transversal de
+			NTF (notificações operacionais a fornecedores) e OBS
+			(observabilidade) per bd-rfq-lifecycle-public-minimal —
+			não modelados como event-publishers individuais aqui per
+			knownLimitation do context-map (transversais consumem sem
+			relação individual). Cancel-rfq é supervisedDecision; demais
+			lifecycle transitions são autonomousDecisions. Context-map
+			amendments aplicados em commits 1a (ssc-to-p2p +
+			StrategicAwardCompleted) + 1b (ssc-to-ctr swap to
+			StrategicAwardCompleted) + 1c (ssc-to-ctr description
+			refinement).
+			"""
 	}
 
 	// =============================================
