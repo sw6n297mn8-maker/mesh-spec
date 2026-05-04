@@ -264,27 +264,121 @@ subagentExecutionLog: {
 			reviewMs:    0
 			totalMs:     473121
 		}
+	}, {
+		dispatchId:   "disp-004"
+		workItem:     "WI-048"
+		date:         "2026-05-04"
+		target:       "contexts/bdg/canvas.cue"
+		artifactType: "canvas"
+
+		authoringSubagent: {
+			dispatched:     true
+			subagentType:   "general-purpose"
+			result:         "failure-api-timeout"
+			cueVetAttempts: 0
+			cueVetExitCode: -1
+			notes: """
+				Redispatch de canvas instance para BC bdg após disp-002
+				(cascade ordering escalation) e disp-003 (PG canvas
+				authoring que também timed out). Cascade ordering agora
+				satisfeito (canvas PG materializado em commit ef5195f).
+				inputContract incluía linha explícita 'PG canvas existe
+				e é autoridade do protocolo; o draft anterior foi
+				descartado e não deve ser usado como fonte' para evitar
+				contaminação do dispatch novo.
+
+				API stream idle timeout após 509s + 59 tool uses.
+				Pattern consistente com disp-003 (canvas-class workload).
+				Subagent estava trabalhando intensamente (59 tool uses
+				sugere reading PG canvas + schema + 3 golden examples
+				+ bdg subdomain + context-map + glossary refs + lens +
+				drafting 8 sections substantivas com cross-checks).
+				Partial response received mas não parseable.
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched: false
+			notes:      "No draft to review (subagent timed out before producing parseable output)."
+		}
+
+		founderDecision: {
+			outcome: "manual-takeover-with-structural-revisit-trigger"
+			notes: """
+				2 timeouts consecutivos (disp-003 PG canvas + disp-004
+				canvas instance) confirmam pattern: canvas-class workloads
+				excedem API timeout window por densidade estrutural
+				inerente. Founder articulou explicitamente: 'isso não é
+				só um fallback tático; é uma decisão estrutural sobre o
+				limite do mecanismo'. Path A executado: (A1) manual
+				takeover do canvas BDG (commit 818c079); (A2) amendment
+				adr-074 removendo canvas do rollout per revisit condition
+				(b) triggered (commit 5eab93d); (A3) pattern emergente
+				registrado como Known gap em adr-074 (artifacts lineares
+				com cross-checks limitados são viáveis; artifacts com
+				múltiplas seções interdependentes + cross-checks
+				intensivos não são).
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:        false
+			selfReviewFailRetry:       false
+			ambiguityEscalation:       false
+			manualTakeoverPath:        true
+			apiTimeoutTakeover:        true
+			revisitConditionTriggered: true
+			notes: """
+				Segundo exercício de manual takeover path per fallbackPolicy
+				(paralelo a disp-003). Trigger foi infrastructure (API
+				timeout). N=2 timeouts consecutivos canvas-class confirmou
+				revisit condition (b) de adr-074 — canvas REMOVIDO do
+				rollout permanentemente até mecanismo evoluir. Decisão
+				estrutural materializada em commit 5eab93d (não tactical
+				fallback). Mitigação retry com scope reduzido NÃO testada
+				— founder pivotou diretamente para manual takeover +
+				structural revisit por timing e por evidence acumulada.
+				"""
+		}
+
+		calibrationFindings: [
+			"N=2 timeouts canvas-class confirmou pattern: workloads densos (canvas é caso paradigmático com ~25 top-level fields + 167 sub-fields + 8 sections + cross-checks) consistentemente excedem API timeout window. Não deve ser tratado como resolvível por prompt tuning ou retry no mecanismo atual. Solidifica diagnóstico levantado em disp-003 calibrationFindings.",
+			"Pattern emergente codificado em adr-074 Known gap: subagent-drafted viável para artefatos com (a) baixa-média densidade estrutural e (b) cross-checks semânticos limitados; falha consistentemente para artefatos com (a) múltiplas seções interdependentes e (b) cross-checks intensivos cross-file. Vive como guideline empírico até segundo caso paradigmático recorrer (paralelo a ten-009 expand-when-needed para generalização).",
+			"Decisão estrutural sobre limite do mecanismo (vs tactical fallback) é importante governance step: codifica o limite no sistema em vez de redescobri-lo a cada novo type complexo. Materializa princípio mesh 'sistema robusto contra erro da própria IA' — falha do dispatch foi detection point, não failure mode.",
+			"Anti-contaminação (linha explícita 'draft anterior foi descartado') foi aplicada mas não exercitada — subagent não chegou a produzir output parseable. Eficácia da mitigação não pode ser avaliada nesta dispatch.",
+		]
+
+		pipelineOutcome: "failure-recovered-via-manual-takeover-with-structural-revisit"
+
+		executionTimings: {
+			authoringMs: 509803
+			reviewMs:    0
+			totalMs:     509803
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    3
+		totalDispatches:    4
 		successfulPipeline: 1
-		failureRate:        0.667
-		fallbacksExercised: 2 // disp-002 cascade-ordering escalation + disp-003 manual takeover
+		failureRate:        0.75
+		fallbacksExercised: 3 // disp-002 cascade-ordering + disp-003 + disp-004 manual takeover
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
-			apiTimeout:      1 // disp-003
+			apiTimeout:      2 // disp-003 + disp-004
 		}
 		notes: """
-			Failure rate calibração: pequena amostra (n=3) com 2 failures
-			em workloads novos (canvas instance + PG canvas). Não conclusiva
-			sobre falhas sistêmicas — ambos failures têm causes específicas
-			(cascade ordering + infrastructure timeout) e fallback paths
-			funcionaram (escalação + manual takeover). Próximas dispatches
-			de WI-048 (canvas instance redispatch + glossary + domain-model
-			+ agent-spec + agent-governance) calibram melhor.
+			Failure rate: pequena amostra (n=4) com 3 failures. 2 failures
+			canvas-class (disp-003 PG canvas + disp-004 canvas instance)
+			confirmaram pattern estrutural — canvas REMOVIDO do rollout
+			per adr-074 amendment 2 (commit 5eab93d). 1 failure cascade-
+			ordering (disp-002) levou a correção factual de adr-074
+			(commit 0066d70) + canvas PG manual authoring (commit ef5195f).
+			Próximas dispatches WI-048 (glossary, domain-model, agent-spec,
+			agent-governance) calibram melhor para non-canvas types.
+			Failure rate elevado é evidência de calibração funcionando —
+			canvas era genuinamente fora da fronteira de viabilidade.
 			"""
 	}
 }
