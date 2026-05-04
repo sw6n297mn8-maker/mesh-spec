@@ -719,8 +719,8 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "SSC publica decisão de sourcing que fundamenta formalização de contrato-quadro; CTR consome para iniciar registro de termos."
-			rationale:         "Decisão de sourcing é gatilho para formalização contratual — contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P). CTR traduz decisão de sourcing para linguagem contratual via ACL."
+			description:       "SSC publica StrategicAwardCompleted (consumidor primário e obrigatório); CTR consome para iniciar registro de contrato-quadro. Conteúdo do award é input indicativo (não vinculante) — CTR formaliza com cláusulas próprias e pode divergir do expectedContractScope com aprovação supervisada."
+			rationale:         "Decisão de sourcing tipo strategic-award é gatilho para formalização contratual — contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P). CTR traduz decisão de sourcing para linguagem contratual via ACL. SourcingDecisionMade (one-shot) e PreferredSupplierDesignated (recurring) NÃO disparam formalização — vão via ssc-to-p2p."
 			communication: {type: "async"}
 			events: ["StrategicAwardCompleted"]
 		},
