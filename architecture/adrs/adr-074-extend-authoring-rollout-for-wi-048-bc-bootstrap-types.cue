@@ -37,6 +37,38 @@ adr074: artifact_schemas.#ADR & {
 		  existem em main; cascade ordering agora genuinamente
 		  pre-validated.
 
+		  AMENDMENT 2 (post-commit 818c079): canvas removed from
+		  subagent-drafted rollout. Revisit condition (b) de adr-074
+		  triggered after 2 consecutive timeouts:
+		  - disp-003 (PG canvas authoring): API stream idle timeout
+		    após 473s + 32 tool uses (commit aa6274a documenta).
+		  - disp-004 (canvas instance authoring, contexts/bdg/canvas.cue):
+		    API stream idle timeout após 509s + 59 tool uses.
+
+		  Diagnóstico: canvas-class workloads consistentemente excedem
+		  API timeout window por densidade estrutural inerente —
+		  schema #Canvas tem ~25 top-level fields + 167 sub-fields +
+		  8 sections de PG + cross-checks múltiplos com
+		  strategic/subdomains/ + strategic/context-map.cue. Não deve
+		  ser tratado como resolvível por prompt tuning ou retry no
+		  mecanismo atual — é fronteira estrutural do mecanismo.
+
+		  Canvas removed from subagent-drafted rollout due to
+		  consistent infrastructure-bound failure under schema
+		  complexity; manual authoring is canonical path until
+		  mechanism evolves.
+
+		  Esta decisão NÃO é fallback tático — é decisão estrutural
+		  sobre o limite operacional de subagent-drafted no modelo
+		  atual. Materializa o aprendizado: subagent-drafted não é
+		  universal. Existe uma fronteira de complexidade onde ele
+		  deixa de ser viável. Codificar essa fronteira evita
+		  redescobrir o limite a cada novo type complexo.
+
+		  Canvas BDG materializado via manual authoring em commit
+		  818c079 — exercise concreta do canonical path. PG canvas
+		  materializado em ef5195f.
+
 		Trigger desta ADR: founder explicit guidance — preferência por
 		subagent-drafted dispatch para WI-048 outputs antes de iniciar
 		execução. Consideração: defaultMode 'manual' aplicaria a todos
@@ -184,6 +216,13 @@ adr074: artifact_schemas.#ADR & {
 		expectations: extensão do rollout é tentativa autorizada,
 		fallback to manual é resultado válido.
 
+		(P6) Mecanismo de defense em profundidade validado
+		(post-amendment 2): governance funcionou — IA não escalou
+		para canvas-class workloads, sistema corretamente degradou
+		para human authoring. Pattern observado materializa
+		princípio do mesh: 'sistema robusto contra erro da própria
+		IA'. Falha é detection point, não failure mode.
+
 		Negativas:
 
 		(N1) Generalização at n=0 evidence per non-PG type — risco
@@ -216,6 +255,15 @@ adr074: artifact_schemas.#ADR & {
 		  por caso.
 		- inputContract permanece global; per-type variations (e.g.,
 		  glossary-specific lens) entrariam via amendment se needed.
+		- Pattern emergente (post-amendment 2): subagent-drafted é
+		  viável para artefatos com (a) baixa-média densidade
+		  estrutural e (b) cross-checks semânticos limitados. Falha
+		  consistentemente para artefatos com (a) múltiplas seções
+		  interdependentes e (b) cross-checks intensivos cross-file
+		  (canvas é o caso paradigmático). Esta observação ainda não
+		  é codificada como structural-check ou policy formal — vive
+		  como guideline empírico até segundo caso recorrer
+		  (paralelo a ten-009 expand-when-needed para generalização).
 
 		Fronteira regulatória: nenhuma. Decisão é meta-estrutural
 		sobre authoring infrastructure scope. Cada artefato BC
