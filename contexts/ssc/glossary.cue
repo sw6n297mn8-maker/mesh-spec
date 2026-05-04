@@ -179,7 +179,143 @@ glossary: artifact_schemas.#Glossary & {
 			clarification: "Fornecedor Preferido é resultado de Designação de Fornecedor Preferido (Decisão de Sourcing recurring) — pressupõe qualificação como precondição. Qualificado é o universo elegível; preferido é o subconjunto designado para uma categoria."
 		}]
 		relatedTerms: ["term-rfq", "term-sourcing-decision"]
+	}, {
+		code:       "term-fitness-signals"
+		name:       "FitnessSignals"
+		termEn:     "Fitness Signals"
+		definition: "Estrutura de inputs estruturados que SSC consome para aplicar fitness rules e produzir Decisão de Sourcing. Composição Phase 0: requiredPhase0 (NPM eligibility + RFQ context + RFQ responses) + optionalPhase0 (NIM performance/reputation + CTR existingCommitments — pendentes oq-ssc-1, oq-ssc-2, oq-ssc-7). SSC NÃO interpreta signals — aplica regras determinísticas; ausência ou ambiguidade de signal required dispara escalation."
+		category:   "value"
+		rationale:  "Conceito-âncora da capacidade de decisão de SSC. Termo canônico distingue de 'dados de fornecedor' (genérico) ou 'inputs' (não-estruturado). Anti-mini-NIM: SSC consome FitnessSignals como struct externa; não computa nem infere — apenas estrutura o que vem da RFQ e consome o que outros BCs (NPM, NIM, CTR) produzem. Refs a openQuestions na definition são essenciais para entender camada optionalPhase0 (signals que entram pós-formalização cross-BC)."
+		antiTerms: [{
+			term:          "Reputation Score"
+			clarification: "Reputation Score é construto computado por NIM. SSC consome reputation signals via FitnessSignals.performanceScore (pós-bootstrap NIM) — não computa o score em si. Anti-mini-NIM: SSC aplica, não interpreta."
+		}, {
+			term:          "Risk Rating"
+			clarification: "Risk rating de fornecedor é responsabilidade de REW (não modelado Phase 0 em SSC). SSC consome eligibility binária de NPM como gate absoluto, não scoring de risco gradiente."
+		}]
+		relatedTerms: ["term-fitness-rules", "term-sourcing-decision", "term-fornecedor-qualificado", "term-decision-rationale"]
+	}, {
+		code:       "term-fitness-rules"
+		name:       "Fitness Rules"
+		termEn:     "Fitness Rules"
+		definition: "Regras determinísticas versionadas que SSC aplica sobre FitnessSignals para produzir Decisão de Sourcing — pesos por critério, thresholds, lógica de equalização TCO. Vivem em configuração externa governada (não no agent code) com versionamento e audit trail de mudanças. Configuração e atualização são supervisedDecision (configure-fitness-rules) — não pertencem ao escopo aplicador do agente."
+		category:   "rule"
+		rationale:  "Materialização operacional de bd-deterministic-decision-from-structured-signals. Termo canônico explícito porque é o conceito que sustenta integridade do gate: regras versionadas + audit trail + governance de mudanças = credibilidade. Sem termo, agente confunde 'aplicar regras' com 'inferir critérios' — viola anti-mini-NIM. Loanword preservado por alinhamento com vocabulário técnico de scoring/decision systems. Shape e infraestrutura de configuração de fitness rules é openQuestion oq-ssc-8 — definição da forma canônica fica para evolução futura."
+		antiTerms: [{
+			term:          "Scoring Algorithm"
+			clarification: "Scoring algorithm sugere modelo treinável que infere padrões. Fitness Rules são regras determinísticas declarativas (pesos, thresholds, equalizações) — sem inferência, sem treinamento, sem aprendizado. Reaplicação produz mesmo resultado dado mesmos signals."
+		}, {
+			term:          "Heurística"
+			clarification: "Heurística implica regra aproximativa de julgamento. Fitness Rules são regras formais versionadas com governance — não heurísticas ad-hoc. Heurísticas violariam determinismo do gate."
+		}]
+		relatedTerms: ["term-fitness-signals", "term-sourcing-decision", "term-equalizacao-tco", "term-categoria-de-compra"]
+	}, {
+		code:       "term-decision-rationale"
+		name:       "DecisionRationale"
+		termEn:     "Decision Rationale"
+		definition: "Estrutura de captura canônica que cada Decisão de Sourcing carrega, registrando criteria aplicados, weights vigentes da categoria, evaluatedSuppliers e tradeoffs articulados. Sustenta auditoria de processo competitivo (compliance anti-corrupção, Lei 12.846), reconciliação spend por controllers e consumo NIM futuro (intelligence learning loop pós-bootstrap NIM)."
+		category:   "value"
+		rationale:  "Captura estruturada é o moat de inteligência da Mesh per subdomain SSC: 'dado mais valioso para NIM é como e por que fornecedor foi escolhido'. Termo canônico distingue de 'justificativa' (texto livre) ou 'comentário' (não-estruturado). Sem decisionRationale como termo, agentes tratam como string opcional — perdem moat analítico. Formalização cross-BC com NIM (consumo via decision events com decisionRationale rico) é coberta pelos openQuestions oq-ssc-1 (nim-to-ssc) e oq-ssc-2 (ssc-to-nim)."
+		antiTerms: [{
+			term:          "Justificativa"
+			clarification: "Justificativa em sentido coloquial é texto livre. DecisionRationale é estrutura tipada (criteria + weights + evaluatedSuppliers + tradeoffs) que sustenta consumo programático downstream — NIM aprende padrões, controllers reconciliam spend."
+		}]
+		relatedTerms: ["term-sourcing-decision", "term-fitness-rules", "term-fitness-signals"]
+	}, {
+		code:       "term-equalizacao-tco"
+		name:       "Equalização TCO"
+		termEn:     "TCO Equalization"
+		definition: "Padrão analítico de strategic sourcing pelo qual cotações são normalizadas considerando Total Cost of Ownership — preço unitário + custos indiretos relevantes para a categoria (logística, retrabalho esperado, garantia, downtime). Implementada em SSC como componente das Fitness Rules quando categoria exige (categorias commodity podem usar apenas preço; categorias técnicas exigem TCO completo)."
+		category:   "process"
+		rationale:  "Termo canônico do vocabulário de category management — sem equalização TCO, comparação de cotações é parcial e favorece fornecedores que sub-precificam unit price compensando em custos indiretos. TCO loanword preservado (precedente: vocabulário consagrado em strategic sourcing). Implementação concreta vive em Fitness Rules da categoria — termo aparece no glossário como conceito porque é referenciado em decisionRationale e em discussão de configuração."
+		antiTerms: [{
+			term:          "Comparação por Preço"
+			clarification: "Comparação por preço unit considera apenas valor cotado; TCO inclui custos relevantes ao longo do ciclo de uso. Para categorias commodity (cimento padrão), preço pode ser proxy razoável; para categorias técnicas, equalização TCO é necessária para decisão informada."
+		}]
+		relatedTerms: ["term-fitness-rules", "term-categoria-de-compra", "term-sourcing-decision"]
+	}, {
+		code:       "term-sourcing-decision-made"
+		name:       "SourcingDecisionMade"
+		termEn:     "Sourcing Decision Made"
+		definition: "Evento de domínio publicado quando Decisão de Sourcing one-shot é emitida. Hard binding para P2P emitir pedido específico (override exige supervisedDecision). Carrega decisionRationale rico (criteria + weights + evaluatedSuppliers + tradeoffs)."
+		category:   "event"
+		rationale:  "Mapeamento canônico (per bd-decision-type-is-declared-upfront): one-shot → SourcingDecisionMade. Termo canônico no glossário porque o nome em inglês aparece em código, contratos e logs cross-context. Distinto de PreferredSupplierDesignated (recurring soft binding) e StrategicAwardCompleted (gatilho CTR). NIM consumer é openQuestion (oq-ssc-2) — quando bootstrap, mesmo evento alimenta intelligence learning loop sem evento dedicated."
+		relatedTerms: ["term-one-shot-sourcing-decision", "term-decision-rationale", "term-sourcing-decision"]
+		layerMapping: {
+			codeTerm: "SourcingDecisionMade"
+		}
+	}, {
+		code:       "term-preferred-supplier-designated"
+		name:       "PreferredSupplierDesignated"
+		termEn:     "Preferred Supplier Designated"
+		definition: "Evento de domínio publicado quando Designação de Fornecedor Preferido é ativada. Soft binding em P2P (autonomous-with-audit) — override sustentado é sinal de drift de designação (mecanismo de feedback loop P2P→SSC documentado em canvas openQuestions). Carrega validUntil; expiração afeta apenas decisões P2P futuras — não desfaz pedidos já criados sob designação vigente."
+		category:   "event"
+		rationale:  "Mapeamento canônico: preferred-designation → PreferredSupplierDesignated. Soft binding é design deliberado: P2P pode override em casos genuínos de exceção sem fricção operacional, mas sustentado vira sinal de drift que retroalimenta SSC para redesignação. Mecanismo concreto de feedback loop é openQuestion oq-ssc-3."
+		relatedTerms: ["term-preferred-supplier-designation", "term-decision-rationale", "term-sourcing-decision"]
+		layerMapping: {
+			codeTerm: "PreferredSupplierDesignated"
+		}
+	}, {
+		code:       "term-strategic-award-completed"
+		name:       "StrategicAwardCompleted"
+		termEn:     "Strategic Award Completed"
+		definition: "Evento de domínio publicado quando Strategic Award é concluído pós-RFQ formal — gatilho para formalização contratual em CTR. CTR consumer primário e obrigatório (formaliza contrato sob input indicativo); P2P consumer secundário advisory enquanto CTR materializa contrato — pós-materialização, contrato CTR é SoT vinculante."
+		category:   "event"
+		rationale:  "Mapeamento canônico: strategic-award → StrategicAwardCompleted. Único dos 3 events com CTR como consumer obrigatório — reflete papel do strategic-award como ponte entre decisão de sourcing e formalização contratual. Cache stale em P2P pós-cancelamento CTR é tratado como deferimento operacional documentado em domain-model + canvas openQuestions."
+		relatedTerms: ["term-strategic-award", "term-decision-rationale", "term-sourcing-decision"]
+		layerMapping: {
+			codeTerm: "StrategicAwardCompleted"
+		}
+	}, {
+		code:       "term-rfq-opened"
+		name:       "RFQOpened"
+		termEn:     "RFQ Opened"
+		definition: "Evento de lifecycle público mínimo publicado quando RFQ é aberta — fornecedores qualificados convidados são notificados via NTF transversal. Carrega categoria, escopo, janela de cotação e pool de fornecedores convidados. OBS consome para observabilidade. Decisão autônoma do agente (open-rfq) — abertura é função sobre input estruturado (demanda + pool qualificado pré-validado por NPM)."
+		category:   "event"
+		rationale:  "Parte do trio canônico de RFQ lifecycle (RFQOpened, RFQConcluded, RFQCancelled) per bd-rfq-lifecycle-public-minimal. Visibilidade pública mínima sustenta operacional dos fornecedores convidados; avaliação interna de cotações permanece intra-SSC (preserva confidencialidade competitiva)."
+		relatedTerms: ["term-rfq", "term-fornecedor-qualificado"]
+		layerMapping: {
+			codeTerm: "RFQOpened"
+		}
+	}, {
+		code:       "term-rfq-concluded"
+		name:       "RFQConcluded"
+		termEn:     "RFQ Concluded"
+		definition: "Evento de lifecycle público mínimo publicado quando RFQ é concluída — decisão de sourcing emitida. Notifica fornecedores convidados (vencedores e não-vencedores) via NTF transversal. OBS consome para observabilidade. Decisão autônoma do agente (conclude-rfq-on-decision) — conclusão é evento causal de decisão emitida, sem julgamento envolvido."
+		category:   "event"
+		rationale:  "Conclusão pareada com abertura — notificação a não-vencedores é elemento de processo competitivo formal (sustenta legitimidade do mecanismo, evita fornecedores em limbo). Conclusão é determinística: decisão emitida ⇒ RFQ concluída."
+		relatedTerms: ["term-rfq", "term-sourcing-decision"]
+		layerMapping: {
+			codeTerm: "RFQConcluded"
+		}
+	}, {
+		code:       "term-rfq-cancelled"
+		name:       "RFQCancelled"
+		termEn:     "RFQ Cancelled"
+		definition: "Evento de lifecycle público mínimo publicado quando RFQ é cancelada antes de decisão. Operação anula compromisso com fornecedores convidados — supervisedDecision (cancel-rfq) por custo reputacional. Notifica via NTF transversal com justificativa documentada."
+		category:   "event"
+		rationale:  "Cancelamento é supervisedDecision (não autônoma) per bd-rfq-lifecycle-public-minimal — distingue de abertura/conclusão (autonomous). Custo reputacional para fornecedores que investiram tempo em cotação justifica gate humano com justificativa explícita."
+		relatedTerms: ["term-rfq"]
+		layerMapping: {
+			codeTerm: "RFQCancelled"
+		}
+	}, {
+		code:       "term-fracionamento"
+		name:       "Fracionamento"
+		termEn:     "Fragmentation"
+		definition: "Padrão adversarial em que um proponente subdivide deliberadamente uma demanda de valor superior a threshold em múltiplas RFQs sub-threshold com mesmo escopo, mesmo fornecedor potencial e janela temporal curta, para evitar processo competitivo formal OR concentração detectável. Detection é responsabilidade de act-detect-fragmentation-pattern (agent SSC pós-bootstrap); ocorrência detectada dispara escalation criterion fragmentation-pattern-detected — pausa autonomia para proponente OR fornecedor afetado até decisão humana."
+		category:   "classification"
+		rationale:  "Vetor adversarial canônico no incentiveAnalysis sh-02 (collusion sub-threshold) e mecanismo de detection backup explícito em escalationCriteria. Modelar como termo canônico torna o conceito visível na UL — agentes referenciam o padrão pelo nome em código de detection e em escalações. Termo familiar em controladoria brasileira (paralelo ao precedente bdg que canonizou Fracionamento como threshold gaming em compras públicas — Lei 8.666 — embora Mesh seja setor privado, o conceito é o mesmo). Schema #TermCategory não inclui 'anti-pattern' — classification é a melhor aproximação dentro do enum atual (Fracionamento como classificação de padrão observável). Dívida explícita registrada para evolução futura do schema."
+		antiTerms: [{
+			term:          "Compra Pulverizada"
+			clarification: "Compra pulverizada é prática legítima de diversificação de fornecedores ao longo do tempo para reduzir dependência. Fracionamento é divisão deliberada para contornar threshold competitivo — diferença está na intenção e no padrão temporal/relacional concentrado."
+		}]
+		rejectedAlternatives: [{
+			term:   "Threshold Gaming"
+			reason: "Idiomático em segurança/incentive design mas opaco em conversa de domínio com category managers brasileiros. 'Fracionamento' é termo familiar em controladoria — precedente bdg adotou mesmo termo para vetor análogo em BDG (Alçada gaming)."
+		}]
+		relatedTerms: ["term-rfq", "term-categoria-de-compra"]
 	}]
 
-	rationale: "Parte 1 do glossário SSC: estabelece vocabulário fundacional do BC — conceito-âncora Decisão de Sourcing + 3 subtipos (One-Shot, Preferred Designation, Strategic Award) + processo competitivo (RFQ) + segmentação operacional (Categoria de Compra) + função humana (Category Manager) + boundary com NPM (Fornecedor Qualificado). Define o que SSC produz, sobre que opera, quem opera, com qual gate de entrada — sem ainda materializar machinery operacional (FitnessSignals/FitnessRules/DecisionRationale/Equalização TCO), events outbound (6 events) nem vetor adversarial (Fracionamento) — esses entram em parte 2. Frase canônica preservada: SSC decide sourcing; CTR formaliza contrato; P2P executa compra (antiTerms recorrentes em term-sourcing-decision sustentam esta separação). Anti-mini-NIM aparece em rationale dos antiTerms de term-fornecedor-qualificado (boundary NPM mantida). Vocabulary híbrido PT-BR (Decisão de Sourcing, Categoria de Compra, Fornecedor Qualificado) + EN loanword (RFQ, Strategic Award, Category Manager) seguindo precedente bdg/idc para termos onde inglês perde precisão operacional. domainModelRefs ficam vazios pendente de materialização do domain-model.cue de SSC."
+	rationale: "UL completa do BC SSC organiza-se em torno do conceito-âncora Decisão de Sourcing e seus 3 subtipos declarados upfront (One-Shot, Preferred Supplier Designation, Strategic Award) — cada um com binding regime distinto em P2P (hard / soft / advisory-pré-CTR) e mapeamento canônico para evento próprio (SourcingDecisionMade, PreferredSupplierDesignated, StrategicAwardCompleted). Mecanismo competitivo (RFQ — loanword preservado) com seu trio de events de lifecycle público mínimo (RFQOpened, RFQConcluded, RFQCancelled). Inputs estruturados do gate determinístico (FitnessSignals consumido como struct externa, FitnessRules vivendo em config externa governada) com captura canônica do output (DecisionRationale como moat de inteligência). Eixo de segmentação operacional (Categoria de Compra) e função humana de governance (Category Manager — definição genérica preservando resiliência a evoluções operacionais). Padrão analítico de equalização (Equalização TCO — TCO loanword preservado). Boundary com NPM (Fornecedor Qualificado — gate hard binário, classification aplicada ao role). Vetor adversarial canônico (Fracionamento — paralelo deliberado com bdg para vocabulário cross-BC consistente; classification como workaround para schema #TermCategory que não inclui anti-pattern). Anti-mini-NIM como invariant transversal: termos como ReputationScore e RiskRating NÃO entram (anti-fragmentação cross-BC) — SSC consume signals de NIM/REW via FitnessSignals; não computa nem infere. Pedido de Compra, Contrato e Compromisso são antiTerms recorrentes — fortalecem fronteiras com P2P, CTR e CMT respectivamente (frase canônica: SSC decide sourcing; CTR formaliza contrato; P2P executa compra). Vocabulary respeita convenções de strategic sourcing internacional onde inglês perde precisão (RFQ, Strategic Award, Category Manager, FitnessSignals, FitnessRules, TCO) e usa português onde vocabulário brasileiro é mais preciso (Decisão de Sourcing, Categoria de Compra, Fornecedor Qualificado, Fracionamento, Equalização TCO). Founder review pre-write aplicou 9 ajustes para separar UL de protocol/integration policy: definitions limpas (sem refs a oq não-essenciais nem detalhes de runtime); refs a oq mantidas em rationale onde essenciais para context Phase 0; categories ajustadas (role→classification para Fornecedor Qualificado e Fracionamento). domainModelRefs ficam vazios pendente de materialização do domain-model.cue de SSC."
 }
