@@ -355,30 +355,184 @@ subagentExecutionLog: {
 			reviewMs:    0
 			totalMs:     509803
 		}
+	}, {
+		dispatchId:   "disp-005"
+		workItem:     "WI-048"
+		date:         "2026-05-04"
+		target:       "contexts/bdg/glossary.cue"
+		artifactType: "glossary"
+
+		authoringSubagent: {
+			dispatched:     true
+			subagentType:   "general-purpose"
+			result:         "success"
+			cueVetAttempts: 2
+			cueVetExitCode: 0
+			notes: """
+				Primeiro non-PG dispatch successful — validação operacional
+				do rollout extension de adr-074. PG glossary aplicado
+				section-by-section (3 sections per workOrder). 14 terms
+				propostos no draft inicial; subagent honestamente flagged
+				7 priority items para founder review. Auto-fix exercitado:
+				attempt 1 detectou tq-gl-06 violation (antiTerm 'Limite
+				de Centro de Custo' em term-alcada repetia term name);
+				attempt 2 corrigiu para 'Teto Total de Centro de Custo'
+				(não-canônico) preservando disambiguation content. Post-fix:
+				programmatic validation suite com TODOS tq-gl-* + tq-gg-*
+				PASSED (15/15/15 unicidade após founder add +1 term;
+				47 relatedTerms refs resolved; antiTerms clean; anchors
+				≥1 per term).
+
+				Pattern observado: glossary é estruturalmente menos denso
+				que canvas (3 sections de PG vs 8; menos cross-checks
+				cross-file) — viável within API timeout window per pattern
+				de adr-074 Known gap. Confirma diagnóstico estrutural:
+				subagent-drafted é viável para artefatos com baixa-média
+				densidade estrutural + cross-checks limitados.
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched: false
+			notes: """
+				Review subagent NÃO dispatched — founder optou por review
+				direto + 3-cycle red team próprio + ajustes substantivos.
+				Valid bypass per CLAUDE.md "Authoring Declarativo" P10
+				framing: founder approval gate final em todos os casos.
+				Review subagent dispatch é optional secondary defense
+				quando founder review direta é viável e quando founder
+				tem tempo/contexto para fazê-la pessoalmente — caso desta
+				dispatch dado o investment substantial em red team manual.
+				"""
+		}
+
+		founderDecision: {
+			outcome: "approved-with-substantial-revision-in-3-layers"
+			notes: """
+				Founder aplicou 3 layers de ajuste pre-commit:
+
+				Layer 1 — Decisões nos 7 priority items do subagent
+				reasoning report:
+				- Fracionamento: keep como rule term (vs demote/defer)
+				- Centro de Custo: keep como entity (vs value)
+				- Alçada termEn: loanword 'Alçada' (vs Approval Authority)
+				- Liberação termEn: 'Budget Commitment Release' verboso
+				  (vs ambiguous 'Commitment Release')
+				- +1 term BudgetCommitmentReleased event (canonical trio
+				  completion)
+				- Queries não modeladas (consistente com 3 exemplos)
+				- Identificação de Centro de Custo embutida em definition
+				  (parsimony)
+
+				Layer 2 — 3 ciclos de red team com correções substantivas:
+				- Centro de Custo scope clarification (cost-center strict
+				  vs centro de resultado)
+				- Alçada definition: 'agente'→'ator' (mais neutro BR)
+				- Encargo antiTerm clarification (em contabilidade
+				  gerencial accrual; não coloquial)
+				- Teto Orçamentário rejection: tightened reasoning
+				  (multilevel ambiguity)
+				- Reserva Orçamentária rejection: enriched (reserva
+				  técnica seguros)
+				- Add example a term-cobertura-orcamentaria
+				- Add example a term-budget-rejected
+				- Refactor term-cobertura definition para (a)/(b) explicit
+
+				Layer 3 — Adequação BR validated: vocabulário canônico
+				brasileiro de controladoria respeitado; anti-terms cobrem
+				confusões típicas BR; loanwords mantidos com critério.
+
+				Mechanical fix pre-commit: termEn 'Alçada' → 'Alcada'
+				(ASCII variant per schema #Glossary regex constraint).
+				Founder explicitamente articulou nota no rationale do
+				term-alcada: 'termEn usa Alcada sem acento por constraint
+				ASCII do schema #Glossary; a UL em português permanece
+				Alçada'.
+
+				Resultado: glossary com 15 terms, 47 relatedTerms refs,
+				cue vet PASSED, materializado em commit c37a8b4.
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:            true
+			selfReviewFailRetry:           false
+			ambiguityEscalation:           false
+			manualTakeoverPath:            false
+			apiTimeoutTakeover:            false
+			reviewSubagentBypass:          true
+			schemaConstraintMechanicalFix: true
+			notes: """
+				Múltiplos paths exercitados nesta dispatch:
+				- cueVetFailureRetry (genuine fallback — recovery
+				  from failure): subagent self-corrected tq-gl-06
+				  violation em retry (attempt 1→2)
+				- reviewSubagentBypass (NÃO é fallback — não é
+				  recovery from failure; é design choice): founder
+				  optou por review direto + 3-cycle red team manual
+				  per P10 framing — founder approval permanece gate
+				  final
+				- schemaConstraintMechanicalFix (NÃO é fallback —
+				  é mecânica): termEn ASCII regex constraint surfaced
+				  post-write; founder approved minimal mechanical
+				  fix (Alçada→Alcada) preservando loanword spirit +
+				  nota explícita no rationale
+				"""
+		}
+
+		calibrationFindings: [
+			"Glossary é caso paradigmático de baixa-média densidade estrutural — confirma adr-074 Known gap pattern. PG tem 3 sections (vs canvas 8); cross-checks limitados a unicidade interna + relatedTerms refs (vs canvas cross-file context-map + subdomain registry). API timeout não foi atingido apesar de 14 terms substantivos.",
+			"Subagent honest reporting de 7 priority items foi extremamente valioso — todos os items eram genuine design decisions que founder review confirmou. Pattern: subagent serve como first-pass design + escalation surface; founder review é decision authority. Validates adr-054 dec 10 (isolation + escalation > auto-ratification).",
+			"tq-gl-06 self-fix em attempt 2 é exemplo positivo de cueVetFailureRetry pattern funcionando — subagent diagnosed (antiTerm name colliding com term name), proposed fix (rename to non-canonical alternative), preserved content (disambiguation intact). Padrão reusable.",
+			"Founder review direta + 3-cycle red team manual produziu mais ajustes (8 substantivos) que review subagent provavelmente teria gerado. Trade-off: bypass de review subagent vs depth de manual review. Para glossaries densos com nuances domain-specific (controladoria BR), manual review é provavelmente superior. Para artefatos mais mecânicos, review subagent pode ser viável.",
+			"Schema constraint discovery (termEn ASCII regex) post-write é categoria de feedback que beneficiaria de structural-check antecipatório — vc-gl-XX poderia validar termEn regex pre-commit. Não codificado como def-XXX porque é caso único + structural-check trivial; pode virar guideline para futuras glossary authoring.",
+		]
+
+		pipelineOutcome: "successful-authoring-without-full-pipeline"
+
+		executionTimings: {
+			authoringMs: 589089
+			reviewMs:    0
+			totalMs:     589089
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    4
+		totalDispatches:    5
 		successfulPipeline: 1
-		failureRate:        0.75
-		fallbacksExercised: 3 // disp-002 cascade-ordering + disp-003 + disp-004 manual takeover
+		failureRate:        0.6
+		fallbacksExercised: 4 // disp-002 cascade-ordering + disp-003 manual + disp-004 manual + disp-005 cueVetRetry (reviewBypass NÃO conta — design choice, não recovery from failure)
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
 			apiTimeout:      2 // disp-003 + disp-004
 		}
 		notes: """
-			Failure rate: pequena amostra (n=4) com 3 failures. 2 failures
-			canvas-class (disp-003 PG canvas + disp-004 canvas instance)
-			confirmaram pattern estrutural — canvas REMOVIDO do rollout
-			per adr-074 amendment 2 (commit 5eab93d). 1 failure cascade-
-			ordering (disp-002) levou a correção factual de adr-074
-			(commit 0066d70) + canvas PG manual authoring (commit ef5195f).
-			Próximas dispatches WI-048 (glossary, domain-model, agent-spec,
-			agent-governance) calibram melhor para non-canvas types.
-			Failure rate elevado é evidência de calibração funcionando —
-			canvas era genuinamente fora da fronteira de viabilidade.
+			Failure rate: pequena amostra (n=5) com 3 failures + 1
+			pipeline successful (WI-069 PG-tension-entry) + 1 successful
+			authoring sem full pipeline (disp-005 glossary BDG —
+			review subagent intencionalmente bypassado por escolha
+			founder de manual review + 3-cycle red team direto).
+			Honest distinction: successfulPipeline conta apenas
+			authoring → review → founder approval completo;
+			disp-005 é successfulAuthoring mas não successfulPipeline
+			pelo bypass deliberado de review subagent. fallbacksExercised
+			conta apenas recovery from failure (cascade escalation,
+			manual takeover, cueVetRetry); reviewBypass + schemaConstraintFix
+			são design choices/mechanical, não recovery — capturados
+			em fallbackPathsTested do entry mas não em count.
+
+			disp-005 (glossary BDG) é primeiro non-PG type successful
+			authoring — validação operacional do rollout extension de
+			adr-074. Confirma Known gap pattern: subagent-drafted
+			viável para artefatos com baixa-média densidade estrutural
+			+ cross-checks limitados (glossary, e provavelmente
+			domain-model/agent-spec/agent-governance); falha
+			consistentemente para alta densidade + cross-checks
+			intensivos (canvas-class). Próximas dispatches WI-048
+			fase 3+ (domain-model, agent-spec, agent-governance)
+			calibram melhor.
 			"""
 	}
 }
