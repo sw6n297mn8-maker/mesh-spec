@@ -710,7 +710,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "SSC publica decisão de sourcing e fornecedores selecionados; P2P consome para direcionar emissão de pedidos aos fornecedores aprovados."
 			rationale:         "Decisão estratégica de sourcing precede execução de compra. SSC seleciona fornecedor e condições; P2P executa o pedido sob essas condições. P2P traduz decisão de sourcing para linguagem de procurement via ACL."
 			communication: {type: "async"}
-			events: ["SourcingDecisionMade", "PreferredSupplierDesignated"]
+			events: ["SourcingDecisionMade", "PreferredSupplierDesignated", "StrategicAwardCompleted"]
 		},
 		{
 			code:              "ssc-to-ctr"
