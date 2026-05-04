@@ -495,44 +495,195 @@ subagentExecutionLog: {
 			reviewMs:    0
 			totalMs:     589089
 		}
+	}, {
+		dispatchId:   "disp-006"
+		workItem:     "WI-048"
+		date:         "2026-05-04"
+		target:       "contexts/bdg/domain-model.cue"
+		artifactType: "domain-model"
+
+		authoringSubagent: {
+			dispatched:     true
+			subagentType:   "general-purpose"
+			result:         "success"
+			cueVetAttempts: 2
+			cueVetExitCode: 0
+			notes: """
+				Segundo non-PG dispatch successful — confirma adr-074
+				Known gap pattern. PG domain-model aplicado section-by-
+				section. Auto-fix exercitado em retry: attempt 1 detectou
+				2 queryCapabilities missing required `rationale` field
+				(prj-budget-approval-status + prj-cost-center-availability);
+				attempt 2 corrigiu adicionando rationales substantivas.
+				Pre-existing schema collision baseline (artifact_schemas.#Policy
+				entre policy.cue PLR registry e domain-model.cue policy)
+				corretamente identified como aceito state — confirmed via
+				verifying que cmt/idc/npm golden examples têm idêntico
+				residual error (cue vet -c flag).
+
+				Pattern observado: domain-model é estruturalmente
+				intermediário (mais complexo que glossary, menos que
+				canvas) — viável within API timeout window. PG tem 3
+				sections (vs canvas 8); cross-checks múltiplos com canvas
+				(capabilities/businessDecisions) + glossary (UL terms ↔
+				entities) mas dentro de fronteira viável. Confirms adr-074
+				Known gap subagent-drafted boundary calibration.
+
+				Subagent honestly flagged 6 priority items para founder
+				review (policy outcome split convention, vo-money currency
+				assumption, idempotency scope, release trigger ACL,
+				fragmentation deferral, domain service consideration).
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched: false
+			notes: """
+				Review subagent NÃO dispatched — founder optou por review
+				direto + 3-cycle red team próprio (paralelo a disp-005
+				glossary BDG). Valid bypass per CLAUDE.md "Authoring
+				Declarativo" P10 framing: founder approval gate final em
+				todos os casos. Pattern emergent: para artefatos com
+				nuances domain-specific densos (controladoria BR + DDD
+				tactical patterns), founder review direta + manual red
+				team produz mais ajustes substantivos que review subagent
+				isolado provavelmente geraria.
+				"""
+		}
+
+		founderDecision: {
+			outcome: "approved-with-3-cycle-red-team-and-1-correction"
+			notes: """
+				Founder aplicou review pre-commit em camadas:
+
+				Layer 1 — Verificação estrutural cross-BC (founder-led):
+				Comparação dos counts contra cmt/idc/npm golden examples
+				confirmou BDG dentro de ranges observados (events/commands
+				no lower end por gate determinístico; invariants/VOs
+				upper-medium). 1 divergência estrutural única identificada:
+				entities nested (BDG=1, outros=0). Investigação confirmou
+				divergência GENUINELY justificada por design — Centro de
+				Custo é registry/container que requer atomicidade no
+				cálculo de Saldo Disponível; modelar Comprometimento como
+				aggregate root separado violaria consistency boundary;
+				embutir como value object perderia identidade persistente
+				necessária para BudgetCommitmentId em events. Não é
+				over-modeling — é DDD canônico para semântica de registry
+				com items.
+
+				Layer 2 — 3 ciclos de red team:
+				- Ciclo 1 (adequação BR + terminologia financeira):
+				  10 pontos analisados. Vocabulário brasileiro respeitado;
+				  loanwords ASCII consistent com glossary. Nenhuma correção.
+				- Ciclo 2 (coerência canvas + glossary): 14/15 terms
+				  mapeados; 4/4 businessDecisions cobertos por invariants;
+				  escalation criteria + autonomous/supervised decisions
+				  alinhados. 1 issue identificado: Alçada não tem value
+				  object próprio.
+				- Ciclo 3 (schema compliance + edge cases): 12 pontos
+				  analisados; convenções consistent; cross-references
+				  corretas. Nenhuma correção.
+
+				Layer 3 — 1 correção substantiva aplicada:
+				inv-alcada-respected.rationale enriquecido com nota
+				explícita: 'tabela de Alçadas vive como configuração
+				externa fora do BDG BC; este invariant captura a regra
+				mas não modela o data — value object próprio para faixa
+				de Alçada não é necessário porque limites são consultados
+				em runtime via API/configuration externa, não persistidos
+				como state interno do agg-cost-center'.
+
+				Layer 4 — 6 priority items addressed in rationale (não
+				como correções obrigatórias, mas decisions documentadas):
+				policy outcome split (single policy + internal routing
+				keep), vo-money multi-moeda preserva vertical-agnostic,
+				idempotency scope clarified, release trigger ACL deferred
+				per oq-bdg-2, fragmentation deferred per oq-bdg-1, no
+				domain service for cost-center identification (ACL
+				adapter responsibility).
+
+				Resultado: domain-model com 1 aggregate + 1 entity nested
+				+ 7 invariants + 7 VOs + 4 events + 3 commands + 1 policy
+				+ 2 projections, materializado em commit a1bba3d.
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:   true
+			selfReviewFailRetry:  false
+			ambiguityEscalation:  false
+			manualTakeoverPath:   false
+			apiTimeoutTakeover:   false
+			reviewSubagentBypass: true
+			notes: """
+				Paths exercitados:
+				- cueVetFailureRetry (genuine fallback — recovery from
+				  failure): subagent self-corrected 2 queryCapabilities
+				  missing rationale em attempt 1→2 (paralelo a disp-005
+				  tq-gl-06 self-fix). Reusable pattern confirmed.
+				- reviewSubagentBypass (NÃO é fallback — design choice):
+				  founder optou por review direto + 3-cycle red team
+				  manual. Pattern emergent: para artefatos com domain
+				  nuances densas, manual review é provavelmente superior
+				  a review subagent.
+
+				Pre-existing schema collision (artifact_schemas.#Policy)
+				NÃO é fallback — é accepted baseline state per cmt/idc/npm.
+				"""
+		}
+
+		calibrationFindings: [
+			"Domain-model é estruturalmente intermediário entre glossary e canvas — confirms adr-074 Known gap pattern (subagent-drafted viable for low-medium structural density). PG 3 sections; cross-checks moderados; API timeout não atingido apesar de 1 aggregate + 1 entity + 7 invariants + 7 VOs + 4 events + 3 commands + 1 policy + 2 projections.",
+			"cueVetFailureRetry pattern reusável: tq-gl-06 fix em disp-005 + queryCapabilities rationale fix em disp-006 = 2 successful self-corrections em retry. Subagent diagnose + propose fix + preserve content semantics. Padrão funcionando consistente.",
+			"Pre-existing schema collision (#Policy) baseline aceito — subagent honestly identified e cross-verified com golden examples. Reasoning report transparency é mecanismo de defesa que escalou para founder confirmation rather than silent acceptance.",
+			"Founder structural cross-BC verification (counts comparison) é mecanismo emergent valuable — detectou 1 divergência estrutural (entities nested) que investigação confirmou justificada por design. Pattern: founder cross-BC analysis + design rationale review é complemento poderoso ao subagent reasoning report. Reusable em futuras dispatches non-PG.",
+			"6 priority items honestly flagged pelo subagent + founder cross-BC analysis = comprehensive review surface. Para artefatos com DDD tactical patterns + domain nuances densos, este combo manual produz quality > review subagent isolado provavelmente geraria.",
+		]
+
+		pipelineOutcome: "successful-authoring-without-full-pipeline"
+
+		executionTimings: {
+			authoringMs: 765577
+			reviewMs:    0
+			totalMs:     765577
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    5
+		totalDispatches:    6
 		successfulPipeline: 1
-		failureRate:        0.6
-		fallbacksExercised: 4 // disp-002 cascade-ordering + disp-003 manual + disp-004 manual + disp-005 cueVetRetry (reviewBypass NÃO conta — design choice, não recovery from failure)
+		failureRate:        0.5
+		fallbacksExercised: 5 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
 			apiTimeout:      2 // disp-003 + disp-004
 		}
 		notes: """
-			Failure rate: pequena amostra (n=5) com 3 failures + 1
-			pipeline successful (WI-069 PG-tension-entry) + 1 successful
-			authoring sem full pipeline (disp-005 glossary BDG —
-			review subagent intencionalmente bypassado por escolha
+			Failure rate: amostra (n=6) com 3 failures + 1 pipeline
+			successful (WI-069 PG-tension-entry) + 2 successful authoring
+			sem full pipeline (disp-005 glossary BDG + disp-006 domain-model
+			BDG — review subagent intencionalmente bypassado por escolha
 			founder de manual review + 3-cycle red team direto).
-			Honest distinction: successfulPipeline conta apenas
-			authoring → review → founder approval completo;
-			disp-005 é successfulAuthoring mas não successfulPipeline
-			pelo bypass deliberado de review subagent. fallbacksExercised
-			conta apenas recovery from failure (cascade escalation,
-			manual takeover, cueVetRetry); reviewBypass + schemaConstraintFix
-			são design choices/mechanical, não recovery — capturados
-			em fallbackPathsTested do entry mas não em count.
+			Honest distinction: successfulPipeline conta apenas authoring →
+			review → founder approval completo; disp-005 e disp-006 são
+			successfulAuthoring mas não successfulPipeline pelo bypass
+			deliberado de review subagent. fallbacksExercised conta apenas
+			recovery from failure (cascade escalation, manual takeover,
+			cueVetRetry); reviewBypass é design choice, não recovery.
 
-			disp-005 (glossary BDG) é primeiro non-PG type successful
-			authoring — validação operacional do rollout extension de
-			adr-074. Confirma Known gap pattern: subagent-drafted
-			viável para artefatos com baixa-média densidade estrutural
-			+ cross-checks limitados (glossary, e provavelmente
-			domain-model/agent-spec/agent-governance); falha
-			consistentemente para alta densidade + cross-checks
-			intensivos (canvas-class). Próximas dispatches WI-048
-			fase 3+ (domain-model, agent-spec, agent-governance)
-			calibram melhor.
+			disp-005 (glossary BDG) + disp-006 (domain-model BDG) confirmam
+			adr-074 Known gap pattern: subagent-drafted viável para
+			artefatos com baixa-média densidade estrutural + cross-checks
+			limitados. cueVetFailureRetry pattern exercitado consistente
+			(tq-gl-06 em disp-005 + queryCapabilities rationale em
+			disp-006) — subagent self-fix em retry é mecanismo robusto.
+
+			Próximas dispatches WI-048 fase 4-5 (agent-spec, agent-governance)
+			calibram melhor — agent-spec é candidate para revisit condition (c)
+			de adr-074 (context-heavy deps; depende de canvas + domain-model
+			+ glossary completos).
 			"""
 	}
 }
