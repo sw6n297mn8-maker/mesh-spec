@@ -1,0 +1,34 @@
+package self_reviews
+
+import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
+
+bdgPrimaryAgentGovernance: build_time.#SelfReviewReport & {
+	reportId: "srr-bdg-primary-agent-governance"
+
+	artifactPath:       "contexts/bdg/agents/bdg-primary-agent.governance.cue"
+	artifactSchemaPath: "architecture/artifact-schemas/agent-governance.cue"
+	artifactType:       "agent-governance"
+
+	canonicalSource: "governance/build-time/quality-gate.cue"
+	executionMode:   "self-reported"
+	generatedAt:     "2026-05-04"
+
+	roundsExecuted: 1
+	maxRounds:      4
+
+	status: "stable"
+
+	roundDetails: [{
+		round:     1
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary:   "Agent Governance BDG materializado via subagent dispatch (disp-007) — 4o non-PG type successful no rollout, fechando WI-048 BDG bootstrap (canvas manual + glossary disp-005 + domain-model disp-006 + agent-spec manual + agent-governance disp-007). Subagent dispatch single attempt sem fallback — Path C founder-approved (tentativa única; fallback manual no primeiro timeout). Draft retornado conforme schema #AgentGovernanceEnvelope shape-conformant; founder review rigoroso aplicou 1 ajuste obrigatório pre-write: blastRadiusCaps.maxConcurrentMutations 3→2 (gateway financeiro mais conservador que CTR/NPM em onboarding; entra na canonical band onboarding 1-2/20-50 sem upper-end vs ctr/npm 3/50 que estavam em upper-end). 1 issue de transporte resolvido pre-write (subagent retornou HTML entities &amp;/&lt;/&gt; em string output que precisaram conversão para caracteres reais — não-semântico, apenas mecanismo de transporte). Estrutura: 6 escalation routes cobrindo as 6 categories do agent-spec.escalationConditions (sync-human-review para conflicting-signals/ambiguous-case; alert-and-block para insufficient-context/suspicious-input/unclassifiable-anomaly; async-queue para out-of-scope; recipient=founder em todos per ADR-037 Phase 0); blastRadiusCaps 2/50 (canonical onboarding band sem upper-end); 5 drift metrics (3 vinculadas diretamente a canvas verificationMetrics: dm-budget-approval-time/dm-budget-rejection-rate/dm-supervisor-override-rate + dm-escalation-response-latency tier-aware + dm-blast-radius-utilization); calibration com 2 promotion criteria (onboarding→validation 25/60d com override ≤ 15%/rejection ≤ 5% intermediários; validation→operational 80/90d com 3 verificationMetrics canvas em target sustentado por 8 semanas) + 6 regression triggers (autonomy boundary tolerance zero suspend; supervisor-override-rate sustained reduce; budget-rejection-rate sustained reduce; outras métricas sustentadas reduce; blast radius breach reduce; Fracionamento sustentado tolerance 1 suspend-and-escalate); failureHandling per adr-058 com retry conservador apenas em queries de projeção. NO autonomyOverrides (Phase 0 baseline preservado: 2 mutations propose-and-wait — act-execute-coverage-gate, act-propose-budget-commitment-release; tq-gv-14 forbid override execute-and-log direto preservado). Schema satisfação tq-gv-XX: tq-gv-06 (bidirectional ref agent-spec.code 'agt-bdg-primary' == agentRef + agent-spec.governanceRef 'bdg-primary-agent' == base name do arquivo bdg-primary-agent.governance.cue ✓); tq-gv-07 (escalation routing cobre todas 6 categories presentes em agent-spec.escalationConditions ✓); tq-gv-08 (lifecycleStage 'onboarding' pertence à taxonomia #LifecycleStage ✓); tq-gv-09 (blastRadiusCaps 2/50 — comparação com global blastRadiusPolicy pendente até architecture/agent-governance.cue existir; warn aceito baseline cmt/ctr/idc/npm); tq-gv-10 (calibration criteria mensuráveis e time-bounded: 60d/90d minimumObservationPeriod + métricas com counts/percentages explícitos); tq-gv-11 (autonomyOverrides ausentes — N/A vacuously satisfied); tq-gv-12 (governanceGlobalVersion '0.1' — mismatch warn esperado até architecture/agent-governance.cue criado; baseline cmt/ctr/idc/npm); tq-gv-13 (autonomyOverrides ausentes — sem overrides expirados); tq-gv-14 (Phase 0 baseline preservado: nenhum override execute-and-log para mutations; ambas mutations propose-and-wait conforme spec); tq-gv-15 (singleton no diretório contexts/bdg/agents/ por agentRef ✓). Schema satisfação tq-gvg-XX (PG-B production-guide aplicado pelo subagent): tq-gvg-05 (routing precedence documentado em rationale: blocking > non-blocking; mutation-related > informational; explicit > fallback); tq-gvg-06 (automatic enforcement bindings drift→action: supervisor-override-rate/budget-rejection-rate/blast-radius-utilization sustained → reduce-autonomy via regression triggers explícitos); tq-gvg-07 (lifecycle×caps monotonicidade: onboarding 2/50 entra na canonical band 1-2/20-50; promoção via calibration crossing thresholds); tq-gvg-08 (failureHandling field first-class per adr-058 — substituído tech debt narrative); tq-gvg-09 (control plane separation honesta: envelope contém routing + caps + drift + calibration + lifecycle + failure handling; nenhuma business logic — invariants/Fracionamento/taxonomy de Centros vivem em agent-spec.constraints e domain-model). Adequação BR validated: vocabulary brasileiro respeitado em rationales (Centro de Custo, Saldo Disponível, Limite, Alçada, Comprometimento Orçamentário, Aprovação, Liberação, Gate de Cobertura, Fracionamento); 'Alcada' apenas em ASCII fallback contexts (não há codes em PT-BR neste envelope). Founder review rigoroso aplicou 5 itens de revisão (caps 3/50 vs 2/50 → escolhido 2/50; suspicious-input alert-and-block vs sync → mantido alert-and-block; 6 regression triggers → aprovado; 25/60d e 80/90d promotion thresholds → aprovados; onTimeout retry só projeções → aprovado). cue vet baseline aceito (pre-existing #Policy schema collision idêntica a cmt/idc/npm goldens — confirmado). Note: subagent dispatch successfully produziu draft conformant; founder substantial design review aplicado em vez de dispatch de review subagent (paralelo à abordagem de glossary BDG e domain-model BDG)."
+	}]
+
+	findings: {}
+
+	summary: "Agent Governance BDG via subagent dispatch (disp-007). 6 escalation routes + caps 2/50 + 5 drift metrics + 2 promotion criteria + 6 regression triggers + failureHandling per adr-058. NO autonomyOverrides (Phase 0 baseline preservado). Founder review rigoroso pre-commit aplicou 1 ajuste obrigatório (caps 3→2 maxConcurrentMutations: gateway financeiro mais conservador que CTR/NPM). Pre-existing schema collision baseline aceito."
+
+	singleRoundRationale: "Subagent dispatch single attempt successful (disp-007 — Path C founder-approved sem fallback exercitado) + founder substantial review with 5 itens de revisão e 1 ajuste obrigatório (caps redução). Auto-checks passed within accepted baseline. Round único suficiente — artefato é dispatch (reasoning report do subagent reconciliado com schema satisfação) com founder review rigoroso aplicado pre-write substituindo dispatch de review subagent (paralelo à abordagem usada em glossary BDG/domain-model BDG)."
+}
