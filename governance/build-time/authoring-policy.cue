@@ -112,12 +112,14 @@ authoringPolicy: #AuthoringPolicy & {
 		triggerCondition: "manual-invocation"
 		rationale: """
 			Canvas instances têm production-guide canônico (architecture/
-			production-guides/canvas.cue). Volume justificado por
-			WI-048 cohesion + future BCs. Per adr-074, extensão do
-			rollout AUTORIZA tentativa via subagent-drafted; não
-			garante sucesso. Fallback to manual preserved per
-			fallbackPolicy. Trigger manual-invocation per Phase 0/1
-			pattern.
+			production-guides/canvas.cue, materializado em commit ef5195f
+			post-adr-074 — claim original do adr-074 de 'PG existe' era
+			factualmente incorreto pre-commit; corrigido em adr-074
+			amendment). Volume justificado por WI-048 cohesion + future
+			BCs. Per adr-074, extensão do rollout AUTORIZA tentativa via
+			subagent-drafted; não garante sucesso. Fallback to manual
+			preserved per fallbackPolicy. Trigger manual-invocation per
+			Phase 0/1 pattern.
 			"""
 	}, {
 		artifactType:     "glossary"

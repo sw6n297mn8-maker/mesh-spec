@@ -23,8 +23,19 @@ adr074: artifact_schemas.#ADR & {
 		  atual cobre APENAS production-guide type.
 		- WI-048 está approved + ready-queue: 5 outputs para bootstrap
 		  do BC bdg (Budget & Approval): canvas, glossary, domain-model,
-		  agent-spec, agent-governance. Cada tipo tem PG correspondente
-		  em main (cascade ordering pre-validated).
+		  agent-spec, agent-governance.
+
+		  AMENDMENT (post-commit ef5195f): claim original 'Cada tipo
+		  tem PG correspondente em main (cascade ordering pre-validated)'
+		  era factualmente incorreto pre-commit. Inventário pre-adr-074:
+		  4 PGs existiam (glossary, domain-model, agent-spec,
+		  agent-governance); canvas PG NÃO existia. Gap detectado
+		  durante primeiro canvas instance dispatch (subagent
+		  honestamente flagged). Resolução: canvas PG materializado
+		  via authoring manual em commit ef5195f (cascade-ordering
+		  requirement adr-053/adr-054). Pós-ef5195f, todos 5 PGs
+		  existem em main; cascade ordering agora genuinamente
+		  pre-validated.
 
 		Trigger desta ADR: founder explicit guidance — preferência por
 		subagent-drafted dispatch para WI-048 outputs antes de iniciar
@@ -163,8 +174,11 @@ adr074: artifact_schemas.#ADR & {
 		(P3) Rollout cresce de 1 (PG only) para 6 types — primeira
 		validação de pattern subagent-drafted em context heterogêneo.
 
-		(P4) Cascade ordering pre-validated (5 PGs existem em main)
-		elimina risco de cascade violation per dispatch.
+		(P4) Cascade ordering pre-validated post-commit ef5195f
+		(canvas PG materializado em commit ef5195f corrige gap factual
+		deste ADR original; 4 outros PGs existiam pre-adr-074).
+		Pós-correção, todos 5 PGs existem em main, eliminando risco
+		de cascade violation per dispatch.
 
 		(P5) Authorization-not-guarantee framing protege founder
 		expectations: extensão do rollout é tentativa autorizada,
