@@ -335,21 +335,252 @@ domainModel: artifact_schemas.#DomainModel & {
 	}]
 
 	// =============================================
-	// AGGREGATES (stub — completado em Parte 3)
+	// VALUE OBJECTS (catalog top-level)
+	// =============================================
+
+	valueObjects: [{
+		code:        "vo-purchase-order-id"
+		name:        "PurchaseOrderId"
+		description: "Identidade canônica de um Pedido de Compra. Persistente, imutável, referenciada cross-context (CMT formalização; CTR cross-check para strategic award; DRC futuro para dispute context). Gerada na criação do aggregate em initialState=requested ('emit attempt recorded' per Patch 1 founder) — persiste mesmo se attempt falhar validation."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Root identity do aggregate. PO tem identidade própria desde criação em state requested — sustenta audit trail de attempt mesmo se nunca progredir para emitted. Garantia de identidade aggregate-wide independente de outcome (emitted vs cancelled)."
+	}, {
+		code:        "vo-authority-ref"
+		name:        "AuthorityRef"
+		description: "Referência a uma Autoridade de Sourcing emitida pelo SSC — sourcingDecisionId apontando para SSC vo-sourcing-decision-id. Boundary cross-BC: P2P consume identidade SSC-mantida; SSC mantém canonicidade. P2P NÃO emite authority (apenas APLICA) per anti-mini-NIM."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Materializa term-sourcing-authority do glossary. Boundary explícita com SSC. Sustenta inv-purchase-order-requires-valid-authority — gate determinístico de authority validation consulta authorityRef + authorityType contra prj-active-purchase-authorities + sync fallback QuerySourcingDecision."
+	}, {
+		code:        "vo-authority-type"
+		name:        "AuthorityType"
+		description: "Discriminator do tipo de authority — determina binding regime (hard/soft/advisory) + supplier visibility (1 supplier vs lista preferred vs awarded list)."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		constraints: [
+			"value deve ser um dos: one-shot-decision, preferred-designation, strategic-award",
+		]
+		rationale: "Materializa term-authority-type do glossary. 3 valores canônicos Phase 0 (per Patch 1 founder glossary: 'canônicos', NÃO enum congelado pré-domain-model — formal freezing Phase 3 pós-#PurchaseAuthorityType domain-type). Discriminator que sustenta authority validation gate: one-shot=hard binding direta; preferred=soft binding com validityPeriod; strategic=advisory Phase 0 (hard pós-CTR ContractActivated Phase 1+ per oq-p2p-1)."
+	}, {
+		code:        "vo-supplier-ref"
+		name:        "SupplierRef"
+		description: "Referência a um participante NPM (Fornecedor). Boundary com NPM — P2P consume ref, NPM mantém identidade canônica e qualificação. P2P NÃO consulta NPM diretamente per inv-no-supplier-revalidation-by-p2p — confia em SSC validação upstream."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Boundary explícita com NPM (single-owner per dp-04). Paralelo a SSC vo-supplier-ref. P2P consume sem revalidar — anti-mini-NIM."
+	}, {
+		code:        "vo-category-ref"
+		name:        "CategoryRef"
+		description: "Referência a uma Categoria de Compra (taxonomia configurada externamente). Eixo de segmentação operacional — authority validation por categoria; allocation tracking por categoria; fragmentation pattern detection por categoria."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Materializa term-categoria-de-compra (paralelo a SSC). Configuração externa governada — P2P consome ref, não define taxonomia."
+	}, {
+		code:        "vo-money"
+		name:        "Money"
+		description: "Quantia monetária com currency code — amount + currency. Imutável."
+		fields: [{
+			kind: "primitive"
+			name: "amount"
+			type: "decimal"
+		}, {
+			kind: "primitive"
+			name: "currency"
+			type: "string"
+		}]
+		constraints: [
+			"amount deve ser >= 0",
+			"currency deve ser ISO 4217 code (3 letters, ex.: BRL, USD)",
+		]
+		rationale: "Tipo canônico de domínio para amounts. Sustenta auditoria + reconciliação spend. Currency multi-moeda suportada (paralelo a CMT/BDG)."
+	}, {
+		code:        "vo-purchase-scope"
+		name:        "PurchaseScope"
+		description: "Descrição estruturada do escopo de um Pedido de Compra — descrição do item/serviço, volume requerido, prazo de entrega, location relevante."
+		fields: [{
+			kind: "primitive"
+			name: "description"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "requestedVolume"
+			type: "decimal"
+		}, {
+			kind:        "primitive"
+			name:        "unit"
+			type:        "string"
+			description: "Unidade de medida (un, kg, m³, hour, etc)."
+		}, {
+			kind: "primitive"
+			name: "deliveryDeadline"
+			type: "datetime"
+		}, {
+			kind: "primitive"
+			name: "location"
+			type: "string"
+		}]
+		rationale: "Estruturação do escopo de PO é precondição de emit válido. Volume + unit sustentam allocation tracking (prj-allocation-tracking computa volume agregado por authorityRef + supplier + category)."
+	}, {
+		code:        "vo-cancellation-reason"
+		name:        "CancellationReason"
+		description: "Justificativa estruturada de cancelamento — texto livre + reasonCode discriminator. ReasonCode permite analytics + observability sobre padrões (taxa por categoria, etc)."
+		fields: [{
+			kind:        "primitive"
+			name:        "reasonCode"
+			type:        "string"
+			description: "demand-cancelled | scope-mismatch | supplier-withdrawal | failed-validation-cleanup | admin-override | other"
+		}, {
+			kind:        "primitive"
+			name:        "narrative"
+			type:        "string"
+			description: "Justificativa documentada — obrigatória."
+		}]
+		constraints: [
+			"reasonCode deve ser um dos: demand-cancelled, scope-mismatch, supplier-withdrawal, failed-validation-cleanup, admin-override, other",
+		]
+		rationale: "Cancellation reasons são input crítico para drift signal + fragmentation pattern detection. ReasonCode failed-validation-cleanup distingue cancel de attempt recorded (state requested) de withdrawal pre-CMT (state emitted) per Patch 1 + Patch 4 founder."
+	}]
+
+	// =============================================
+	// AGGREGATES (consistency boundaries)
 	// =============================================
 
 	aggregates: [{
 		code:        "agg-purchase-order"
 		name:        "PurchaseOrder"
-		description: "Stub minimal — completado em Parte 3 (aggregate + lifecycle + fields)."
+		description: "Aggregate central de P2P — consistency boundary do processo de emissão de Pedido de Compra sob authority pré-validada SSC. PurchaseOrder é conceito ÚNICO (NÃO 3 tipos paralelos) per Q1 canvas — discriminação via authorityType. 1 PO = 1 supplier (multi-supplier semantics vive em allocationPolicy upstream SSC; P2P respeita policy em agregado via prj-allocation-tracking). Lifecycle: requested → emitted | cancelled (terminal). Estado requested é 'emit attempt recorded' per Patch 1 founder — persiste mesmo se validation falhar (audit trail de attempt)."
 		rootIdentity: {
 			field: "purchaseOrderId"
 			type: {
-				kind: "primitive"
-				type: "string"
+				kind:           "value-object-ref"
+				valueObjectRef: "vo-purchase-order-id"
 			}
 		}
-		handlesCommands: ["cmd-emit-purchase-order"]
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "supplier"
+			valueObjectRef: "vo-supplier-ref"
+			description:    "Optional — populated quando state=emitted (PO vinculada a supplier após validation success); ausente quando state=requested + authority validation falhou."
+		}, {
+			kind:           "value-object-ref"
+			name:           "categoryRef"
+			valueObjectRef: "vo-category-ref"
+		}, {
+			kind:           "value-object-ref"
+			name:           "scope"
+			valueObjectRef: "vo-purchase-scope"
+		}, {
+			kind:           "value-object-ref"
+			name:           "amount"
+			valueObjectRef: "vo-money"
+		}, {
+			kind:           "value-object-ref"
+			name:           "authorityRef"
+			valueObjectRef: "vo-authority-ref"
+			description:    "Reivindicada na criação (cmd-emit-purchase-order.claimedAuthorityRef). Validada via gate; permanece imutável pós-emit."
+		}, {
+			kind:           "value-object-ref"
+			name:           "authorityType"
+			valueObjectRef: "vo-authority-type"
+			description:    "Resolved durante authority validation gate — determina binding regime + audit trail downstream."
+		}, {
+			kind:        "primitive"
+			name:        "status"
+			type:        "string"
+			description: "requested | emitted | cancelled — discriminator do lifecycle."
+		}, {
+			kind:        "primitive"
+			name:        "requestedAt"
+			type:        "datetime"
+			description: "Timestamp da criação do aggregate (cmd-emit-purchase-order recorded)."
+		}, {
+			kind:        "primitive"
+			name:        "requestedBy"
+			type:        "string"
+			description: "Originadora — área/função que solicitou demanda."
+		}, {
+			kind:        "primitive"
+			name:        "emittedAt"
+			type:        "datetime"
+			description: "Presente quando status=emitted."
+		}, {
+			kind:        "primitive"
+			name:        "emittedBy"
+			type:        "string"
+			description: "Operador agente (agt-p2p-primary) ou supervisor — populated quando status=emitted."
+		}, {
+			kind:        "primitive"
+			name:        "cancelledAt"
+			type:        "datetime"
+			description: "Presente quando status=cancelled."
+		}, {
+			kind:        "primitive"
+			name:        "cancelledBy"
+			type:        "string"
+			description: "Presente quando status=cancelled."
+		}, {
+			kind:           "value-object-ref"
+			name:           "cancellationReason"
+			valueObjectRef: "vo-cancellation-reason"
+			description:    "Presente quando status=cancelled."
+		}, {
+			kind:        "primitive"
+			name:        "validationFailureNote"
+			type:        "string"
+			description: "Optional — populated quando status=requested persiste sem progredir para emitted (authority validation falhou; audit trail de attempt failed). Vazio quando state=requested ainda transientemente aguardando validation OR quando state=emitted (validation passou)."
+		}]
+
+		lifecycle: {
+			initialState: "requested"
+			states: ["requested", "emitted", "cancelled"]
+			transitions: [{
+				from:               "requested"
+				to:                 "emitted"
+				triggeredByCommand: "cmd-emit-purchase-order"
+				emitsEvents: ["evt-purchase-order-emitted"]
+				guards: [
+					"inv-purchase-order-requires-valid-authority",
+					"inv-no-supplier-revalidation-by-p2p",
+				]
+				description: "Authority validation passa (gate determinístico) — transição requested → emitted + evt-purchase-order-emitted publicado para CMT como hard binding operational signal."
+			}, {
+				from:               "requested"
+				to:                 "cancelled"
+				triggeredByCommand: "cmd-cancel-purchase-order"
+				emitsEvents: ["evt-purchase-order-cancelled"]
+				guards: ["inv-cancellation-pre-formalization-only"]
+				description: "Cancelamento de attempt recorded (state requested cuja validation falhou e founder/admin decide limpar audit trail) — transição requested → cancelled + evt-purchase-order-cancelled publicado. Per Patch 4 founder, transition existe porque Patch 1 mantém attempt persistente — sem este path, requested seria dead-end."
+			}, {
+				from:               "emitted"
+				to:                 "cancelled"
+				triggeredByCommand: "cmd-cancel-purchase-order"
+				emitsEvents: ["evt-purchase-order-cancelled"]
+				guards: ["inv-cancellation-pre-formalization-only"]
+				description: "Cancelamento de PO emitida pré-CMT formalization (originadora retira demanda; supplier withdraw; scope mismatch) — transição emitted → cancelled + evt-purchase-order-cancelled publicado como withdrawal/negative signal a CMT."
+			}]
+		}
+
+		handlesCommands: [
+			"cmd-emit-purchase-order",
+			"cmd-cancel-purchase-order",
+		]
+
 		emitsEvents: [
 			"evt-purchase-order-emitted",
 			"evt-purchase-order-cancelled",
@@ -357,8 +588,100 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-preferred-supplier-designated-received",
 			"evt-strategic-award-completed-received",
 		]
-		protectsInvariants: ["inv-purchase-order-requires-valid-authority"]
-		rationale:          "Stub para satisfazer #DomainModel.aggregates min-1. rootIdentity primitive temporário (substituído por vo-purchase-order-id em Parte 3 quando VOs forem catalogados). emitsEvents lista completa pré-populada porque events catalog está fechado nesta Parte e satisfação tq-dm-02 exige cada event com aggregate de origem; outras refs (commands, invariants, VOs, lifecycle, fields) completadas nas Partes 2-3. Os 3 events ACL (-received) são emitted/recorded in local event stream, not originated by aggregate decision (per Patch 2 founder) — paralelo a CMT/BDG/IDC/SSC pattern: aggregate registra fato no event stream local; ACL adapter produz semanticamente o evento traduzido."
+
+		protectsInvariants: [
+			"inv-purchase-order-requires-valid-authority",
+			"inv-allocation-convergence-aggregate-level",
+			"inv-cancellation-pre-formalization-only",
+			"inv-no-supplier-revalidation-by-p2p",
+			"inv-purchase-order-lifecycle-public-events",
+		]
+
+		usesValueObjects: [
+			"vo-purchase-order-id",
+			"vo-authority-ref",
+			"vo-authority-type",
+			"vo-supplier-ref",
+			"vo-category-ref",
+			"vo-money",
+			"vo-purchase-scope",
+			"vo-cancellation-reason",
+		]
+
+		rationale: """
+			Single aggregate central com root identity = purchaseOrderId
+			(PO existe desde criação em state=requested 'emit attempt
+			recorded' per Patch 1 founder; supplier + emittedAt são
+			optional fields populated apenas quando state=emitted).
+
+			Justificativa estrutural (per tq-dmg-07): persiste registry
+			de POs (incluindo attempts failed validation persistidos como
+			state=requested para audit trail) + sustenta gate determinístico
+			de authority + carrega authorityRef/authorityType imutáveis
+			pós-emit + sustenta inv-purchase-order-lifecycle-public-events
+			via 2 events pareados emit/cancel. Sem essa estrutura
+			persistente, gate determinístico regrediria a stateless e
+			audit trail Lei 12.846 (5 anos retention) ficaria sem fonte
+			canônica.
+
+			Lifecycle 3 states (requested → emitted | cancelled) com 3
+			transitions cobrindo todos paths Phase 0:
+			- requested → emitted (cmd-emit-purchase-order, guards
+			  inv-purchase-order-requires-valid-authority + inv-no-
+			  supplier-revalidation-by-p2p): caminho normal (validation
+			  passa); emite PurchaseOrderEmitted hard binding operational
+			  signal a CMT.
+			- requested → cancelled (cmd-cancel-purchase-order, guard
+			  inv-cancellation-pre-formalization-only): limpa attempt
+			  failed validation persistente (per Patch 4 founder porque
+			  Patch 1 mantém attempt persistente — sem este path,
+			  requested seria dead-end).
+			- emitted → cancelled (cmd-cancel-purchase-order, guard
+			  inv-cancellation-pre-formalization-only): withdrawal
+			  pre-CMT formalization (originadora retira demanda; supplier
+			  withdraw; scope mismatch). Emite PurchaseOrderCancelled
+			  como withdrawal/negative signal a CMT.
+
+			Aggregate creation: cmd-emit-purchase-order creates
+			agg-purchase-order directly em initialState=requested e
+			TENTA transition requested → emitted via guards — schema
+			#Lifecycle não suporta create transition (from: ∅), criação
+			implícita via initialState. Per Patch 1 founder semântica,
+			requested é 'emit attempt recorded' (não 'PO válida aguardando
+			emissão'): validation success transita imediato para emitted;
+			validation failure deixa aggregate persistente em requested
+			como audit trail (originadora pode then submeter cmd-cancel-
+			purchase-order ou retentar com authorityRef diferente em
+			novo aggregate).
+
+			emitsEvents incluem 5 events: 2 published de PO lifecycle
+			(PurchaseOrderEmitted + PurchaseOrderCancelled) + 3 internal
+			ACL de SSC (-received). Os 3 events ACL são emitted/recorded
+			in local event stream, not originated by aggregate decision
+			(per Patch 2 founder) — paralelo a CMT/BDG/IDC/SSC pattern:
+			aggregate registra fato no event stream local; ACL adapter
+			produz semanticamente o evento traduzido. Naming 'emitsEvents'
+			fica semanticamente torto para os ACL events mas convenção
+			estabelecida é mantida — distinção semântica é capturada via
+			visibility=internal + sourceContext=ssc fields.
+
+			Multi-supplier first-class via authorityRef discriminator
+			per Q1 canvas: agg-purchase-order tem 1 supplier por instância
+			(supplier field é singular); multi-supplier semantics vive
+			em allocationPolicy do upstream SSC decision (P2P respeita
+			em agregado via prj-allocation-tracking + inv-allocation-
+			convergence-aggregate-level monitoring obligation).
+			PurchaseOrder é conceito único — discriminação via
+			authorityType (one-shot-decision | preferred-designation |
+			strategic-award) NÃO via 3 schemas paralelos.
+
+			Anti-mini-NIM via inv-no-supplier-revalidation-by-p2p (P2P
+			NÃO consulta NPM; sem QueryParticipantStatus em
+			operationalScope) + boundary clarification founder Patch 4
+			canvas: P2P NÃO possui supplier pool — apenas purchase
+			authority; pool é responsabilidade SSC pré-validada upstream
+			via NPM single-owner per dp-04.
+			"""
 	}]
 
 	rationale: "Domain model P2P scaffold (Parte 1 de 5): events catalog completo (5 events: 2 published de PO lifecycle + 3 internal ACL de SSC); stubs mínimos de command/invariant/aggregate satisfazem schema min-1 e serão substituídos nas Partes 2-3. Outer rationale completo finalizado em Parte 4."
