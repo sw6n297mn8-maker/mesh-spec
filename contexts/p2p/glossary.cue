@@ -66,16 +66,16 @@ glossary: artifact_schemas.#Glossary & {
 		synonyms: ["PO", "Ordem de Compra", "Pedido"]
 		antiTerms: [{
 			term:   "Compromisso Econômico"
-			reason: "Compromisso é responsabilidade CMT (formalização bilateral com aceite mútuo). PO é demanda unilateral upstream — aceite formaliza commitment downstream."
+			clarification: "Compromisso é responsabilidade CMT (formalização bilateral com aceite mútuo). PO é demanda unilateral upstream — aceite formaliza commitment downstream."
 		}, {
 			term:   "Fatura"
-			reason: "Fatura é responsabilidade INV (faturamento downstream). PO é trigger de commitment, não documento financeiro de cobrança."
+			clarification: "Fatura é responsabilidade INV (faturamento downstream). PO é trigger de commitment, não documento financeiro de cobrança."
 		}, {
 			term:   "Pagamento"
-			reason: "Pagamento é responsabilidade FCE (Financial Closure & Execution downstream). PO marca demanda; pagamento materializa pós-INV."
+			clarification: "Pagamento é responsabilidade FCE (Financial Closure & Execution downstream). PO marca demanda; pagamento materializa pós-INV."
 		}, {
 			term:   "Cotação"
-			reason: "Cotação (Quotation) é responsabilidade SSC (RFQ flow upstream). PO é resultado de decisão sourcing; cotação é input do processo competitivo SSC."
+			clarification: "Cotação (Quotation) é responsabilidade SSC (RFQ flow upstream). PO é resultado de decisão sourcing; cotação é input do processo competitivo SSC."
 		}]
 		rejectedAlternatives: [{
 			term:   "Procurement Order"
@@ -99,16 +99,16 @@ glossary: artifact_schemas.#Glossary & {
 		synonyms: ["Authority", "Sourcing Decision Authority"]
 		antiTerms: [{
 			term:   "Pool de Fornecedores Qualificados"
-			reason: "Pool é responsabilidade SSC (validates eligibility via NPM em decision time + re-validation pre-decision). P2P NÃO possui pool — apenas authority válida (que pré-validou pool upstream)."
+			clarification: "Pool é responsabilidade SSC (validates eligibility via NPM em decision time + re-validation pre-decision). P2P NÃO possui pool — apenas authority válida (que pré-validou pool upstream)."
 		}, {
 			term:   "Eligibility NPM"
-			reason: "Eligibility é responsabilidade NPM (single-owner per dp-04). P2P NÃO consulta NPM — confia em SSC's pre-validated authority."
+			clarification: "Eligibility é responsabilidade NPM (single-owner per dp-04). P2P NÃO consulta NPM — confia em SSC's pre-validated authority."
 		}, {
 			term:   "Fitness Rules"
-			reason: "Fitness rules são responsabilidade SSC (versionadas em config externa governada). P2P NÃO aplica regras — apenas observa authority outcome."
+			clarification: "Fitness rules são responsabilidade SSC (versionadas em config externa governada). P2P NÃO aplica regras — apenas observa authority outcome."
 		}, {
 			term:   "Decisão de Sourcing"
-			reason: "Decision é responsabilidade SSC. Authority é o ASPECT da decision que P2P consume (ref + type + binding regime); decision como conceito completo (criteria, weights, evaluatedSuppliers) vive em SSC."
+			clarification: "Decision é responsabilidade SSC. Authority é o ASPECT da decision que P2P consume (ref + type + binding regime); decision como conceito completo (criteria, weights, evaluatedSuppliers) vive em SSC."
 		}]
 		rejectedAlternatives: [{
 			term:   "Procurement Authority"
@@ -131,10 +131,10 @@ glossary: artifact_schemas.#Glossary & {
 		rationale:   "Discriminador determina binding regime + override semantics + cancel rules + lifecycle do authorityRef. Crítico para anti-mini-NIM: P2P NÃO infere binding regime — applies regra determinística per authority type. Strategic-award type captures Phase 0→Phase 1+ transition explicitly (advisory→hard pós-CTR ContractActivated). Phase 0 valores são canônicos mas formalmente congelados apenas em Phase 3 domain-model (#PurchaseAuthorityType enum)."
 		antiTerms: [{
 			term:   "Categoria de Compra"
-			reason: "Category (eg., raw materials, services) é classification orthogonal ao authority type. Authority type discrimina FONTE da decisão; category discrimina escopo da demanda."
+			clarification: "Category (eg., raw materials, services) é classification orthogonal ao authority type. Authority type discrimina FONTE da decisão; category discrimina escopo da demanda."
 		}, {
 			term:   "Tipo de Decisão de Sourcing"
-			reason: "SSC decisionType (one-shot/preferred/strategic) é distinct conceito (qual TIPO DE PROCESSO SSC decidiu). P2P authority-type é DERIVADO mas representa angle P2P-side: como tratar autoridade durante emit. Nomes distintos previnem confusão cross-BC."
+			clarification: "SSC decisionType (one-shot/preferred/strategic) é distinct conceito (qual TIPO DE PROCESSO SSC decidiu). P2P authority-type é DERIVADO mas representa angle P2P-side: como tratar autoridade durante emit. Nomes distintos previnem confusão cross-BC."
 		}]
 		relatedTerms: [
 			"term-sourcing-authority",
@@ -150,13 +150,13 @@ glossary: artifact_schemas.#Glossary & {
 		synonyms: ["Allocation Policy Monitoring", "Aggregate Allocation"]
 		antiTerms: [{
 			term:   "Allocation Decision"
-			reason: "Decision é responsabilidade SSC (allocationPolicy declared in SourcingDecisionMade event). P2P observa convergência, NÃO decide allocation."
+			clarification: "Decision é responsabilidade SSC (allocationPolicy declared in SourcingDecisionMade event). P2P observa convergência, NÃO decide allocation."
 		}, {
 			term:   "Allocation Policy"
-			reason: "Policy é responsabilidade SSC. Convergence é o que P2P busca operacionalmente em agregado contra a policy declarada upstream."
+			clarification: "Policy é responsabilidade SSC. Convergence é o que P2P busca operacionalmente em agregado contra a policy declarada upstream."
 		}, {
 			term:   "Allocation Enforcement"
-			reason: "Enforcement strict (rejeição automática per-PO de POs que violem policy) NÃO é P2P Phase 0 scope — domain-model mechanisms futuros podem evoluir para enforcement; Phase 0 é monitoring + drift signaling."
+			clarification: "Enforcement strict (rejeição automática per-PO de POs que violem policy) NÃO é P2P Phase 0 scope — domain-model mechanisms futuros podem evoluir para enforcement; Phase 0 é monitoring + drift signaling."
 		}]
 		rejectedAlternatives: [{
 			term:   "Allocation Tracking"
@@ -179,10 +179,10 @@ glossary: artifact_schemas.#Glossary & {
 		synonyms: ["Authority Gate", "Sourcing Authority Check"]
 		antiTerms: [{
 			term:   "Supplier Eligibility Validation"
-			reason: "Eligibility validation é responsabilidade SSC (decision time) + NPM (single-owner). P2P NÃO revalida supplier eligibility per bd-no-supplier-revalidation-by-p2p."
+			clarification: "Eligibility validation é responsabilidade SSC (decision time) + NPM (single-owner). P2P NÃO revalida supplier eligibility per bd-no-supplier-revalidation-by-p2p."
 		}, {
 			term:   "Approval"
-			reason: "Approval sugere workflow humano (supervisor decides). Authority validation é gate determinístico autônomo (cache lookup + match)."
+			clarification: "Approval sugere workflow humano (supervisor decides). Authority validation é gate determinístico autônomo (cache lookup + match)."
 		}]
 		relatedTerms: [
 			"term-sourcing-authority",
@@ -197,10 +197,10 @@ glossary: artifact_schemas.#Glossary & {
 		rationale:   "Process canônico que articula bd-purchase-order-lifecycle-public-minimal + bd-cancellation-pre-formalization-only. Precisão: emitted é HAND-OFF terminal (CMT consume); cancelled é WITHDRAWAL terminal pre-formalization (CMT cancela path de formalização). 3 states deliberatamente mínimos para preserver confidentialidade competitiva (cotações + comparações vivem em SSC, não em P2P lifecycle)."
 		antiTerms: [{
 			term:   "Commitment Lifecycle"
-			reason: "Commitment lifecycle é responsabilidade CMT (proposed/accepted/rejected/...). P2P lifecycle stops at hand-off; CMT lifecycle inicia pós-PurchaseOrderEmitted consumption."
+			clarification: "Commitment lifecycle é responsabilidade CMT (proposed/accepted/rejected/...). P2P lifecycle stops at hand-off; CMT lifecycle inicia pós-PurchaseOrderEmitted consumption."
 		}, {
 			term:   "Delivery Lifecycle"
-			reason: "Delivery lifecycle é responsabilidade DLV (verification downstream). P2P NÃO modela acknowledged/fulfilled — supplier acknowledgment (Phase 1+ via supplier API) e delivery verification (DLV) são distinct concerns."
+			clarification: "Delivery lifecycle é responsabilidade DLV (verification downstream). P2P NÃO modela acknowledged/fulfilled — supplier acknowledgment (Phase 1+ via supplier API) e delivery verification (DLV) são distinct concerns."
 		}]
 		relatedTerms: [
 			"term-purchase-order",
@@ -215,10 +215,10 @@ glossary: artifact_schemas.#Glossary & {
 		synonyms: ["Buyer Organization", "Demanding Organization", "Área Demandante"]
 		antiTerms: [{
 			term:   "Fornecedor"
-			reason: "Fornecedor (sh-02) é a counterparty respondente; originadora é a parte que demanda. Roles distintos no procurement workflow."
+			clarification: "Fornecedor (sh-02) é a counterparty respondente; originadora é a parte que demanda. Roles distintos no procurement workflow."
 		}, {
 			term:   "Operador Agente"
-			reason: "Operador agente (sh-05) é o agente operacional executando emit; originadora é o stakeholder humano que submete demanda ao agente."
+			clarification: "Operador agente (sh-05) é o agente operacional executando emit; originadora é o stakeholder humano que submete demanda ao agente."
 		}]
 		relatedTerms: [
 			"term-comprador",
@@ -235,10 +235,10 @@ glossary: artifact_schemas.#Glossary & {
 		synonyms: ["Purchaser", "Procurement Officer"]
 		antiTerms: [{
 			term:   "Category Manager"
-			reason: "Category manager é responsabilidade SSC (declares decision type pré-RFQ + configures fitness rules). Comprador é responsabilidade P2P (validates authority + submits PO)."
+			clarification: "Category manager é responsabilidade SSC (declares decision type pré-RFQ + configures fitness rules). Comprador é responsabilidade P2P (validates authority + submits PO)."
 		}, {
 			term:   "Requisitante"
-			reason: "Requisitante declares demanda (need); comprador valida authority + emite. Roles operacionais distintos dentro de originadora."
+			clarification: "Requisitante declares demanda (need); comprador valida authority + emite. Roles operacionais distintos dentro de originadora."
 		}]
 		relatedTerms: [
 			"term-originadora-de-demanda",
@@ -255,10 +255,10 @@ glossary: artifact_schemas.#Glossary & {
 		synonyms: ["Requester", "Technical Demand Originator"]
 		antiTerms: [{
 			term:   "Comprador"
-			reason: "Comprador valida authority + emite PO. Requisitante declara necessidade técnica que precede o ciclo de PO."
+			clarification: "Comprador valida authority + emite PO. Requisitante declara necessidade técnica que precede o ciclo de PO."
 		}, {
 			term:   "Fornecedor"
-			reason: "Fornecedor é counterparty respondente. Requisitante é dentro da originadora (mesmo lado da demanda)."
+			clarification: "Fornecedor é counterparty respondente. Requisitante é dentro da originadora (mesmo lado da demanda)."
 		}]
 		relatedTerms: [
 			"term-originadora-de-demanda",
