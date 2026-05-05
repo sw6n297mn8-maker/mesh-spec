@@ -464,29 +464,106 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}]
 
 	// =============================================
-	// CONTEXT REQUIREMENTS (stub — completados em Parte 3)
+	// CONTEXT REQUIREMENTS
 	// =============================================
 
 	contextRequirements: {
 		artifacts: [{
 			artifactType: "canvas"
-			rationale:    "Stub minimal — completado em Parte 3 (5 artifacts com slices + estimatedBudget heavy)."
+			rationale:    "Canvas SSC declara purpose (anti-mini-NIM como invariant transversal), capabilities (cap-04 audit + cc-03 24/7 + decisionRationale capture + query SoT), businessDecisions (7: bd-deterministic-decision-from-structured-signals RECTOR + bd-decision-type-is-declared-upfront + bd-qualification-as-absolute-precondition + bd-rfq-lifecycle-public-minimal + bd-procurement-requires-sourcing-authority + 2 invariants comportamento agente), governance scope (6 autonomousDecisions + 4 supervisedDecisions + 5 escalationCriteria), incentive analysis (sh-01/sh-02/sh-05 vetores adversariais). Slices necessários para operar fitness rules, escalations supervisionadas, reconciliação cross-BC."
+			requiredSlices: [
+				"ownership",
+				"governanceScope",
+				"capabilities",
+				"communication",
+				"incentiveAnalysis",
+			]
+		}, {
+			artifactType: "domain-model"
+			rationale:    "Source of truth para operationalScope refs (1 aggregate + 8 commands + 7 events + 7 invariants + 3 projections). Necessário para cada action validar domainModelRefs ⊆ operationalScope per tq-ag-02. Behavior-first ordering + lifecycle do agg-sourcing-process (open → concluded | cancelled) + 5-layer anti-mini-NIM defense + cross-BC dependsOnAggregateState (3 invariants → NPM agg-participant via QueryParticipantStatus) — todos consumidos pelo agente para enforcement operacional."
+		}, {
+			artifactType: "glossary"
+			rationale:    "Terminologia canônica do BC SSC (19 terms: Decisão de Sourcing + 3 subtipos + RFQ + Categoria de Compra + Category Manager + Fornecedor Qualificado + FitnessSignals + Fitness Rules + DecisionRationale + Equalização TCO + 6 events + Fracionamento). Action names + audit trail field semantics + rationale alinham com glossary. Loanwords PT-BR + EN (Strategic Award, RFQ, FitnessSignals) preservados em codes/fields per schema regex ASCII; PT-BR em descriptions."
+			requiredSlices: ["terms"]
+		}, {
+			artifactType: "agent-governance"
+			rationale:    "Envelope ssc-primary-agent.governance.cue declara autonomyOverrides atuais (Phase 0: 3 mutations propose-and-wait + 1 execute-and-log act-revalidate-rfq-pool), escalationRouting (channel + SLA + recipient por category — Phase 0 founder only per ADR-037 pre-PMF), blastRadiusCaps (mutations/period proporcionais), calibration (promotion/regression criteria — métricas RFQ-cycle-time, supervisor-override-rate, escalation-rate por category), driftDetection + failureHandling (rollback automático em violation rate). Agent consulta envelope para resolver QUANDO escalar (do spec) → COMO escalar (do envelope). Forward-ref Phase 4 → Phase 5 pair."
+		}, {
+			artifactType: "context-map"
+			rationale:    "SSC integra cross-BC com 3 dependências OPERATIONAL Phase 0 (NPM via QueryParticipantStatus sync + NetworkParticipantStatusChanged ACL — eligibility binária; P2P via 3 published decision events com binding regimes hard/soft/advisory; CTR via StrategicAwardCompleted mandatory consumer + advisory P2P) e 2 known-absent Phase 0 NÃO-operacionais (NIM ssc-to-nim consume decisionRationale pendente oq-ssc-2 + nim-to-ssc performanceScore pendente oq-ssc-1; CTR existingCommitments via ctr-to-ssc pendente oq-ssc-7 — fitnessSignals.performanceScore + fitnessSignals.existingCommitments ficam null Phase 0). Context map slice de relationships informa contracts ATIVOS (NPM/P2P/CTR partial) e identifica pendências de formalização explícitas como known-absent (oq-ssc-1/2/5/7), não como operational dependencies."
+			requiredSlices: ["relationships"]
 		}]
-		estimatedBudget: "moderate"
+		estimatedBudget: "heavy"
 	}
 
 	// =============================================
-	// OBSERVABILITY (stub — completados em Parte 3)
+	// OBSERVABILITY
 	// =============================================
 
 	observability: {
 		signals: [{
 			code:           "sig-mutation-executed"
 			name:           "Mutation Executed"
-			description:    "Stub minimal — completado em Parte 3 (9 signals: 7 canônicos + sig-decision-emitted + sig-anomaly-pattern-detected SSC-specific)."
+			description:    "Sinal emitido após command processado (post-approval em propose-and-wait; immediate em execute-and-log). Cobertura: act-open-rfq, act-evaluate-and-conclude-rfq, act-cancel-rfq, act-revalidate-rfq-pool."
 			coversCategory: "mutation"
-			trigger:        "Stub minimal — completado em Parte 3."
+			trigger:        "Imediatamente após state transition em agg-sourcing-process + emit dos events pareados"
 			level:          "info"
+		}, {
+			code:           "sig-validation-result"
+			name:           "Validation Result"
+			description:    "Sinal emitido após validation actions. Cobertura: act-build-supplier-pool, act-validate-rfq-scope, act-evaluate-signal-sufficiency, act-revalidate-qualification. Reporta outcome (success/insufficiency/failure) + rationale técnico."
+			coversCategory: "validation"
+			trigger:        "Após validação concluída"
+			level:          "info"
+		}, {
+			code:           "sig-generation-result"
+			name:           "Generation Result"
+			description:    "Sinal emitido após act-generate-decision-rationale. Reporta vo-decision-rationale anexado ao audit trail (via ref/hash) e payload do decision event (objeto completo)."
+			coversCategory: "generation"
+			trigger:        "Após geração de rationale concluída"
+			level:          "info"
+		}, {
+			code:           "sig-query-served"
+			name:           "Query Served"
+			description:    "Sinal emitido após cada query atendida. Cobertura: act-query-active-sourcing-decisions, act-query-sourcing-decision."
+			coversCategory: "query"
+			trigger:        "Após retorno de query consumida por P2P/CTR/controllers"
+			level:          "info"
+		}, {
+			code:           "sig-escalation-triggered"
+			name:           "Escalation Triggered"
+			description:    "Sinal emitido quando qualquer escalationCondition dispara. Captura category + rationale + action que disparou + recommendation se aplicável + escalationConditionsOverride aplicado (se action tem override hard-supervised ou conditional)."
+			coversCategory: "escalation"
+			trigger:        "EscalationCondition disparada (any category)"
+			level:          "warn"
+		}, {
+			code:           "sig-supervision-requested"
+			name:           "Supervision Requested"
+			description:    "Sinal emitido quando autonomyLevel propose-and-wait gera recommendation aguardando aprovação humana. Cobertura: act-open-rfq, act-evaluate-and-conclude-rfq, act-cancel-rfq (Phase 0). NÃO emitido por act-revalidate-rfq-pool (execute-and-log) salvo quando escalationOverride conditional dispara via pool < 2."
+			coversCategory: "mutation"
+			trigger:        "Recommendation criada, aguardando aprovação"
+			level:          "info"
+		}, {
+			code:           "sig-constraint-violation"
+			name:           "Constraint Violation"
+			description:    "Sinal emitido quando onViolation block-and-escalate ativada em qualquer constraint. Captura constraint code + invariant origem + violation context."
+			coversCategory: "mutation"
+			trigger:        "Constraint violation detectada"
+			level:          "error"
+		}, {
+			code:           "sig-decision-emitted"
+			name:           "Decision Emitted"
+			description:    "Sinal SSC-specific emitido após decision event publicado (1 de 3 tipos). Captura: rfqId + sourcingDecisionId + decisionType + selectedSuppliers (lista) + allocationPolicy.type + categoryRef + fitnessRuleSnapshot.versionId + evaluatedSuppliers.count (pool size pre-decision) + escalationsRaised (lista). Permite reconstrução do gate independente do agent log para auditoria contínua (cap-04) + insumo NIM futuro (oq-ssc-2)."
+			coversCategory: "mutation"
+			trigger:        "Decisão materializada e 1 de 3 events publicado + RFQConcluded pareado"
+			level:          "info"
+		}, {
+			code:           "sig-anomaly-pattern-detected"
+			name:           "Anomaly Pattern Detected"
+			description:    "Sinal SSC-specific emitido por act-detect-fragmentation-pattern (sh-01 vector) e act-detect-suspicious-quotation (sh-02 vector). Captura pattern type (fragmentation/low-balling/inflation/collusion-suspect) + rfqId(s) envolvidas + supplier/proponent + window + statistical evidence (mediana + desvio padrão da categoria via prj-rfq-history-by-category)."
+			coversCategory: "escalation"
+			trigger:        "Anomaly report gerado por escalation actions"
+			level:          "warn"
 		}]
 		auditTrail: {
 			requiredFields: [
@@ -497,11 +574,172 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 				"output-summary",
 				"decision-rationale",
 				"governance-version",
+				"rfq-id",
+				"sourcing-decision-id",
+				"category-ref",
+				"decision-type",
+				"selected-suppliers",
+				"fitness-rule-snapshot-id",
 			]
-			storageHint: "Stub minimal — completado em Parte 3."
-			rationale:   "Stub com 7 mínimos canônicos satisfazendo #AuditTrail._minimumAuditFields. 6 SSC-specific fields adicionados em Parte 3."
+			storageHint: "Event Log imutável SSC com retention regulatory-grade (mínimo 5 anos per Lei 12.846 procurement audit + Bacen quando categoria é regulada). decisionRationale rico anexado a cada decision event (objeto completo no payload) sustenta auditoria contínua (cap-04) sem reconsulta cross-BC. Audit trail do agente em partição dedicada por categoryRef para query patterns operacionais."
+			rationale:   "7 mínimos cobrem reconstituição genérica (timestamp/agent-id/action-code/input-summary/output-summary/decision-rationale/governance-version). Field decision-rationale no audit trail é decisionRationaleRef/hash apontando para vo-decision-rationale completo no payload do decision event — NÃO duplica objeto inteiro no audit log (referência canônica via sourcingDecisionId + content hash sustenta integridade e evita storage redundante). 6 SSC-specific fields cobrem reconstituição de contexto BC: rfq-id é root identity do aggregate (presente em todas actions, mesmo queries — vincula audit ao processo); sourcing-decision-id presente quando concluded (null para queries/validations/cancelamentos); category-ref sustenta segmentação operacional (fitness rules + KPIs por categoria) + drift detection cross-categoria; decision-type registra one-shot/preferred-designation/strategic-award para audit downstream (P2P binding regime + CTR mandatory consumer + NIM intelligence loop); selected-suppliers (lista) registra outcome multi-supplier first-class per Q1 do canvas; fitness-rule-snapshot-id (versionId) sustenta inv-fitness-rules-versioned-config auditável (reproduzibilidade do gate dado mesmo snapshot + signals). Audit reconstrutível (teste canônico): dado o registro + payload do event referenciado, é possível reconstituir inputs + decisão + rationale + outcome — sustenta cap-04 + Lei 12.846 + moat de inteligência via NIM consumer."
 		}
 	}
 
-	rationale: "Agent Spec SSC scaffold (Parte 1 de 3): operationalScope completo (1 aggregate + 8 commands + 7 events + 7 invariants + 3 projections); stubs mínimos de actions/constraints/escalation/contextRequirements/observability serão substituídos nas Partes 2-3. Outer rationale completo finalizado em Parte 3."
+	rationale: """
+		SSC é gateway primário do macrofluxo Mesh — primeiro BC do trio
+		canônico SSC → CTR → P2P (SSC decide sourcing; CTR formaliza
+		contrato; P2P executa compra). agt-ssc-primary é o operador
+		único deste BC: aplica fitness rules versionadas sobre
+		fitnessSignals estruturados para emitir 3 tipos de decisão,
+		opera lifecycle público de RFQ, captura decisionRationale rico,
+		e re-valida qualificação NPM em 2 momentos críticos. Anti-mini-
+		NIM rigorously enforced: NÃO computa reputation/performance,
+		consome signals externos.
+
+		Spec ↔ Governance separation per ADR-037: este spec declara
+		CAPACIDADE operacional + QUANDO escalar; envelope (ssc-primary-
+		agent.governance.cue, par sequencial Phase 5) declara AUTONOMIA
+		atual via promotion criteria + autonomyOverrides intermediários
+		+ COMO escalar (channel/SLA/recipient).
+
+		Princípio canônico (post-founder review 2026-05-01, canonizado
+		em BDG): Phase 0 baseline mutations propose-and-wait, mesmo
+		aquelas declaradas autonomousDecision no canvas (open-rfq,
+		evaluate-fitness-signals, conclude-rfq-on-decision, publish-
+		decision-events). Canvas autonomousDecisions significam 'não
+		exigem julgamento humano (gate determinístico)', NÃO 'execução
+		sem governança'. Promotion para execute-and-log das 3 mutations
+		propose-and-wait (act-open-rfq + act-evaluate-and-conclude-rfq +
+		act-cancel-rfq) é decisão do envelope.governance via promotion
+		criteria (RFQ-cycle-time + supervisor-override-rate + escalation-
+		rate por category) + rollback automático per failureHandling —
+		preserva P10. tq-gv-14 bloqueia override execute-and-log direto;
+		envelope poderá declarar promotion path com intermediários
+		(collect-and-report, propose-and-wait com fast-track) sem violar
+		P10. act-revalidate-rfq-pool é exceção justificada à BDG canon:
+		execute-and-log Phase 0 porque (a) signal source autoritativo
+		(NPM single-owner per dp-04); (b) ação determinística sem
+		inferência; (c) escalation path conditional cobre cenário risky
+		(pool < 2 pós-revalidation triggera out-of-scope para gate
+		humano).
+
+		Decide-vs-execute pattern (tq-agg-09) em Phase 0:
+		Para mutations com impacto irreversível ou cross-BC, o padrão
+		decide→execute NÃO é modelado como pares de actions distintos.
+		Em vez disso, o gate humano é implementado via autonomyLevel
+		'propose-and-wait' — a 'decisão' ocorre no momento da aprovação
+		humana e a execução é consequência direta dessa aprovação.
+		Aplica a:
+		- act-cancel-rfq (custo reputacional para fornecedores
+		  convidados; sempre supervised per canvas — escalationOverride
+		  hard-supervised mesmo após governance promotion futura)
+		Exceção explícita: act-evaluate-and-conclude-rfq NÃO segue
+		split decide-X/execute-X porque seu outcome é determinístico
+		(1 de 3 decision events conforme decisionType + RFQConcluded
+		pareado) a partir do gate (fitness rules + signals → ranking
+		+ allocation), não julgamento. Gate é função, não julgamento —
+		mesma exceção que BDG act-execute-coverage-gate. Audit
+		reproduzível via decisionRationale + fitnessRuleSnapshot
+		(testável via property-based test). act-revalidate-rfq-pool
+		também não segue split: ação é determinística (remover
+		fornecedor rebaixado) sob signal autoritativo NPM; escalation
+		conditional cobre risco pool < 2.
+
+		Canvas decision propagation (tq-dmg-11 análogo): decisões
+		semânticas fechadas no canvas SSC propagam consistentemente
+		para spec:
+		- Q1 multi-supplier first-class → act-evaluate-and-conclude-rfq
+		  emite events com selectedSuppliers como lista + allocation
+		  Policy explícita; sig-decision-emitted captura selected
+		  Suppliers (lista) + allocationPolicy.type
+		- Q2 tipo declarado upfront → act-open-rfq propaga decisionType
+		  para aggregate; act-evaluate-and-conclude-rfq valida
+		  correspondência via cst-decision-type-must-match-rfq
+		- bd-procurement-requires-sourcing-authority → query handlers
+		  expostos (act-query-active-sourcing-decisions + act-query-
+		  sourcing-decision) habilitam P2P validar autoridade pré-
+		  emissão de pedido
+		- bd-rfq-lifecycle-public-minimal → 3 events lifecycle
+		  pareados via cst-rfq-lifecycle-events-paired
+
+		Canonical removal test (tq-agg-10): SE remover agt-ssc-primary,
+		das 7 invariantes:
+		- 4 ficam totalmente protegidas por outros enforcers
+		  (inv-decision-type-declared-upfront via aggregate field
+		  decisionType + handler dos commands de conclusão valida
+		  match; inv-rfq-public-lifecycle-events via atomic transition
+		  no lifecycle do agg-sourcing-process emitindo events
+		  pareados; inv-decision-rationale-required via runner
+		  validation pós-submit do payload do event; inv-fitness-rules-
+		  versioned-config via external config governada — agente
+		  NÃO modifica regras).
+		- 3 ficam com cobertura parcial Phase 0 (inv-decision-from-
+		  structured-signals, inv-qualification-as-precondition,
+		  inv-competitive-pool-or-supervised-exception) — agente é
+		  enforcer operacional do gate como PROCESSO; mecanismos
+		  estruturais (svc-fitness-rule-evaluator como domain service
+		  determinístico, NPM single-owner via QueryParticipantStatus
+		  cross-BC com dependsOnAggregateState formalizado per adr-055,
+		  pol-revalidate-on-status-changed como defesa primária
+		  policy-triggered) são complementos parciais. Pós-resolução
+		  estrutural (oq-ssc-1/2 NIM signals/events; oq-ssc-7 CTR
+		  existingCommitments; oq-ssc-8 fitness rules config externa
+		  governada estabilizada), enforcement migra mais para
+		  domain/external. NÃO é red flag oculto — é red flag conhecido,
+		  declarado em canvas (mech-agent-gate é design pattern, não
+		  bug), com caminho de resolução documentado em openQuestions.
+
+		Phase 0 caveats explícitos:
+		- act-revalidate-rfq-pool depende de pol-revalidate-on-status-
+		  changed em produção; defesa secundária via act-revalidate-
+		  qualification (sync NPM no decision time) cobre janela de
+		  policy delay.
+		- act-detect-fragmentation-pattern e act-detect-suspicious-
+		  quotation são mecanismos SECUNDÁRIOS per canvas — defesa
+		  primária estrutural depende de coordenação cross-BC com BDG
+		  (Fracionamento bidirecional, oq-bdg-1 análogo) e dados
+		  acumulados em prj-rfq-history-by-category (janela mínima
+		  viável ≥30 dias). Phase 0 limitação reconhecida.
+		- fitnessSignals.performanceScore (NIM) + fitnessSignals.
+		  existingCommitments (CTR) permanecem null Phase 0 —
+		  formalização cross-BC em oq-ssc-1 + oq-ssc-7 (declarados
+		  como known-absent em contextRequirements, NÃO operational
+		  dependencies). SSC opera com decisões 'first-order' (NPM +
+		  RFQ apenas) sem profundidade analítica do moat de inteligência
+		  declarado pelo subdomain.
+		- as-ssc-1 (pool qualificado viável) é premissa de act-build-
+		  supplier-pool; se invalidada (taxa de escalação insufficient-
+		  qualified-pool sustentada), gate competitivo regride para
+		  sole-source supervisionado como norma.
+		- as-ssc-2 (RFQ history como signal robusto SSC-mantido) é
+		  premissa de act-detect-suspicious-quotation; se invalidada
+		  (manipulation cross-RFQ via Fracionamento OR drift sustentado
+		  de preço médio sem causa), defesa primária falha; detection
+		  latente vira única linha.
+		- Cache invalidation cross-BC pós-cancelamento CTR (oq-ssc-5)
+		  e feedback loop P2P→SSC (oq-ssc-3) não modelados Phase 0;
+		  drift potencial documentado em escalationCondition
+		  unclassifiable-anomaly.
+
+		Volume catalog: 13 actions (3 mutations propose-and-wait + 1
+		mutation execute-and-log + 4 validations + 2 queries + 1
+		generation + 2 escalations), 8 constraints (7 derivadas 1:1
+		de invariantes + 1 operacional sustentando supervised
+		operations Phase 0), 6 escalation conditions (cobertura tq-ag-
+		10 + 5 categorias canvas), 9 signals (7 canônicos + sig-
+		decision-emitted + sig-anomaly-pattern-detected SSC-specific),
+		13 audit fields (7 mínimos + 6 SSC-specific para reconstituição
+		cap-04 auditoria contínua + Lei 12.846 procurement audit; field
+		decision-rationale armazenado como ref/hash, payload completo
+		no event). estimatedBudget heavy (5 artifacts + cross-BC NPM
+		reads + 4 lenses + decisionRationale rico).
+
+		Glossary alignment: action names + signal codes + audit field
+		names alinhados com glossary SSC (19 terms). Loanwords PT-BR +
+		EN preservados em codes/fields per schema regex ASCII (Strategic
+		Award, RFQ, FitnessSignals, Category Manager) com PT-BR em
+		descriptions/rationale per UL local. Sem divergências
+		terminológicas identificadas nesta autoria.
+		"""
 }
