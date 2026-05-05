@@ -252,14 +252,223 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// STAKEHOLDERS — placeholder; conteúdo em commit 1.3
+	// BUSINESS DECISIONS (6)
+	// =============================================
+
+	businessDecisions: [{
+		id: "bd-procurement-requires-sourcing-authority"
+		decision: """
+			Toda PurchaseOrder emitida AUTONOMAMENTE por P2P EXIGE
+			authority válida pré-existente: one-shot-decision
+			(SourcingDecisionMade vigente) OR preferred-designation
+			(PreferredSupplierDesignated com validUntil futuro) OR
+			strategic-award (StrategicAwardCompleted vigente; Phase 0
+			advisory; Phase 1+ pós-ContractActivated CTR vira hard).
+			PO sem authority canônica é maverick — bloqueado no gate
+			determinístico, escalado como supervisedDecision approve-po-
+			without-sourcing-authority com justificativa documentada.
+			"""
+		consequences: """
+			Spend não-controlado (maverick) eliminado por construção
+			no caminho autônomo; emergências/exceções têm path
+			supervisado explícito (não silencioso). Gate determinístico
+			é precondition de cap-03 (24/7) — sem authority, sem PO
+			autônomo, sem fluxo. Authority transition strategic-award
+			Phase 0→Phase 1+ é monotônica (advisory→hard nunca
+			regresso) per oq-p2p-1.
+			"""
+		rationale: """
+			RECTOR herdado de SSC bd-procurement-requires-sourcing-
+			authority: P2P é o BC que materializa essa decisão —
+			gateway entre sourcing (SSC) e commitment (CMT). Sem este
+			gate, P2P emit POs sem captura do POR QUÊ — viola moat de
+			inteligência (decisão fica fora da rede). Maverick path
+			supervised preserva flexibilidade real (emergency, ad-hoc,
+			fixed-price low-value) sem regredir RECTOR.
+			"""
+	}, {
+		id: "bd-purchase-order-as-single-concept-with-authority-ref"
+		decision: """
+			PurchaseOrder é conceito único da P2P, não 3 tipos paralelos.
+			Discriminador é authorityRef (apontando para 1 de 3 sources)
+			+ authorityType (one-shot-decision | preferred-designation |
+			strategic-award) que determinam binding regime + override
+			semantics. Strategic-award authorityType refina-se em
+			Phase 1+ pós-ContractActivated CTR (advisory→hard).
+			"""
+		consequences: """
+			Schema #PurchaseOrder uniforme (1 aggregate em domain-model);
+			lifecycle público uniforme (2 events pareados Emit/Cancel);
+			binding regime derivado de authorityType (hard/soft/advisory).
+			Diferenciação não-redundante com SSC's 3 decision types
+			(SSC discrimina decisão; P2P discrimina origem da
+			authority). Authority transition Phase 0→Phase 1+
+			documentada via oq-p2p-1 sem mutar PO existentes (events
+			imutáveis).
+			"""
+		rationale: """
+			Modelar 3 PO types paralelos a SSC seria acoplamento
+			desnecessário — P2P emite single PO concept. Discriminador
+			authorityRef desacopla P2P da estrutura interna SSC e
+			permite evolução independente (e.g., novos authority types
+			Phase 1+ sem cascade refactor em P2P). Per 5 ciclos red
+			team: framing inicial '3 PO types' substituído por 'single
+			PO + authorityRef'.
+			"""
+	}, {
+		id: "bd-allocation-policy-respected-in-aggregate"
+		decision: """
+			P2P respeita SSC allocationPolicy em AGREGADO (cross-PO),
+			não per-PO individual. Para multi-supplier authority com
+			split-by-percentage (e.g., 60/40 entre 2 suppliers), P2P
+			distribui POs ao longo da janela de validade tal que volume
+			emitido converge para a percentagem declarada — não força
+			cada PO a ter exatamente 60/40 internamente.
+			"""
+		consequences: """
+			P2P precisa projeção de volume emitido por authorityRef +
+			supplier (prj-allocation-tracking) para enforce convergência.
+			Drift de allocation (real vs SSC policy) é signal back para
+			SSC (sig-allocation-drift, OBS metrics — oq-p2p-7). Single-
+			supplier authority (allocation type=single) trivializa essa
+			decisão. Bias agente em allocation routing (sh-05 vetor) é
+			medido por desvio sistemático da policy declarada.
+			"""
+		rationale: """
+			Per Q1 do canvas SSC: multi-supplier first-class via lista
+			selectedSuppliers + allocationPolicy. P2P respeita a policy
+			aggregate-level porque cada PO individual atende uma
+			demanda específica (não pode ser fracionado per-PO sem
+			escopo absurdo). Aggregate-level enforcement é teste real
+			da policy via observação de comportamento ao longo do
+			tempo.
+			"""
+	}, {
+		id: "bd-cancellation-pre-formalization-only"
+		decision: """
+			PurchaseOrderCancelled Phase 0 cobre APENAS cancelamento
+			pré-CMT formalization (CMT ainda não publicou
+			CommitmentAccepted derivado do PO). Pós-CMT cancellation
+			é cross-BC coordination (CMT cancellation flow) — NÃO
+			modelado em P2P Phase 0.
+			"""
+		consequences: """
+			Lifecycle público de PO Phase 0: requested → emitted |
+			cancelled (3 states; cancelled é pré-CMT terminal).
+			Pós-CMT cancellation per oq-p2p-2 — Phase 1+ via cross-BC
+			coordination flow ainda não formalizado. Janela de
+			cancellation Phase 0 é estreita (entre PurchaseOrderEmitted
+			e CommitmentAccepted) — caso comum porque CMT consume
+			rapidamente.
+			"""
+		rationale: """
+			Modelar pós-CMT cancellation Phase 0 exigiria coordenação
+			cross-BC com CMT (CMT cancellation flow + downstream
+			implications BDG/DLV/INV/FCE). Phase 0 deliberate: limitar
+			a janela onde P2P aggregate é authoritative (pré-
+			formalização). Cross-BC cancellation flow é trabalho
+			estrutural separado (oq-p2p-2 deferred).
+			"""
+	}, {
+		id: "bd-no-supplier-revalidation-by-p2p"
+		decision: """
+			P2P NÃO revalida NPM eligibility de supplier antes de
+			emitir PO. P2P confia na decisão SSC (que validou
+			qualification em decision time + re-validation pre-decision
+			via QueryParticipantStatus). Se supplier foi rebaixado
+			pós-SSC decision, isso é problema de SSC (revalidate
+			authority + re-issue OR escalate); P2P emite per
+			authorityRef vigente e cadeia handles.
+			"""
+		consequences: """
+			P2P NÃO consulta NPM (operationalScope sem QueryParticipant
+			Status). P2P consume signal que SSC já validou. Janela de
+			risco entre SSC decision e P2P emit é mitigada por SSC
+			pol-revalidate-on-status-changed (NPM event ACL) +
+			cmd-revalidate-rfq-pool. Anti-mini-NIM enforced: P2P NÃO
+			computa eligibility, NÃO infere qualification — apenas
+			executa per authority válida.
+			"""
+		rationale: """
+			Anti-mini-NIM RECTOR: P2P revalidando NPM seria duplicar
+			SSC's responsibility e introduzir possible drift entre
+			SSC view e P2P view de eligibility. NPM é single-owner
+			de qualification (dp-04); SSC é single-owner de
+			'qualification em sourcing context'; P2P consume decisão
+			SSC pós-validação. Cadeia de responsabilidade clara.
+			"""
+	}, {
+		id: "bd-purchase-order-lifecycle-public-minimal"
+		decision: """
+			Toda PurchaseOrder que percorre fluxo normal (requested →
+			emitted) DEVE emitir PurchaseOrderEmitted. Toda PurchaseOrder
+			cancelada pré-CMT DEVE emitir PurchaseOrderCancelled como
+			withdrawal/negative signal a CMT. Não há saída do lifecycle
+			sem evento público correspondente.
+			"""
+		consequences: """
+			CMT consume PurchaseOrderEmitted como trigger canônico de
+			commitment lifecycle; PurchaseOrderCancelled como sinal
+			de retirada antes de formalização. NTF transversal notifica
+			supplier via PO events (paralelo a SSC RFQ events). OBS
+			observabilidade rastreia emit/cancel rates. Avaliação
+			interna (authority validation, allocation tracking)
+			permanece intra-P2P — confidencialidade competitiva
+			preservada (cotações + scoring ficam em SSC; P2P externaliza
+			apenas fact 'PO emitted to supplier X under authority Y').
+			"""
+		rationale: """
+			Paralelo a bd-rfq-lifecycle-public-minimal de SSC. Lifecycle
+			público mínimo (2 events) é precondition de macrofluxo:
+			CMT precisa de signal canônico para formalizar; supplier
+			precisa de notification; observability precisa de trail.
+			Privacy de pricing/scope preservada porque events carregam
+			refs (não payload completo de cotação histórica).
+			"""
+	}]
+
+	// =============================================
+	// STAKEHOLDERS (3)
 	// =============================================
 
 	stakeholders: [{
 		stakeholderRef:    "sh-01"
-		roleInContext:     "Placeholder — completado em commit 1.3."
-		impactDescription: "Placeholder — completado em commit 1.3."
-		rationale:         "Skeleton stakeholder; 3 stakeholders substantivos (sh-01 originadora absorvendo requisitantes/compradores, sh-02 fornecedor, sh-05 operador agente) em commit 1.3."
+		roleInContext:     "Originadora absorvendo requisitantes (declaram demanda) e compradores (validam authority + submetem EmitPurchaseOrder ao agente). Em pre-PMF, sh-01 é founder ou função interna designada; pós-PMF, requisitantes podem ser distribuídos por área operacional + compradores centralizados. Phase 0 modela como entidade única (originadora) sem diferenciar requisitante/comprador internamente."
+		impactDescription: "Originadora ganha (a) gate determinístico de authority — POs sem sourcing authority bloqueados no caminho autônomo (audit defensible); (b) lifecycle público mínimo — POs emitidas têm trail completo (Lei 12.846 procurement audit); (c) allocation policy respeitada em agregado — multi-supplier diversification preservada per SSC decisão upstream."
+		rationale:         "Modelo paralelo a SSC: sh-01 absorve roles operacionais (requisitantes técnicos + compradores) sob entidade única originadora. Diferenciação requisitante/comprador é Phase 1+ quando volume + complexity justify (deferred fora do escopo Phase 0)."
+	}, {
+		stakeholderRef:    "sh-02"
+		roleInContext:     "Fornecedor respondente: recebe PurchaseOrderEmitted via NTF transversal; pode aceitar ou rejeitar via canal próprio (supplier API Phase 1+); pré-aceite, supplier não tem visibilidade de outros POs concorrentes intra-categoria. Phase 0 modela apenas notification (NTF); aceite/rejeição materializa Phase 1+ via supplier API (oq-p2p-4)."
+		impactDescription: "Fornecedor ganha (a) PO trail audit-defensible vinculando demanda a authority (anti-renegotiation pressure post-emit per immutability); (b) confidencialidade cross-supplier (não vê outros POs intra-categoria); (c) override-rate sustentado disparando feedback signal a SSC (supplier confidence quanto sustained relevance). Risco: PO emitida implica entrega/aceite no horizonte; cancelamento Phase 0 é supervisedDecision pré-CMT (não cross-BC)."
+		rationale:         "Fornecedor é segundo stakeholder essencial do procurement workflow. Phase 0 supplier API NOT modeled (oq-p2p-4); supplier interaction reduzida a notification + confidentiality enforcement. Pós-Phase 0, supplier pode acknowledge/reject formalmente via API."
+	}, {
+		stakeholderRef:    "sh-05"
+		roleInContext:     "Operador agente (agt-p2p-primary): valida authority via cache + sync fallback; emit PO sob authority válida; cancel PO supervised pré-CMT; detecta drift de allocation policy (sig-allocation-drift cross-PO); detecta padrões maverick (POs sub-threshold). Anti-mini-NIM enforced: NÃO interpreta supplier performance, NÃO computa allocation, NÃO revalida NPM eligibility — APLICA decisões upstream."
+		impactDescription: "Operador agente ganha (a) gate determinístico claro — autoridade válida sim/não (não julgamento); (b) escalation routing definido — maverick attempts viram supervisedDecision approve-po-without-sourcing-authority; (c) audit trail regulatory-grade reduz blast radius operacional. Risco: drift agente em allocation routing (bias) é vetor adversarial sh-05 — design response via deterministic allocation routing per SSC policy."
+		rationale:         "Operador agente como stakeholder reflete dp-08 (incentive alignment): agente é participante operacional com incentivos próprios; design tem que prever drift potencial. Anti-mini-NIM enforcement protege boundaries (P2P não vira mini-SSC ou mini-NPM)."
+	}]
+
+	// =============================================
+	// COSTS ELIMINATED
+	// =============================================
+
+	costsEliminated: [{
+		costRef: "ce-02"
+		contribution: """
+			P2P elimina custo de transação 'spend não-controlado' via
+			bd-procurement-requires-sourcing-authority RECTOR: emit PO
+			autônomo apenas sob authority pré-validada SSC. Maverick
+			(PO sem authority) bloqueado no gate; emergências
+			supervised path. Trail authority + supplier + scope
+			imutável Phase 0 satisfaz Lei 12.846 procurement audit
+			(5 anos).
+			"""
+		rationale: """
+			Phase 0 single-ref por analogia estrutural a SSC (que
+			também declarou ce-02 single-ref Phase 0). ce-04 deferred
+			pós-NIM bootstrap quando feedback loop NIM↔P2P para drift
+			detection materializa (oq-p2p-3 + oq-ssc-1/2).
+			"""
 	}]
 
 	// =============================================
