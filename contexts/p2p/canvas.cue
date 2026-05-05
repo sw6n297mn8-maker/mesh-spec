@@ -611,8 +611,216 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// RATIONALE OUTER — placeholder; conteúdo em commit 1.4
+	// ASSUMPTIONS
 	// =============================================
 
-	rationale: "Placeholder — rationale outer (síntese de identity + 6 businessDecisions + 5 anti-mini-NIM defense layers + 4 lenses + Phase 0 caveats incluindo escopo Procure-to-Pay restrito a Procure + strategic-award authority transition Phase 0 advisory → Phase 1+ hard) entra em commit 1.4."
+	assumptions: [{
+		id:                 "as-p2p-1"
+		assumption:         "SSC publishes 3 decision events (SourcingDecisionMade, PreferredSupplierDesignated, StrategicAwardCompleted) com authority semantics estável e reliable delivery via ACL."
+		invalidationSignal: "Taxa de cache miss em prj-active-purchase-authorities sustained > threshold operacional (e.g., > 10% das emit attempts) OR latência de event propagation SSC→P2P > 30s p95 sustained em janela trimestral."
+		rationale:          "Cache local depende de event consumption confiável. Se SSC não publica events estáveis OR ACL falha, P2P regrede para sync fallback caro (QuerySourcingDecision em todo emit), comprometendo cap-03 (24/7) latency."
+	}, {
+		id:                 "as-p2p-2"
+		assumption:         "CMT consume PurchaseOrderEmitted reliably como trigger de commitment lifecycle (per p2p-to-cmt context-map relation; ACL de CMT)."
+		invalidationSignal: "Taxa de POs sem CommitmentAccepted correspondente em janela > 24h sustained (CMT não está formalizando) OR observed latency CMT formalization > 1h p95."
+		rationale:          "PO authoritative em P2P até CMT formaliza; sem CMT consumption confiável, lifecycle do PO fica indefinido (P2P não sabe se cancellation pré-formalization é válida). Spine commitment lifecycle quebra."
+	}, {
+		id:                 "as-p2p-3"
+		assumption:         "CTR contract activation event materializa em Phase 1+ (oq-ssc-5 + oq-p2p-1 dependent). Phase 0 SSC strategic-award é advisory binding aceito como suficiente para emit POs sob strategic-award."
+		invalidationSignal: "Taxa de strategic-award POs com cancellation cross-BC pós-CTR formalization > threshold sustained (CTR está negando contracts pós-strategic-award SSC) OR oq-p2p-1 não materializa em horizonte declared (Phase 1 deadline 2026-Q4)."
+		rationale:          "Phase 0 advisory binding é compromisso operacional aceito enquanto CTR contract activation event não existe. Se invalidation signal triggers, P2P precisa Phase 0 fallback (block strategic-award POs até CTR materializar OR reduce binding to manual approval)."
+	}]
+
+	// =============================================
+	// OPEN QUESTIONS (7)
+	// =============================================
+
+	openQuestions: [{
+		id:        "oq-p2p-1"
+		question:  "Quando CTR materializa ContractActivated event (consumido por P2P para bumping strategic-award authority advisory→hard)? Qual shape: payload + timing + cancel semantics?"
+		impact:    "Phase 0 P2P opera sob advisory binding em strategic-award POs (CTR pode cancelar contrato pós-PO sem signal estruturado a P2P — drift latente). Phase 1+ pós-ContractActivated, authority bumped + cache invalidation cross-BC alinhada (paralelo a oq-ssc-5)."
+		deadline:  "2026-12-31"
+		rationale: "Resolver durante CTR canvas evolution + ssc-to-ctr formalization pós-WI-057 + WI-053 (INV) bootstraps. Bridge oq-ssc-5; mesma semântica de invalidation cross-BC."
+	}, {
+		id:        "oq-p2p-2"
+		question:  "Como modelar cancellation pós-CMT formalization? CMT cancellation flow + downstream cancellation chain (BDG/DLV/INV/FCE)? Cross-BC coordination protocol?"
+		impact:    "Phase 0 P2P cancel apenas pré-CMT; pós-CMT cancellation é operação real (mudança de scope, supplier withdrawal) sem path estruturado. Manual coordination Phase 0; volume escalado pode justificar protocol."
+		deadline:  "2026-09-30"
+		rationale: "Resolver durante CMT canvas evolution OR via deferred-decision quando volume de pós-CMT cancellations sustained. Phase 0 manual coordination tolerada porque janela cancel pré-CMT é estreita (CMT consume rapidamente)."
+	}, {
+		id:        "oq-p2p-3"
+		question:  "Feedback loop P2P→SSC para override-rate sustained de preferred designation: como P2P sinaliza drift estruturadamente? Novo event (PreferredOverrideRateAlert) OR mecanismo via OBS metrics? Bridge com oq-ssc-3."
+		impact:    "Sem feedback loop estruturado, drift de preferred designation (override-rate sustained) não chega de volta ao SSC para redesignação — preferred fica stale até validUntil expirar OU override sustentado vira norma silenciosa. Bridge oq-ssc-3 (paralelo)."
+		deadline:  "2026-09-30"
+		rationale: "Phase 0 não modela. Pós-NIM bootstrap pode capturar via NIM signals; pré-NIM, mecanismo via OBS metrics + manual review (paralelo a oq-ssc-3 same horizon)."
+	}, {
+		id:        "oq-p2p-4"
+		question:  "Supplier API materializing acknowledged/fulfilled lifecycle: como supplier acknowledge PO recebido + reportar fulfillment? Phase 1+ scope."
+		impact:    "Phase 0 supplier interaction = NTF notification only. Acknowledged/fulfilled tracking via supplier API permitiria PO lifecycle estendido + automated three-way match Phase 1+. Phase 0 manual ou via DLV downstream verification."
+		deadline:  "2027-03-31"
+		rationale: "Supplier API design depende de adoption + tooling supplier-side. Phase 0 deliberately NOT modeled — escopo Procure-only (não Pay) restricts ao que P2P aggregate is authoritative for."
+	}, {
+		id:        "oq-p2p-5"
+		question:  "Ad-hoc demand sem SSC decision (request-sourcing-decision back to SSC): como P2P sinaliza demanda not-yet-sourced para SSC iniciar RFQ flow? Novo command/event SSC↔P2P? Bridge com oq-ssc-4."
+		impact:    "Sem mecanismo formal, demanda ad-hoc bate em insufficient-authority escalation; founder decide reboot via SSC OR maverick. Volume sustained de ad-hoc demand justifica protocol formal. Bridge oq-ssc-4 (mesma operação vista de SSC)."
+		deadline:  "2026-09-30"
+		rationale: "Phase 0 escalation manual. Pós-evidência empírica sobre frequência (se ad-hoc é raro, escalation suficiente; se sistemático, mecanismo formal justificável). Bridge oq-ssc-4 same horizon."
+	}, {
+		id:        "oq-p2p-6"
+		question:  "PO history projection (prj-purchase-history-by-category) para fragmentation detection cross-PO: shape, retention, integration com SSC fragmentation detection (cross-BC coordination bidirectional)."
+		impact:    "Phase 0 fragmentation detection P2P opera local (mesmo proponente em mesma categoria). Cross-BC coordination com BDG (oq-bdg-1 análogo) + SSC (paralelo a SSC prj-rfq-history-by-category) pendente Phase 0. Sem cross-BC, agente locally detects mas full picture incompleto."
+		deadline:  "2026-12-31"
+		rationale: "Phase 0 projection local Phase 1+; cross-BC coordination depende de WI-046 REW + alinhamento BDG/SSC fragmentation. Resolver durante NIM bootstrap quando cross-BC patterns são consumed estruturadamente."
+	}, {
+		id:        "oq-p2p-7"
+		question:  "Multi-supplier allocation drift detection sustained (sig-allocation-drift): como sinalizar a SSC quando real allocation diverge da policy declarada (e.g., supplier capacity issue, persistent override pattern)?"
+		impact:    "Phase 0 sig-allocation-drift via OBS metrics (manual review). Sem signal estruturado, drift sustained não chega a SSC para policy revisita — allocation policy fica desalinhada com realidade operacional. Bridge oq-p2p-3 (related to drift signaling)."
+		deadline:  "2026-09-30"
+		rationale: "Phase 0 OBS metrics. Phase 1+ pós-NIM bootstrap, formalize structured signal SSC↔P2P via NIM consumption. Same horizon que oq-p2p-3."
+	}]
+
+	// =============================================
+	// VERIFICATION METRICS (3)
+	// =============================================
+
+	verificationMetrics: [{
+		id:        "po-emission-latency"
+		metric:    "p95 do tempo entre EmitPurchaseOrder command receipt e PurchaseOrderEmitted event publication, segregado por authority cache hit vs miss."
+		target:    "< 5s p95 para cache hit; < 30s p95 para cache miss (sync fallback SSC)"
+		rationale: "Latency do gate determinístico afeta cap-03 (24/7). Cache hit deve dominar (>= 95% das emissions); cache miss é caso degradado tolerado."
+	}, {
+		id:        "po-rejection-rate"
+		metric:    "Percentual de EmitPurchaseOrder commands que disparam escalation (insufficient-authority + conflicting-authority + suspicious-pattern + authority-exhausted) sobre total de attempts em janela semanal."
+		target:    "< 8% das tentativas em janela trimestral steady-state"
+		rationale: "Taxa alta indica desalinhamento entre demand signaling (originadora) e authority pipeline (SSC) OR cache stale OR maverick attempts sustained. Threshold conservador onboarding; revisar pós-PMF baseline."
+	}, {
+		id:        "supervisor-override-rate"
+		metric:    "Percentual de POs emitidas via supervisedDecision (approve-po-without-sourcing-authority + cancel-emitted-po + override-allocation-policy) sobre total de POs em janela semanal."
+		target:    "< 8% das POs em janela trimestral steady-state"
+		rationale: "Taxa alta indica que regras determinísticas (authority gate + allocation policy) não cobrem espectro operacional — possível necessidade revisar SSC decision frequency, allocation granularity, OR maverick path estrutural. Sustained breach indica calibração estrutural pendente."
+	}]
+
+	rationale: """
+		P2P é segundo BC do macrofluxo Mesh (SSC → {P2P, CTR} → CMT
+		→ BDG → DLV → INV → FCE), gateway entre decisão de sourcing
+		e formalização de compromisso. Phase 0 escopo deliberado:
+		Procure (PO emission + cancel pré-CMT), NÃO Pay (faturamento
+		é INV; pagamento é FCE). Nome canônico 'Procure-to-Pay'
+		reflete escopo conceitual completo do BC; Phase 0 entrega
+		apenas a primeira porção sob ground rules claras. Frase
+		canônica trio: SSC decide sourcing. P2P emite pedido sob
+		authority. CMT formaliza compromisso.
+
+		Boundary clarification crítica: P2P NÃO possui supplier pool
+		— apenas purchase authority. Pool de fornecedores qualificados
+		(eligibility, qualification scope, NPM status) é responsabilidade
+		exclusiva SSC, que pré-validou pool em decision time +
+		re-validou pre-decision via QueryParticipantStatus. P2P consume
+		authority válida (que carrega selectedSuppliers/preferred
+		Suppliers/awardedSuppliers refs já filtrados) — NÃO revalida
+		composition do pool. Esta separação está articulada em
+		bd-no-supplier-revalidation-by-p2p (anti-mini-NIM RECTOR-
+		adjacent) e reforçada nos escalation criteria via renomeação
+		'authority-exhausted' (não 'pool-exhausted'): authority é
+		conceito P2P; pool é conceito SSC.
+
+		6 businessDecisions cobrem RECTOR + 5 operacionais:
+		bd-procurement-requires-sourcing-authority (RECTOR — herdado
+		de SSC; gate determinístico maverick blocked)
+		+ bd-purchase-order-as-single-concept-with-authority-ref
+		(PO unificado com authorityRef discriminator vs 3 paralelos)
+		+ bd-allocation-policy-respected-in-aggregate (multi-supplier
+		convergence cross-PO via projection)
+		+ bd-cancellation-pre-formalization-only (Phase 0 boundary)
+		+ bd-no-supplier-revalidation-by-p2p (anti-mini-NIM hard line)
+		+ bd-purchase-order-lifecycle-public-minimal (2 events
+		pareados PurchaseOrderEmitted/Cancelled; Cancelled como
+		withdrawal/negative signal pre-CMT formalization).
+
+		Anti-mini-NIM como invariant transversal materializado em
+		5 layers (paralelo a SSC):
+		(a) bd-no-supplier-revalidation-by-p2p RECTOR-adjacent (P2P
+		    NÃO consulta NPM; confia em SSC; NÃO possui supplier pool)
+		(b) bd-allocation-policy-respected-in-aggregate (P2P aplica
+		    policy SSC; não computa)
+		(c) capability rationale + sh-05 designResponse (deterministic
+		    allocation routing per SSC policy; sig-allocation-bias
+		    detection)
+		(d) escalation routing (insufficient/conflicting/exhausted
+		    authority → escalation; agente NÃO interpreta gap nem
+		    revalida pool)
+		(e) cap-04 24/7 via gate determinístico (não inferência;
+		    authority válida sim/não como função numérica).
+
+		Strategic-award authority transition (Phase 0 → Phase 1+)
+		é a complicação semântica mais subtil do canvas: Phase 0
+		strategic-award = advisory binding (CTR contract ainda não
+		ativo); Phase 1+ pós-ContractActivated CTR = hard binding
+		(CTR contract overrides SSC strategic-award). NÃO mistura no
+		mesmo state — transição monotônica explícita per oq-p2p-1.
+		ContractActivated event-consumer + QueryContractStatus query-
+		dependency declarados como PHASE 1+ FORWARD-REF (NÃO
+		operacional Phase 0; ctr-to-p2p relation no context-map
+		materializa apenas Phase 1+). Phase 0 advisory binding é
+		compromisso operacional aceito como assumption as-p2p-3;
+		invalidation signal triggers Phase 0 fallback se CTR
+		materialization atrasa muito.
+
+		3 stakeholders (paralelo a SSC): sh-01 absorvendo requisitantes/
+		compradores como originadora; sh-02 fornecedor (Phase 0
+		notification only — supplier API Phase 1+ per oq-p2p-4);
+		sh-05 operador agente. 3 vetores adversariais cobertos:
+		sh-01 maverick + fragmentation; sh-02 price drift + collusion
+		upstream; sh-05 allocation bias + cache exploit + coalizão
+		sh-01-sh-05 (risco residual reconhecido — paralelo a SSC).
+
+		ce-02 single-ref Phase 0 por analogia estrutural (paralelo a
+		SSC ce-02); ce-04 deferred pós-NIM bootstrap.
+
+		5 autonomousDecisions + 3 supervisedDecisions + 5
+		escalationCriteria cobrindo authority validation + supplier
+		match + maverick exception + cancel + allocation override +
+		fragmentation + authority exhaustion (renomeado de pool-
+		exhausted para reforçar boundary P2P↔SSC) + regulatory
+		ambiguity.
+
+		3 assumptions (SSC events estáveis + CMT consume confiável +
+		CTR contract activation Phase 1+) + 7 openQuestions cobrindo
+		Phase 0 caveats explícitos:
+		- oq-p2p-1: CTR ContractActivated event Phase 1+ (bridge
+		  oq-ssc-5)
+		- oq-p2p-2: pós-CMT cancellation flow (cross-BC)
+		- oq-p2p-3: feedback loop P2P→SSC override-rate (bridge
+		  oq-ssc-3)
+		- oq-p2p-4: supplier API acknowledged/fulfilled (Phase 1+)
+		- oq-p2p-5: ad-hoc demand request-sourcing-decision (bridge
+		  oq-ssc-4)
+		- oq-p2p-6: PO history projection cross-BC fragmentation
+		- oq-p2p-7: multi-supplier allocation drift detection
+		  structured signal
+
+		3 verificationMetrics: po-emission-latency tier-aware
+		(cache hit vs miss); po-rejection-rate (escalation rate
+		incluindo authority-exhausted); supervisor-override-rate
+		(maverick + cancel + override approvals).
+
+		4 lenses analíticas:
+		- lens-organizational-resource-allocation (primária) —
+		  alocação de POs entre suppliers per SSC allocationPolicy
+		  com convergência aggregate-level
+		- lens-incentive-alignment (secundária) — defesa contra
+		  maverick (sh-01) + supplier renegotiation (sh-02) +
+		  allocation bias (sh-05); per-actor block scope em
+		  routing alert-and-block
+		- lens-event-driven-architecture-patterns (secundária) —
+		  4 events ACL inbound (3 SSC operacionais + 1 CTR Phase 1+
+		  forward-ref) + 2 published events (PurchaseOrderEmitted/
+		  Cancelled withdrawal); 2 query-surfaces + 2 query-
+		  dependencies (1 SSC operacional + 1 CTR Phase 1+ forward-
+		  ref)
+		- lens-information-economics (terciária) — PO data como
+		  signal NIM consumer Phase 1+ (oq-p2p-3 + oq-p2p-7); PO
+		  carries authorityRef preserving link to sourcing decision
+		  rationale rich (NIM intelligence learning loop bridge)
+		"""
 }
