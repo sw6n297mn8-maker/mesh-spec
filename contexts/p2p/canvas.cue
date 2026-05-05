@@ -472,32 +472,142 @@ canvas: artifact_schemas.#Canvas & {
 	}]
 
 	// =============================================
-	// INCENTIVE ANALYSIS — placeholder; conteúdo em commit 1.3
+	// INCENTIVE ANALYSIS (3 participants — paralelo a SSC)
 	// =============================================
 
 	incentiveAnalysis: {
 		participants: [{
 			stakeholderRef:            "sh-01"
-			participantType:           "Placeholder — preenchido em commit 1.3."
-			desiredBehavior:           "Placeholder."
-			correctOperationIncentive: "Placeholder."
-			manipulationVector:        "Placeholder."
-			manipulationCost:          "Placeholder."
-			vsBenefit:                 "Placeholder."
-			designResponse:            "Placeholder."
-			rationale:                 "Skeleton; 3 participants com manipulation vectors substantivos (sh-01 maverick PO emission; sh-02 price drift pós-PO; sh-05 bias em multi-supplier allocation) em commit 1.3."
+			participantType:           "Originadora — requisitante OU comprador submetendo demanda ao agente para emit PO."
+			desiredBehavior:           "Submeter demandas com authorityRef válido derivado de SSC decision pre-existente; usar maverick path (supervisedDecision) apenas em emergências/exceções genuínas."
+			correctOperationIncentive: "Trail audit-defensible (Lei 12.846); gate determinístico evita ambiguidade de approval; escalation path supervised quando authority falta (não silencioso)."
+			manipulationVector:        "Emit POs sem authority canônica via maverick approval (supervisedDecision) sustained — bypass do RECTOR via abuse do escape hatch supervised. OR emit POs sub-threshold em janela curta para evitar SSC decision (fragmentation pattern)."
+			manipulationCost:          "Audit trail captura authorityRef ausente (maverick) ou pattern de POs sub-threshold (fragmentation detection cross-PO via prj-purchase-history-by-category, paralelo a SSC prj-rfq-history). Founder review supervised approvals; OBS drift metrics rastreiam maverick rate sustained."
+			vsBenefit:                 "Benefício de bypass = velocidade (evita SSC ciclo) ou alinhamento com supplier preferido fora do escopo SSC. Custo: Event Log + audit Lei 12.846 torna maverick rate observable; supervisedDecisions concentram pontos de julgamento em humano (founder Phase 0); responsabilidade jurídica (dp-10) sobre operador. Risco residual: maverick approvals sustained se founder aprovar sem escrutínio (controle pre-PMF)."
+			designResponse:            "P10 framing (gate determinístico + supervised exception). Maverick rate como verificationMetric. Fragmentation detection cross-PO Phase 0 (oq-p2p-6). Anti-mini-NIM em capability rationale. lens-incentive-alignment como guardrail cognitivo."
+			rationale:                 "Originadora tem dois caminhos de manipulation (maverick supervised abuse + fragmentation). Design response endurece ambos via observability (rate sustained) + estrutural (fragmentation detection cross-PO)."
+		}, {
+			stakeholderRef:            "sh-02"
+			participantType:           "Fornecedor respondente recebendo PurchaseOrderEmitted; via canal próprio (Phase 1+) acknowledge/reject."
+			desiredBehavior:           "Receber PO + executar conforme scope/amount/terms imutáveis pós-emit; reportar capacidade real para SSC RFQ via canal supplier (não pressionar P2P para renegotiation pós-PO)."
+			correctOperationIncentive: "PO immutable pós-emit = previsibilidade contratual; supplier override-rate sustained dispara SSC drift signal (preferred designation revisita). Confidentialidade cross-supplier (não vê POs concorrentes intra-categoria) preserva estratégia comercial."
+			manipulationVector:        "Pressionar comprador (sh-01) ou agente para renegotiation pós-PO (price drift sustained) explorando dependência operacional. OR coordenar com outros suppliers para inflar cotações em SSC (collusion upstream que P2P só observa via override patterns)."
+			manipulationCost:          "PO immutable pós-emit (P2P aggregate); cancel apenas supervisedDecision Phase 0 com justificativa documentada. supplier-override-rate sustained = drift signal a SSC (manual review pré-PMF; Phase 1+ NIM consume). Collusion upstream é SSC concern (não P2P)."
+			vsBenefit:                 "Benefício de pressure = melhor margin no PO específico. Custo: visibility de override pattern + audit trail; preferred designation pode ser perdida se override-rate sustained. Risco residual: P2P single PO com renegotiation success se agente cede sem audit (mitigated por immutable PO post-emit)."
+			designResponse:            "PO immutability post-emit by design (P2P aggregate lifecycle). Override-rate signal Phase 0 via OBS metrics; Phase 1+ feedback loop formalizado SSC (oq-ssc-3 + oq-p2p-3). Confidentialidade cross-supplier via supplier API design Phase 1+."
+			rationale:                 "Fornecedor tem dois caminhos adversariais (price drift sustained intra-PO + collusion upstream em SSC). Design response endurece intra-PO via immutability + supplier-override-rate signal; collusion upstream é SSC concern."
+		}, {
+			stakeholderRef:            "sh-05"
+			participantType:           "Operador agente — valida authority + emit PO + detect drift/maverick patterns."
+			desiredBehavior:           "Validar authority deterministically; emit PO sob authority válida; cancelar PO supervised quando solicitado; detectar drift/maverick patterns; escalation routing per category. Anti-mini-NIM: NÃO interpretar performance, NÃO computar allocation, NÃO revalidar NPM."
+			correctOperationIncentive: "Gate determinístico = sem ambiguidade de decisão (não julgamento); supervisedDecision para casos fora do envelope; audit trail regulatory-grade reduz blast radius operacional + responsabilidade jurídica (dp-10)."
+			manipulationVector:        "Bias em multi-supplier allocation routing — desvio sistemático da SSC allocationPolicy declarada favorecendo certos suppliers (e.g., sempre routing para supplier A em authority A/B 60/40 ao invés de aggregate convergence). OR emitir POs sem revalidation de cache stale (e.g., authority expirada). OR coalizão sh-01-sh-05: agente emite POs maverick em volume alinhado com sh-01 desejos."
+			manipulationCost:          "sig-allocation-bias detection (P2P prj-allocation-tracking compara emit vs policy); fragmentation detection cross-PO; OBS drift metrics rastreiam authority cache freshness. Coalizão sh-01-sh-05 detectada via correlation founder-approval-rate + maverick-rate sustained (founder review)."
+			vsBenefit:                 "Benefício de bias = simplificação operacional (favorecer supplier conhecido). Custo: detection observable + audit trail + responsabilidade jurídica. Risco residual: viés sutil dentro do envelope autônomo (mitigated por deterministic allocation routing per SSC policy + sig-allocation-bias)."
+			designResponse:            "Anti-mini-NIM em capability rationale (P2P aplica decisão, não decide). Deterministic allocation routing per SSC allocationPolicy (não probabilistic). sig-allocation-bias OBS Phase 0; integration NIM Phase 1+. lens-incentive-alignment guardrail cognitivo durante design review."
+			rationale:                 "Operador agente tem três vetores adversariais (allocation bias + cache stale exploitation + coalizão sh-01). Design response endurece via deterministic routing + observability + anti-mini-NIM enforcement em capability rationale. Risco residual reconhecido (gap cross-BC compartilhado com SSC)."
 		}]
-		rationale: "Placeholder — incentive analysis completo (3 vetores adversariais) entra em commit 1.3."
+		rationale: """
+			3 participants cobrindo originadora (sh-01: maverick +
+			fragmentation), fornecedor (sh-02: price drift + collusion
+			upstream), operador agente (sh-05: bias allocation + cache
+			exploit + coalizão). Design response cross-cutting:
+			P10 framing + audit observability + supervisedDecisions
+			concentram pontos de julgamento em humano + responsabilidade
+			jurídica (dp-10) + lens-incentive-alignment como guardrail.
+			Anti-mini-NIM enforced em capability rationale (P2P aplica,
+			não decide).
+			"""
 	}
 
 	// =============================================
-	// OWNERSHIP — domainAgentSpec real; governanceScope em commit 1.4
+	// OWNERSHIP + GOVERNANCE SCOPE
 	// =============================================
 
 	ownership: {
 		domainAgentSpec: "contexts/p2p/agents/p2p-primary-agent.cue"
-		governanceScope: {}
-		rationale:       "Skeleton commit 1.1 estabelece domainAgentSpec canônico (forward reference — agent-spec será autorado em Phase 4 do bootstrap WI-057). governanceScope completo (autonomousDecisions + supervisedDecisions + escalationCriteria) entra em commit 1.4."
+		governanceScope: {
+			autonomousDecisions: [{
+				id:          "validate-sourcing-authority"
+				description: "Validar authorityRef proposto contra prj-active-purchase-authorities (cache local) com sync fallback a QuerySourcingDecision SSC. Outcome: authority válida (caminho autônomo) OR insufficient/stale (escalation insufficient-context)."
+				rationale:   "Validação determinística sobre signal estruturado (authorityRef + cache + ttl) é função, não julgamento. Pertence ao agente desde que cache + query disponíveis."
+			}, {
+				id:          "match-authority-to-supplier"
+				description: "Verificar que supplierRef proposto está em selectedSuppliers/preferredSuppliers/awardedSuppliers do authority vigente. Outcome: match (continua) OR mismatch (escalation conflicting-signals: supplier fora da decisão)."
+				rationale:   "Verificação estrutural de pertinência é deterministic. Sem match, agente NÃO substitui supplier autonomamente — escala (per anti-mini-NIM)."
+			}, {
+				id:          "emit-po-on-valid-authority"
+				description: "Emit PurchaseOrder + publish PurchaseOrderEmitted quando authority + supplier match. Aggregate lifecycle requested → emitted (terminal hand-off para CMT)."
+				rationale:   "Emit é função sobre input estruturado (authority válida + supplier match + scope/amount). Sem julgamento envolvido."
+			}, {
+				id:          "publish-po-lifecycle-events"
+				description: "Publicar PurchaseOrderEmitted (hard binding CMT) ou PurchaseOrderCancelled (withdrawal/negative signal pré-CMT) após state transition. NTF transversal notifica supplier."
+				rationale:   "Publicação de fatos é append-only. Downstream (CMT) decide como reagir."
+			}, {
+				id:          "enforce-allocation-policy"
+				description: "Para multi-supplier authority com split allocationPolicy, distribuir POs ao longo da janela de validade tal que volume emitido converge para policy declarada. Detecta desvio via prj-allocation-tracking."
+				rationale:   "Aplicação de regra determinística sobre histórico observável é função. Bias detection (sig-allocation-bias) é signal, não decision."
+			}]
+			supervisedDecisions: [{
+				id:          "approve-po-without-sourcing-authority"
+				description: "Aprovar emit de PO em maverick path (sem authority canônica) — emergência, fixed-price low-value, regulatory exception. Justificativa documentada obrigatória."
+				rationale:   "Maverick é exceção real ao RECTOR; gate humano necessário porque julgamento sobre 'esta exceção é genuína' viola escopo aplicador do agente."
+			}, {
+				id:          "cancel-emitted-po"
+				description: "Cancelar PO emitida pré-CMT formalization. Custo reputacional (supplier notificado de cancellation); demanda real foi sinalizada e revertida."
+				rationale:   "Cancelamento tem custo reputacional para supplier; não é operação rotineira. Exige aprovação humana com justificativa."
+			}, {
+				id:          "override-allocation-policy"
+				description: "Aprovar emit de PO que viola allocationPolicy declarada (e.g., emergência para supplier não-preferred). Raro Phase 0."
+				rationale:   "Override de allocation é decisão estratégica (qual supplier prioritize fora da policy) — não pertence ao escopo aplicador do agente."
+			}]
+			escalationCriteria: [{
+				id:        "insufficient-authority"
+				condition: "authorityRef proposto não está em prj-active-purchase-authorities (cache miss) E QuerySourcingDecision sync retorna not-found OR cache+query retornam authority expirada (validUntil < now)."
+				action:    "Escalar para originadora (sh-01) com listagem de authorities ativas para a categoria. PO NÃO emitida automaticamente. Caminho permitido: maverick supervised approval com justificativa OR retornar para SSC para nova decisão."
+				rationale: "Anti-mini-NIM: P2P não infere authority — reconhece ausência e escala. Originadora decide se vai por maverick OU rebooting via SSC."
+			}, {
+				id:        "conflicting-authority"
+				condition: "supplierRef proposto NÃO está em authority.selectedSuppliers (one-shot) / preferredSuppliers (preferred) / awardedSuppliers (strategic). OR authorityRef tem múltiplos supplier candidates conflicting (rare edge case)."
+				action:    "Escalar para originadora com authority + suppliers candidatos. Decisão NÃO emitida automaticamente."
+				rationale: "Mismatch supplier vs authority é decisão julgativa (corrigir supplier OR revisitar authority) — fora do escopo do agente."
+			}, {
+				id:        "suspicious-pattern"
+				condition: "act-detect-fragmentation-pattern (agent-spec P2P) emite anomaly report indicando padrão coordenado: múltiplos POs sub-threshold mesmo proponente OR mesmo supplier cross-categoria em janela curta."
+				action:    "Escalar para founder/originadora com anomaly report. Pausar autonomia para proponente OR supplier afetado até decisão (block scope = ator afetado, não global)."
+				rationale: "Maverick fragmentation é vetor adversarial sh-01 (paralelo a SSC fragmentation). Detection é mecanismo SECUNDÁRIO Phase 0; defesa primária estrutural via cross-BC coordination pendente."
+			}, {
+				id:        "authority-exhausted"
+				condition: "preferred designation expirada (validUntil ≤ now) sem renovação SSC pendente; OR strategic-award authority sem supplier ativo (todos rebaixados em NPM upstream — P2P apenas observa via SSC events ACL, não revalida NPM diretamente per bd-no-supplier-revalidation-by-p2p)."
+				action:    "Escalar para originadora. Pode justificar reboot via SSC (nova decisão) OR maverick supervised approval com justificativa de urgência."
+				rationale: "Authority expirada/exausta = ausência de fonte canônica. P2P não fala 'pool' (pool de fornecedores qualificados é responsabilidade SSC, não P2P) — fala authority. Renomeação intencional reforça bd-no-supplier-revalidation-by-p2p: P2P observa authority válida vs ausente, não revalida pool composition."
+			}, {
+				id:        "regulatory-fiscal-ambiguity"
+				condition: "PO envolve estrutura fiscal/regulatória zona cinza — fornecedor sob sanção during PO lifetime, cross-border supply com regulatório específico, fiscal anomaly em scope/amount."
+				action:    "Escalar para founder com parecer especializado required. PO bloqueada até decisão."
+				rationale: "Integridade legal é constraint inviolável (nível 1 per CLAUDE.md). Zona cinza exige julgamento humano especializado — compliance officer ou category manager designado."
+			}]
+		}
+		rationale: """
+			agt-p2p-primary como operador, referenciado por path
+			canônico (forward reference — agent-spec será autorado em
+			Phase 4 do bootstrap WI-057). 5 autonomousDecisions
+			(validation + match + emit + publish + allocation
+			enforcement), 3 supervisedDecisions (maverick approval +
+			cancel emitted + override allocation), 5 escalationCriteria
+			cobrindo authority issues + supplier mismatch + fragmentation
+			pattern + authority exhaustion (NÃO 'pool exhaustion' — P2P
+			não possui supplier pool; apenas authority válida vs ausente,
+			reforçando bd-no-supplier-revalidation-by-p2p) + regulatory
+			ambiguity. Boundaries refletem anti-mini-NIM principle:
+			agente APLICA decisão SSC determinísticamente; humano
+			(sh-01 OR founder pre-PMF) DECIDE julgamentos (maverick
+			approvals, cancellations, allocation overrides, regulatory
+			edge cases). Match com bd-procurement-requires-sourcing-
+			authority (RECTOR) + bd-no-supplier-revalidation-by-p2p
+			(anti-mini-NIM) + bd-cancellation-pre-formalization-only
+			(Phase 0 boundary).
+			"""
 	}
 
 	// =============================================
