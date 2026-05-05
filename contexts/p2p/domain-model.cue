@@ -234,25 +234,104 @@ domainModel: artifact_schemas.#DomainModel & {
 	}]
 
 	// =============================================
-	// COMMANDS (stub — completados em Parte 2)
+	// COMMANDS (intenções de mudança de estado)
 	// =============================================
 
 	commands: [{
 		code:        "cmd-emit-purchase-order"
 		name:        "EmitPurchaseOrder"
-		description: "Stub minimal — completado em Parte 2 (commands catalog)."
-		rationale:   "Stub para satisfazer #DomainModel.commands min-1. Completado em Parte 2."
+		description: "Solicitação para emitir Pedido de Compra para supplier específico sob authorityRef vigente. Sync. Resultado: agg-purchase-order criado em initialState=requested ('emit attempt recorded' per Patch 1 founder); se inv-purchase-order-requires-valid-authority validation passa, transição requested→emitted + evt-purchase-order-emitted publicado para CMT. Se validation falha, aggregate persiste em requested (audit trail de tentativa) — pode ser cancelado posteriormente via cmd-cancel-purchase-order para limpar."
+		rationale:   "Entry point principal do BC. Aggregate creation: cmd-emit-purchase-order creates agg-purchase-order directly em initialState=requested e tenta transition para emitted via guard inv-purchase-order-requires-valid-authority — schema #Lifecycle não suporta create transition (from: ∅), criação implícita via initialState. Per Patch 1 founder, semântica de requested é 'emit attempt recorded', NÃO 'PO válida aguardando emissão' — validation success transita imediato para emitted no caminho síncrono; validation failure deixa aggregate em requested como audit trail (originadora pode then submeter cmd-cancel-purchase-order ou retentar com authorityRef diferente). Materializa term-authority-validation gate determinístico do glossary."
+		fields: [{
+			kind:        "primitive"
+			name:        "requestedBy"
+			type:        "string"
+			description: "Originadora — área/função que solicita demanda."
+		}, {
+			kind:           "value-object-ref"
+			name:           "supplier"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind:           "value-object-ref"
+			name:           "categoryRef"
+			valueObjectRef: "vo-category-ref"
+		}, {
+			kind:           "value-object-ref"
+			name:           "scope"
+			valueObjectRef: "vo-purchase-scope"
+		}, {
+			kind:           "value-object-ref"
+			name:           "amount"
+			valueObjectRef: "vo-money"
+		}, {
+			kind:        "primitive"
+			name:        "claimedAuthorityRef"
+			type:        "string"
+			description: "AuthorityRef que originadora reivindica como cobertura — sourcingDecisionId apontando para SSC decision (one-shot/preferred/strategic). Validado pelo gate determinístico via prj-active-purchase-authorities + sync fallback QuerySourcingDecision."
+		}, {
+			kind:        "primitive"
+			name:        "requestedAt"
+			type:        "datetime"
+			description: "Timestamp do request — sustenta audit trail de attempt mesmo se validation falhar."
+		}]
+	}, {
+		code:        "cmd-cancel-purchase-order"
+		name:        "CancelPurchaseOrder"
+		description: "Cancelar Pedido de Compra. Sync supervised. Phase 0 cobre 2 cenários: (a) cancelamento de PO emitida pré-CMT formalization (originadora retira demanda; supplier withdraw; scope mismatch detected) — emitted→cancelled + evt-purchase-order-cancelled como withdrawal/negative signal a CMT; (b) cancelamento de attempt recorded em estado requested — requested→cancelled (limpa audit trail de attempt sem progressão para emit). supervisedDecision per bd-cancellation-pre-formalization-only; pós-CMT cancellation é cross-BC oq-p2p-2 deferred."
+		rationale:   "Command de saída do lifecycle. Per Patch 4 founder, lifecycle tem 2 transitions de cancel: requested→cancelled (limpa attempt failed) E emitted→cancelled (withdrawal pre-CMT). Cancel apenas pré-CMT formalization Phase 0 (per bd-cancellation-pre-formalization-only). Materializa term-purchase-order-cancelled do glossary."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "purchaseOrderId"
+			valueObjectRef: "vo-purchase-order-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "reason"
+			valueObjectRef: "vo-cancellation-reason"
+		}, {
+			kind: "primitive"
+			name: "cancelledBy"
+			type: "string"
+		}]
 	}]
 
 	// =============================================
-	// INVARIANTS (stub — completados em Parte 2)
+	// INVARIANTS (regras protegidas)
 	// =============================================
 
 	invariants: [{
 		code:      "inv-purchase-order-requires-valid-authority"
 		name:      "Pedido de Compra Exige Authority Válida"
-		rule:      "Stub minimal — regra completa em Parte 2."
-		rationale: "Stub para satisfazer #DomainModel.invariants min-1. Completado em Parte 2."
+		rule:      "Toda transição requested→emitted (PO progredindo de attempt recorded para PO emitida) EXIGE authorityRef vigente apontando para uma SSC decision válida no momento do emit. Authority válida significa: (a) one-shot-decision (SourcingDecisionMade vigente para o categoryRef + supplier ∈ selectedSuppliers) OR (b) preferred-designation (PreferredSupplierDesignated com validUntil > emittedAt + supplier ∈ preferredSuppliers + categoryRef match) OR (c) strategic-award (StrategicAwardCompleted vigente; Phase 0 advisory binding; supplier ∈ awardedSuppliers + categoryRef match; Phase 1+ requer ContractActivated CTR para hard binding per oq-p2p-1). Sem authority válida, transição NÃO ocorre — aggregate permanece em state requested (attempt recorded). Override = supervisedDecision approve-po-without-sourcing-authority (escalation para gate humano com justificativa documentada)."
+		rationale: "Invariante RECTOR de P2P per bd-emission-requires-sourcing-authority. P10 (gates determinísticos validam, agentes recomendam). Anti-mini-NIM: sem este invariant, P2P viraria 'mini-SSC' decidindo sourcing fora de processo competitivo — viola moat de inteligência da Mesh + integridade de boundary. Materializa term-authority-validation + term-sourcing-authority do glossary. Cross-BC dependency declarada em dependsOnAggregateState per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "ssc"
+			aggregateRef:      "agg-sourcing-process"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QuerySourcingDecision"
+			}
+			rationale: "SSC é single-owner de sourcing decisions (term-sourcing-authority do glossary). P2P consume authority via prj-active-purchase-authorities (cache local derivada de 3 ACL events) com sync fallback via canvas query-surface QuerySourcingDecision quando cache não tem entry para authorityRef reivindicado (cache miss; ACL event ainda não recebido). RECTOR invariant precisa de visibility de SSC state — sem isso, gate fica sem base de comparação para enforcement."
+		}
+	}, {
+		code:      "inv-allocation-convergence-aggregate-level"
+		name:      "Convergência de Allocation em Agregado (Monitoring Obligation)"
+		rule:      "P2P MUST monitor and report sustained drift entre allocationPolicy upstream SSC e volume real emitido por authorityRef + supplier + categoryRef ao longo do validityPeriod (preferred) ou da janela ativa (one-shot/strategic). Drift sustentado (diferença significativa por janela operacional) dispara sig-allocation-drift como signal observável (OBS) para SSC reconsiderar fitness rules. Phase 0 enforcement é monitoring + reporting, NÃO bloqueio individual de PO — POs individuais não são gated por allocation; agregado é tracked via prj-allocation-tracking; drift é reportado, não impedido."
+		rationale: "Invariante de monitoring obligation per bd-allocation-policy-respected-in-aggregate + Patch 3 founder ('volume converge' substituído por 'monitor and report sustained drift' porque enforcement strict é Phase 1+ requer domain-model mechanisms — Phase 0 invariant é observable property, não gate determinístico). Materializa term-allocation-convergence + term-allocation-bias do glossary. P2P observa convergência, NÃO decide allocation — anti-mini-NIM: agente NÃO computa fairness allocation (responsabilidade SSC fitness rules); apenas tracked + signal."
+	}, {
+		code:      "inv-cancellation-pre-formalization-only"
+		name:      "Cancelamento Apenas Pré-CMT Formalization"
+		rule:      "evt-purchase-order-cancelled é emitido APENAS quando: (a) state=requested cancela para limpar attempt failed validation (cmd-cancel-purchase-order de state requested), OR (b) state=emitted cancela ANTES de CMT receber e formalizar CommitmentAccepted (cmd-cancel-purchase-order de state emitted; race condition pós-emit antes de CMT formalization). Cancelamento pós-CMT formalization NÃO é coberto Phase 0 — exige cross-BC coordination cancel-cascade entre P2P + CMT (oq-p2p-2 deferred). Race condition (CMT já formalizou commitment quando PurchaseOrderCancelled chega) é assumed rara Phase 0 (typical CMT formalization latency); reconciliação cross-BC futura tratará."
+		rationale: "Materializa bd-cancellation-pre-formalization-only + term-purchase-order-cancelled do glossary. Define boundary explícita do escopo de cancellation Phase 0 — protege contra creep para cross-BC coordination prematura (Phase 0 escopo Procure only; Pay = pós-CMT é fora deste BC). Race condition é openQuestion oq-p2p-2."
+	}, {
+		code:      "inv-no-supplier-revalidation-by-p2p"
+		name:      "P2P NÃO Revalida Supplier Eligibility (Anti-mini-NIM)"
+		rule:      "P2P NÃO consulta NPM (sem QueryParticipantStatus em P2P operationalScope). P2P NÃO revalida supplier eligibility no momento do emit — confia na validação SSC upstream (que validou no decision time via QueryParticipantStatus per inv-qualification-as-precondition SSC). Janela de risco entre SSC decision e P2P emit é mitigada por SSC re-validation no decision time + (Phase 1+) drift signal feedback loop a SSC. Se supplier rebaixado entre SSC decision e P2P emit, supervisor escala (revoke authority + re-issue OR escalate decisão); P2P emit per authority vigente — NÃO pause-gate na ausência de authority revoke explícita."
+		rationale: "Invariante NEGATIVO de anti-mini-NIM per bd-no-supplier-revalidation-by-p2p (boundary clarification founder Patch 4 canvas). P2P NÃO possui supplier pool — apenas purchase authority; pool é responsabilidade SSC pré-validada upstream (NPM single-owner de qualification per dp-04). Sem este invariant, P2P duplicaria responsabilidade SSC + violaria anti-mini-NIM como invariant transversal da Mesh. Sem dependsOnAggregateState (constraint NEGATIVO — declara ausência de dependency, não presence). Materializa term-fornecedor-qualificado boundary + escalation criterion authority-exhausted (renomeado de pool-exhausted per Patch 4 canvas)."
+	}, {
+		code:      "inv-purchase-order-lifecycle-public-events"
+		name:      "Lifecycle Público de PO via 2 Events"
+		rule:      "Toda PurchaseOrder que percorre fluxo normal (requested → emitted) DEVE emitir PurchaseOrderEmitted. Toda PurchaseOrder cancelada (requested → cancelled OR emitted → cancelled) DEVE emitir PurchaseOrderCancelled. Não há saída do lifecycle sem evento público correspondente. State requested SEM transição para emitted nem para cancelled é attempt recorded persistente (válido per Patch 1 founder) — não é violação do invariant porque lifecycle não 'sai' do state."
+		rationale: "Materializa bd-po-lifecycle-public-events + term-po-lifecycle do glossary. CMT consume PurchaseOrderEmitted como trigger canônico de commitment lifecycle; PurchaseOrderCancelled como sinal de retirada (withdrawal/negative signal). NTF transversal notifica supplier via PO events. OBS observabilidade rastreia emit/cancel rates. Avaliação interna (authority validation, allocation tracking) permanece intra-P2P — confidencialidade competitiva preservada."
 	}]
 
 	// =============================================
