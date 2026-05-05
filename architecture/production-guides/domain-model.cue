@@ -44,9 +44,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // withdrawn), separação de commands create/process/conclude (commands
 // de conclusão também abrindo RFQ e emitindo RFQOpened), propagação
 // de decisões semânticas do canvas para payloads (multi-supplier
-// regredindo de lista para singular contra Q1 do canvas). 1 critério
-// tq-dmg adicionado (tq-dmg-10) + 2 heuristics + 1 finalValidation
-// step.
+// regredindo de lista para singular contra Q1 do canvas). 2 critérios
+// tq-dmg adicionados (tq-dmg-10 fail + tq-dmg-11 fail) + 3 heuristics
+// (rootIdentity discipline, entity-vs-VO with lifecycle, command
+// lifecycle separation) + 2 finalValidation steps + 1 collectFromFounder
+// question + 1 correção em tq-dmg-02 test (commands não derivam
+// causalmente de events; derivam de intenções de mudança de estado).
 
 domainModelGuide: artifact_schemas.#ProductionGuide & {
 
@@ -71,7 +74,7 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 		}, {
 			id:          "tq-dmg-02"
 			description: "Guide enforça behavior-first ordering"
-			test:        "Process da section context-and-behavior-first-catalog declara explicitamente ordem events → commands → invariants → value-objects → aggregates como atividade autoral. Heuristics da section reforça que events emergem de canvas; commands derivam de events. Verificado por inspeção do guide."
+			test:        "Process da section context-and-behavior-first-catalog declara ordem events → commands → invariants → value-objects → aggregates como atividade autoral. Heuristics da section reforça que events são fatos observáveis emergentes do canvas; commands são intenções de mudança de estado que normalmente produzem esses fatos (não derivação causal). Verificado por inspeção do guide."
 			severity:    "fail"
 			rationale:   "Behavior-first é princípio Mesh per schema header (Event Log é SoT, P3). Ordem inversa (aggregates first) tende a produzir aggregates artificiais sem origem em eventos do domínio."
 		}, {
@@ -122,8 +125,14 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 			test:        "Heuristics da section aggregates-and-wiring exige: aggregate cuja existência precede outcome final (processos com lifecycle que pode terminar sem outcome, ex.: cancelamento antes de decisão) declara rootIdentity como identity do processo inicial, não do outcome opcional. Outcome IDs viram fields opcionais do aggregate ou fields de events terminais. Verificado por inspeção do rationale do aggregate."
 			severity:    "fail"
 			rationale:   "Aggregate root identity precisa existir desde t=0. Usar identity de outcome opcional (sourcingDecisionId quando RFQ pode ser cancelada sem decisão) como root quebra fluxos cancelados/rejeitados sem outcome. SSC authoring revelou: rootIdentity inicialmente proposto como sourcingDecisionId precisou ser refatorado para rfqId após founder review detectar que cancellation produces RFQ without decisão."
+		}, {
+			id:          "tq-dmg-11"
+			description: "Guide enforça propagação de decisões semânticas do canvas para o domain-model"
+			test:        "FinalValidation exige mapear businessDecisions + decisões fechadas em red-team (Q1, Q2, etc) do canvas para events/VOs/aggregate fields/projections do domain-model. Regressão para forma mais simples (singular vs lista, scalar vs struct) sem rationale explícito que justifique a divergência falha. Verificado por inspeção da consistência canvas↔domain-model."
+			severity:    "fail"
+			rationale:   "Domain-model é derivado do canvas. Se canvas fecha multi-supplier (lista + allocationPolicy), eligibility binária, lifecycle público ou outro conceito estrutural via businessDecisions ou Q&A red-team, domain-model não pode regredir para singular/simples por conveniência. SSC authoring revelou: primeira proposta de domain-model voltou para selectedSupplier singular contra Q1 do canvas (multi-supplier first-class) — founder review detectou."
 		}]
-		rationale: "10 critérios cobrem disciplinas core para autoria de domain-model: integridade referencial catalog↔aggregates (tq-dmg-01), behavior-first ordering (tq-dmg-02), lifecycle válido (tq-dmg-03), glossary alignment (tq-dmg-04), lifecycle reachability (tq-dmg-05), outcome split em commands (tq-dmg-06), stateless aggregate justification (tq-dmg-07), fields-states consistency (tq-dmg-08), cross-aggregate state dependency declaration (tq-dmg-09), aggregate identity must exist before outcome (tq-dmg-10). Scope é disciplinas que protocol enforce via process; cobertura completa dos 17+ tq-dm-XX do schema vive em finalValidation.steps. Critérios 05-08 derivam de gaps revelados durante authoring de IDC (commit 14063de). Critério 09 deriva de adr-055 (cross-aggregate state dependency first-class). Critério 10 deriva de SSC red-team (commit 7da909a)."
+		rationale: "11 critérios cobrem disciplinas core para autoria de domain-model: integridade referencial catalog↔aggregates (tq-dmg-01), behavior-first ordering (tq-dmg-02), lifecycle válido (tq-dmg-03), glossary alignment (tq-dmg-04), lifecycle reachability (tq-dmg-05), outcome split em commands (tq-dmg-06), stateless aggregate justification (tq-dmg-07), fields-states consistency (tq-dmg-08), cross-aggregate state dependency declaration (tq-dmg-09), aggregate identity must exist before outcome (tq-dmg-10), canvas semantic decision propagation (tq-dmg-11). Scope é disciplinas que protocol enforce via process; cobertura completa dos 17+ tq-dm-XX do schema vive em finalValidation.steps. Critérios 05-08 derivam de gaps revelados durante authoring de IDC (commit 14063de). Critério 09 deriva de adr-055 (cross-aggregate state dependency first-class). Critério 10 deriva de SSC red-team (commit 7da909a). Critério 11 promovido de finalValidation step para criterion após review do PG (mesma sessão SSC bootstrap)."
 	}
 
 	prerequisites: {
@@ -133,6 +142,7 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 			"Confirmação se glossary do BC existe (recomendado mas não obrigatório — domain-model pode preceder glossary em casos onde domain emerge primeiro)",
 			"Quaisquer constraints de fase (ex.: 'em Phase 0 deste BC, modelar apenas aggregates principais; sagas/process managers em fase posterior')",
 			"Heurísticas tácitas que founder usa para distinguir aggregate de entity, value-object de domain-type, etc.",
+			"Quais decisões semânticas do canvas/red-team precisam ser preservadas no payload e nos aggregates (ex.: multi-supplier first-class, allocationPolicy, lifecycle público, eligibility binária)? Lista explícita previne regressão silenciosa para forma mais simples durante authoring (cobre tq-dmg-11).",
 		]
 		gapPolicy:     "Se canvas do BC não estável, NÃO crie domain-model — postergue até canvas convergir. Se glossary não existir, prosseguir mas com caveat: terminologia em events/commands/aggregates pode requerer reconciliação quando glossary for criado (tq-dmg-04 warn). NÃO invente events/commands sem origem em canvas (canvas businessDecisions, communication, capabilities). NÃO copie domain-model de outro BC sem verificar que building blocks são genuinamente os mesmos — homônimos com significado diferente são esperados. Cascade ordering (per CLAUDE.md): domain-model PG é pré-condição para instâncias de #DomainModel; agente verifica este PG existe antes de instanciar. Quando founder não souber distinguir aggregate de entity, ou quando lifecycle não estiver claro: OMITIR (não criar lifecycle) ao invés de inventar — domain-model com lifecycle especulativo é pior que sem lifecycle."
 		validatorNote: "Em Phase 0, founder review é obrigatório. Em Phase 1+ (após WI-069), authoring pode usar dispatch declarativo per authoring-policy.cue rollout production-guide. Quando structural-checks de domain-model existirem (post-WI-068), tq-dm-01/02/03/05/06/07/08/09/10/13 automatizam-se intra-domain-model; tq-dm-04/11/12 dependem de runner cross-file."
@@ -300,7 +310,7 @@ domainModelGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar outcome split em commands published (tq-dmg-06): para cada command que pode produzir outcomes semanticamente distintos cujos events resultantes são published, verificar que events são separados (não payload polimórfico em event único).",
 			"Verificar atomicidade e behavior-first ordering (tq-dmg-02): catalog populado em ordem events→commands→invariants→value-objects antes de aggregates; aggregates wiring derivado, não inventado.",
 			"Verificar cross-canvas alignment (tq-dm-11/12): events 'published' têm correspondência em canvas outbound; commands handled têm correspondência em canvas inbound (warn).",
-			"Verificar propagação de decisões semânticas canvas → domain-model: se canvas declarou multi-supplier (lista + allocationPolicy first-class), eligibility de pool, política de allocation, ou outra decisão semântica fechada via businessDecisions ou Q&A red-team, events/VOs/aggregate fields/projections devem refletir consistentemente — não regredir para singular/simples no domain-model. Mapeamento típico: canvas multi-supplier first-class → SupplierRefList em events + aggregate field + vo-allocation-policy explícita; canvas eligibility binária → vo-status enum + invariant; canvas split policy → vo-allocation-policy. SSC authoring revelou regressão: primeira proposta de domain-model voltou para selectedSupplier singular contra Q1 do canvas (multi-supplier first-class) — founder review detectou.",
+			"Verificar propagação de decisões semânticas canvas → domain-model (tq-dmg-11): se canvas declarou multi-supplier (lista + allocationPolicy first-class), eligibility de pool, política de allocation, ou outra decisão semântica fechada via businessDecisions ou Q&A red-team, events/VOs/aggregate fields/projections devem refletir consistentemente — não regredir para singular/simples no domain-model. Mapeamento típico: canvas multi-supplier first-class → SupplierRefList em events + aggregate field + vo-allocation-policy explícita; canvas eligibility binária → vo-status enum + invariant; canvas split policy → vo-allocation-policy. SSC authoring revelou regressão: primeira proposta de domain-model voltou para selectedSupplier singular contra Q1 do canvas (multi-supplier first-class) — founder review detectou.",
 			"Verificar prefixos e unicidade (tq-dm-13): cada code segue prefix do catálogo; nenhum code duplicado.",
 			"Verificar value-object usage (tq-dm-04 warn): se valueObjects[] presente, cada vo usado em ≥1 aggregate ou entity.",
 			"Verificar glossary alignment (tq-dmg-04 warn): terminologia em event/command/aggregate names alinha com glossary do BC quando glossary existir; divergências registradas como tension ou propostas como upstream update.",
