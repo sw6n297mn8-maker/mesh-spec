@@ -57,6 +57,7 @@ package artifact_schemas
 // sc (structural-check), srr (self-review-report), pg (production-guide),
 // mg (meta-guide), gg (glossary-guide), dmg (domain-model-guide),
 // agg (agent-spec-guide), gvg (agent-governance-guide),
+// tsg (task-spec-guide),
 // oas (openapi-spec), aas (asyncapi-spec), ct (service-contract),
 // aa (adopted-artifacts), rc (readme-config),
 // def (deferred-decision), defg (deferred-decision-guide),
