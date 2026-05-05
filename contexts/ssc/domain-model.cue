@@ -522,20 +522,475 @@ domainModel: artifact_schemas.#DomainModel & {
 	}]
 
 	// =============================================
-	// AGGREGATES (stub — completado em Parte 3)
+	// VALUE OBJECTS (catalog top-level)
+	// =============================================
+
+	valueObjects: [{
+		code:        "vo-sourcing-decision-id"
+		name:        "SourcingDecisionId"
+		description: "Identidade canônica de uma Decisão de Sourcing emitida. Persistente, imutável, referenciada cross-context (P2P validation; CTR formalização; controllers reconciliação). Distinto de RFQId — sourcingDecisionId só existe quando RFQ é concluída com decisão emitida."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Identidade da decisão emitida. Field opcional do aggregate (populated quando status=concluded). Value object por imutabilidade."
+	}, {
+		code:        "vo-rfq-id"
+		name:        "RFQId"
+		description: "Identidade canônica de uma RFQ. Distinta de sourcingDecisionId — RFQ existe desde abertura (status=open) e persiste mesmo se cancelada antes de decisão. É o root identity do agg-sourcing-process."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Root identity do aggregate. RFQ tem identidade própria persistente desde a abertura — sourcingDecisionId só existe quando concluída. Garantia de identidade aggregate-wide independente de outcome (concluded vs cancelled)."
+	}, {
+		code:        "vo-quotation-id"
+		name:        "QuotationId"
+		description: "Identidade canônica de uma cotação submetida — root identity de ent-quotation nested em agg-sourcing-process."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Identity de entity nested. Permite withdrawal por reference + audit trail de quem cotou e retirou."
+	}, {
+		code:        "vo-category-ref"
+		name:        "CategoryRef"
+		description: "Referência a uma Categoria de Compra (taxonomia configurada externamente). Eixo principal de segmentação operacional do BC — fitness rules + KPIs + drift detection segmentados por categoria."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Materializa term-categoria-de-compra. Configuração externa governada — SSC consome ref, não define taxonomia."
+	}, {
+		code:        "vo-supplier-ref"
+		name:        "SupplierRef"
+		description: "Referência a um participante NPM (Fornecedor). Boundary com NPM — SSC consome ref, NPM mantém identidade canônica e qualificação."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		rationale: "Boundary explícita com NPM. Materializa term-fornecedor-qualificado pattern."
+	}, {
+		code:        "vo-decision-type"
+		name:        "DecisionType"
+		description: "Tipo declarado upfront de Decisão de Sourcing — determina binding regime em P2P, consumer downstream (CTR para strategic) e qual command de conclusão é válido."
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		constraints: [
+			"value deve ser um dos: one-shot, preferred-designation, strategic-award",
+		]
+		rationale: "Materializa bd-decision-type-is-declared-upfront + term-decision-type. Discriminator que sustenta inv-decision-type-declared-upfront (mapping para evento correspondente + validation no command de conclusão)."
+	}, {
+		code:        "vo-allocation-policy"
+		name:        "AllocationPolicy"
+		description: "Política de allocation em decisão multi-supplier — declara como fornecedores selecionados dividem volume/responsibility. Single-supplier é caso típico Phase 0 (type=single); split-by-percentage e split-by-criteria são patterns suportados quando categoria justifica."
+		fields: [{
+			kind:        "primitive"
+			name:        "type"
+			type:        "string"
+			description: "single | split-by-percentage | split-by-criteria"
+		}, {
+			kind:        "domain-type"
+			name:        "splitDetails"
+			type:        "AllocationSplitDetails"
+			description: "Estrutura de split — para split-by-percentage: {supplierRef → percentage}; para split-by-criteria: descrição estruturada do critério; para single: vazio."
+		}]
+		constraints: [
+			"type deve ser um dos: single, split-by-percentage, split-by-criteria",
+		]
+		rationale: "Materializa Q1+Q2 do canvas SSC: multi-supplier first-class via lista de selectedSuppliers/preferredSuppliers/awardedSuppliers + allocationPolicy explícita. P2P respeita policy em agregado (não por pedido individual). Phase 0 single é dominante; split é caso real para risk diversification ou capacity matching."
+	}, {
+		code:        "vo-fitness-signals"
+		name:        "FitnessSignals"
+		description: "Estrutura de inputs que SSC consome para aplicar fitness rules. Composição Phase 0: requiredPhase0 (NPM eligibility + RFQ context + RFQ responses) + optionalPhase0 (NIM performance/reputation + CTR existingCommitments). SSC NÃO interpreta — aplica regras."
+		fields: [{
+			kind:        "primitive"
+			name:        "eligibleForSourcing"
+			type:        "boolean"
+			description: "NPM eligibility status."
+		}, {
+			kind:        "domain-type"
+			name:        "qualificationScope"
+			type:        "QualificationScope"
+			description: "NPM qualification por categoria + restrictions + expirationDate (shape em oq-ssc-6)."
+		}, {
+			kind:           "value-object-ref"
+			name:           "rfqContext"
+			valueObjectRef: "vo-rfq-scope"
+		}, {
+			kind:        "domain-type"
+			name:        "rfqResponses"
+			type:        "QuotationRefList"
+			description: "Lista de quotations submetidas (refs a ent-quotation com status=submitted)."
+		}, {
+			kind:        "primitive"
+			name:        "performanceScore"
+			type:        "decimal"
+			description: "Optional Phase 0 — populado pós-NIM bootstrap (oq-ssc-1). Null Phase 0."
+		}, {
+			kind:        "primitive"
+			name:        "existingCommitments"
+			type:        "integer"
+			description: "Optional Phase 0 — populado pós-CTR formalização cross-BC (oq-ssc-7). Null Phase 0."
+		}]
+		rationale: "Materializa term-fitness-signals do glossary. Anti-mini-NIM: struct externa consumida, não computada. Camadas Phase 0 / pós-bootstrap explícitas."
+	}, {
+		code:        "vo-fitness-rule-snapshot"
+		name:        "FitnessRuleSnapshot"
+		description: "Snapshot imutável de fitness rules vigentes no momento da decisão — versionId + content (pesos por critério + thresholds + lógica de equalização TCO). Carregado em cada decision event para audit reproducibility."
+		fields: [{
+			kind: "primitive"
+			name: "versionId"
+			type: "string"
+		}, {
+			kind:        "domain-type"
+			name:        "content"
+			type:        "FitnessRuleContent"
+			description: "Pesos + thresholds + lógica de equalização (shape em oq-ssc-8)."
+		}, {
+			kind: "primitive"
+			name: "appliedAt"
+			type: "datetime"
+		}]
+		rationale: "Sustenta inv-fitness-rules-versioned-config + inv-decision-rationale-required. Sem snapshot versionado, drift de regras invalida histórico de decisões."
+	}, {
+		code:        "vo-decision-rationale"
+		name:        "DecisionRationale"
+		description: "Captura estruturada do rationale de uma Decisão de Sourcing — criteria aplicados, weights vigentes, evaluatedSuppliers (todos cotantes válidos com score por critério), tradeoffs articulados."
+		fields: [{
+			kind: "domain-type"
+			name: "criteria"
+			type: "CriterionList"
+		}, {
+			kind: "domain-type"
+			name: "weights"
+			type: "WeightsByCriterion"
+		}, {
+			kind:        "domain-type"
+			name:        "evaluatedSuppliers"
+			type:        "EvaluatedSupplierList"
+			description: "Lista de vo-evaluated-supplier."
+		}, {
+			kind:        "domain-type"
+			name:        "tradeoffs"
+			type:        "TradeoffList"
+			description: "Lista de vo-tradeoff."
+		}]
+		rationale: "Materializa term-decision-rationale + moat de inteligência. Sustenta inv-decision-rationale-required + auditoria contínua (cap-04 do canvas)."
+	}, {
+		code:        "vo-evaluated-supplier"
+		name:        "EvaluatedSupplier"
+		description: "Avaliação per-supplier dentro de uma Decisão de Sourcing — scores por critério + posição final + observações relevantes."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "supplierRef"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind: "domain-type"
+			name: "scoresPerCriterion"
+			type: "ScoresByCriterion"
+		}, {
+			kind: "primitive"
+			name: "finalRank"
+			type: "integer"
+		}, {
+			kind:        "primitive"
+			name:        "notes"
+			type:        "string"
+			description: "Observações qualitativas (não-decisórias)."
+		}]
+		rationale: "Componente de decisionRationale — sustenta auditoria detalhada."
+	}, {
+		code:        "vo-tradeoff"
+		name:        "Tradeoff"
+		description: "Justificativa estruturada de escolha vs alternativa específica — articula por que decisão preferiu fornecedor X em detrimento de Y em determinado critério."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "preferredSupplier"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind:           "value-object-ref"
+			name:           "alternativeSupplier"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind: "primitive"
+			name: "criterion"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "rationale"
+			type: "string"
+		}]
+		rationale: "Granularidade de tradeoffs sustenta justificabilidade da decisão."
+	}, {
+		code:        "vo-rfq-scope"
+		name:        "RFQScope"
+		description: "Descrição estruturada do escopo de uma RFQ — categoria, descrição do item/serviço, volume estimado, prazo, location relevante."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "categoryRef"
+			valueObjectRef: "vo-category-ref"
+		}, {
+			kind: "primitive"
+			name: "description"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "estimatedVolume"
+			type: "decimal"
+		}, {
+			kind: "primitive"
+			name: "deadline"
+			type: "datetime"
+		}, {
+			kind: "primitive"
+			name: "location"
+			type: "string"
+		}]
+		rationale: "Estruturação do escopo é precondição de RFQ válida."
+	}, {
+		code:        "vo-validity-period"
+		name:        "ValidityPeriod"
+		description: "Janela temporal de validade — usada principalmente em PreferredSupplierDesignated (preferred designation expira passivamente após validUntil)."
+		fields: [{
+			kind: "primitive"
+			name: "validFrom"
+			type: "datetime"
+		}, {
+			kind: "primitive"
+			name: "validUntil"
+			type: "datetime"
+		}]
+		rationale: "Sustenta semantics de preferred designation per glossary."
+	}, {
+		code:        "vo-expected-contract-scope"
+		name:        "ExpectedContractScope"
+		description: "Input indicativo (não vinculante) para CTR formalizar contrato pós-StrategicAward — volume comprometido + prazo + condições indicativas. CTR pode divergir com aprovação supervisada."
+		fields: [{
+			kind: "primitive"
+			name: "committedVolume"
+			type: "decimal"
+		}, {
+			kind: "primitive"
+			name: "contractTermDuration"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "indicativeConditions"
+			type: "string"
+		}]
+		rationale: "Sustenta semantics de strategic-award per glossary."
+	}]
+
+	// =============================================
+	// AGGREGATES (consistency boundaries)
 	// =============================================
 
 	aggregates: [{
 		code:        "agg-sourcing-process"
 		name:        "SourcingProcess"
-		description: "Stub minimal — completado em Parte 3 (aggregate + entity + lifecycle)."
+		description: "Aggregate central de SSC — consistency boundary do processo de sourcing (RFQ + cotações recebidas + decisão emitida atomicamente). RFQ existe desde t=0 (rfqId é root identity); sourcingDecisionId é populated apenas quando RFQ é concluída com decisão. 1 entity nested (ent-quotation) com lifecycle próprio (submitted → withdrawn). Lifecycle do aggregate: open → concluded | cancelled (terminal)."
 		rootIdentity: {
 			field: "rfqId"
 			type: {
-				kind: "primitive"
-				type: "string"
+				kind:           "value-object-ref"
+				valueObjectRef: "vo-rfq-id"
 			}
 		}
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "categoryRef"
+			valueObjectRef: "vo-category-ref"
+		}, {
+			kind:           "value-object-ref"
+			name:           "decisionType"
+			valueObjectRef: "vo-decision-type"
+			description:    "Tipo declarado upfront em cmd-open-rfq — sustenta inv-decision-type-declared-upfront."
+		}, {
+			kind:           "value-object-ref"
+			name:           "scope"
+			valueObjectRef: "vo-rfq-scope"
+		}, {
+			kind:        "primitive"
+			name:        "status"
+			type:        "string"
+			description: "open | concluded | cancelled — discriminator do lifecycle."
+		}, {
+			kind:        "domain-type"
+			name:        "invitedSuppliers"
+			type:        "SupplierRefList"
+			description: "Pool qualificado snapshot na abertura (refs a NPM)."
+		}, {
+			kind:        "primitive"
+			name:        "requestedAt"
+			type:        "datetime"
+			description: "Timestamp do cmd-open-rfq — sustenta audit (requestedAt < rfqOpenedAt)."
+		}, {
+			kind: "primitive"
+			name: "rfqOpenedAt"
+			type: "datetime"
+		}, {
+			kind: "primitive"
+			name: "quotationDeadline"
+			type: "datetime"
+		}, {
+			kind:        "primitive"
+			name:        "concludedAt"
+			type:        "datetime"
+			description: "Presente quando status=concluded."
+		}, {
+			kind:        "primitive"
+			name:        "cancelledAt"
+			type:        "datetime"
+			description: "Presente quando status=cancelled."
+		}, {
+			kind:           "value-object-ref"
+			name:           "sourcingDecisionId"
+			valueObjectRef: "vo-sourcing-decision-id"
+			description:    "Optional — populated apenas quando status=concluded."
+		}, {
+			kind:           "value-object-ref"
+			name:           "validityPeriod"
+			valueObjectRef: "vo-validity-period"
+			description:    "Optional — declarado em cmd-open-rfq quando decisionType=preferred-designation."
+		}, {
+			kind:           "value-object-ref"
+			name:           "expectedContractScope"
+			valueObjectRef: "vo-expected-contract-scope"
+			description:    "Optional — declarado em cmd-open-rfq quando decisionType=strategic-award."
+		}, {
+			kind:           "value-object-ref"
+			name:           "fitnessRuleSnapshot"
+			valueObjectRef: "vo-fitness-rule-snapshot"
+			description:    "Snapshot vigente no decision time — populated quando status=concluded."
+		}, {
+			kind:           "value-object-ref"
+			name:           "decisionRationale"
+			valueObjectRef: "vo-decision-rationale"
+			description:    "Output canônico — populated quando status=concluded."
+		}, {
+			kind:           "value-object-ref"
+			name:           "allocationPolicy"
+			valueObjectRef: "vo-allocation-policy"
+			description:    "Policy de allocation — populated quando status=concluded."
+		}, {
+			kind:        "domain-type"
+			name:        "selectedSuppliers"
+			type:        "SupplierRefList"
+			description: "Selected/preferred/awarded supplier refs depending on decisionType — populated quando status=concluded; semântica neutra entre os 3 tipos de decisão."
+		}]
+
+		entities: [{
+			code:        "ent-quotation"
+			name:        "Quotation"
+			description: "Cotação submetida por fornecedor durante janela de RFQ. Owned exclusivamente por agg-sourcing-process — não existe fora de uma RFQ. Lifecycle: submitted → withdrawn (terminal). Withdrawal opera marcando status, não deletando — preserva audit trail."
+			identity: {
+				field: "quotationId"
+				type: {
+					kind:           "value-object-ref"
+					valueObjectRef: "vo-quotation-id"
+				}
+			}
+			fields: [{
+				kind:           "value-object-ref"
+				name:           "supplierRef"
+				valueObjectRef: "vo-supplier-ref"
+			}, {
+				kind: "primitive"
+				name: "unitPrice"
+				type: "decimal"
+			}, {
+				kind: "primitive"
+				name: "currency"
+				type: "string"
+			}, {
+				kind: "primitive"
+				name: "declaredCapacity"
+				type: "decimal"
+			}, {
+				kind: "primitive"
+				name: "termsNotes"
+				type: "string"
+			}, {
+				kind:        "primitive"
+				name:        "status"
+				type:        "string"
+				description: "submitted | withdrawn"
+			}, {
+				kind: "primitive"
+				name: "submittedAt"
+				type: "datetime"
+			}, {
+				kind:        "primitive"
+				name:        "withdrawnAt"
+				type:        "datetime"
+				description: "Presente quando status=withdrawn."
+			}]
+			rationale: "Entity (não value object) porque tem identidade própria persistente (quotationId) que sobrevive à mudança de status (submitted → withdrawn) e é referenciada em decisionRationale.evaluatedSuppliers + audit trail de withdrawal. Não é aggregate root separado porque sua existência é derivada da RFQ — sem agg-sourcing-process pai, quotation isolada não tem semântica."
+		}]
+
+		lifecycle: {
+			initialState: "open"
+			states: ["open", "concluded", "cancelled"]
+			transitions: [{
+				from:               "open"
+				to:                 "concluded"
+				triggeredByCommand: "cmd-make-one-shot-sourcing-decision"
+				emitsEvents: ["evt-rfq-concluded", "evt-sourcing-decision-made"]
+				guards: [
+					"inv-decision-from-structured-signals",
+					"inv-decision-type-declared-upfront",
+					"inv-qualification-as-precondition",
+					"inv-decision-rationale-required",
+					"inv-competitive-pool-or-supervised-exception",
+					"inv-fitness-rules-versioned-config",
+				]
+				description: "Conclusão de RFQ tipo one-shot — emite SourcingDecisionMade com selectedSuppliers + allocationPolicy + decisionRationale + fitnessRuleSnapshot."
+			}, {
+				from:               "open"
+				to:                 "concluded"
+				triggeredByCommand: "cmd-designate-preferred-supplier"
+				emitsEvents: ["evt-rfq-concluded", "evt-preferred-supplier-designated"]
+				guards: [
+					"inv-decision-from-structured-signals",
+					"inv-decision-type-declared-upfront",
+					"inv-qualification-as-precondition",
+					"inv-decision-rationale-required",
+					"inv-competitive-pool-or-supervised-exception",
+					"inv-fitness-rules-versioned-config",
+				]
+				description: "Conclusão de RFQ tipo preferred-designation — emite PreferredSupplierDesignated com validityPeriod propagado."
+			}, {
+				from:               "open"
+				to:                 "concluded"
+				triggeredByCommand: "cmd-complete-strategic-award"
+				emitsEvents: ["evt-rfq-concluded", "evt-strategic-award-completed"]
+				guards: [
+					"inv-decision-from-structured-signals",
+					"inv-decision-type-declared-upfront",
+					"inv-qualification-as-precondition",
+					"inv-decision-rationale-required",
+					"inv-competitive-pool-or-supervised-exception",
+					"inv-fitness-rules-versioned-config",
+				]
+				description: "Conclusão de RFQ tipo strategic-award — emite StrategicAwardCompleted com expectedContractScope propagado."
+			}, {
+				from:               "open"
+				to:                 "cancelled"
+				triggeredByCommand: "cmd-cancel-rfq"
+				emitsEvents: ["evt-rfq-cancelled"]
+				description:        "Cancelamento de RFQ antes de decisão — supervisedDecision."
+			}]
+		}
+
 		handlesCommands: [
 			"cmd-open-rfq",
 			"cmd-submit-quotation",
@@ -546,6 +1001,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"cmd-cancel-rfq",
 			"cmd-revalidate-rfq-pool",
 		]
+
 		emitsEvents: [
 			"evt-sourcing-decision-made",
 			"evt-preferred-supplier-designated",
@@ -555,6 +1011,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-rfq-cancelled",
 			"evt-network-participant-status-changed-received",
 		]
+
 		protectsInvariants: [
 			"inv-decision-from-structured-signals",
 			"inv-decision-type-declared-upfront",
@@ -564,7 +1021,23 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-competitive-pool-or-supervised-exception",
 			"inv-fitness-rules-versioned-config",
 		]
-		rationale: "Stub para satisfazer #DomainModel.aggregates min-1. rootIdentity primitive temporário (substituído por vo-rfq-id em Parte 3 quando VOs forem catalogados). handlesCommands + emitsEvents + protectsInvariants pré-populados em listas completas porque commands/events/invariants catalogs estão fechados — satisfação tq-dm-01/02/03 exige cada artefato com aggregate de origem. Restante (VOs, entity, lifecycle, fields, descrição completa) em Parte 3."
+
+		usesValueObjects: [
+			"vo-rfq-id",
+			"vo-sourcing-decision-id",
+			"vo-quotation-id",
+			"vo-category-ref",
+			"vo-supplier-ref",
+			"vo-decision-type",
+			"vo-allocation-policy",
+			"vo-fitness-rule-snapshot",
+			"vo-decision-rationale",
+			"vo-rfq-scope",
+			"vo-validity-period",
+			"vo-expected-contract-scope",
+		]
+
+		rationale: "Single aggregate central com root identity = rfqId (RFQ existe desde abertura, persiste mesmo se cancelada antes de decisão). sourcingDecisionId é optional field populated apenas quando concluded — reflete corretamente que cancelamento não produz decisão. Justificativa estrutural (per tq-dmg-07): persiste registry de RFQs ativas + ent-quotation collection (cotações com lifecycle submitted/withdrawn) + decision rationale gerado, sustentando inv-decision-rationale-required + inv-rfq-public-lifecycle-events. Sem essa estrutura persistente, gate determinístico regrediria a snapshot stateless e auditoria não conseguiria reconstituir como decisão foi tomada. Lifecycle simples (open → concluded | cancelled): receiving/evaluating são micro-states intra-open via mutações com cmd-submit-quotation, cmd-withdraw-quotation, cmd-revalidate-rfq-pool — não materializados como lifecycle states (avaliação interna preserva confidencialidade competitiva). Decisão emitida é state terminal; lifecycle pós-emit (preferred validUntil expira passivamente; strategic await CTR) vive em projections, não como state mutável do aggregate. ent-quotation nested per founder review pos-Q3 (Quotation tem identidade + state mutável → entity, não VO). Aggregate creation: cmd-open-rfq creates agg-sourcing-process directly in initialState=open and emits evt-rfq-opened — schema #Lifecycle não suporta transition from: ∅, criação implícita via initialState; ligação cmd-open-rfq → evt-rfq-opened está endurecida aqui (aggregate emitsEvents inclui evt-rfq-opened; cmd-open-rfq aparece em handlesCommands; correspondência semântica documentada em rationale do command + neste rationale). NetworkParticipantStatusChangedReceived listado em emitsEvents per padrão CMT/BDG/IDC: aggregate registra fato no event stream — ACL adapter produz semanticamente o evento traduzido."
 	}]
 
 	rationale: "Domain model SSC scaffold (Parte 1 de 5): events catalog completo (7 events: 3 spine de decisão + 3 lifecycle de RFQ + 1 internal ACL de NPM); stubs mínimos de command/invariant/aggregate satisfazem schema min-1 e serão substituídos nas Partes 2-3. Outer rationale completo finalizado em Parte 4."
