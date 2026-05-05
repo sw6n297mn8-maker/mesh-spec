@@ -10,15 +10,15 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 23 candidatos prontos para claim. 5 candidatos approved bloqueados por
+// 22 candidatos prontos para claim. 5 candidatos approved bloqueados por
 // deps inter-BC ainda em task-approved (não completed): WI-043, 044,
 // 051, 052, 059. WI-040 ainda em task-proposed (aguarda approval).
 // WI-066/067/068/069 admission=defined (task-spec existe, sem work-event).
-// WI-034 task-cancelled (final state). 36 WIs em task-completed
-// (WI-048 BDG bootstrap closed 2026-05-04).
+// WI-034 task-cancelled (final state). 37 WIs em task-completed
+// (WI-060 SSC bootstrap closed 2026-05-05).
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-04T00:00:30Z"
+	rebuiltAt: "2026-05-05T17:20:30Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
@@ -119,12 +119,6 @@ readyQueueProjection: {
 		taskId:        "WI-058"
 		version:       1
 		title:         "Criar artefatos de domínio para Platform & Infrastructure Services (PLT)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-060"
-		version:       1
-		title:         "Criar artefatos de domínio para Strategic Sourcing & Category (SSC)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
