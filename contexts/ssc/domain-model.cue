@@ -488,7 +488,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:      "inv-decision-from-structured-signals"
 		name:      "Decisão Determinística sobre Signals Estruturados"
 		rule:      "Toda decisão emitida (SourcingDecisionMade / PreferredSupplierDesignated / StrategicAwardCompleted) é resultado da aplicação de fitness rules versionadas (vo-fitness-rule-snapshot) sobre fitnessSignals estruturados. SSC NÃO interpreta signals nem infere reputation/performance — consome o que outros BCs (NPM, NIM, CTR) produzem e estrutura o que vem da RFQ."
-		rationale: "Invariante RECTOR de SSC per bd-deterministic-decision-from-structured-signals. P10 (gates determinísticos validam, agentes recomendam). Anti-mini-NIM: sem este invariant, agente vira intérprete de signals — viola integridade do gate. Cross-BC state dependency (tq-dm-17 heuristic): protective enforcement consulta NPM eligibility via QueryParticipantStatus (cross-BC sync) — fornecedor não-eligible em decision time bloqueia emissão. Estrutura formal de dependsOnAggregateState fica como evolução futura quando schema absorver pattern. Materializa term-fitness-signals + term-fitness-rules + term-decision-rationale do glossary."
+		rationale: "Invariante RECTOR de SSC per bd-deterministic-decision-from-structured-signals. P10 (gates determinísticos validam, agentes recomendam). Anti-mini-NIM: sem este invariant, agente vira intérprete de signals — viola integridade do gate. Materializa term-fitness-signals + term-fitness-rules + term-decision-rationale do glossary. Cross-BC dependency declarada em dependsOnAggregateState per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "npm"
+			aggregateRef:      "agg-participant"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QueryParticipantStatus"
+			}
+			rationale: "NPM eligibility é input crítico de decision time — fornecedor não-eligible bloqueia emissão da decisão. SSC consume status binário via QueryParticipantStatus; NPM é single-owner de qualification (dp-04). Sem visibility de NPM state, RECTOR invariant fica sem base de comparação para enforcement."
+		}
 	}, {
 		code:      "inv-decision-type-declared-upfront"
 		name:      "Tipo de Decisão Declarado Upfront"
@@ -498,7 +507,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:      "inv-qualification-as-precondition"
 		name:      "Qualificação NPM como Precondição Absoluta"
 		rule:      "Nenhum fornecedor entra em RFQ sem status eligible-for-sourcing em NPM (consultado via QueryParticipantStatus). Validação obrigatória em 2 momentos críticos: RFQ open (qualificação inicial do pool) e decision time (re-validation antes de emitir decisão). Fornecedor rebaixado entre os pontos é excluído automaticamente."
-		rationale: "Materializa bd-qualification-as-absolute-precondition. SSC NÃO revalida compliance (KYC/AML é responsabilidade NPM); apenas consume status binário. Re-validation no decision time é design response a janela de risco. Cross-BC state dependency (tq-dm-17): NPM aggregate state via QueryParticipantStatus em 2 momentos críticos. Fornecedor pode ser rebaixado em NPM durante RFQ ativa — re-validation detecta. Materializa term-fornecedor-qualificado do glossary."
+		rationale: "Materializa bd-qualification-as-absolute-precondition. SSC NÃO revalida compliance (KYC/AML é responsabilidade NPM); apenas consume status binário. Re-validation no decision time é design response a janela de risco. Materializa term-fornecedor-qualificado do glossary. Cross-BC dependency declarada em dependsOnAggregateState per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "npm"
+			aggregateRef:      "agg-participant"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QueryParticipantStatus"
+			}
+			rationale: "NPM single-owner de qualification status (dp-04). SSC consulta em 2 momentos críticos: RFQ open (qualificação inicial do pool via svc-supplier-pool-builder) e decision time (re-validation pre-emit). Janela entre os pontos é mitigada por re-validation no decision time + pol-revalidate-on-status-changed (defesa secundária via NPM event consumption ACL)."
+		}
 	}, {
 		code:      "inv-decision-rationale-required"
 		name:      "DecisionRationale Obrigatório"
@@ -513,7 +531,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:      "inv-competitive-pool-or-supervised-exception"
 		name:      "Pool Competitivo ou Exceção Supervisionada"
 		rule:      "Decisão emitida AUTOMATICAMENTE exige pool ≥ 2 fornecedores qualificados no decision time. Pool < 2 (incluindo cenário sole-source genuíno: item proprietário, fornecedor único qualificado, urgência operacional) exige supervisedDecision approve-decision-with-insufficient-pool com justificativa documentada — sem bloqueio absoluto, apenas escalation para gate humano."
-		rationale: "Materializa premissa de seleção competitiva sem rigidez universal. Pool < 2 quebra premissa core de RFQ no caso default, mas sole-source é caso real e legítimo em algumas categorias — exige decisão humana com justificativa, não bloqueio. Sustenta as-ssc-1 (pool qualificado viável). Cross-BC state dependency (tq-dm-17): pool size derivado de NPM eligible-for-sourcing population. Sem visibility de NPM state, regra não tem base de comparação. Re-validation pre-decision detecta drift do pool durante RFQ. Materializa escalationCriterion insufficient-qualified-pool do canvas."
+		rationale: "Materializa premissa de seleção competitiva sem rigidez universal. Pool < 2 quebra premissa core de RFQ no caso default, mas sole-source é caso real e legítimo em algumas categorias — exige decisão humana com justificativa, não bloqueio. Sustenta as-ssc-1 (pool qualificado viável). Re-validation pre-decision detecta drift do pool durante RFQ. Materializa escalationCriterion insufficient-qualified-pool do canvas. Cross-BC dependency declarada em dependsOnAggregateState per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "npm"
+			aggregateRef:      "agg-participant"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QueryParticipantStatus"
+			}
+			rationale: "Pool size derivado de NPM eligible-for-sourcing population por categoria. NPM single-owner; SSC consume snapshot via QueryParticipantStatus na construção do pool (via svc-supplier-pool-builder) e re-validation pre-decision. Sem visibility de NPM state, regra de pool ≥ 2 (ou exception) não tem base de comparação para enforcement."
+		}
 	}, {
 		code:      "inv-fitness-rules-versioned-config"
 		name:      "Fitness Rules Versionadas em Config Externa"
@@ -1176,16 +1203,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		(e) prj-rfq-history-by-category é signal SSC-mantido (não input
 		    de fornecedor manipulável) per as-ssc-2.
 
-		Cross-BC state dependencies (tq-dm-17 heuristic): 3 invariants
-		(inv-decision-from-structured-signals, inv-qualification-as-
-		precondition, inv-competitive-pool-or-supervised-exception)
-		consultam NPM aggregate state via QueryParticipantStatus (sync,
-		cross-BC). Phase 0 documenta dependência em prosa por invariant;
-		estrutura formal de dependsOnAggregateState fica como evolução
-		futura quando schema #Invariant absorver pattern como first-class
-		field. Aggregate state interno do agg-sourcing-process +
-		projections são state intra-BC — sem cross-aggregate dependencies
-		além do path NPM cross-BC.
+		Cross-BC state dependencies (tq-dm-17 + tq-dmg-09 per adr-055):
+		3 invariants (inv-decision-from-structured-signals,
+		inv-qualification-as-precondition, inv-competitive-pool-or-
+		supervised-exception) declaram dependsOnAggregateState first-
+		class apontando para NPM agg-participant via canvas query-
+		surface QueryParticipantStatus (kind=sync-query, cross-BC).
+		Granularidade per-invariant per heuristic do PG. Aggregate
+		state interno do agg-sourcing-process + projections são state
+		intra-BC — sem cross-aggregate dependencies além do path NPM
+		cross-BC.
 
 		Lenses aplicadas:
 		- lens-organizational-resource-allocation (primária): aggregate
