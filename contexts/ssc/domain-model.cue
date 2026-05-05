@@ -1040,5 +1040,213 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale: "Single aggregate central com root identity = rfqId (RFQ existe desde abertura, persiste mesmo se cancelada antes de decisão). sourcingDecisionId é optional field populated apenas quando concluded — reflete corretamente que cancelamento não produz decisão. Justificativa estrutural (per tq-dmg-07): persiste registry de RFQs ativas + ent-quotation collection (cotações com lifecycle submitted/withdrawn) + decision rationale gerado, sustentando inv-decision-rationale-required + inv-rfq-public-lifecycle-events. Sem essa estrutura persistente, gate determinístico regrediria a snapshot stateless e auditoria não conseguiria reconstituir como decisão foi tomada. Lifecycle simples (open → concluded | cancelled): receiving/evaluating são micro-states intra-open via mutações com cmd-submit-quotation, cmd-withdraw-quotation, cmd-revalidate-rfq-pool — não materializados como lifecycle states (avaliação interna preserva confidencialidade competitiva). Decisão emitida é state terminal; lifecycle pós-emit (preferred validUntil expira passivamente; strategic await CTR) vive em projections, não como state mutável do aggregate. ent-quotation nested per founder review pos-Q3 (Quotation tem identidade + state mutável → entity, não VO). Aggregate creation: cmd-open-rfq creates agg-sourcing-process directly in initialState=open and emits evt-rfq-opened — schema #Lifecycle não suporta transition from: ∅, criação implícita via initialState; ligação cmd-open-rfq → evt-rfq-opened está endurecida aqui (aggregate emitsEvents inclui evt-rfq-opened; cmd-open-rfq aparece em handlesCommands; correspondência semântica documentada em rationale do command + neste rationale). NetworkParticipantStatusChangedReceived listado em emitsEvents per padrão CMT/BDG/IDC: aggregate registra fato no event stream — ACL adapter produz semanticamente o evento traduzido."
 	}]
 
-	rationale: "Domain model SSC scaffold (Parte 1 de 5): events catalog completo (7 events: 3 spine de decisão + 3 lifecycle de RFQ + 1 internal ACL de NPM); stubs mínimos de command/invariant/aggregate satisfazem schema min-1 e serão substituídos nas Partes 2-3. Outer rationale completo finalizado em Parte 4."
+	// =============================================
+	// POLICIES (event → command)
+	// =============================================
+
+	policies: [{
+		code:             "pol-revalidate-on-status-changed"
+		name:             "Revalidação por Mudança de Status NPM"
+		description:      "Quando NPM publica NetworkParticipantStatusChanged (traduzido como evt-network-participant-status-changed-received via ACL), emite cmd-revalidate-rfq-pool para cada RFQ ativa que tem o participante afetado no pool de convidados."
+		triggeredByEvent: "evt-network-participant-status-changed-received"
+		issuesCommand:    "cmd-revalidate-rfq-pool"
+		rationale:        "Materializa design response a janela de risco entre RFQ open e decision time. Fornecedor rebaixado durante RFQ ativa precisa ser excluído antes da emissão da decisão. Trigger automático via policy é defesa primária; re-validation explícita no decision time é defesa secundária (per inv-qualification-as-precondition)."
+	}]
+
+	// =============================================
+	// PROJECTIONS (read models)
+	// =============================================
+
+	projections: [{
+		code:        "prj-active-sourcing-decisions"
+		name:        "ActiveSourcingDecisionsProjection"
+		description: "Read model que materializa decisões ativas vigentes — one-shot pendentes de execução em P2P, preferred designations vigentes (validUntil futuro), strategic awards aguardando contrato CTR. Consumido por P2P como cache de policies aplicáveis e por controllers para reporting."
+		consumesEvents: [
+			"evt-sourcing-decision-made",
+			"evt-preferred-supplier-designated",
+			"evt-strategic-award-completed",
+		]
+		queryCapabilities: [{
+			code:        "qry-active-sourcing-decisions"
+			description: "Retorna ActiveSourcingDecisions por categoria — lista de decisões vigentes com tipo + selectedSuppliers + allocationPolicy + validade + scope."
+			rationale:   "Canvas query-surface QueryActiveSourcingDecisions. Phase 0 não modela invalidações cross-BC explícitas (cancelamento de contrato CTR não invalida cache automaticamente — oq-ssc-5 deferred); pós-evolução, projection consumirá events de invalidação adicionais."
+		}]
+		rationale: "Per canvas query-surface QueryActiveSourcingDecisions. Projeção mantém estado vigente sintético derivado de events; otimizada para lookup por categoria. Não consome RFQCancelled (decisão cancelada nunca foi emitida — não entra no projection). Latência alvo per eda-projections: <5s para consumers síncronos. Phase 0 evolução: invalidações cross-BC (CTR cancel post-award per oq-ssc-5) entram como event consumers adicionais quando relação for formalizada."
+	}, {
+		code:        "prj-sourcing-decision-by-id"
+		name:        "SourcingDecisionByIdProjection"
+		description: "Read model que materializa decisão de sourcing por sourcingDecisionId — útil para lookup específico (P2P confirmando autoridade de pedido; CTR consultando strategic award para formalização; auditoria reconstituindo decisão histórica)."
+		consumesEvents: [
+			"evt-sourcing-decision-made",
+			"evt-preferred-supplier-designated",
+			"evt-strategic-award-completed",
+		]
+		queryCapabilities: [{
+			code:        "qry-sourcing-decision"
+			description: "Retorna SourcingDecision (3 tipos) por sourcingDecisionId — payload completo incluindo decisionRationale + fitnessRuleSnapshot + selectedSuppliers + allocationPolicy."
+			rationale:   "Canvas query-surface QuerySourcingDecision. Suporta lookup pontual (P2P validation, CTR formalização, audit reconstitution)."
+		}]
+		rationale: "Per canvas query-surface QuerySourcingDecision. Lookup-by-id complementa lookup-by-category (prj-active-sourcing-decisions). Decisões históricas (one-shot já executadas, preferred expiradas, strategic com contratos cancelados) permanecem queriable para auditoria."
+	}, {
+		code:        "prj-rfq-history-by-category"
+		name:        "RFQHistoryByCategoryProjection"
+		description: "Read model interno que mantém histórico agregado por categoria — mediana de preço, variância, distribuição de fornecedores selecionados, frequência de cancelamentos. Signal robusto SSC-mantido (não input do fornecedor manipulável) per as-ssc-2."
+		consumesEvents: [
+			"evt-sourcing-decision-made",
+			"evt-preferred-supplier-designated",
+			"evt-strategic-award-completed",
+			"evt-rfq-cancelled",
+		]
+		queryCapabilities: [{
+			code:        "qry-rfq-history-by-category"
+			description: "Retorna RFQHistoryAggregate por categoria — estatísticas históricas usadas internamente por svc-fitness-rule-evaluator para detecção de cotação fora de range (anti-low-balling design response)."
+			rationale:   "Consumer interno (svc-fitness-rule-evaluator) — não exposto via canvas query-surface. Sustenta as-ssc-2 (RFQ history como signal robusto)."
+		}]
+		rationale: "Sustenta as-ssc-2 (assumption operacional sobre RFQ history estruturável como signal SSC-mantido). Consumido internamente por svc-fitness-rule-evaluator — comparação contra mediana + variância dispara escalation 'suspicious-input' quando cotação está fora de range. Cancelamentos consumidos para detectar padrões anômalos (categoria com taxa alta de cancellation pode indicar scope mal-definido OR pool inadequado)."
+	}]
+
+	// =============================================
+	// DOMAIN SERVICES (operações sem aggregate apropriado)
+	// =============================================
+
+	domainServices: [{
+		code:         "svc-fitness-rule-evaluator"
+		name:         "FitnessRuleEvaluator"
+		description:  "Domain service que aplica fitness rules versionadas sobre fitnessSignals consumidos para produzir output determinístico: decisionRationale + ranking de fornecedores + allocationPolicy recomendada. Inclui equalização TCO específica por categoria. Consultas internas a prj-rfq-history-by-category para detecção estatística de cotação fora de range."
+		orchestrates: ["agg-sourcing-process"]
+		rationale:    "Operação não pertence a um aggregate específico — opera sobre inputs externos (fitness rules + signals) e produz output DETERMINÍSTICO (rationale + ranking + allocation) consumido pelo agg-sourcing-process. Anti-mini-NIM rigorously enforced: scoresPerCriterion em vo-evaluated-supplier são output direto da aplicação de FÓRMULA DECLARADA em vo-fitness-rule-snapshot.content sobre vo-fitness-signals — sem inferência, sem treinamento, sem aprendizado, sem julgamento. Reaplicação dado mesmos inputs (signals + snapshot) produz MESMO output (determinismo testável via property-based test). Tradeoffs em vo-tradeoff são justificativas estruturadas que articulam diferenças quantitativas entre fornecedores (não opiniões qualitativas do agente). Detection de cotação fora de range via prj-rfq-history-by-category é comparação estatística contra histórico próprio (mediana + variância), não classificação preditiva. Materializa term-fitness-rules + term-equalizacao-tco do glossary preservando boundary com NIM (NIM computa reputation/performance; SSC consome eligibility de NPM via signal e aplica regras)."
+	}, {
+		code:         "svc-supplier-pool-builder"
+		name:         "SupplierPoolBuilder"
+		description:  "Domain service que constrói pool qualificado de fornecedores para uma categoria consultando NPM (QueryParticipantStatus) e aplicando filtros de scope (location, capacity range, qualification per category). Output: lista de SupplierRef qualificados que entram em RFQ."
+		orchestrates: ["agg-sourcing-process"]
+		rationale:    "Operação não pertence a um aggregate (constrói input para o aggregate antes da abertura da RFQ via cmd-open-rfq). Materializa boundary com NPM — SSC consume status, não computa qualificação. Sustenta inv-qualification-as-precondition (gate hard binário aplicado na construção do pool)."
+	}]
+
+	rationale: """
+		Domain model do BC Strategic Sourcing & Category modela 1
+		aggregate central (agg-sourcing-process) com 1 entity nested
+		(ent-quotation) cobrindo todo escopo declarado em canvas:
+		processo RFQ (open → receive quotations → conclude) + decisão
+		emitida atomicamente. Root identity = rfqId (RFQ persiste desde
+		abertura mesmo se cancelada); sourcingDecisionId é optional
+		field populated apenas quando concluded.
+
+		8 commands granulares cobrindo lifecycle real de RFQ: cmd-open-
+		rfq (entry com decisionType declarado upfront — cria
+		agg-sourcing-process directly em initialState=open e emite
+		evt-rfq-opened, sem transition from prior state porque schema
+		#Lifecycle não suporta create transition), cmd-submit-quotation
+		+ cmd-withdraw-quotation (mutações intra-open por fornecedores),
+		3 commands de conclusão por tipo (1 por decisionType para validar
+		correspondência), cmd-cancel-rfq (supervisedDecision), cmd-
+		revalidate-rfq-pool (triggered por policy). Cotações têm
+		lifecycle próprio (submitted → withdrawn) preservando audit
+		trail completo.
+
+		Multi-supplier first-class per Q1 do canvas: events carregam
+		selectedSuppliers/preferredSuppliers/awardedSuppliers como
+		SupplierRefList + vo-allocation-policy explícita (single |
+		split-by-percentage | split-by-criteria). Single-supplier é caso
+		típico Phase 0 mas estrutura suporta split (risk diversification,
+		capacity matching). Aggregate field selectedSuppliers tem
+		descrição neutra ('selected/preferred/awarded supplier refs
+		depending on decisionType') — não inclina para nenhum dos 3
+		event types.
+
+		Behavior-first ordering aplicado: events emergem do canvas (3
+		published spine de decisão + 3 published lifecycle de RFQ + 1
+		internal ACL de NPM); commands derivam de canvas inbound + 5
+		commands granulares adicionais (open, submit/withdraw quotation,
+		cancel, revalidate); invariants protegidos derivados dos 7
+		businessDecisions do canvas (1 RECTOR + 6 operacionais);
+		value-objects emergentes dos payloads + glossary terms (15 VOs
+		incluindo identity refs, decision structures, signals, allocation
+		policy, validity, expected contract scope; vo-quotation removido
+		por ser entity, não VO).
+
+		Anti-mini-NIM como invariant transversal materializado em:
+		(a) inv-decision-from-structured-signals (RECTOR);
+		(b) vo-fitness-signals como struct externa consumida (não
+		    computada);
+		(c) vo-fitness-rule-snapshot versionado em config externa;
+		(d) svc-fitness-rule-evaluator aplica fórmula declarada
+		    deterministicamente — sem inferência, treinamento ou
+		    julgamento (testável via property-based test);
+		(e) prj-rfq-history-by-category é signal SSC-mantido (não input
+		    de fornecedor manipulável) per as-ssc-2.
+
+		Cross-BC state dependencies (tq-dm-17 heuristic): 3 invariants
+		(inv-decision-from-structured-signals, inv-qualification-as-
+		precondition, inv-competitive-pool-or-supervised-exception)
+		consultam NPM aggregate state via QueryParticipantStatus (sync,
+		cross-BC). Phase 0 documenta dependência em prosa por invariant;
+		estrutura formal de dependsOnAggregateState fica como evolução
+		futura quando schema #Invariant absorver pattern como first-class
+		field. Aggregate state interno do agg-sourcing-process +
+		projections são state intra-BC — sem cross-aggregate dependencies
+		além do path NPM cross-BC.
+
+		Lenses aplicadas:
+		- lens-organizational-resource-allocation (primária): aggregate
+		  modela alocação de oportunidade de fornecimento entre
+		  fornecedores qualificados sob critérios estruturados
+		  (decisionRationale + fitnessRuleSnapshot capturam o COMO +
+		  POR QUÊ; allocationPolicy modela split semantics).
+		- lens-incentive-alignment (secundária): invariants e fitness
+		  rules versionadas em config governada protegem mecanismo
+		  contra manipulação. inv-decision-from-structured-signals +
+		  inv-fitness-rules-versioned-config + inv-decision-rationale-
+		  required são triplo de defesa estrutural; prj-rfq-history-by-
+		  category é signal robusto para anti-low-balling detection;
+		  inv-competitive-pool-or-supervised-exception preserva
+		  flexibilidade para sole-source genuíno via gate humano.
+		- lens-event-driven-architecture-patterns (secundária): 6 events
+		  published com semântica inequívoca (3 decisão + 3 lifecycle);
+		  3 projections como read models com SLO de latência; 1 policy
+		  choreographs npm-trigger interno; event sourcing implícito do
+		  agregado sustenta auditoria contínua (cap-04 do canvas).
+		- lens-information-economics (terciária): decisionRationale rico
+		  (criteria + weights + evaluatedSuppliers + tradeoffs +
+		  allocationPolicy) é asymmetry resolution capturada — consumers
+		  downstream recebem signal estruturado em vez de inferir.
+
+		Phase 0 caveats:
+		- Quotation submission/withdrawal modelados como commands intra-
+		  state (não events públicos) — audit via ent-quotation lifecycle
+		  + decisionRationale.evaluatedSuppliers. evt-quotation-submitted/
+		  withdrawn não são events Phase 0.
+		- Lifecycle pós-emit (preferred validUntil expira passivamente;
+		  strategic await CTR contract activation) vive em projections,
+		  não como state mutável do aggregate. Cache stale em P2P pós-
+		  cancelamento CTR é openQuestion oq-ssc-5.
+		- Multi-round RFQ (BAFO) é openQuestion oq-ssc-9 — Phase 0
+		  modela apenas single-round (1 cycle de quotation submission).
+		- Cross-BC consumers de signals (NIM em fitnessSignals.
+		  performanceScore; CTR em fitnessSignals.existingCommitments)
+		  permanecem null Phase 0 — formalização cross-BC em oq-ssc-1
+		  + oq-ssc-2 + oq-ssc-7.
+		- Multi-quotation per supplier não suportada Phase 0 (1
+		  fornecedor → 1 quotation; re-submission requer withdraw +
+		  submit).
+
+		Glossary alignment: 19 terms canônicos do glossary (Phase 2)
+		reconciliados com events/commands/aggregates/value-objects/
+		entities. Mapeamentos chave: term-sourcing-decision → vo-
+		sourcing-decision-id + decisão concluded em agg-sourcing-process;
+		term-decision-type → vo-decision-type discriminator;
+		term-fitness-signals → vo-fitness-signals struct;
+		term-fitness-rules → vo-fitness-rule-snapshot + svc-fitness-
+		rule-evaluator; term-decision-rationale → vo-decision-rationale
+		+ inv-decision-rationale-required; term-rfq + 3 lifecycle terms
+		→ 3 events RFQOpened/Concluded/Cancelled + agg-sourcing-process
+		lifecycle; term-fornecedor-qualificado → vo-supplier-ref +
+		svc-supplier-pool-builder + inv-qualification-as-precondition;
+		term-fracionamento → consumido por svc-fitness-rule-evaluator
+		via prj-rfq-history-by-category. Sem divergências terminológicas
+		identificadas. Frase canônica preservada (SSC decide sourcing;
+		CTR formaliza contrato; P2P executa compra) via separação
+		clara de responsabilidades — agg-sourcing-process não emite
+		commands para CTR/P2P (apenas events que outros BCs consomem).
+		"""
 }
