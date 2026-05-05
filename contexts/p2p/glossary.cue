@@ -264,21 +264,214 @@ glossary: artifact_schemas.#Glossary & {
 			"term-originadora-de-demanda",
 			"term-comprador",
 		]
+	}, {
+		code:        "term-maverick"
+		name:        "Maverick"
+		termEn:      "Maverick"
+		definition:  "Anti-pattern de PO: demanda emitida SEM authorityRef canônica pré-validada (one-shot/preferred/strategic) — bypass do RECTOR bd-procurement-requires-sourcing-authority. Phase 0 maverick é blocked no gate determinístico autônomo + escalado como supervisedDecision approve-po-without-sourcing-authority com justificativa documentada (emergência, fixed-price low-value, regulatory exception). Maverick rate sustained é signal de drift sh-01 (manipulation vector)."
+		category:    "classification"
+		rationale:   "Concept anti-pattern crítico para articulating bd-procurement-requires-sourcing-authority RECTOR. Workaround classification: schema #TermCategory enum não tem 'anti-pattern'; uses classification per precedente SSC term-fracionamento. Maverick é vocabulário estabelecido em procurement literature (maverick spend, off-contract spend, rogue purchasing)."
+		synonyms: ["Maverick Spend", "Off-Contract Purchase", "Rogue PO"]
+		antiTerms: [{
+			term:          "Emergency Purchase"
+			clarification: "Emergency é caso legítimo de exceção (supervised approval com justificativa); maverick é spend não-controlado pattern. Distinguishment: emergency tem justificativa documentada + gate humano explícito; maverick é bypass silencioso."
+		}, {
+			term:          "Compra emergencial"
+			clarification: "Compra emergencial (PT-BR equivalente a Emergency Purchase) é caso legítimo via supervisedDecision approve-po-without-sourcing-authority com justificativa documentada (urgência operacional, fornecedor único disponível). Maverick é o pattern abusivo: emit PO sem authority canônica E sem supervised approval (silent bypass do RECTOR)."
+		}, {
+			term:          "Spot Purchase"
+			clarification: "Spot purchase é compra one-time (válida via one-shot decision SSC); maverick é spot WITHOUT one-shot decision authority. Pattern matters."
+		}]
+		rejectedAlternatives: [{
+			term:   "Off-Contract"
+			reason: "'Off-contract' é mais técnico (sugere ausência de strategic-award contract apenas); 'Maverick' captures broader anti-pattern (qualquer authority canônica ausente — one-shot OR preferred OR strategic)."
+		}]
+		relatedTerms: [
+			"term-purchase-order",
+			"term-authority-validation",
+			"term-fragmentation-pattern",
+		]
+	}, {
+		code:        "term-fragmentation-pattern"
+		name:        "Padrão de Fragmentação"
+		termEn:      "Fragmentation Pattern"
+		definition:  "Anti-pattern adversarial: múltiplos POs sub-threshold do mesmo proponente (ou mesmo supplier cross-categoria) em janela curta para evitar SSC decision threshold OU bypass de supervisedDecision approval. Vetor sh-01 manipulation. Detection P2P Phase 0 via prj-purchase-history-by-category local; cross-BC coordination com BDG (oq-bdg-1 análogo) + SSC (paralelo a SSC prj-rfq-history-by-category) pendente Phase 1+ (oq-p2p-6)."
+		category:    "classification"
+		rationale:   "Vetor adversarial sustentando incentiveAnalysis sh-01 designResponse. Workaround classification per precedente SSC + BDG. Cross-BC pattern (existe em SSC RFQ flow, BDG budget approval, P2P PO emission) — uniformity de naming reforça cross-BC coordination quando materializada Phase 1+."
+		synonyms: ["Threshold Gaming", "Splitting Pattern"]
+		antiTerms: [{
+			term:          "Lote de Compras"
+			clarification: "Lote (batch ordering) é prática operacional legítima (efficiency). Fragmentação é pattern coordenado com intent de bypass — distinção via temporal pattern + threshold proximity + repeated proponent."
+		}]
+		rejectedAlternatives: [{
+			term:   "Threshold Avoidance"
+			reason: "Avoidance é mais geral; 'Fragmentation Pattern' captures the specific mechanism (splitting demand into sub-threshold pieces). Plus: paralelo cross-BC (SSC + BDG) usa fragmentation language."
+		}]
+		relatedTerms: [
+			"term-maverick",
+			"term-purchase-order",
+		]
+	}, {
+		code:        "term-allocation-bias"
+		name:        "Viés de Allocation"
+		termEn:      "Allocation Bias"
+		definition:  "Anti-pattern adversarial: desvio sistemático da allocationPolicy SSC declarada pelo agente operador (sh-05 vetor) — favorecer certos suppliers em multi-supplier authority routing além do envelope esperado per policy. Detection via prj-allocation-tracking comparando real distribution vs policy. Phase 0 detection local + sig-allocation-bias OBS metrics; Phase 1+ NIM consumes para cross-BC pattern recognition (oq-p2p-7)."
+		category:    "classification"
+		rationale:   "Vetor adversarial sustentando incentiveAnalysis sh-05 designResponse. Crítico para anti-mini-NIM enforcement: agente operador é stakeholder próprio com incentivos (dp-08); design tem que prever drift potencial em allocation routing autonomous decisions. Workaround classification per precedente."
+		synonyms: ["Routing Bias", "Supplier Favoritism"]
+		antiTerms: [{
+			term:          "Operational Preference"
+			clarification: "Operational preference é justificativa legítima (supplier reliability, location proximity) registrada em decisionRationale upstream. Bias é desvio NÃO-justificado da policy declarada — distinção via audit trail + statistical pattern vs legitimate variability."
+		}]
+		relatedTerms: [
+			"term-allocation-convergence",
+			"term-purchase-order",
+		]
+	}, {
+		code:        "term-renegotiation-pressure"
+		name:        "Pressão de Renegociação"
+		termEn:      "Renegotiation Pressure"
+		definition:  "Anti-pattern adversarial: pressão sustentada de fornecedor (sh-02 vetor) para renegotiation pós-PurchaseOrderEmitted — drift de price/scope/terms explorando dependência operacional (urgência, lock-in, switching cost). PO immutable post-emit by design (P2P aggregate lifecycle); cancel apenas supervisedDecision. Detection via supplier-override-rate sustained + audit trail. Phase 0 manual review; Phase 1+ feedback loop NIM (oq-p2p-3)."
+		category:    "classification"
+		rationale:   "Vetor adversarial sustentando incentiveAnalysis sh-02 designResponse. Articula immutability post-emit como design defense. Distinguishment necessário: legitimate scope change request vs sustained pressure pattern — primeiro usa supervisedDecision cancel + re-emit path; segundo é classification anti-pattern observable via override-rate."
+		synonyms: ["Price Drift Pressure", "Post-Emit Renegotiation"]
+		antiTerms: [{
+			term:          "Scope Adjustment Request"
+			clarification: "Scope adjustment legítimo (e.g., supplier capacity issue, technical change) usa supervisedDecision cancel + re-emit path. Pressure é pattern sustained sem justificativa estrutural — distinção via repeated incidents + supplier-specific pattern."
+		}]
+		relatedTerms: [
+			"term-purchase-order",
+			"term-purchase-order-cancelled",
+		]
+	}, {
+		code:        "term-purchase-order-emitted"
+		name:        "PurchaseOrderEmitted"
+		termEn:      "Purchase Order Emitted"
+		definition:  "Domain event published por P2P quando authority validada + EmitPurchaseOrder approved → PO emitido + state=emitted (terminal hand-off). Hard binding signal operacional para CMT (consumer único Phase 0 — formaliza commitment a partir do PO). Event imutável carrega purchaseOrderId + authorityRef + authorityType + supplier + scope + amount + emittedAt + emittedBy + audit metadata. Phase 0 sem NIM consumer; Phase 1+ pós-NIM bootstrap (oq-p2p-3 paralelo a oq-ssc-2)."
+		category:    "event"
+		rationale:   "Event canônico spine commitment-lifecycle entre P2P e CMT (per p2p-to-cmt context-map relation). Hard binding operational signal: PO emitida triggera path de commitment formalization (CMT consume + initiates lifecycle); 'hard' refere-se ao caráter inevitável do trigger downstream, NÃO a obrigação contratual estabelecida (contrato é responsabilidade CTR para strategic-award; CMT formaliza commitment econômico bilateral). Audit trail authorityRef + authorityType + supplier + scope é evidence regulatory-grade Lei 12.846 procurement."
+		layerMapping: {
+			codeTerm: "PurchaseOrderEmitted"
+		}
+		antiTerms: [{
+			term:          "CommitmentAccepted"
+			clarification: "CommitmentAccepted é responsabilidade CMT (downstream lifecycle). PurchaseOrderEmitted é trigger; CommitmentAccepted é consequence pós-CMT consumption + bilateral aceite."
+		}, {
+			term:          "InvoiceIssued"
+			clarification: "InvoiceIssued é responsabilidade INV (faturamento downstream pós-DLV verification). PurchaseOrderEmitted é upstream event; InvoiceIssued depende de delivery + verification."
+		}]
+		relatedTerms: [
+			"term-purchase-order",
+			"term-po-lifecycle",
+			"term-purchase-order-cancelled",
+		]
+	}, {
+		code:        "term-purchase-order-cancelled"
+		name:        "PurchaseOrderCancelled"
+		termEn:      "Purchase Order Cancelled"
+		definition:  "Domain event published por P2P quando supervisedDecision cancel-emitted-po é approved + state=cancelled (terminal pre-CMT formalization apenas). Withdrawal/negative signal para CMT: PO retirada antes de commitment formalization; CMT cancela path de formalização sem produzir CommitmentAccepted. Race condition pós-formalization (PurchaseOrderEmitted consumed mas Cancelled chegando após CommitmentAccepted) requer cross-BC coordination separada (oq-p2p-2 deferred). Phase 0 cobre apenas pre-CMT cancellation."
+		category:    "event"
+		rationale:   "Event canônico para signal de retirada — paralelo a PurchaseOrderEmitted mas com semantic withdrawal. Articula bd-cancellation-pre-formalization-only Phase 0 boundary. Distinguishment crítico: 'withdrawal/negative signal' (não 'advisory generic'); CMT consume com semantic explícita per Patch 2 founder canvas."
+		layerMapping: {
+			codeTerm: "PurchaseOrderCancelled"
+		}
+		antiTerms: [{
+			term:          "CommitmentCancelled"
+			clarification: "CommitmentCancelled é responsabilidade CMT (lifecycle pós-formalization). PurchaseOrderCancelled é pre-formalization withdrawal; CommitmentCancelled requer commitment já formalizado + cross-BC cancellation flow."
+		}, {
+			term:          "OrderRefused"
+			clarification: "Refusal sugere supplier-side rejection. Cancellation é P2P-side withdrawal (originadora ou agent supervised) antes de supplier acknowledgment."
+		}]
+		relatedTerms: [
+			"term-purchase-order",
+			"term-po-lifecycle",
+			"term-purchase-order-emitted",
+		]
 	}]
 
 	rationale: """
-		Glossário P2P parte 2a (anchor + values + process + roles).
-		9 terms canônicos Phase 0 substantivos: 2 entities (Pedido de
-		Compra unificado + Autoridade de Sourcing) + 2 values (Authority
-		Type discriminator com 3 valores canônicos Phase 0 + Allocation
+		Glossário P2P (Procure-to-Pay) — 15 terms canônicos cobrindo
+		Ubiquitous Language do segundo BC do macrofluxo Mesh (SSC →
+		P2P → CMT). Phase 0 escopo deliberado: porção 'Procure' do
+		nome canônico (PO emission + cancel pre-CMT); pagamento (FCE)
+		e faturamento (INV) são BCs distintos downstream — antiTerms
+		articulam boundary explícita.
+
+		Distribuição: 2 entities (Pedido de Compra + Autoridade de
+		Sourcing) + 2 values (Authority Type discriminator + Allocation
 		Convergence aggregate-level monitoring) + 2 process (Authority
 		Validation gate determinístico + PO Lifecycle 3 states) + 3
-		roles (Originadora absorvendo Comprador + Requisitante).
-		Restantes 6 terms (4 classifications anti-pattern/adversarial
-		+ 2 events) entram em commit 2b. Anti-mini-NIM articulado
-		via antiTerms boundary explícita em cada anchor entity (pool,
-		eligibility, fitness rules, decisão sourcing, pagamento,
-		faturamento — todos não são P2P concerns). Cross-BC vocabulary
-		consistency: term-originadora-de-demanda mirrors SSC.
+		roles (Originadora absorvendo Comprador + Requisitante
+		operacionais) + 4 classifications (Maverick anti-pattern + 3
+		vetores adversariais Fragmentation/Allocation Bias/Renegotiation
+		Pressure) + 2 events (PurchaseOrderEmitted hard binding
+		operational signal + PurchaseOrderCancelled withdrawal/negative
+		signal pre-CMT).
+
+		Anti-mini-NIM enforcement como invariant transversal via
+		antiTerms em cada anchor entity — pool de fornecedores
+		qualificados (SSC concept), NPM eligibility, fitness rules
+		(SSC), decisão de sourcing (SSC), pagamento (FCE), faturamento
+		(INV), commitment lifecycle (CMT), delivery (DLV) — todos NÃO
+		são P2P concerns. Boundary clarification reforçada em
+		term-sourcing-authority (P2P NÃO possui pool — apenas authority
+		válida vs ausente vs expirada) e term-authority-validation
+		(NÃO inclui revalidação de pool composition).
+
+		Cross-BC vocabulary consistency: term-fragmentation-pattern
+		mirrors SSC term-fracionamento + BDG term-fracionamento
+		análogo (paralelo); term-originadora-de-demanda mirrors SSC
+		mesmo conceito; term-maverick é P2P-specific anti-pattern.
+
+		Vocabulary híbrido PT-BR + EN loanword (Purchase Order,
+		Maverick, Allocation Bias, Renegotiation Pressure) seguindo
+		precedente SSC/BDG/IDC — defensável caso a caso em rationale
+		por termo.
+
+		Phase 0 caveats explícitos:
+		- term-sourcing-authority strategic-award type: Phase 0
+		  advisory binding → Phase 1+ hard pós-CTR ContractActivated
+		  (oq-p2p-1)
+		- term-authority-type: 3 valores canônicos Phase 0; enum
+		  formalmente congelado em Phase 3 domain-model
+		- term-allocation-convergence: monitoring Phase 0; enforcement
+		  strict requer domain-model mechanisms Phase 1+
+		- term-purchase-order-cancelled: pre-CMT formalization apenas;
+		  pós-CMT cross-BC coordination (oq-p2p-2)
+		- term-fragmentation-pattern: detection local Phase 0;
+		  cross-BC coordination Phase 1+ (oq-p2p-6)
+		- term-allocation-bias / term-renegotiation-pressure: signal
+		  Phase 0 OBS metrics; Phase 1+ NIM feedback loops (oq-p2p-3
+		  + oq-p2p-7)
+
+		Schema satisfação tq-gl-XX por inspeção: tq-gl-01 (codes
+		únicos: 15 terms com term-* codes distintos) ✓; tq-gl-02
+		(relatedTerms refs intra-glossário válidos) ✓; tq-gl-03
+		(domainModelRefs vazios — Phase 0 sem domain-model P2P
+		ainda; Phase 3 reconcilia) ✓; tq-gl-04 (não aplicável Phase
+		0); tq-gl-05 (definitions distintas de names; sem redundância)
+		✓; tq-gl-06 (antiTerms não repetem term names) ✓; tq-gl-07
+		(boundedContextRef alinha canvas) ✓; tq-gl-08 (sem self-
+		references em relatedTerms) ✓; tq-gl-10 (layerMapping presente
+		em 2 events com codeTerm) ✓; tq-gl-11 (termEn semanticamente
+		adequado — Purchase Order e Maverick loanwords explícitos) ✓.
+
+		5 founder pre-write patches aplicados:
+		- Patch 1: term-authority-type wording '3 valores enum' → '3
+		  valores canônicos Phase 0' (não congelar enum pré-domain-
+		  model)
+		- Patch 2: term-allocation-convergence wording suavizado ('P2P
+		  busca operacionalmente / monitors' não 'enforce')
+		- Patch 3: term-purchase-order-emitted 'hard binding contratual'
+		  → 'hard binding operational signal' (não contrato existente)
+		- Patch 4: term-originadora-de-demanda + synonym 'Área
+		  Demandante'
+		- Patch 5: term-maverick + antiTerm 'Compra emergencial' (PT-BR)
+
+		Materializado em 2 commits incrementais (paralelo a SSC):
+		2a (e3c2d4a + 731e5dd correção schema antiTerm field) — anchor
+		(2) + values (2) + process (2) + roles (3) = 9 terms; 2b (este
+		commit) — classifications (4) + events (2) = 6 terms.
+		Cada commit deixa cue vet ./contexts/p2p/ EXIT=0.
 		"""
 }
