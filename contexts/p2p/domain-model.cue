@@ -684,5 +684,258 @@ domainModel: artifact_schemas.#DomainModel & {
 			"""
 	}]
 
-	rationale: "Domain model P2P scaffold (Parte 1 de 5): events catalog completo (5 events: 2 published de PO lifecycle + 3 internal ACL de SSC); stubs mínimos de command/invariant/aggregate satisfazem schema min-1 e serão substituídos nas Partes 2-3. Outer rationale completo finalizado em Parte 4."
+	// =============================================
+	// PROJECTIONS (read models)
+	// =============================================
+
+	projections: [{
+		code:        "prj-active-purchase-authorities"
+		name:        "ActivePurchaseAuthoritiesProjection"
+		description: "Read model interno que materializa authorities vigentes — derivado de 3 events ACL de SSC (SourcingDecisionMadeReceived + PreferredSupplierDesignatedReceived + StrategicAwardCompletedReceived). Cache local consumido pelo aggregate via authority validation gate (sem sync query a SSC no caminho normal). Materializa term-purchase-authority-cache implícita (não termo separado per glossary refactor)."
+		consumesEvents: [
+			"evt-sourcing-decision-made-received",
+			"evt-preferred-supplier-designated-received",
+			"evt-strategic-award-completed-received",
+		]
+		queryCapabilities: [{
+			code:        "qry-active-purchase-authorities"
+			description: "Retorna authority vigente por authorityRef ou (categoryRef + supplier) — payload incluindo authorityType + selectedSuppliers/preferredSuppliers/awardedSuppliers + allocationPolicy + validityPeriod (preferred) + categoryRef. Consumer interno (gate determinístico authority validation)."
+			rationale:   "Lookup principal do gate determinístico per inv-purchase-order-requires-valid-authority. Cache miss dispara sync fallback QuerySourcingDecision a SSC (canvas query-dependency). Cache stale pós-CTR cancel é openQuestion oq-ssc-5/oq-p2p-2 compartilhada."
+		}]
+		rationale: "Sustenta gate determinístico de authority validation sem latência de sync query no caminho normal. Latência alvo: <5s para consumers síncronos (alinhado eda-projections SLO). Phase 0 evolução: ContractActivated CTR (PHASE 1+ FORWARD-REF per oq-p2p-1) entra como event consumer adicional para bumping authorityType de strategic-award (advisory) → strategic-award-with-active-contract (hard) quando relação ctr-to-p2p for formalizada operacionalmente."
+	}, {
+		code:        "prj-purchase-orders"
+		name:        "PurchaseOrdersProjection"
+		description: "Read model que materializa POs (todas, todos states) consumidos por canvas query-surfaces QueryActivePurchaseOrders + QueryPurchaseOrderById. Source-of-record canônico para controllers (reporting), supervisores (visibility), CMT (cross-check pré-formalização), CTR (cross-check para strategic award), DRC futuro (dispute context)."
+		consumesEvents: [
+			"evt-purchase-order-emitted",
+			"evt-purchase-order-cancelled",
+		]
+		queryCapabilities: [{
+			code:        "qry-active-purchase-orders"
+			description: "Retorna ActivePurchaseOrders (state=emitted) por categoryRef OR supplierRef OR requesterRef — lista com authority + status + emittedAt + cancellation status. Filtros suportados: categoria, supplier, requester."
+			rationale:   "Canvas query-surface QueryActivePurchaseOrders. Suporta lookup por dimension operacional (controller filtra por categoria; supervisor por requester; CMT por supplier para cross-check)."
+		}, {
+			code:        "qry-purchase-order-by-id"
+			description: "Retorna PurchaseOrder completa por purchaseOrderId — payload incluindo authorityRef + authorityType + supplier + scope + amount + audit metadata + cancellation status + reason."
+			rationale:   "Canvas query-surface QueryPurchaseOrderById. Suporta lookup pontual (CMT formalization input; CTR cross-check; audit reconstitution histórica). POs históricas (cancelled, formalized via CMT) permanecem queriable para auditoria."
+		}]
+		rationale: "Per canvas query-surfaces QueryActivePurchaseOrders + QueryPurchaseOrderById. POs em state=requested (attempts persistentes failed validation) NÃO entram em qry-active-purchase-orders (filtro state=emitted) — visibility de attempts é via projection separada se demanda emergir Phase 1+ (oq-p2p-attempts-visibility deferred futuro). Phase 0: attempts ficam apenas no aggregate event stream local; não expostos cross-context."
+	}, {
+		code:        "prj-allocation-tracking"
+		name:        "AllocationTrackingProjection"
+		description: "Read model interno que mantém volume agregado emitido por authorityRef + supplier + categoryRef ao longo de janela ativa (validityPeriod para preferred; janela operacional para one-shot/strategic). Source-of-record para inv-allocation-convergence-aggregate-level monitoring obligation + sig-allocation-drift signal."
+		consumesEvents: [
+			"evt-purchase-order-emitted",
+		]
+		queryCapabilities: [{
+			code:        "qry-allocation-tracking-by-authority"
+			description: "Retorna AllocationStatus por authorityRef — total volume emitido por supplier vs allocationPolicy declarada (split-by-percentage tracking). Drift sustentado dispara sig-allocation-drift signal a SSC (OBS observability)."
+			rationale:   "Consumer interno do agente P2P (drift detection cross-PO) + signal feed a SSC fitness rules reconsideração. Phase 0 monitoring + reporting (não enforcement); Phase 1+ pode evoluir para hard gate se feedback loop estabilizar (oq-p2p-3 + oq-ssc-3 bridge)."
+		}]
+		rationale: "Sustenta inv-allocation-convergence-aggregate-level monitoring obligation per Patch 3 founder ('P2P MUST monitor and report sustained drift', NÃO 'volume converge' enforcement). Materializa term-allocation-convergence + term-allocation-bias do glossary. P2P observa convergência, NÃO decide allocation — anti-mini-NIM: agente NÃO computa fairness allocation (responsabilidade SSC fitness rules); apenas tracked + signal. Cancellations NÃO consumidas (Phase 0): cancelled POs já não foram entregues; volume real entregue é tracked downstream em CMT/DLV; Phase 0 P2P projection trackeia apenas emitted volumes como proxy operacional."
+	}, {
+		code:        "prj-purchase-history-by-category"
+		name:        "PurchaseHistoryByCategoryProjection"
+		description: "Read model interno que mantém histórico agregado de POs por categoria — frequência de cancelamentos, distribuição de suppliers, padrões de emit por requester. Sustenta term-fragmentation-pattern detection (POs sub-threshold artificialmente fragmentadas para evitar gates de aprovação SSC)."
+		consumesEvents: [
+			"evt-purchase-order-emitted",
+			"evt-purchase-order-cancelled",
+		]
+		queryCapabilities: [{
+			code:        "qry-purchase-history-by-category"
+			description: "Retorna PurchaseHistoryAggregate por categoria — estatísticas históricas (volume médio por PO; frequência por requester; cancellation rate; supplier diversity). Consumer interno P2P para fragmentation pattern detection (sh-01 vetor adversarial)."
+			rationale:   "Consumer interno do agente P2P — comparação contra padrões esperados detecta fragmentation (sub-threshold splitting). Sustenta sh-01 designResponse + escalation 'fragmentation-pattern-detected' do canvas."
+		}]
+		rationale: "Sustenta as-p2p-2 (PO history como signal robusto) + term-fragmentation-pattern detection. Cancellations consumidas para detectar padrões anômalos (categoria com taxa alta de cancellation pode indicar scope mal-definido OR maverick masking via cancel/re-emit). Phase 0 detection local; cross-BC coordination (oq-p2p-6) deferida Phase 1+ quando NIM aggregation suportar pattern correlation cross-context."
+	}]
+
+	rationale: """
+		Domain model do BC Procure-to-Pay modela 1 aggregate central
+		(agg-purchase-order) cobrindo todo escopo declarado em canvas
+		Phase 0 (Procure execution NÃO Pay; pagamento é FCE; faturamento
+		é INV per Adj 1 founder canvas). Root identity = purchaseOrderId
+		(PO existe desde criação em state=requested 'emit attempt
+		recorded' per Patch 1 founder; supplier + emittedAt populated
+		apenas quando state=emitted).
+
+		2 commands granulares cobrindo lifecycle: cmd-emit-purchase-order
+		(entry com aggregate creation directly em initialState=requested
+		e tentativa de transition para emitted via guard authority
+		validation), cmd-cancel-purchase-order (cancel supervised pré-
+		CMT formalization; 2 cenários — cleanup de attempt failed em
+		state requested OR withdrawal de PO emitida pré-CMT).
+
+		Multi-supplier first-class via authorityRef discriminator per
+		Q1 canvas: agg-purchase-order tem 1 supplier por instância;
+		multi-supplier semantics vive em allocationPolicy upstream SSC
+		(P2P respeita em agregado via prj-allocation-tracking + inv-
+		allocation-convergence-aggregate-level monitoring obligation).
+		PurchaseOrder é conceito ÚNICO — discriminação via authorityType
+		(one-shot-decision | preferred-designation | strategic-award)
+		NÃO via 3 schemas paralelos.
+
+		Behavior-first ordering aplicado: events emergem do canvas (2
+		published de PO lifecycle + 3 internal ACL de SSC); commands
+		derivam de canvas inbound (EmitPurchaseOrder + CancelPurchaseOrder);
+		invariants protegidos derivados dos 6 businessDecisions do
+		canvas (1 RECTOR + 5 operacionais incluindo 1 NEGATIVO);
+		value-objects emergentes dos payloads + glossary terms (8 VOs
+		incluindo identity + authority discriminator + scope + money +
+		cancellation reason).
+
+		Anti-mini-NIM como invariant transversal materializado em 5
+		layers (paralelo a SSC):
+		(a) inv-purchase-order-requires-valid-authority (RECTOR — gate
+		    determinístico autoridade pré-validada);
+		(b) inv-no-supplier-revalidation-by-p2p (NEGATIVO — P2P NÃO
+		    possui supplier pool, apenas purchase authority per Patch
+		    4 founder canvas; sem QueryParticipantStatus em
+		    operationalScope);
+		(c) inv-allocation-convergence-aggregate-level (monitoring
+		    obligation Phase 0 — observable property + signal a SSC,
+		    NÃO enforcement strict per Patch 3 founder);
+		(d) capability rationale + sh-05 designResponse (allocation
+		    bias via tracking aggregate-level);
+		(e) escalation routing (insufficient/conflicting/expired/
+		    exhausted authority — TODOS supervisedDecision escalation
+		    para gate humano).
+
+		Cross-BC state dependencies (tq-dm-17 + tq-dmg-09 per adr-055):
+		1 invariant (inv-purchase-order-requires-valid-authority) declara
+		dependsOnAggregateState first-class apontando para SSC agg-
+		sourcing-process via canvas query-surface QuerySourcingDecision
+		(kind=sync-query, cross-BC). Granularidade per-invariant per
+		heuristic do PG. Aggregate state interno do agg-purchase-order
+		+ projections são state intra-BC — sem cross-aggregate dependencies
+		além do path SSC cross-BC.
+
+		Lifecycle 3 states com 3 transitions per Patch 4 founder:
+		- requested → emitted (validation passa)
+		- requested → cancelled (cleanup de attempt failed validation
+		  persistente — necessário porque Patch 1 mantém attempt
+		  persistente; sem este path, requested seria dead-end)
+		- emitted → cancelled (withdrawal pre-CMT)
+
+		Aggregate creation: cmd-emit-purchase-order creates aggregate
+		directly em initialState=requested e TENTA transition para
+		emitted via guards — schema #Lifecycle não suporta create
+		transition (from: ∅), criação implícita via initialState. Per
+		Patch 1 founder semântica, requested é 'emit attempt recorded'
+		(NÃO 'PO válida aguardando emissão'): validation success transita
+		imediato para emitted; validation failure deixa aggregate
+		persistente em requested como audit trail.
+
+		emitsEvents incluem 5 events: 2 published de PO lifecycle
+		(PurchaseOrderEmitted hard binding operational signal a CMT +
+		PurchaseOrderCancelled withdrawal/negative signal pre-CMT) + 3
+		internal ACL de SSC (-received). Per Patch 2 founder, os 3 ACL
+		events são emitted/recorded in local event stream, not originated
+		by aggregate decision — paralelo a CMT/BDG/IDC/SSC pattern:
+		aggregate registra fato no event stream local; ACL adapter
+		produz semanticamente o evento traduzido. Naming 'emitsEvents'
+		fica semanticamente torto para os ACL events mas convenção
+		estabelecida é mantida — distinção semântica capturada via
+		visibility=internal + sourceContext=ssc fields.
+
+		4 projections como read models:
+		- prj-active-purchase-authorities (cache de 3 ACL events;
+		  sustenta gate determinístico de authority validation sem
+		  latência de sync query no caminho normal)
+		- prj-purchase-orders (canvas query-surfaces QueryActive
+		  PurchaseOrders + QueryPurchaseOrderById; source-of-record
+		  para CMT/CTR/DRC cross-check)
+		- prj-allocation-tracking (sustenta inv-allocation-convergence-
+		  aggregate-level monitoring obligation; sig-allocation-drift
+		  signal a SSC)
+		- prj-purchase-history-by-category (term-fragmentation-pattern
+		  detection — sh-01 vetor adversarial; cross-BC coordination
+		  oq-p2p-6 Phase 1+ deferred)
+
+		0 policies + 0 domain services Phase 0 — escopo Procure-only
+		é simples (1 aggregate central; 2 commands; emit/cancel
+		operations atômicas). Policy event→command poderia emergir
+		Phase 1+ se ContractActivated CTR consumer materializar
+		(automate authorityType bumping advisory→hard); Phase 0 é
+		commit point de cache update (manual por agent).
+
+		Lenses aplicadas:
+		- lens-organizational-resource-allocation (primária): aggregate
+		  modela alocação de POs sob authority pré-validada SSC;
+		  allocationPolicy upstream respeitada em agregado via
+		  prj-allocation-tracking + inv-allocation-convergence
+		  monitoring; multi-supplier first-class preservado via
+		  authorityRef discriminator.
+		- lens-incentive-alignment (secundária): invariants e gate
+		  determinístico de authority protegem contra 3 vetores
+		  adversariais — sh-01 fragmentation (prj-purchase-history-
+		  by-category detection) + sh-02 renegotiation (PO immutability
+		  pós-emit) + sh-05 allocation bias (prj-allocation-tracking
+		  + sig-allocation-drift signal). Anti-mini-NIM como invariant
+		  transversal protege P2P de virar 'mini-SSC'.
+		- lens-event-driven-architecture-patterns (secundária): 2
+		  events published com semântica inequívoca (PO lifecycle); 3
+		  internal ACL de SSC traduzidos via convenção -received; 4
+		  projections como read models com SLO de latência <5s; sem
+		  policies Phase 0 (escopo simples).
+		- lens-information-economics (terciária): authorityRef
+		  preserving link to sourcing decision rationale rich (SSC
+		  decisionRationale acessível via QuerySourcingDecision);
+		  PO data como signal NIM intelligence learning loop bridge
+		  Phase 1+ (paralelo a oq-ssc-2). Phase 0: NIM consumer pendente.
+
+		Phase 0 caveats:
+		- PurchaseOrderCancelled cobre apenas pre-CMT formalization
+		  withdrawal (pós-CMT cancellation requer cross-BC coordination
+		  cancel-cascade entre P2P + CMT — oq-p2p-2 deferred).
+		- CTR ContractActivated PHASE 1+ FORWARD-REF (oq-p2p-1) NÃO
+		  incluído como event-consumer Phase 0; ctr-to-p2p relation
+		  no context-map materializa apenas Phase 1+ pós oq-p2p-1.
+		- Strategic-award authorityType Phase 0 advisory binding;
+		  hard binding ativa apenas pós-CTR ContractActivated Phase
+		  1+ per oq-p2p-1.
+		- Supplier API (acceptance/rejection by supplier) Phase 1+
+		  per oq-p2p-4; Phase 0 modela apenas notification (NTF
+		  transversal) sem aceite/rejeição.
+		- inv-allocation-convergence-aggregate-level Phase 0 é
+		  monitoring obligation (observable + signal); enforcement
+		  strict requer domain-model mechanisms Phase 1+ (oq-p2p-3
+		  + oq-ssc-3 bridge).
+		- prj-purchase-history-by-category fragmentation detection
+		  é local Phase 0; cross-BC coordination cross-context
+		  pattern correlation Phase 1+ via NIM aggregation (oq-p2p-6
+		  deferred).
+		- Attempts persistentes (state=requested failed validation)
+		  visibility cross-context é via projection separada se
+		  demanda emergir Phase 1+ (não exposta em prj-purchase-orders
+		  Phase 0 por filtro state=emitted).
+
+		Glossary alignment: 15 terms canônicos do glossary (Phase 2)
+		reconciliados com events/commands/aggregates/value-objects.
+		Mapeamentos chave: term-purchase-order → vo-purchase-order-id
+		+ agg-purchase-order; term-sourcing-authority → vo-authority-
+		ref + inv-purchase-order-requires-valid-authority; term-
+		authority-type → vo-authority-type discriminator; term-
+		authority-validation → gate determinístico via prj-active-
+		purchase-authorities + sync fallback QuerySourcingDecision;
+		term-allocation-convergence → inv-allocation-convergence-
+		aggregate-level + prj-allocation-tracking; term-po-lifecycle
+		→ agg-purchase-order lifecycle 3 states; term-purchase-order-
+		emitted/cancelled → 2 events published; term-maverick → gate
+		determinístico bloqueio + escalation supervisedDecision; term-
+		fragmentation-pattern → prj-purchase-history-by-category +
+		sh-01 designResponse; term-allocation-bias → inv-allocation-
+		convergence + sig-allocation-drift + prj-allocation-tracking;
+		term-renegotiation-pressure → PO immutability pós-emit
+		(authorityRef + amount + scope + supplier imutáveis); term-
+		originadora-de-demanda → cmd-emit-purchase-order.requestedBy
+		+ aggregate.requestedBy; term-fornecedor-qualificado →
+		boundary explícita via inv-no-supplier-revalidation-by-p2p
+		(P2P NÃO revalida — confia em SSC validação upstream). Sem
+		divergências terminológicas identificadas. Frase canônica
+		preservada (SSC decide sourcing; P2P emite pedido sob
+		authority; CMT formaliza compromisso) via separação clara
+		de responsabilidades — agg-purchase-order não emite commands
+		para SSC/CMT (apenas events que outros BCs consomem).
+		"""
 }
