@@ -123,13 +123,24 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// CAPABILITIES — placeholder; conteúdo em commit 1.2
+	// CAPABILITIES (4)
 	// =============================================
 
 	capabilities: {
 		operational: [{
-			description: "Placeholder — capabilities operacionais (4 entries) entram em commit 1.2."
-			rationale:   "Skeleton commit 1.1 estabelece shape; conteúdo substantivo (cap-01 sourcing-authority validation + cap-02 PO lifecycle + cap-03 audit Lei 12.846 + cap-04 24/7 via authority gate) entra em commit 1.2."
+			capabilityRef: "cc-04"
+			description:   "Auditoria contínua e regulatory-grade de POs emitidos: cada PO carrega authorityRef + authorityType + supplier + scope + amount imutáveis pós-emit; rationale completo (qual SSC decision/preferred/strategic embasou a authority) anexado; trail satisfaz Lei 12.846 procurement audit (5 anos retention)."
+			rationale:     "PO sem audit trail de authority é decoração — Lei 12.846 exige justificabilidade do processo competitivo. Capability matches cap-04 do domain-definition (audit contínuo); P2P-specific aspect: authorityRef preserva ligação com decisão SSC + (Phase 1+) contract CTR."
+		}, {
+			capabilityRef: "cc-03"
+			description:   "Operação 24/7 via gate determinístico de authority: emit PO requer apenas QuerySourcingDecision sync (cache projection local) + (strategic Phase 1+) QueryContractStatus sync; sem janelas de aprovação humana no caminho normal. Gate é função numérica (authority válida sim/não), não julgamento."
+			rationale:     "Capability matches cc-03 do domain-definition (24/7 disponibilidade); P2P-specific aspect: authority gate é deterministic (sim/não), não exige reasoning. Maverick exception é supervisedDecision separado."
+		}, {
+			description: "PO lifecycle público mínimo via 2 events pareados (PurchaseOrderEmitted + PurchaseOrderCancelled) consumed por CMT como sinal canônico de demanda formalizada/retirada; preserva confidencialidade competitiva (cotações + comparações vivem em SSC, não em P2P)."
+			rationale:   "Sem capability própria de domain-definition — emerge da análise dos businessDecisions: lifecycle público mínimo (2 events) é decisão estrutural, não capability transversal. Complemento aos 3 events SSC (RFQOpened/Concluded/Cancelled) que cobrem fase decision; P2P events cobrem fase execution."
+		}, {
+			description: "Authority validation determinística pré-emit consultando cache local (prj-active-purchase-authorities derivada de 3 SSC events ACL) + sync fallback (QuerySourcingDecision); maverick (PO sem authority) bloqueado no gate, escalado como supervisedDecision approve-po-without-sourcing-authority."
+			rationale:   "Sem capability própria de domain-definition — capability core do P2P. Sustenta bd-procurement-requires-sourcing-authority (RECTOR) operacionalmente: gate determinístico (não inferência) garante que demanda sem authority canônica não vira PO autonomamente."
 		}]
 		hasSyncSurface:  true
 		hasAsyncSurface: true
