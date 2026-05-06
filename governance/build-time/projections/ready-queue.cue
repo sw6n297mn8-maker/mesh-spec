@@ -10,15 +10,16 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 22 candidatos prontos para claim. 5 candidatos approved bloqueados por
+// 21 candidatos prontos para claim. 5 candidatos approved bloqueados por
 // deps inter-BC ainda em task-approved (não completed): WI-043, 044,
 // 051, 052, 059. WI-040 ainda em task-proposed (aguarda approval).
 // WI-066/067/068/069 admission=defined (task-spec existe, sem work-event).
-// WI-034 task-cancelled (final state). 37 WIs em task-completed
-// (WI-060 SSC bootstrap closed 2026-05-05).
+// WI-034 task-cancelled (final state). 38 WIs em task-completed
+// (WI-060 SSC bootstrap closed 2026-05-05; WI-057 P2P bootstrap closed
+// 2026-05-06 com schema hardening adr-076 incluído).
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-05T17:20:30Z"
+	rebuiltAt: "2026-05-06T12:35:00Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
@@ -107,12 +108,6 @@ readyQueueProjection: {
 		taskId:        "WI-056"
 		version:       1
 		title:         "Criar artefatos de domínio para Observability & Operational Intelligence (OBS)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-057"
-		version:       1
-		title:         "Criar artefatos de domínio para Procure-to-Pay (P2P)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
