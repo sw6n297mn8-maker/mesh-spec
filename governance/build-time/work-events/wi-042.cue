@@ -24,6 +24,13 @@ streams: {
 			timestamp:      "2026-05-06T13:00:00Z"
 			actor:          "spec-writer"
 			claimExpiresAt: "2026-05-07T13:00:00Z"
+		}, {
+			eventType:   "task-completed"
+			taskId:      "WI-042"
+			taskVersion: 1
+			commandId:   "WI-042-complete-dlv-bootstrap"
+			timestamp:   "2026-05-06T19:00:00Z"
+			actor:       "spec-writer"
 		}]
 	}
 }
