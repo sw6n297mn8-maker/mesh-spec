@@ -533,59 +533,206 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-verification-state",
 			"vo-exception-entry",
 		]
-		// entities + lifecycle adicionados em Part 2
+		fields: [
+			{kind: "value-object-ref", name: "state", valueObjectRef: "vo-verification-state"},
+			{kind: "primitive", name: "pendingCriteria", type: "boolean", description: "DERIVED per micro-ajuste (a): true se criteriaVersion attribute absent (await CriteriaActivated event Phase 1+ OR sync resolution Phase 0); false se criteria active. NÃO bool arbitrário — projeção determinística da ausência de criteriaVersion. Vivo enquanto state=evaluating; transicionado pelo runtime quando criteriaVersion é populado."},
+			{kind: "primitive", name: "finalityReached", type: "boolean", description: "Flag estrutural per micro-ajuste (c): false durante Janela de Finalidade Econômica (≤ 30d pós decidedAt); true quando window expira. Substitui 'now > finalityAt' runtime que CUE não pode codar (NÃO conhece tempo atual). Transição driven por timer event reconstrução determinística per BD3; replay-safe."},
+			{kind: "value-object-ref", name: "outcome", valueObjectRef: "vo-decision-outcome", description: "Presente APENAS em state terminal (verified | rejected) per inv-binary-outcome. Discriminated union runtime: ausente em state evaluating | exception-pending."},
+			{kind: "value-object-ref", name: "reasonCode", valueObjectRef: "vo-reason-code", description: "Presente em state=rejected mandatory per BD13 + inv-rejected-requires-rationale. Categorical taxonomy aberta."},
+			{kind: "value-object-ref", name: "retryPath", valueObjectRef: "vo-retry-path", description: "Presente em state=rejected mandatory per BD13 + inv-retry-path-deterministic. Função determinística de (reasonCode, criteriaVersion-context, finality-state) via mapping table."},
+			{kind: "value-object-ref", name: "criteriaVersion", valueObjectRef: "vo-criteria-version", description: "Attribute imutável da decisão (NÃO identity per BD2). Presente quando criteria active; ausente em pendingCriteria=true. Mandatory em terminal."},
+			{kind: "primitive", name: "decidedAt", type: "integer", description: "DLV system time terminal emit. Presente em terminal apenas. Replay-safe via Event Log offset (NÃO wall-clock)."},
+			{kind: "primitive", name: "finalityAt", type: "integer", description: "Computed: decidedAt + 30 days (Phase 0 hard-coded per inv-finality-at-computed). Phase 1+ parameterizable per criteria type via oq-dlv-2."},
+			{kind: "primitive", name: "decidedBy", type: "string", description: "Actor identifier (agt-dlv-primary | founder | designated-approver). Presente em terminal."},
+			{kind: "value-object-ref", name: "supersededByRef", valueObjectRef: "vo-evidence-ref", description: "Optional: set se Verification anterior foi superseded por nova evidence per BD5. Linkage forward; histórico anterior permanece imutável."},
+			{kind: "value-object-ref", name: "eventLogOffset", valueObjectRef: "vo-event-log-offset", description: "Decision offset (terminal event position no Event Log) per micro-ajuste (b). Distinct de ingestion offset em ent-evidence-record. Usado para ordering canonical em supersession (inv-supersession-ordering)."},
+		]
+		entities: [{
+			code:        "ent-evidence-record"
+			name:        "Evidence Record"
+			description: "Entity interna embedded em Verification aggregate per BD4 ingestion-evaluation-separation. Identity intrínseca via vo-evidence-ref dentro do scope commitmentRef da Verification root (mesma tupla per BD2 IdempotencyIdentity). Lifecycle MÍNIMO: created via cmd-record-evidence → immutable thereafter (sem mutações internas pós-criação). Distinto de Evidence (LOG external concept) per glossary anti-mini-NIM boundary marker."
+			identity: {
+				field: "evidenceRef"
+				type: {
+					kind:           "value-object-ref"
+					valueObjectRef: "vo-evidence-ref"
+				}
+			}
+			fields: [
+				{kind: "value-object-ref", name: "integrityProofRef", valueObjectRef: "vo-integrity-proof-ref", description: "DSSE-anchored proof reference; verificado localmente per BD11 ingestion-time."},
+				{kind: "primitive", name: "recordedAt", type: "integer", description: "DLV system time ingestion-time."},
+				{kind: "value-object-ref", name: "eventLogOffset", valueObjectRef: "vo-event-log-offset", description: "Ingestion offset (distinct de decision offset em terminal Verification) per micro-ajuste (b). Usado para ordering canonical em supersession quando LOG-declared lineage ausente (BD5 fallback)."},
+			]
+			usesValueObjects: [
+				"vo-evidence-ref",
+				"vo-integrity-proof-ref",
+				"vo-event-log-offset",
+			]
+			rationale: """
+				Per founder ajuste 1: NÃO aggregate root separado.
+				Identity intrínseca a Verification (mesmo evidenceRef
+				component da IdempotencyIdentity) preserva BD4
+				ingestion-evaluation-separation sem fragmentar
+				consistency boundary. Single aggregate Verification
+				handles todas transições; EvidenceRecord é entity
+				criada na ingestion phase com lifecycle minimal
+				(immutable post-creation per BD4). Identity scoping:
+				evidenceRef dentro do scope commitmentRef da
+				Verification root — entity NÃO tem aggregate root
+				identity próprio.
+				"""
+		}]
+		lifecycle: {
+			initialState: "evaluating"
+			states: [
+				"evaluating",
+				"exception-pending",
+				"verified",
+				"rejected",
+			]
+			transitions: [{
+				from:               "evaluating"
+				to:                 "verified"
+				triggeredByCommand: "cmd-evaluate-verification"
+				emitsEvents: ["evt-delivery-verified"]
+				guards: [
+					"inv-verified-requires-evidence-or-override",
+					"inv-binary-outcome",
+					"inv-finality-at-computed",
+				]
+				description: "Happy path terminal: criteria match success + Layer 1+2 pass per BD9. Verified emit atomic per BD14 com payload categórico (BD10) — finalityAt = decidedAt + 30d (BD8)."
+			}, {
+				from:               "evaluating"
+				to:                 "rejected"
+				triggeredByCommand: "cmd-evaluate-verification"
+				emitsEvents: ["evt-delivery-rejected"]
+				guards: [
+					"inv-binary-outcome",
+					"inv-rejected-requires-rationale",
+					"inv-retry-path-deterministic",
+					"inv-finality-at-computed",
+				]
+				description: "Rejection path: criteria match failure OR Layer 1/2 fail OR insufficient-evidence (treated as rejected + reasonCode per BD1) — sempre com reasonCode + retryPath mandatory per BD13. Atomic emit per BD14."
+			}, {
+				from:               "evaluating"
+				to:                 "exception-pending"
+				triggeredByCommand: "cmd-evaluate-verification"
+				emitsEvents: ["evt-exception-entered"]
+				guards: [
+					"inv-at-most-one-active-exception",
+				]
+				description: "Exception detected durante evaluation: insufficient-authority | criteria-version-override-pending | manual-reconciliation | regulatory-fiscal-ambiguity per BD6. Inicia 14d timer mandatory transition; exceptionHistory append-only com first entry."
+			}, {
+				from:               "exception-pending"
+				to:                 "verified"
+				triggeredByCommand: "cmd-transition-exception-state"
+				emitsEvents: ["evt-exception-resolved", "evt-delivery-verified"]
+				guards: [
+					"inv-exception-cumulative-cap",
+					"inv-exception-timer-mandatory",
+					"inv-verified-requires-evidence-or-override",
+					"inv-binary-outcome",
+					"inv-finality-at-computed",
+				]
+				description: "Humano resolve exception favorably (resolution=verified) dentro do timer 14d (Phase 0) com cap absoluto 30d cumulativo per BD6. Atomic emit ambos events: evt-exception-resolved (internal lifecycle marker) + evt-delivery-verified (cross-BC public)."
+			}, {
+				from:               "exception-pending"
+				to:                 "rejected"
+				triggeredByCommand: "cmd-transition-exception-state"
+				emitsEvents: ["evt-exception-resolved", "evt-delivery-rejected"]
+				guards: [
+					"inv-exception-cumulative-cap",
+					"inv-exception-timer-mandatory",
+					"inv-binary-outcome",
+					"inv-rejected-requires-rationale",
+					"inv-retry-path-deterministic",
+					"inv-finality-at-computed",
+				]
+				description: "Humano resolve exception negatively (resolution=rejected) OR timer fires auto-rejection forçada per BD6 P5 fail-safe forward motion (reasonCode=exception-unresolved-timeout). Atomic emit ambos events."
+			}]
+		}
 		rationale: """
 			1 aggregate root apenas per founder ajuste 1 (EvidenceRecord
-			vira Entity interna em Part 2, NÃO aggregate root separado).
-			Single consistency boundary preserva atomicity (BD14) sem
-			cross-aggregate transactions complexity. handlesCommands +
-			emitsEvents + protectsInvariants completos Part 1 (wiring
-			catálogos); entity + lifecycle Part 2 completam aggregate
-			behavior. Identity via vo-idempotency-identity garante
-			(commitmentRef, evidenceRef) tupla canonical per BD2.
+			Entity interna ent-evidence-record com identity intrínseca
+			via evidenceRef component da IdempotencyIdentity Verification
+			root). Single consistency boundary preserva atomicity (BD14)
+			sem cross-aggregate transactions complexity. Lifecycle 4
+			states + 5 transitions per founder ajuste 3 (state machine
+			simplificada): pending-evaluation REMOVIDO (vive em CMT;
+			commitments sem evidence NÃO progridem para Verification em
+			DLV); evaluating-pending-criteria REMOVIDO como state →
+			pendingCriteria flag DERIVED de criteriaVersion absence per
+			micro-ajuste (a). Aggregate fields cobrem state + 2 flags
+			estruturais (pendingCriteria DERIVED + finalityReached per
+			micro-ajuste (c)) + terminal-only fields (outcome + reasonCode
+			+ retryPath + criteriaVersion + decidedAt + finalityAt +
+			decidedBy + eventLogOffset). EvidenceRecord entity carries
+			ingestion-time fields (integrityProofRef + recordedAt +
+			ingestion eventLogOffset). Discriminated union runtime
+			enforced via #Verification helper type (file-level definition
+			abaixo) — instances validados via cue vet com state-conditional
+			fields presence per inv-binary-outcome + inv-rejected-requires-
+			rationale + inv-finality-at-computed.
 			"""
 	}]
+
+	// =============================================
+	// PROJECTIONS + POLICIES — Part 3 forward-ref
+	// =============================================
 
 	rationale: """
 		Domain Model DLV materializa propriedades formais do BC como
 		CUE constraints validáveis via cue vet. Phase 3 do WI-042
 		pos-canvas Phase 1 + glossary Phase 2.
 
-		Part 1 (este commit) — Catalogs + Aggregate Skeleton:
-		11 Value Objects (catálogo top-level reusable) + 7 Domain
-		Events (2 published cross-BC + 5 internal DLV-only) + 3
-		Commands (2 user-invoked + 1 timer-driven internal) + 14
-		Invariants (rules declarados; codification via aggregate
-		discriminated union em Part 2) + Verification aggregate
-		SKELETON (rootIdentity + complete wiring handlesCommands/
-		emitsEvents/protectsInvariants/usesValueObjects; SEM entity,
-		SEM lifecycle).
+		Part 1 — Catalogs + Aggregate Skeleton: 11 Value Objects +
+		7 Domain Events + 3 Commands + 14 Invariants + Verification
+		aggregate skeleton (rootIdentity + complete wiring; SEM
+		entity, SEM lifecycle).
 
-		4 ajustes founder pre-write conceptual model aplicados
-		estruturalmente:
+		Part 2 (este commit) — Aggregate Completion: ent-evidence-
+		record entity embedded em Verification (identity intrínseca
+		via evidenceRef per BD4) + lifecycle state machine 4 states
+		(evaluating + exception-pending + verified + rejected) com
+		5 transitions + guards referenciando invariants Part 1 +
+		flags estruturais pendingCriteria (DERIVED de criteriaVersion
+		absence per micro-ajuste a) + finalityReached (estrutural;
+		substitui 'now > finalityAt' runtime per micro-ajuste c).
+		Helper type #Verification (file-level definition) materializa
+		discriminated union runtime: cue vet enforces state-conditional
+		fields presence (terminal carries outcome + reasonCode em
+		rejected + criteriaVersion mandatory + decidedAt/finalityAt/
+		decidedBy/eventLogOffset; exception-pending carries
+		exceptionHistory non-empty; verified consistency outcome).
+
+		4 ajustes founder pre-write conceptual model aplicados:
 		(1) 1 aggregate root apenas (EvidenceRecord = Entity interna
-		    Part 2)
-		(2) INV-D1 atomic emit reclassificado design invariant Part 3
-		    outer rationale
-		(3) State machine 4 states + flag (Part 2 lifecycle)
-		(4) ApplySupersession event-handler Part 3 policy
+		    com identity intrínseca; NÃO aggregate root separado)
+		(2) INV-D1 atomic emit reclassificado design invariant
+		    (Part 3 outer rationale; NÃO CUE-codable — runtime
+		    atomicity guarantee via transactional outbox pattern
+		    Phase 3 implementation)
+		(3) State machine 4 states + flags (vs 6 states proposta
+		    inicial); pending-evaluation REMOVIDO (vive em CMT);
+		    evaluating-pending-criteria → pendingCriteria flag
+		    DERIVED
+		(4) ApplySupersession reclassificado event-handler (Part 3
+		    policy pol-supersession-applied-handler), NÃO command —
+		    supersession é REAÇÃO ao LOG event (anti-mini-NIM BD5)
 
-		3 micro-ajustes founder pre-write:
-		(a) pendingCriteria DERIVED (Part 2 lifecycle)
-		(b) eventLogOffset escopo claro: ingestion (EvidenceRecord)
-		    vs decision (terminal Verification event) — ambos
-		    presentes nos events Part 1
-		(c) finalityReached flag estrutural (Part 2 aggregate fields
-		    + inv-post-finality-no-autonomous-emit Part 1)
+		3 micro-ajustes founder pre-write aplicados em Part 2:
+		(a) pendingCriteria DERIVED de criteriaVersion absence (NÃO
+		    bool arbitrário) — projeção determinística
+		(b) eventLogOffset escopo claro: ingestion offset (em
+		    ent-evidence-record) vs decision offset (em terminal
+		    Verification event) — ambos presentes
+		(c) finalityReached flag estrutural — substitui 'now >
+		    finalityAt' runtime (CUE não conhece tempo atual);
+		    transição driven via timer event reconstrução
+		    determinística per BD3
 
-		Part 2 — Aggregate Completion: ent-evidence-record embedded
-		(identity intrínseca a Verification per BD4) + lifecycle
-		state machine 4 states + transitions com triggeredByCommand
-		+ emitsEvents + guards (referenciando invariants Part 1) +
-		pendingCriteria + finalityReached flags estruturais.
-
-		Part 3 — Projections + Policy + Outer Rationale: 5 prj-*
-		(canonical-current-verification + evidence-lineage +
+		Part 3 — Projections + Policy + Outer Rationale:
+		5 prj-* (canonical-current-verification + evidence-lineage +
 		exception-tracking + active-criteria Phase 1+ note +
 		pending-reconciliation Phase 1+ note) + 1 pol-* (event-
 		handler supersession reagindo a evt-supersession-applied) +
@@ -601,11 +748,94 @@ domainModel: artifact_schemas.#DomainModel & {
 		são observation-only (NÃO input para command preconditions)
 		per BD10.
 
-		cue vet ./contexts/dlv/ EXIT=0; tq-dm-01..04 (commands +
-		events + invariants + valueObjects todos wired no único
-		aggregate Verification) satisfeitos por construção em Part 1.
+		cue vet ./contexts/dlv/ EXIT=0; tq-dm-01..04 + tq-dm-13..14
+		satisfeitos. tq-dm-07/08 (lifecycle transitions referenciam
+		commands + events + invariants válidos; states em
+		transitions existem em states[]) satisfeitos Part 2 com
+		5 transitions cobrindo state machine completo.
+
 		Phase 4-5 forward-refs: agent-spec consumirá governanceScope
-		do canvas + invariants do domain-model; envelope agent-
-		governance materializará enforcement runtime.
+		canvas + invariants domain-model; envelope agent-governance
+		materializará enforcement runtime.
 		"""
+}
+
+// =============================================
+// VERIFICATION INSTANCE TYPE — discriminated union
+// Helper type para validação runtime de Verification instances
+// (executable invariants per founder hint: cue vet enforces state-
+// conditional fields presence + flag derivation).
+// File-level definition; consumed por implementation Phase 3+.
+// =============================================
+
+#Verification: {
+	// Identity (inv-identity-uniqueness + inv-criteria-version-as-attribute)
+	commitmentRef: string & =~"^cmt-[a-z0-9-]+$"
+	evidenceRef:   string & =~"^evt-[a-z0-9-]+$"
+
+	// Embedded entity ent-evidence-record (Part 2 founder ajuste 1)
+	evidence: {
+		integrityProofRef: string & =~"^proof-[a-f0-9]+$"
+		recordedAt:        int & >=0
+		eventLogOffset:    int & >=0  // ingestion offset per micro-ajuste (b)
+	}
+
+	// State machine (4 states per founder ajuste 3)
+	state: "evaluating" | "exception-pending" | "verified" | "rejected"
+
+	// Flags (per micro-ajustes a + c)
+	pendingCriteria: bool  // DERIVED da ausência de criteriaVersion
+	finalityReached: bool  // estrutural; substitui "now > finalityAt"
+
+	// criteriaVersion: optional em evaluating; mandatory em terminal
+	criteriaVersion?: string & =~"^cv-[a-f0-9]+$"
+
+	// supersededByRef: optional global per BD5
+	supersededByRef?: string & =~"^evt-[a-z0-9-]+$"
+
+	// === DISCRIMINATED UNION: terminal fields per state ===
+
+	// Terminal states (verified | rejected) carregam decision metadata
+	if state == "verified" || state == "rejected" {
+		outcome:        "verified" | "rejected"
+		criteriaVersion: string & =~"^cv-[a-f0-9]+$"  // mandatory em terminal
+		decidedAt:      int & >=0
+		finalityAt:     int & >=0  // = decidedAt + 30 days per inv-finality-at-computed
+		decidedBy:      string & !=""
+		eventLogOffset: int & >=0  // decision offset per micro-ajuste (b)
+	}
+
+	// Rejected requires reasonCode + retryPath per inv-rejected-requires-rationale + BD13
+	if state == "rejected" {
+		outcome:    "rejected"
+		reasonCode: string & =~"^[a-z][a-z0-9-]+$"
+		retryPath:  "retryable" | "non-retryable" | "exception"
+	}
+
+	// Verified outcome consistency
+	if state == "verified" {
+		outcome: "verified"
+	}
+
+	// Exception state carries history
+	if state == "exception-pending" {
+		exceptionHistory: [{
+			reason:      string & !=""
+			timestamp:   int & >=0
+			triggeredBy: string & !=""
+			resolvedAt?: int & >=0
+			resolution?: "verified" | "rejected"
+		}, ...]
+	}
+
+	// Terminal residue: exceptionHistory may persist post-resolution
+	if state == "verified" || state == "rejected" {
+		exceptionHistory?: [...{
+			reason:      string & !=""
+			timestamp:   int & >=0
+			triggeredBy: string & !=""
+			resolvedAt?: int & >=0
+			resolution?: "verified" | "rejected"
+		}]
+	}
 }
