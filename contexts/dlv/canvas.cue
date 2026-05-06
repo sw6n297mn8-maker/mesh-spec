@@ -866,6 +866,650 @@ canvas: artifact_schemas.#Canvas & {
 			cada extension individual mas o sistema enforça hard
 			cap.
 			"""
+	}, {
+		id: "bd-no-evidence-no-verified"
+		decision: """
+			DLV NÃO emite DeliveryVerified sem evidência ingestada
+			e avaliada explicitamente. Verified NUNCA é estado
+			default, timeout, ou inferência: ausência de evidência
+			NÃO produz verified silencioso por nenhum caminho —
+			autônomo, supervised normal, exception, replay,
+			fallback. Estados possíveis para commitment sem
+			evidence ingestada: pending-evaluation (aguardando
+			RecordEvidence) — terminal forçado em rejected somente
+			se commitment timeout policy materializar Phase 1+
+			(oq-dlv-3); NÃO em verified. Estados possíveis para
+			commitment com evidence ingestada mas avaliação
+			pendente: evaluating → terminal {verified, rejected,
+			exception-pending → terminal} per
+			bd-exception-state-transitive Lote 2.
+			supervisedDecision approve-without-evidence NÃO
+			existe como path normal. Override de rejected
+			(override-rejection supervisedDecision) ainda exige
+			evidence ingestada como precondition.
+
+			EMERGENCY OVERRIDE PATH (canal supervised distinto,
+			NÃO bypass de hardline anti-default): Existe canal
+			supervised específico para situações de DEADLOCK
+			OPERACIONAL — erro de integração ingestion path,
+			evidência fisicamente disponível mas tecnicamente
+			indisponível temporariamente, operação manual em
+			região offline. Path: supervisedDecision approve-
+			with-emergency-override emite DeliveryVerified com
+			reasonCode=exception-emergency-override + attribute
+			evidence-out-of-band-ref (apontando para evidência
+			externa: documento físico, sistema alternativo,
+			atestado manual). Mandatory audit attached: founder
+			OR designated approver justifica out-of-band evidence
+			existence; flagged para audit obrigatório Lei 12.846/
+			SCD/CVM. Reconciliação recomendada: quando evidence
+			ingestion path normaliza, evidence ingested formal
+			triggers nova evaluation que substitui (via
+			supersession Lote 2) a verificação emergency-override
+			— preserva audit trail completo (verification original
+			com exception-emergency-override permanece imutável;
+			supersession adiciona forward lineage para verification
+			post-normalização).
+
+			Distinção crítica: emergency override path NÃO viola
+			BD7 hard line. BD7 prohibe verified por DEFAULT/
+			TIMEOUT/INFERENCE (silent verified emergente de
+			omissão); BD7 PERMITE verified EXPLÍCITO por humano-
+			with-audit (loud, justified, observable, reversível
+			via supersession). Hard line é anti-silencioso, NÃO
+			anti-override.
+
+			Cap-evidence-criteria-match-deterministic (Lote 1)
+			torna função pura SOBRE evidência; bd-ingestion-
+			evaluation-separation (Lote 2) torna evidence
+			ingestada precondition estrutural de evaluation;
+			este BD fecha o loop: NENHUM caminho silencioso
+			produz verified.
+			"""
+		rationale: """
+			Anti-fraude estrutural — RECTOR-adjacent ao
+			bd-evidence-criteria-match-deterministic. Se verified
+			pudesse emergir por default/timeout/inferência, a
+			invariante central da tese Mesh ('no evidence → no
+			economic progression') colapsaria silenciosamente:
+			bug de timer + estado pendente produziria verified-
+			by-omission; race condition + missing evidence
+			produziria verified-by-confusion; ataque adversarial
+			(sh-01 induz timeout suprimindo evidence) produziria
+			verified-by-collusion. Bloqueio explícito elimina
+			classe de bugs por construção: NENHUM caminho de
+			código produz verified silencioso sem evidence —
+			verificável formalmente em domain-model invariants
+			Phase 3 (Verification aggregate constraint:
+			outcome=verified IMPLIES exists EvidenceRecord with
+			same (commitmentRef, evidenceRef) ingestada antes de
+			evaluation OR exists supervisedDecision approve-with-
+			emergency-override com evidence-out-of-band-ref).
+
+			Distinção semântica de bd-evidence-criteria-match-
+			deterministic: BD1 é sobre função pura SOBRE inputs;
+			BD7 é sobre PRECONDITION dos inputs (evidence é
+			causal, não default). Distinção de bd-exception-
+			state-transitive Lote 2: BD6 garante exception
+			transitiona em 14 dias (auto-rejection fail-safe);
+			BD7 garante que mesmo com exception PROIBE-SE rota
+			verified silenciosa sem evidence. Compreensivamente:
+			timeout SEMPRE produz rejected (via BD6 fail-safe),
+			nunca verified (via BD7 anti-default).
+
+			Emergency override path resolve tensão entre hard
+			line anti-default e realidade operacional: ingestion
+			path pode falhar temporariamente (PLT outage,
+			integração externa quebrada, operação manual em região
+			offline) — bloquear absolutely verified produziria
+			deadlock operacional onde commitment fica
+			indefinidamente pending-evaluation apesar de evidência
+			física existir. Solução: canal supervised explícito
+			mantém spirit (verified amarrado a claim de evidência)
+			sem amarração técnica (evidence ingestada via path
+			normal). Audit + flagging garante abuso é detectável;
+			reconciliação automática Phase 1+ converge estado
+			para evidence-ingested canonical quando ingestion
+			normaliza.
+			"""
+		consequences: """
+			(a) Domain-model invariant Phase 3: aggregate
+			Verification carries hard constraint outcome=verified
+			⟹ (∃ EvidenceRecord (commitmentRef, evidenceRef)
+			ingestada antes de decidedAt) OR (∃ supervisedDecision
+			approve-with-emergency-override com evidence-out-of-
+			band-ref); runtime check no emit path bloqueia estado
+			inválido por construção.
+			(b) supervisedDecision approve-without-evidence NÃO
+			existe; override-rejection (Phase 1.5 governanceScope)
+			opera apenas sobre evaluations EXISTENTES com evidence
+			ingestada (e.g., founder pode revogar rejected emitido
+			sob criteria-version-mismatch e re-trigger evaluation
+			sob nova criteriaVersion — mas evidence ingestada é
+			precondition).
+			(c) Commitment lifecycle external (CMT) com NENHUM
+			evidence registered NÃO progride para verification —
+			permanece em pending-evaluation até timeout policy
+			Phase 1+ (oq-dlv-3); INV/REW/FCE NÃO recebem signal
+			de verified, automaticamente preservando invariante
+			downstream.
+			(d) Replay determinism preservado: replay sob mesma
+			timeline de events nunca produz verified em commitment
+			sem EvidenceRecord OR supervisedDecision approve-with-
+			emergency-override — propriedade verificável via
+			property-based test.
+			(e) Fail-safe alignment com bd-exception-state-
+			transitive Lote 2: timeout em exception-pending
+			sempre rejected, nunca verified — preserva invariante
+			mesmo sob falha humana.
+			(f) Anti-fraude observable Phase 0: verificationMetrics
+			Lote 1.6 inclui verified-without-evidence-or-override-
+			attempts (esperado sempre 0; non-zero indica bug
+			crítico de implementação, não condição operacional).
+			(g) supervisedDecision approve-with-emergency-override
+			é EXPLICITAMENTE DECLARADA em governanceScope Phase
+			1.5 com constraint de uso (emergency real, não
+			conveniência); breach rate sustained é OBS metric
+			(verificationMetrics Lote 1.6: emergency-override-
+			rate sustained > threshold sinaliza ingestion path
+			failure ou abuso operacional).
+			(h) Reconciliação automática Phase 1+: quando
+			ingestion path normaliza para commitment com
+			verification emergency-override ativa, trigger
+			eventual policy disparar nova evaluation; supersession
+			lineage normal preserva verified-by-emergency como
+			histórico immutable + verified-by-evidence como
+			canonical-current pós-normalization.
+			"""
+	}, {
+		id: "bd-economic-finality-window"
+		decision: """
+			Toda DeliveryVerified ou DeliveryRejected terminal
+			entra em ECONOMIC FINALITY WINDOW de duração finita
+			iniciada no decidedAt da decisão (timestamp emitido
+			pelo DLV system time, NÃO wall-clock externo nem
+			clock FCE). Phase 0 Window hard-coded: 30 dias
+			corridos pós-decidedAt (alinhado a V6 finality
+			contract; parameterização per criteria type Phase 1+
+			via oq-dlv-2). DLV clock é SINGLE SOURCE de finality
+			temporal — NÃO herda timing de FCE (settlement) nem
+			de INV (invoicing); finality é propriedade de
+			verificação, NÃO de pagamento.
+
+			Janela tem duas zonas operacionais distintas:
+
+			(1) DENTRO da window (decidedAt ≤ now < decidedAt+30d):
+			DLV pode emitir superseding verification AUTONOMAMENTE
+			via bd-evidence-supersession-not-choice Lote 2
+			(LOG-driven trigger + fallback DLV em ausência) —
+			caminho operacional normal. Verifications históricas
+			permanecem immutable (per bd-verification-idempotent
+			Lote 1); nova verification torna-se canonical-current.
+			INV/REW/FCE devem manter projeção canonical-current
+			e tolerar transitória inconsistency (eventual
+			consistency dentro da window é compromisso operacional
+			aceitável).
+
+			(2) FORA da window (now ≥ decidedAt+30d): verification
+			atinge ECONOMIC FINALITY na perspectiva de DLV — DLV
+			NÃO emite superseding AUTÔNOMA pós-finality.
+			Superseding pós-finality requer caminho controlado:
+
+			(a) supervisedDecision explícita: founder OR
+			    designated approver pode autorizar superseding
+			    pós-finality via supervisedDecision approve-post-
+			    finality-supersession com justificativa
+			    documentada (e.g., erro operacional grave
+			    descoberto depois, evidência fraudulenta
+			    detectada posteriormente, correção regulatória
+			    obrigatória); emit nova Verification com
+			    reasonCode=post-finality-correction + attribute
+			    supervisedOverrideRef apontando para approval.
+
+			(b) DRC-driven trigger: DRC dispute resolution
+			    materializa signal estruturado (DRC publishes
+			    ResolutionRequiresVerificationUpdate event
+			    consumido por DLV) instruindo DLV a emitir nova
+			    Verification refletindo dispute resolution (e.g.,
+			    verification original era fraud — DRC determinou;
+			    nova verification reflete corrected outcome).
+			    Consumo via ACL explícita; DLV emite reasonCode=
+			    drc-driven-correction + attribute
+			    drcResolutionRef.
+
+			LOG-driven supersession (EvidenceSuperseded LOG event)
+			que chega pós-finality é registrada em DLV como audit
+			trail mas NÃO triggera nova evaluation autônoma —
+			flagged como post-finality-supersession-log-event para
+			investigation operacional opcional (e.g., anomaly OBS
+			metric sinalizando padrão sustained → criteria
+			evolution candidate). Não é caminho operacional
+			autônomo Phase 0.
+
+			Hard line: pós-finality, nenhum caminho AUTÔNOMO emite
+			superseding verification — todos paths exigem humano-
+			in-loop OR cross-BC explicit signal (DRC). Preserva
+			finality como contrato econômico estável para
+			downstream INV/REW/FCE/DRC sem cegueira sistêmica
+			diante de fatos novos.
+			"""
+		rationale: """
+			Economic finality é o gate que torna verification
+			commitment econômico — sem finality finita, downstream
+			INV/REW/FCE não podem materializar irreversibilidade
+			(faturamento + pagamento + scoring) confiavelmente, e
+			a invariante 'no evidence verified → no economic
+			progression' degrade para 'verified pode reverter
+			silenciosamente, downstream nunca sabe quando agir'.
+			Janela finita resolve trade-off entre correctness
+			(permitir supersession para correção legítima) e
+			liveness (downstream eventualmente age sobre verified
+			estável).
+
+			DLV clock como single source de finality (vs FCE
+			clock) é decisão estrutural crítica V6: FCE clock
+			criaria coupling perigoso — payment timing dictaria
+			verification stability, invertendo causalidade do
+			macrofluxo (verified é precondition de pagamento, não
+			consequência); DLV não poderia replay determinístico
+			se finality dependesse de clock FCE volátil; e
+			ambiguidade 'qual clock é authoritative' apareceria
+			em edge cases (FCE atrasa settlement, finality
+			estende? FCE acelera, finality encurta?). DLV clock é
+			local à semântica de verification, independente de
+			infraestrutura de pagamento — replay-safe e single-
+			purpose.
+
+			Window 30 dias Phase 0 alinha com V6 finality
+			contract: 30 dias é compromisso baseline coerente com
+			CMT formalization typical timeline (< 30 dias em
+			padrão B2B brasileiro), tempo suficiente para LOG
+			declarar supersessions legítimas (corrections de
+			evidence pós-ingestion) E para descoberta operacional
+			de inconsistências pós-verification. INV typical
+			invoicing window (2-5 dias) opera DENTRO da DLV
+			finality — sem conflito porque INV invoice é
+			reversível (cancelar nota) até FCE settlement; DLV
+			finality bound é mais conservador propositalmente,
+			absorvendo dispute path para DRC quando finality já
+			materializou downstream irreversibilidade. Calibração
+			per criteria type Phase 1+ — critérios complexos
+			plurianuais podem exigir window maior; critérios
+			commodity simples podem reduzir. Deferimento explícito
+			em oq-dlv-2 com trigger: operational data sustainada
+			Phase 0 → calibração baseada em distribution real de
+			supersession arrival times.
+
+			Caminho controlado pós-finality (supervisedDecision OU
+			DRC-driven) preserva finality como contrato econômico
+			estável SEM cegueira sistêmica diante de fatos novos
+			descobertos depois (e.g., fraud detectada via Layer 3
+			REW/NIM + DRC dispute investigation sustentada). Hard
+			line é anti-AUTÔNOMA pós-finality, NÃO absoluta —
+			paralela ao princípio BD7 (anti-default, não anti-
+			override). Audit obrigatório em ambos paths preserva
+			auditabilidade Lei 12.846/SCD/CVM.
+
+			DRC como path exclusivo pós-finality (com
+			supervisedDecision como path alternativo) respeita
+			boundary: DLV é função verificação determinística com
+			janela bounded; DRC é dispute lifecycle com lifecycle
+			próprio (prazos, evidência adicional, resolução).
+			Misturar compensação pós-finality em DLV acoplaria
+			duas responsabilidades distintas e violaria separation
+			of concerns que o subdomain mapping estabelece.
+			"""
+		consequences: """
+			(a) Aggregate Phase 3: Verification carrega
+			finalityAt = decidedAt + windowDuration attribute
+			(computed); state transition pós-finalityAt impede
+			emit de superseding verification autônoma via DLV
+			core — bloqueio aggregate-level constraint; emit
+			supervised OU DRC-driven é caminho explícito com
+			audit trail.
+			(b) DRC dispute path Phase 0: stakeholder afetado
+			abre DRC dispute apontando para Verification
+			específica (audit trail completo via bd-verification-
+			idempotent immutability); DRC tem query-surface para
+			DLV (Phase 0 query-surfaces Lote 1.4) para context
+			investigation. DRC pode emitir signal estruturado
+			ResolutionRequiresVerificationUpdate consumido por
+			DLV via ACL para triggerar nova Verification post-
+			finality reflecting dispute resolution.
+			(c) Caminhos pós-finality são auditáveis e bounded:
+			supervisedDecision approve-post-finality-supersession
+			requer founder/approver explicit + justificativa;
+			DRC-driven trigger requer DRC native flow + audit.
+			Nenhum caminho autônomo emite superseding pós-
+			finality.
+			(d) post-finality-supersession-log-event (LOG-driven
+			trigger chegando pós-finality) é registrado em DLV
+			como audit-trail-only — NÃO triggera nova Verification
+			autônoma. Anomaly OBS metric (sig-post-finality-
+			supersession-rate) sustainada sinaliza window
+			calibration inadequada (rate alta → window muito
+			curto) candidato para Phase 1+ promotion via
+			oq-dlv-2.
+			(e) DLV system time como single source: implementação
+			Phase 1+ usa monotonic clock per Verification
+			aggregate (não system clock global mutável) — replay-
+			safe, immune a NTP drift / leap second / wall-clock
+			manipulation. PLT infrastructure provê monotonic
+			clock primitive; DLV consume.
+			(f) verificationMetrics Lote 1.6 inclui:
+			- supersession-arrival-distribution (within window
+			  vs post-finality) — sinal para calibração window
+			  Phase 1+
+			- post-finality-dispute-rate (taxa de DRC disputes
+			  abertas pós-finality) — sinal de window calibration
+			  inadequada (rate alta indica window curto demais)
+			- post-finality-supervised-override-rate — sinal de
+			  health do canal supervised
+			(g) Window hard-coded Phase 0 é tension-entry
+			candidate se calibração empírica revelar mismatch
+			sustained — então promoção formal para criteria-type-
+			specific via oq-dlv-2 materialização.
+			(h) Replay determinism: finality computation é função
+			determinística (decidedAt + windowDuration) sobre
+			Event Log — replay reconstrói finality boundaries
+			identicamente.
+			"""
+	}, {
+		id: "bd-truth-vs-integrity-defense-in-depth"
+		decision: """
+			DLV opera sob princípio EXPLÍCITO de integridade ≠
+			verdade: integridade criptográfica (Layer 1) é
+			precondition mas NÃO suficiente para verdade
+			operacional. DLV materializa defense in depth com 3
+			camadas de checagem, sendo Layer 1 e 2 INTERNAS a
+			DLV (escopo de evaluation), Layer 3 EXTERNA
+			(consumidores downstream):
+
+			Layer 1 — INTEGRITY VALIDATION (DLV scope):
+			Verificação local da prova IDC sobre evidenceRef
+			(DSSE-anchored). DLV NÃO confia em LOG sobre
+			integridade — valida cryptographic proof localmente
+			per request. Falha em Layer 1 → DeliveryRejected com
+			reasonCode=integrity-failure. Layer 1 garante
+			'evidência foi submetida pelo signatário declarado'
+			— NÃO garante que conteúdo é verdadeiro.
+
+			Layer 2 — CROSS-EVIDENCE CONSISTENCY (DLV scope):
+			Verificação de coerência entre múltiplas evidências
+			ingestadas para mesmo commitmentRef sob criteria que
+			exigem múltiplas evidências (e.g., 'delivery requires
+			photo + GPS + receipt'). 3 classes iniciais (lista
+			aberta, extensível via criteriaVersion declarations
+			Phase 1+):
+			(a) consistency: refs cruzados internamente coerentes
+			    (e.g., GPS coordinates dentro de bounded box do
+			    commitment delivery location);
+			(b) range: valores numéricos dentro de bounds
+			    esperados (e.g., quantity ≤ commitment.maxQuantity;
+			    weight ≥ minimum threshold);
+			(c) temporal: timestamps coerentes (e.g., photo
+			    timestamp ≤ delivery timestamp ≤ receipt
+			    timestamp).
+
+			Classes adicionais (semantic checks, cross-entity
+			validation, document-level validation) podem ser
+			adicionadas via criteriaVersion declaration explícita
+			em CMT — cada criteria version declara required Layer
+			2 check classes; DLV aplica deterministicamente. Phase
+			0 cobre consistency/range/temporal como baseline
+			universal; verticals adicionando packs Phase 1+
+			(oq-dlv-6) podem registrar classes específicas (e.g.,
+			vertical-construction declara structural-integrity
+			check class; vertical-logistics declara chain-of-
+			custody check class). Falha em qualquer Layer 2
+			class → DeliveryRejected com reasonCode=cross-
+			evidence-inconsistency-{class-name} (taxonomy aberta
+			extensível).
+
+			Layer 3 — PATTERN ANOMALY (REW/NIM scope, NÃO DLV):
+			Detection pós-verification de anomalias agregadas via
+			signals que DLV publica (Verification events com
+			reasonCode rico, exceptionHistory, supersession
+			lineage). REW/NIM consomem signals e materializam
+			scoring/anomaly detection em projection própria —
+			DLV NÃO computa, NÃO agrega, NÃO scoring (per
+			bd-no-scoring-by-dlv). Detecções Layer 3: collusion
+			patterns (todos signers de evidence colluded), fraud
+			patterns (forgery sustained), operational anomalies
+			(sustained sub-threshold gaming).
+
+			Defense in depth significa que NENHUMA camada SOZINHA
+			é suficiente: Layer 1 catches forgery individual;
+			Layer 2 catches inconsistency intra-commitment; Layer
+			3 catches pattern adversarial cross-commitment. DLV
+			honesto sobre limites: Layer 1+2 são deterministic;
+			Layer 3 é statistical/probabilistic (REW/NIM
+			territory). Verified DLV emit significa 'integridade
+			+ consistência atendidas sob criteria versionados' —
+			NÃO 'verdade absoluta'.
+			"""
+		rationale: """
+			Integridade ≠ verdade é distinção crítica que muitos
+			sistemas financeiros falham em internalizar — assumem
+			que cryptographic signature é proof-of-truth e expõem-
+			se a fraude colluded (todos signers conspiram para
+			evidência false-but-signed). Defense in depth é a
+			resposta estrutural: layers múltiplas com escopos
+			disjuntos, cada uma cobrindo classe de adversário
+			diferente. DLV materializa Layer 1+2 internamente
+			(deterministic check); Layer 3 é statistical e
+			pertence a REW/NIM por domain mapping (anti-mini-NIM
+			enforced via bd-no-scoring-by-dlv).
+
+			Layer 1 (integrity) é precondition por boundary com
+			IDC: DLV não confia LOG implicitamente sobre
+			integridade cryptographic — valida localmente cada
+			prova. Isso é defense-in-depth de primeira camada:
+			corrupção em LOG (intencional ou bug) não compromete
+			DLV se Layer 1 falha-fechado.
+
+			Layer 2 (cross-evidence consistency) é onde DLV
+			adiciona valor sobre integridade pura: 3 classes
+			iniciais cobrem casos universais (consistency/range/
+			temporal); extensibilidade via criteriaVersion
+			declaration permite verticals e domínios específicos
+			adicionar checks especializados sem modificar DLV
+			core engine. Naming explícito '3 classes iniciais'
+			(vs 'as 3 classes') sinaliza abertura para evolução
+			— closed list seria constraint desnecessária que
+			limitaria capacidade do sistema de capturar nuances
+			domain-specific. Phase 0 baseline universal + Phase
+			1+ extension via criteria version é pattern Mesh
+			para evolutividade controlada: criteria version owns
+			extensibility contract; DLV engine permanece estável.
+
+			Layer 3 (pattern anomaly) explicitamente fora de DLV
+			respeita anti-mini-NIM hard line: scoring/anomaly
+			detection statistical pertence a REW/NIM. DLV produz
+			signal-rich events; REW/NIM aggregam, scoram, modelam.
+			Misturar Layer 3 em DLV criaria mini-REW dentro de
+			DLV, violando boundary e introduzindo dependência
+			circular (DLV verifica usando scoring; scoring
+			depende de verifications historicas).
+
+			Honestidade sobre limites é decisão de design
+			importante: DLV NÃO pretende ser 'truth oracle'.
+			Verified emit significa exatamente 'criteria match
+			deterministic + integridade Layer 1 + consistência
+			Layer 2'. Truth operacional emerge da composição das
+			3 layers — sistema Mesh como todo, não DLV sozinho.
+			"""
+		consequences: """
+			(a) Domain-model Phase 3: criteria definition
+			explicit sobre quais checks aplicam Layer 1+2 (cada
+			criteria version declara required checks). DLV
+			applies em ordem Layer 1 → Layer 2 → criteria match
+			per BD1 — short-circuit em primeiro fail (e.g., Layer
+			1 fail produz rejected sem executar Layer 2;
+			preserves replay determinism).
+			(b) reasonCode taxonomy aberta (bd-evidence-criteria-
+			match-deterministic Lote 1) inclui categorias
+			estruturais: integrity-failure, cross-evidence-
+			inconsistency-{consistency, range, temporal,
+			...class-name extensível} — uma reasonCode per fail
+			path Layer 1+2.
+			(c) Layer 3 signals para REW/NIM são VERIFICATION
+			EVENTS DLV (DeliveryVerified | DeliveryRejected) com
+			payload rich (criteriaVersion, integrityProofRef,
+			reasonCode, exceptionHistory, supersededByRef,
+			finalityAt). REW/NIM consume e processam — DLV NÃO
+			compute sobre signals, NÃO publica scoring derivado.
+			(d) Layer 3 anomaly detection pode emitir DRC dispute
+			signals (REW detecta fraud pattern → REW solicita
+			DRC dispute investigation), mas via DRC native flow
+			— NÃO muta DLV verifications.
+			(e) verificationMetrics Lote 1.6 inclui breakdown per
+			Layer fail rates (Layer 1 fail rate, Layer 2 fail
+			rate per class) — observabilidade real de defense in
+			depth coverage.
+			(f) DLV agent-spec Phase 4 explicitly declares 'no
+			Layer 3 scoring' como negative-action constraint —
+			guardrail cognitivo durante execution.
+			(g) Limit honest no purpose + outer rationale Lote
+			1.6: verified DLV NÃO é claim de verdade absoluta —
+			composição de 3 layers como sistema é o claim de
+			truth operacional Mesh.
+			(h) Layer 2 extensibility Phase 1+ via criteriaVersion
+			declaration: criteria version owns 'this version
+			requires check classes [a, b, c]'; DLV engine consume
+			declaration deterministicamente sem modificação core.
+			"""
+	}, {
+		id: "bd-no-scoring-by-dlv"
+		decision: """
+			DLV NÃO computa scoring de NENHUMA natureza —
+			supplier reliability score, fraud score, quality
+			index, trust weight, anomaly probability, statistical
+			aggregation sobre verifications. Boundary hard: DLV
+			decide SUFICIÊNCIA por critério estruturado (binary
+			verified | rejected per bd-evidence-criteria-match-
+			deterministic); scoring/aggregation/probabilistic-
+			modeling pertence EXCLUSIVAMENTE a REW (scoring de
+			risco) e NIM (mecanismos de rede + design de
+			incentivos), que consomem signals DLV e materializam
+			scoring em projeções próprias.
+
+			Lista NÃO-EXAUSTIVA de operações PROIBIDAS em DLV:
+			- reliability score per supplier baseado em
+			  verification history
+			- fraud probability score
+			- quality index numérico per commitment ou per
+			  supplier
+			- trust weight para uso em decision-making downstream
+			- anomaly probability statistical
+			- aggregate statistics em payload de Verification
+			  events (events carregam fatos categóricos, não
+			  estatísticas)
+			- inferência probabilística sobre evidence beyond
+			  deterministic Layer 1+2 checks (per bd-truth-vs-
+			  integrity-defense-in-depth)
+
+			Operações PERMITIDAS em DLV (não conflitam com BD):
+			- reasonCode estruturado em rejected events
+			  (categórico, não score)
+			- exceptionHistory tracking (sequência de fatos, não
+			  aggregation)
+			- supersession lineage (estrutural, não
+			  probabilístico)
+			- count basic em verificationMetrics (e.g., Layer 1
+			  fail rate; este é metric agregada DE OBSERVABILIDADE
+			  OPERACIONAL, não signal consumido por outros BCs
+			  para decision-making — distinção crítica)
+			"""
+		rationale: """
+			Anti-mini-NIM hard line: scoring é território REW/NIM
+			por subdomain mapping; misturar scoring em DLV criaria
+			responsabilidade dual (verification gate + scoring
+			engine) que violaria 5 propriedades estruturais:
+
+			(a) Determinismo: scoring é statistical/probabilístico
+			por natureza; misturar com gate determinístico
+			(bd-evidence-criteria-match-deterministic) introduz
+			non-determinism em path crítico.
+
+			(b) Replay safety: scoring depende de aggregation
+			history (verifications passadas + signals diversos);
+			replay sob timeline parcial produziria scoring
+			diferente — quebra bd-replay-deterministic-criteria-
+			versioned.
+
+			(c) Single-source authoritativeness: REW owns risk
+			scoring per dlv subdomain mapping (mech-evidence
+			downstream consumer); DLV computando scoring criaria
+			dual source de truth para 'qual o score deste
+			supplier' — drift garantido em escala.
+
+			(d) Anti-mini-NIM enforcement em outros lotes
+			(bd-evidence-supersession-not-choice 'não escolhe
+			entre evidências'; bd-truth-vs-integrity-defense-in-
+			depth 'Layer 3 é REW/NIM') depende de DLV permanecer
+			função verificação, não engine de inferência.
+
+			(e) Boundary clarity para consumidores: INV/REW/NIM/
+			DRC consomem signals DLV (categóricos, factuais) sob
+			contract estável; se DLV emitisse scoring, contract
+			ficaria volátil (scoring evolui com data; categórico
+			não) e downstream coupling cresceria.
+
+			Distinção operacional crítica entre scoring e
+			verificationMetrics: scoring é signal consumido por
+			outros BCs para decision-making (e.g., REW ajusta
+			crédito baseado em score); verificationMetrics são
+			metrics DE OBSERVABILIDADE OPERACIONAL consumidas
+			por OBS para health monitoring (e.g., Layer 1 fail
+			rate sustained > threshold = alerta operacional).
+			Mesma agregação numérica, semânticas opostas.
+
+			Lista PROIBIDAS explícita evita drift: sem documentar
+			explicitamente, agentes futuros podem racionalizar
+			adicionar 'apenas um pequeno trust weight' que parece
+			local mas viola boundary. Hard line documentada é
+			guardrail cognitivo + auditável.
+			"""
+		consequences: """
+			(a) Verification events DLV (DeliveryVerified |
+			DeliveryRejected) carregam payload categórico
+			estável: commitmentRef, evidenceRef, criteriaVersion,
+			outcome, reasonCode (categórico aberto), decidedAt,
+			finalityAt, decidedBy, supersededByRef?,
+			exceptionHistory?, integrityProofRef. NENHUM campo
+			numérico-statistical.
+			(b) REW/NIM materializam scoring em projeções
+			próprias consumindo Verification events DLV — domain-
+			model próprio, contract próprio com consumidores.
+			DLV NÃO tem opinião sobre como scoring é computed.
+			(c) DLV agent-spec Phase 4 declara 'no scoring' como
+			negative-action constraint explícita; supervisedDecision
+			approve-with-scoring-override NÃO existe (caminho
+			impossível por design).
+			(d) Drift detection: se Verification event payload
+			tentar adicionar campo numérico-statistical,
+			structural-check Phase 3+ rejeita (schema constraint
+			sobre payload events DLV).
+			(e) Edge case 'mas REW precisa de baseline rate de
+			rejection per supplier': REW computa baseline a
+			partir de Verification events (DLV produz events;
+			REW agrega). DLV NÃO pré-computa para conveniência
+			de REW — responsabilidade limpa.
+			(f) Anti-mini-NIM transversal articulado: combinado
+			com bd-evidence-supersession-not-choice (não escolhe
+			entre evidências) + bd-truth-vs-integrity-defense-in-
+			depth (Layer 3 é REW/NIM) + bd-no-scoring-by-dlv (no
+			scoring period) = 3 boundaries hard que protegem DLV
+			de virar mini-REW.
+			(g) Phase 1+ tension: se REW signaling demand crescer
+			(e.g., REW solicita DLV pre-aggregate certain stats
+			por eficiência), tension-entry materializa decision:
+			separar em projection compartilhada (PLT
+			infrastructure) OU manter hard line e REW absorve
+			aggregation cost. Default: hard line (preserve
+			boundary).
+			"""
 	}]
 
 	// =============================================
