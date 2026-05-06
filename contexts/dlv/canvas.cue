@@ -3372,8 +3372,801 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// RATIONALE OUTER — placeholder; conteúdo em commit 1.6
+	// ASSUMPTIONS (4)
 	// =============================================
 
-	rationale: "Placeholder — rationale outer (síntese de identity + 14 businessDecisions com bd-evidence-criteria-match-deterministic RECTOR + defense in depth 3 camadas + idempotency + atomicity + supersession total ordering + economic finality window single-source + exception state transitivity 14-day; 4 lenses; Phase 0 caveats incluindo industry packs Phase 1+ + cross-BC dispute coordination DRC) entra em commit 1.6."
+	assumptions: [{
+		id: "as-dlv-1"
+		assumption: """
+			LOG publica EvidenceCommitted + EvidenceSuperseded
+			events stable + reliable via log-to-dlv ACL
+			operacional Phase 0; events são imutáveis pós-commit
+			com integrityProofRef DSSE-anchored válido localmente
+			(per BD11 local-first verifiability).
+			"""
+		invalidationSignal: """
+			Taxa de cache miss EvidenceRecord para commitmentRef
+			ingerido sustained > 5% em janela trimestral OR
+			latência LOG→DLV via ACL > 60s p95 sustained OR
+			rate de integrity-failure-at-ingestion sustained
+			(ver verificationMetrics integrity-failure-at-
+			ingestion-rate como signal estrutural de LOG-side
+			degradation potential).
+			"""
+		rationale: """
+			Cache local DLV depende de event consumption
+			confiável; sem isso DLV regrede para sync polling
+			cara comprometendo cc-03 24/7 + replay determinism
+			via eventLogOffset. Boundary clean: LOG owns evidence
+			lifecycle; DLV consume committed facts apenas (não
+			intermediários per EvidenceCommitted naming).
+			"""
+	}, {
+		id: "as-dlv-2"
+		assumption: """
+			CMT eventually publica CriteriaActivated events Phase
+			1+ via cmt-to-dlv relation materializada (PHASE 1+
+			FORWARD-REF Phase 0). Phase 0 sync fallback via
+			QueryCommitmentCriteria absorve cost de polling per
+			evaluation; Phase 1+ event-driven cache invalidation
+			explicit per BD12 quando relation materializa.
+			"""
+		invalidationSignal: """
+			oq-dlv-1 não materializa em horizonte declared
+			(deadline 2026-Q4) OR sync fallback via Query
+			CommitmentCriteria degrade por volume crescente
+			(latência > 30s p95 sustained OR taxa de errors
+			sync sustained > 1%); criteria-override-rate sustained
+			elevada pode sinalizar timing-related issue (CMT
+			activation flow inadequado sem cache) per esc-
+			criteria-override-rate-sustained.
+			"""
+		rationale: """
+			Phase 0 sync fallback é compromisso operacional
+			aceito enquanto cmt-to-dlv relation não materializa;
+			Phase 1+ event-driven é precondition de scale (BD12).
+			Boundary preservation: CMT owns criteria lifecycle;
+			DLV consume sync Phase 0 OR async Phase 1+. Anti-
+			mini-NIM enforced: DLV não infere criteria, consume.
+			"""
+	}, {
+		id: "as-dlv-3"
+		assumption: """
+			IDC integrity proof primitive disponível + DSSE-
+			anchored com verificabilidade local (DSSE complete
+			payload OR offline-verifiable snapshot per BD11).
+			Ingestion path NÃO depende de IDC online (per BD11
+			local-first); evaluation Layer 1 deep semantic check
+			Phase 0 OPCIONAL via QueryEvidenceProof IDC sync com
+			fail-safe fallback (integrity-unverifiable-remote →
+			DeliveryRejected per BD9).
+			"""
+		invalidationSignal: """
+			IDC proof generation rate insuficiente OR DSSE format
+			change rompe local verifiability (parser
+			incompatibility detectada via integrity-proof-
+			unverifiable-local rate sustained spike) OR IDC
+			online indisponibilidade prolongada Phase 1+ quando
+			full semantic check via IDC sync vira mais frequente
+			(criteria evolution requires deep verification).
+			"""
+		rationale: """
+			IDC é dependency upstream crítica; DSSE-anchored
+			cryptographic primitive é precondition de Layer 1
+			BD11 + BD9. Local-first preserva cc-03 24/7 sem
+			network dependency em ingestion path; evaluation
+			path Phase 0 majoritariamente local-only com IDC
+			sync como fallback raro.
+			"""
+	}, {
+		id: "as-dlv-4"
+		assumption: """
+			DRC dispute lifecycle materializa Phase 1+ para
+			post-finality corrections (BD8 path B DRC-driven
+			trigger via ResolutionRequiresVerificationUpdate
+			event). Phase 0 manual coordination DRC↔founder
+			absorve cost; supervisedDecision approve-post-
+			finality-supersession (BD8 path A) é único path
+			autônomo Phase 0.
+			"""
+		invalidationSignal: """
+			drc-to-dlv reverse relation não materializa em
+			horizonte (Phase 1 deadline 2026-Q4 paralelo a
+			oq-dlv-1) OR post-finality-correction-rate sustained
+			via path A elevada (esc-post-finality-correction-
+			rate-sustained breach) signaliza overload de
+			supervisedDecision channel sem auto-DRC path; volume
+			cresce além de capacidade founder review manual.
+			"""
+		rationale: """
+			DRC dispute path é safety net P6 cross-BC awareness
+			essencial para F5 cross-BC inconsistency mitigation
+			(override pós-finality afeta INV/REW/FCE downstream).
+			Phase 0 path A supervisedDecision é compromisso
+			temporal aceito; Phase 1+ path B DRC-driven é
+			precondition de scale (org cresce, founder review
+			manual vira gargalo).
+			"""
+	}]
+
+	// =============================================
+	// OPEN QUESTIONS (7)
+	// =============================================
+
+	openQuestions: [{
+		id: "oq-dlv-1"
+		question: """
+			Quando cmt-to-dlv + drc-to-dlv reverse relations
+			materializam no context-map (CommitmentAccepted +
+			CriteriaActivated CMT events; ResolutionRequires
+			VerificationUpdate DRC event)? Quais shapes (payload
+			+ timing + idempotency semantics)?
+			"""
+		impact: """
+			Phase 0 opera com 3 PHASE 1+ FORWARD-REFs:
+			CommitmentAccepted (removido per founder
+			minimality), CriteriaActivated (sync fallback via
+			QueryCommitmentCriteria absorve cost), Resolution
+			RequiresVerificationUpdate (manual coordination via
+			supervisedDecision approve-post-finality-supersession).
+			Phase 1+ event-driven é precondition de cache
+			invalidation explicit (BD12) + DRC-driven path B
+			(BD8) — sem materialização, scale degrade.
+			"""
+		deadline: "2026-12-31"
+		rationale: """
+			Resolver durante CMT canvas evolution + DRC canvas
+			bootstrap pós-WI-049/WI-053. Bridge oq-p2p-1 (CTR
+			pattern paralelo); mesma semântica de PHASE 1+
+			FORWARD-REF cross-BC relations. Materialização
+			depende de WI sequencing macroflow.
+			"""
+	}, {
+		id: "oq-dlv-2"
+		question: """
+			Window 30d economic finality é adequado universal OR
+			requer parameterização per criteria type (Phase 1+)?
+			Critérios complexos plurianuais (e.g., obras civis
+			multi-milestone) podem exigir window maior; commodity
+			simples podem reduzir para 7-14d.
+			"""
+		impact: """
+			Phase 0 hard-coded 30d alinhado com V6; calibração
+			via post-finality-correction-rate empirical per
+			esc-post-finality-correction-rate-sustained breach.
+			Phase 1+ promotion para criteria-type-specific window
+			via criteriaVersion declaration (paralelo a Layer 2
+			check classes oq-dlv-6).
+			"""
+		deadline: "2026-12-31"
+		rationale: """
+			Phase 0 30d é compromisso baseline; calibração
+			empírica primeiro 6 meses operação; promotion
+			estrutural Phase 1+ via tension-entry → deferred-
+			decision → ADR pipeline per esc artifact ordering.
+			Resolver via empirical signal sustained.
+			"""
+	}, {
+		id: "oq-dlv-3"
+		question: """
+			Commitment com NENHUM evidence ingerida ever — qual
+			policy de timeout estrutural Phase 1+? Phase 0 stuck
+			indefinidamente em pending-evaluation (BD7 anti-
+			default preserved); Phase 1+ commitment-level timeout
+			(e.g., commitment cancelled após N dias sem evidence
+			OR DRC dispute forçada).
+			"""
+		impact: """
+			Phase 0: commitments sem evidence ficam stuck —
+			downstream (INV, FCE) não progridem; sh-02 fornecedor
+			não recebe payment por não-execução; sh-01 originadora
+			tem cash committed bloqueado. Phase 1+ timeout policy
+			estrutura cleanup; sem ela, volume crescente
+			degrade observability.
+			"""
+		deadline: "2027-06-30"
+		rationale: """
+			Phase 0 manual cleanup via founder review semanal +
+			CMT commitment cancellation via cross-BC coordination
+			(quando aplicável); Phase 1+ formal policy timeout
+			via cross-BC ADR. Resolver pós-CMT canvas evolution.
+			"""
+	}, {
+		id: "oq-dlv-4"
+		question: """
+			Supplier API para sh-02 acknowledged/fulfilled
+			lifecycle materializa quando? Como? Phase 0 supplier
+			interaction reduzida a notification via NTF
+			transversal + manual response; Phase 1+ direct API
+			permite acknowledge/reject + RecordEvidence sync
+			direct submission.
+			"""
+		impact: """
+			Phase 0 sh-02 limited interaction → integrity-
+			failure-at-ingestion-rate signal mediado via LOG/sh-
+			01; supplier API Phase 1+ permitiria signal direto
+			+ reduce intermediation latency. Bridge oq-p2p-4
+			(paralelo P2P supplier API).
+			"""
+		deadline: "2027-03-31"
+		rationale: """
+			Supplier API design depende de adoption + tooling
+			supplier-side. Phase 0 deliberately NOT modeled —
+			NTF + sh-01 mediation absorve cost. Bridge oq-p2p-4
+			same horizon; cross-BC coordination NPM Phase 1+.
+			"""
+	}, {
+		id: "oq-dlv-5"
+		question: """
+			Latest-evaluation-wins semantic — quando múltiplas
+			supersessions em chain ocorrem (evidenceRef-N → N+1 →
+			N+2 → ... sob mesmo commitmentRef), downstream
+			consumers (INV/REW/NIM/DRC) devem consumir canonical-
+			current (latest sob ordering eventLogOffset) OR
+			projetar todas terminal events do chain? Documentação
+			canonical em DLV é necessária para evitar consumer-
+			side projection logic divergente.
+			"""
+		impact: """
+			Sem clarificação canonical, INV/REW/NIM podem
+			implementar projection logic divergente: alguns
+			consumers tratam latest como canonical-current
+			(invalidam anteriores); outros agregam histórico
+			(considerando todos eventos terminal). Drift cross-
+			consumer leva a inconsistência operacional cross-BC
+			(F5 failure mode signal). Canonical answer:
+			canonical-current = latest by ordering (eventLogOffset
+			global determinístico per BD5); histórico permanece
+			ÍNTEGRO E IMUTÁVEL — supersession NÃO substitui
+			eventos anteriores, apenas REFERENCIA via
+			supersededByRef attribute. Consumers DEVEM projetar
+			canonical-current via ordering canonical; histórico
+			é audit trail acessível via QueryEvidenceLedger Phase
+			1.4.
+			"""
+		deadline: "2026-12-31"
+		rationale: """
+			Founder-flagged durante Phase 1.6 review. Resolver
+			via ADR cross-BC documentando consumer-side projection
+			pattern + property test garantindo consistency. Pre-
+			condition de INV canvas + REW canvas bootstrap.
+			Documentação canonical em outer rationale + glossary
+			Phase 2.
+			"""
+	}, {
+		id: "oq-dlv-6"
+		question: """
+			Industry packs (vertical-specific Layer 2 check
+			classes per BD9) materializam quando? Como? Phase 0
+			baseline universal (consistency/range/temporal); Phase
+			1+ verticals adicionam classes específicas (e.g.,
+			construction structural-integrity-check; logistics
+			chain-of-custody-check) via criteriaVersion
+			declaration extension.
+			"""
+		impact: """
+			Phase 0 cobertura genérica adequada para baseline;
+			verticals específicos (construção civil, logística,
+			energia) requerem checks domínio-específicos —
+			ausência limita criteria expressividade Phase 0.
+			Phase 1+ extension via schema mecanismo (paralelo a
+			retryPath BD13 + reasonCode BD1 extensibility).
+			"""
+		deadline: "2027-06-30"
+		rationale: """
+			Industry pack design depende de evidence empírica
+			cross-vertical Phase 0; primeira vertical (construção
+			civil — primaryVertical) materializa pack mais cedo;
+			outros verticals via deferred decision quando volume
+			justify. Bridge cross-BC com CMT criteriaVersion
+			lifecycle.
+			"""
+	}, {
+		id: "oq-dlv-7"
+		question: """
+			Exception timer 14 dias Phase 0 — parameterização
+			per criteria type Phase 1+? Critérios complexos
+			(plurianuais, multi-milestone) podem requerer windows
+			distintas; commodity simples podem reduzir para 7d.
+			"""
+		impact: """
+			Phase 0 hard-coded 14d alinhado com BD6 + V6;
+			calibração via exception-extension-rate empirical
+			per esc-exception-extension-rate-sustained breach
+			OR exception-cap-hit-count signal sustained. Cap
+			absoluto 30d cumulative preserved across all criteria
+			types Phase 0; per-type parameterization Phase 1+
+			pode ajustar timer initial sem alterar cap.
+			"""
+		deadline: "2027-03-31"
+		rationale: """
+			Phase 0 universal baseline; calibração via empirical
+			signal Phase 1+ via tension-entry → deferred-decision
+			→ ADR pipeline per esc artifact ordering. Bridge
+			oq-dlv-2 (window finality calibration paralelo) e
+			oq-dlv-6 (industry packs criteria extensions).
+			"""
+	}]
+
+	// =============================================
+	// VERIFICATION METRICS (8)
+	// 7 escalation-bound + 1 invariant tripwire
+	// All DLV-internal-only; NOT published cross-BC (BD10 boundary)
+	// All deterministic projections of Event Log (Phase 3-ready)
+	// =============================================
+
+	verificationMetrics: [{
+		id: "emergency-override-rate"
+		metric: """
+			TYPE: rate. NUMERATOR: count(DeliveryVerified events
+			where reasonCode=exception-emergency-override).
+			DENOMINATOR: count(total terminal verifications) =
+			count(DeliveryVerified) + count(DeliveryRejected) em
+			janela rolling 30d. SAMPLE GATE: N(num+denom) ≥ 50
+			OR janela ≥ 14d; abaixo do gate, metric retorna
+			status=insufficient-sample (NÃO valor numérico, NÃO
+			0; consumers tratam como invalid). SCOPE: DLV-
+			internal-only; EXPOSURE: NOT published cross-BC.
+			BINDING: esc-emergency-override-rate-sustained.
+			"""
+		target: """
+			sustained < 5% em janela trimestral steady-state.
+			Breach (sustained > 5%) triggera artifact ordering:
+			transient (1 janela) → tension-entry; recurrent (2+
+			janelas) → deferred-decision; structural (3+ janelas
+			OR design implication) → ADR. Conexão a oq-dlv-4
+			supplier API maturation Phase 1+.
+			"""
+		rationale: """
+			Antifragility loop M2: rate sustained = signal
+			estruturado de design pressure (ingestion path
+			failure técnico OR sh-01 abuse pattern). P4 feedback
+			fecha loop: override-rate vira artefato registrando
+			evolução do sistema. BD10 boundary preserved:
+			observation-only, NÃO consumed por evaluation
+			runtime. Replay-safe: numerador/denominador são
+			counts exatos sobre Event Log.
+			"""
+	}, {
+		id: "post-finality-correction-rate"
+		metric: """
+			TYPE: rate. NUMERATOR: count(terminal verifications
+			with reasonCode IN [post-finality-correction, drc-
+			driven-correction]). DENOMINATOR: count(total
+			terminal verifications) em janela rolling 30d.
+			SAMPLE GATE: mesmo (N ≥ 50 OR janela ≥ 14d; senão
+			status=insufficient-sample). SCOPE: DLV-internal-
+			only; EXPOSURE: NOT published cross-BC. BINDING:
+			esc-post-finality-correction-rate-sustained.
+			"""
+		target: """
+			sustained < 1% em janela trimestral. Breach triggera
+			artifact ordering tension/deferred/ADR; conexão a
+			oq-dlv-2 window calibration via empirical data.
+			"""
+		rationale: """
+			Antifragility loop M2: window 30d hard-coded é
+			tension-entry candidate via empirical signal —
+			calibração emerge de operational data, não de
+			assumption arbitrária. Inclui ambas paths BD8 (path
+			A supervisedDecision + path B DRC-driven Phase 1+).
+			Replay-safe; BD10 boundary preserved.
+			"""
+	}, {
+		id: "criteria-override-rate"
+		metric: """
+			TYPE: rate. NUMERATOR: count(terminal verifications
+			where reasonCode=criteria-version-override-applied).
+			DENOMINATOR: count(total terminal verifications) em
+			janela rolling 30d (consistente com outros rates;
+			evita misturar universos numerator-vs-denominator).
+			SAMPLE GATE: mesmo (N ≥ 50 OR janela ≥ 14d).
+			SCOPE: DLV-internal-only. BINDING: esc-criteria-
+			override-rate-sustained.
+			"""
+		target: """
+			sustained < 2% em janela trimestral. Breach triggera
+			artifact ordering tension/deferred/ADR; conexão a
+			CMT criteria-lifecycle review (cross-BC coordination
+			via P6 cross-BC awareness).
+			"""
+		rationale: """
+			Antifragility loop M2: rate sustained = CMT criteria-
+			activation flow inadequado OR sh-01 abuse pattern.
+			P6 cross-BC awareness: signal cross-BC para CMT
+			review. Denominador alinhado com outras rates (total
+			terminal verifications) preserva semantic
+			consistency: '% das decisões que usaram override'.
+			"""
+	}, {
+		id: "exception-extension-rate"
+		metric: """
+			TYPE: rate. NUMERATOR: count(extend-exception-window
+			supervisedDecision invocations). DENOMINATOR:
+			count(distinct exception_instance_id) onde
+			'exception_instance_id = first entry into exception
+			state for (commitmentRef, evidenceRef)'. Re-entries
+			após resolução contam como NOVA exception instance
+			(distinct id). Janela rolling 30d. SAMPLE GATE:
+			mesmo. SCOPE: DLV-internal-only. BINDING: esc-
+			exception-extension-rate-sustained.
+			"""
+		target: """
+			sustained < 10% em janela trimestral. Breach triggera
+			artifact ordering tension/deferred/ADR; conexão a
+			oq-dlv-7 timer parameterization per criteria type
+			Phase 1+.
+			"""
+		rationale: """
+			Antifragility loop M2: extension-rate sustained =
+			signal de 14-day window inadequate (oq-dlv-7) OR
+			humano capacity insuficiente (Phase 1+ tier
+			separation). P5 fail-safe preserved (cap absoluto
+			30d cumulative). Definição operacional inequívoca de
+			exception_instance_id garante replay determinism;
+			re-entries como nova instance evita undercounting.
+			"""
+	}, {
+		id: "integrity-failure-at-ingestion-rate"
+		metric: """
+			TYPE: rate. NUMERATOR: count(RecordEvidence rejected
+			at parsing OR EvidenceCommitted ingestion failed
+			with reasonCode IN [integrity-proof-unverifiable-
+			local, integrity-failure]). DENOMINATOR: count(total
+			ingestion attempts) em janela rolling 30d. SAMPLE
+			GATE: mesmo (N ≥ 50 OR janela ≥ 14d). SCOPE: DLV-
+			internal-only. PHASE 0 BEHAVIOR: observational only
+			com spike detection guardrail (value > 3x rolling
+			median of last 30d) — NÃO escalation automática até
+			baseline empírico estabelecido; logging obrigatório
+			+ founder review manual se spike abrupto. PHASE 1+
+			BINDING: esc-integrity-failure-rate-sustained
+			(threshold sustained > X% TBD baseline empírico).
+			"""
+		target: """
+			Phase 0: spike detection apenas (value > 3x rolling
+			median 30d → logging + founder review; NÃO automated
+			escalation). Phase 1+: threshold sustained > X% TBD
+			triggera artifact ordering tension/deferred/ADR;
+			conexão a F1 forgery vector signal investigation OR
+			LOG-side operational issue (P6 cross-BC awareness).
+			"""
+		rationale: """
+			Phase 0 baseline empírico TBD via primeiros 3-6 meses
+			operação; spike detection guardrail evita 'silêncio
+			de governança' enquanto baseline estabiliza —
+			anomaly relativa rolling median é detectable mesmo
+			sem absolute threshold. M2 antifragility + P6 cross-
+			BC awareness: integrity failure pattern pode ser DLV
+			bug, LOG-side issue, OR adversarial attack —
+			investigation path multi-BC.
+			"""
+	}, {
+		id: "exception-cap-hit-count"
+		metric: """
+			TYPE: count (absolute, NOT rate-based). NUMERATOR:
+			count(exceptions where cumulative timer reached 30d
+			hard cap absolute per BD6). DENOMINATOR: N/A
+			(absolute count). Janela rolling 90d. SAMPLE GATE:
+			NOT applicable (single incident já é signal
+			significativo). SCOPE: DLV-internal-only. BINDING:
+			esc-exception-cumulative-cap-reached.
+			"""
+		target: """
+			sustained > 0 em janela 90d → escalação. Breach
+			triggera artifact ordering: transient (1 incident)
+			→ tension-entry; recurrent (2+) → deferred-decision;
+			structural (3+) → ADR + tier separation Phase 1+.
+			Conexão a oq-dlv-7 timer parameterization +
+			humano capacity Phase 1+.
+			"""
+		rationale: """
+			ABSOLUTE threshold (não rate-based) porque cap
+			absoluto é evento individual significant — single
+			incident já merece atenção; sustained pattern é
+			signal estrutural. Distinção rate-vs-absolute (per
+			founder ajuste #7 Phase 1.5) preserva clareza
+			operacional. Replay-safe via cumulative tracking
+			em exceptionHistory.
+			"""
+	}, {
+		id: "regulatory-flag-count"
+		metric: """
+			TYPE: count (absolute, per-incident). NUMERATOR:
+			count(verifications where regulatory-fiscal-
+			ambiguity escalation triggered). DENOMINATOR: N/A.
+			Janela rolling 90d. SAMPLE GATE: NOT applicable
+			(per-incident). SCOPE: DLV-internal-only. PRIORITY:
+			OVERRIDES ALL rate-based escalation criteria
+			(integridade legal CLAUDE.md nivel 1 inviolable).
+			BINDING: esc-regulatory-fiscal-ambiguity.
+			"""
+		target: """
+			Qualquer ≥ 1 = escalação imediata (founder + parecer
+			especializado obrigatório); verification BLOQUEADA
+			até decisão. Sustained > 0 em 90d = pattern signal
+			triggera artifact ordering caso-a-caso (typical →
+			tension-entry; recurring → deferred-decision para
+			criteria/regulatory evolution; structural → ADR +
+			cross-BC coordination).
+			"""
+		rationale: """
+			Integridade legal é constraint inviolável (CLAUDE.md
+			nivel 1); zona cinza exige julgamento humano
+			especializado — NÃO automation. Priority overrides
+			rate-based porque single incident já é potential
+			regulatory exposure (não tolerável sample gate
+			delay). Distinta de outros escalations (rate-based
+			operational signals); per-incident absolute.
+			"""
+	}, {
+		id: "verified-without-evidence-or-override-attempts"
+		metric: """
+			CLASSIFICATION: invariant-check (NOT operational
+			metric). NUMERATOR: count(DeliveryVerified emits
+			onde NÃO existe preceding EvidenceRecord aggregate
+			AND NÃO existe supervisedDecision approve-with-
+			emergency-override). DENOMINATOR: N/A. Janela:
+			continuous (rolling all-time). SAMPLE GATE: NOT
+			applicable (any non-zero is signal). SCOPE: DLV-
+			internal-only structural validator. BINDING: NONE
+			(explicitly NOT part of escalationCriteria system).
+			PRIORITY: CRITICAL (overrides all other signals).
+			SCOPE_ENFORCEMENT: blocks autonomous emit pipeline
+			until cleared (immediate freeze de emit autônomo;
+			supervisedDecision channel pode permanecer ativo
+			com mandatory audit elevated).
+			"""
+		target: """
+			DEVE = 0 sempre; qualquer ≥ 1 = critical
+			implementation bug. ACTION: ADR obrigatório +
+			structural investigation root cause + immediate
+			freeze de emit autônomo até cleared. NÃO bound a
+			escalationCriterion porque é validação de invariante
+			estrutural, NÃO pattern signal operacional.
+			"""
+		rationale: """
+			Invariant tripwire validando BD7 anti-default:
+			structural promise 'no evidence verified → no
+			economic progression' deve ser verificável em
+			operação. Property-based test pattern: ∀
+			DeliveryVerified ∃ EvidenceRecord precedente OR
+			supervisedDecision approve-with-emergency-override.
+			Non-zero é structural failure — não 'rate alta',
+			mas 'sistema quebrado'; resposta é freeze + ADR,
+			não calibration. Distinct categorical de operational
+			metrics; isolated por design para evitar
+			'agregação/suavização' inadvertida no futuro.
+			"""
+	}]
+
+	// =============================================
+	// RATIONALE OUTER — síntese completa
+	// =============================================
+
+	rationale: """
+		DLV é o quinto BC do macrofluxo Mesh (SSC → {P2P, CTR}
+		→ CMT → BDG → DLV → INV → FCE), gate verificável que
+		materializa a invariante central da tese: no evidence
+		→ no economic progression. Sem este gate, a decisão
+		de 'evidência suficiente para pagar' ficaria distribuída
+		entre LOG (que captura mas não julga) e FCE (que paga
+		mas não verifica), e a invariante degrada de gate
+		verificável a acordo informal.
+
+		Frase canônica do papel: DLV é o juiz; LOG é a câmera;
+		CMT é o contrato. DLV NÃO captura evidência (LOG), NÃO
+		formaliza compromisso (CMT), NÃO fatura (INV), NÃO paga
+		(FCE), NÃO modela risco (REW), NÃO contesta verificação
+		(DRC). Anti-mini-NIM transversal preservado via 3
+		boundaries hard (BD7 evidence-side + BD12 criteria-side
+		+ BD10 scoring-side) protegendo agente de drift cognitivo
+		para responsabilidades adjacentes.
+
+		Compliance-enforcer thesis-level: DLV impõe a invariante
+		'nenhum compromisso progride para faturamento sem
+		evidência verificada' — compliance INTERNA da tese
+		(anti-fraude estrutural que torna recebíveis Mesh mais
+		confiáveis que tradicionais), NÃO compliance regulatória
+		externa (esta vive em IDC/REG por delegação). Distinção
+		semântica explícita: dois tipos de compliance no sistema
+		— externa (leis, reguladores) em IDC/REG; interna
+		(invariantes econômicas que tornam o sistema confiável)
+		em DLV.
+
+		14 BUSINESSDECISIONS organizadas em 4 lotes:
+
+		Lote 1 (núcleo determinístico): bd-evidence-criteria-
+		match-deterministic (RECTOR thesis-invariant; binário
+		verified|rejected; insuficiência = rejected + reasonCode);
+		bd-verification-idempotent (identidade (commitmentRef,
+		evidenceRef); criteriaVersion como ATTRIBUTE NÃO
+		identity); bd-replay-deterministic-criteria-versioned
+		(tripla causal (evidenceRef, criteriaVersion,
+		integrityProofSnapshot); metadata como output).
+
+		Lote 2 (lifecycle/estados): bd-ingestion-evaluation-
+		separation (RecordEvidence append-only vs Evaluate
+		Verification função pura; aggregates distintos); bd-
+		evidence-supersession-not-choice (linear deterministic
+		via Event Log offset + hash tie-breaker; trigger dual
+		LOG primary + DLV fallback); bd-exception-state-
+		transitive (14-day mandatory transition; estado único
+		+ exceptionHistory append-only; fail-safe auto-rejection;
+		extensions cumulativas cap 30 dias TOTAL).
+
+		Lote 3 (economia/fronteiras): bd-no-evidence-no-verified
+		(anti-default RECTOR-adjacent; emergency override path
+		supervised); bd-economic-finality-window (30d V6 alignment;
+		DLV clock single source NÃO FCE; superseding pos-finality
+		controlada via supervisedDecision OR DRC-driven trigger);
+		bd-truth-vs-integrity-defense-in-depth (3 layers L1+L2
+		DLV scope + L3 REW/NIM scope; honest sobre limites); bd-
+		no-scoring-by-dlv (anti-mini-NIM hard line; lista
+		proibidas explícita; distinção scoring vs
+		verificationMetrics preservada).
+
+		Lote 4 (boundaries operacionais): bd-evidence-integrity-
+		mandatory (ingestion-time mandate; local verifiability
+		via DSSE complete OR offline snapshot; DLV nunca depende
+		de rede); bd-criteria-declared-upfront (criteria
+		precondition temporal+estrutural; estado evaluating-
+		pending-criteria INTERNO não publicado cross-BC); bd-
+		rejection-with-rationale (reasonCode + retryPath signal
+		FUNÇÃO DETERMINÍSTICA via schema mapping table; replay-
+		safe); bd-atomic-emit (atomicity operational commit
+		aggregate + publish event AS-ONE; no duplicate publish
+		cross-BC at-most-once observability).
+
+		Sistema com PROPRIEDADES FORMAIS COMPLETAS verificáveis:
+		determinismo (BD1) + idempotency (BD2) + atomicity (BD14)
+		+ replayability (BD3) + finality (BD8) + auditability
+		(BD3 + BD11 + cc-04). Invariantes formais:
+		- nenhuma decisão sem evidência (BD7 + BD11)
+		- nenhuma evidência sem prova (BD11)
+		- nenhuma prova sem validação local (BD9 Layer 1 + BD11)
+		- nenhuma decisão sem finalidade (BD8)
+		- nenhuma finalidade sem auditabilidade (BD3 + BD11)
+		- nenhuma exceção sem resolução (BD6)
+
+		3 stakeholders cobrindo 4 vetores adversariais (labeled
+		[VETOR-N <name>] em prose para instrumentação futura):
+		sh-01 originadora (VETOR-2 premature-approval-gaming);
+		sh-02 fornecedor (VETOR-1 forgery-de-evidencia + VETOR-3
+		withholding-de-evidencia-valida); sh-05 operador agente
+		DLV (VETOR-4 multi-actor-coordinated-attack). Defense
+		transversal (P1-P6 + M1-M4) eliminando 3 classes de
+		falha: verified-por-ausência + reversão-infinita +
+		scoring-contaminação.
+
+		2 costsEliminated: ce-01 (verificação presencial
+		repetitiva substituída por evidência criptograficamente
+		verificável — diferencial central da tese); ce-04 (custo
+		de risco com dados incompletos — DLV produz signals
+		categóricos rich; REW agrega/scora per BD10 boundary).
+
+		governanceScope ANTIFRÁGIL materializa modelo aprovado:
+		6 PRINCÍPIOS (P1 LOUD + P2 BOUNDED + P3 RECONCILIATION
+		mandatory + P4 FEEDBACK estrutural + P5 anti-paralysis
+		+ P6 cross-BC awareness) + 4 MECANISMOS (M1 categorical
+		reasonCodes + M2 rate-based escalation com sample gate
+		+ M3 [INVARIANT Phase 0] founder único approver + non-
+		implicit-delegation + M4 reconciliation status tracked
+		Phase 0 manual com OBS visibility) + 5 FAILURE MODES
+		mapeados (F1-F5). 7 autonomousDecisions + 6
+		supervisedDecisions (4 override channels + 2 normal) +
+		7 escalationCriteria (5 rate-based com sample gate + 2
+		absolute) com mandatory artifact ordering tension/
+		deferred/ADR per breach sustained.
+
+		Antifragility property: pressão sobre override paths
+		gera sinais que FORTALECEM o design (P4 artifact ordering
+		closes loop override → sinal → métrica → gatilho →
+		mudança estrutural). Override deixa de ser 'escape hatch'
+		passivo e vira mecanismo ATIVO de design feedback.
+		Sistema aprende com pressure; override é input
+		estruturado de evolução, não falha a esconder.
+
+		8 verificationMetrics são PROJEÇÕES DETERMINÍSTICAS DO
+		EVENT LOG (Phase 3-ready), independentes de storage/
+		infra: 7 escalation-bound (5 rate-based com sample gate
+		+ 2 absolute) + 1 invariant tripwire structural validator
+		(verified-without-evidence-or-override-attempts; binding
+		NONE; priority CRITICAL; scope_enforcement blocks
+		autonomous emit pipeline until cleared). Todas DLV-
+		internal-only; NOT published cross-BC (BD10 boundary
+		rigoroso). Sample gate behavior: status=insufficient-
+		sample (NÃO 0; NÃO valor numérico); evita decisões com
+		ruído. Antifragility loop fechado: metric → escalation →
+		artifact ordering → design evolution.
+
+		'Latest-evaluation-wins' semantic (oq-dlv-5 founder-
+		flagged): canonical-current = latest by ordering
+		(eventLogOffset global determinístico per BD5); histórico
+		permanece ÍNTEGRO E IMUTÁVEL — supersession NÃO substitui
+		eventos anteriores, apenas REFERENCIA via supersededByRef
+		attribute. Consumers downstream (INV/REW/NIM/DRC) DEVEM
+		projetar canonical-current via ordering canonical;
+		histórico é audit trail acessível via QueryEvidenceLedger.
+		Documentação canonical em outer rationale + glossary
+		Phase 2 + cross-BC ADR Phase 1+.
+
+		4 LENSES ANALÍTICAS aplicáveis ao design:
+		- lens-incentive-alignment (PRIMÁRIA — defense contra 4
+		  vetores adversariais com per-actor escalation;
+		  governanceScope antifrágil materializa lens-aware
+		  design)
+		- lens-determinism-by-design (PRIMÁRIA — função pura
+		  sobre snapshot imutáveis; replay-safety; no external
+		  state; 14 BDs convergem em propriedades formais)
+		- lens-event-driven-architecture-patterns (SECUNDÁRIA
+		  — 4 events cross-BC inbound + 2 published events
+		  terminal + 2 sync commands + 2 query-surfaces +
+		  2 query-deps; ACL deduplication via eventLogOffset)
+		- lens-information-economics (TERCIÁRIA — Verification
+		  events com payload categórico rich consumed por REW/
+		  NIM Layer 3; data completeness elimina ce-04; signals
+		  estruturais para mechanism design)
+
+		PHASE 0 CAVEATS explícitos:
+		- 3 PHASE 1+ FORWARD-REFs cross-BC (cmt-to-dlv +
+		  drc-to-dlv relations) — Phase 0 fallbacks operacionais
+		  completos via sync queries + supervisedDecision
+		- IDC dependency OPCIONAL Phase 0 com fail-safe fallback
+		  (integrity-unverifiable-remote → rejected) — DLV
+		  nunca depende de rede para correctness
+		- Industry packs criteria-version-extension Phase 1+
+		  (oq-dlv-6); Phase 0 baseline universal consistency/
+		  range/temporal
+		- Supplier API ausente Phase 0 (oq-dlv-4); sh-02
+		  interaction via NTF + sh-01 mediation
+		- Commitment timeout policy Phase 1+ (oq-dlv-3);
+		  Phase 0 stuck-em-pending-evaluation tolerado para
+		  preservar BD7 anti-default
+		- Reconciliation manual Phase 0 (M4); auto Phase 1+
+		  via OBS infra
+		- Founder review manual para escalation breaches Phase
+		  0; auto-trigger Phase 1+ via OBS metric infrastructure
+		- 4 schema constraints documentados via description
+		  text Phase 0 (visibility, dedupKey, fallback,
+		  manipulationVectors sub-structure) — promotion via
+		  def-014 + future def quando recurrence cross-canvas
+		  emergir
+
+		Forward-refs Phase 4-5 (cascading): agent-spec Phase 4
+		consumes governanceScope (autonomous decisions via
+		actions; supervised via escalationRoutes; constraints
+		anti-mini-NIM transversais); agent-governance envelope
+		Phase 5 materializa enforcement runtime para
+		supervisedDecisions + escalationCriteria —
+		governanceScope DECLARA, envelope EXECUTA gate runtime.
+		Coerência governanceScope ↔ agent-spec ↔ envelope é
+		critical path; founder flagged como último ponto onde
+		sistemas deste tipo costumam falhar.
+
+		Anti-mini-NIM transversal verificado em 4 BDs negativos
+		+ 3 boundaries hard + agent-spec negative-action
+		constraints + envelope governance sections — defesa em
+		camadas contra drift cognitivo do agente operador.
+
+		Risco residual reconhecido (compromisso explícito):
+		- Vetor 4 multi-actor coordinated bias subtle — Phase
+		  1+ mitigation via REW/NIM Layer 3 + supplier API +
+		  automated OBS signaling
+		- Phase 0 founder review manual gargalo se volume
+		  cresce — Phase 1+ tier separation + automated trigger
+		- Baseline empírico TBD (Metric 5 integrity-failure;
+		  thresholds 5%/1%/2%/10% Phase 0 placeholder) —
+		  calibração via primeiros 3-6 meses operação
+
+		Phase 1.6 fecha estruturalmente o canvas DLV: 14 BDs
+		completos + 3 stakeholders + 2 costsEliminated +
+		communication 4 inbound events + 2 commands + 2 query-
+		surfaces + 2 published events + 2 query-deps +
+		incentiveAnalysis 4 vetores + governanceScope antifrágil
+		7+6+7 + 4 assumptions + 7 openQuestions + 8
+		verificationMetrics. Phase 1.7 SRR consolida self-
+		review evidence cobrindo todo o build-up Phase 1
+		(7 commits 1.1-1.7).
+		"""
 }
