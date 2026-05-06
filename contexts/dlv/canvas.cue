@@ -2162,11 +2162,451 @@ canvas: artifact_schemas.#Canvas & {
 	}]
 
 	// =============================================
-	// COMMUNICATION — placeholder; conteúdo em commit 1.4
+	// COMMUNICATION (4 inbound events + 2 commands + 2 query-surfaces;
+	//                2 outbound events + 2 query-deps)
 	// =============================================
 
 	communication: {
-		rationale: "Placeholder — communication completa (5 inbound: EvidenceRecorded LOG + CommitmentAccepted CMT + criteria activation CMT + EvidenceSuperseded LOG + verification dispute DRC; 2 outbound: DeliveryVerified + DeliveryRejected; 2 query-deps: QueryCommitmentCriteria CMT + QueryEvidenceProof IDC; 2 commands: RecordEvidence sync + EvaluateVerification sync; 2 query-surfaces: QueryVerificationStatus + QueryEvidenceLedger) entra em commit 1.4. Naming Delivery* events alinhado com bd-evidence-criteria-match-deterministic + cap-delivery-lifecycle-public-events Phase 1.2."
+		inbound: [{
+			type:          "event-consumer"
+			sourceContext: "log"
+			event:         "EvidenceCommitted"
+			reaction: """
+				DLV consume via ACL (log-to-dlv operacional Phase 0)
+				e materializa EvidenceRecord aggregate per BD4
+				separation. Layer 1 integrity check ingestion-time
+				per BD11 (integrityProofRef obrigatório, local
+				verifiability sem network dependency); rejeição
+				parser-level se prova ausente/malformada (reasonCode=
+				integrity-proof-unverifiable-local). Phase 0 trigger
+				eventual evaluation policy disabled — evaluation
+				requer sync EvaluateVerification command upstream.
+				"""
+			description: """
+				Ingestion path entry primário cross-BC. Naming
+				'Committed' (vs 'Captured') indica explicitamente
+				que evento é emitido APÓS persistência completa em
+				LOG store, NÃO captura intermediária — DLV consume
+				apenas fatos commitados, nunca eventos intermediários
+				(garantia consumida por DLV: replay determinismo +
+				ordering canônica via eventLogOffset). LOG owns
+				evidence lifecycle (captura física, sensors, photos,
+				persistência); DLV consume signal de commit + ingere
+				local-first. Integrity proof DSSE-anchored validated
+				offline per BD11. Distinto de evento DLV-internal
+				EvidenceRecorded (BD4) que sinaliza aggregate
+				creation pós-ingestion — mesmo namespace conceitual,
+				estágios distintos (LOG persistence → DLV ingestion).
+				"""
+		}, {
+			type:          "event-consumer"
+			sourceContext: "log"
+			event:         "EvidenceSuperseded"
+			reaction: """
+				DLV consume via ACL e aplica BD5 supersession
+				lineage explícita: evidenceRef-N+1 substitui
+				evidenceRef-N para commitmentRef. Dentro da finality
+				window (BD8 30d), triggera nova evaluation autônoma
+				sob nova identidade (commitmentRef, evidenceRef-N+1).
+				Fora da window, registrado audit-trail-only (post-
+				finality-supersession-log-event) — não triggera
+				nova evaluation autônoma per BD8 hard line. Total
+				ordering canonical via eventLogOffset + hash tie-
+				breaker per BD5.
+				"""
+			description: """
+				Supersession trigger primário (path-A per BD5 dual
+				path). LOG declara lineage explícita; DLV reage
+				determinísticamente. Fallback path-B (DLV ordering
+				em ausência de LOG event) cobre degraded scenarios
+				per BD5 consequence (a)+(i). LOG owns supersession
+				lineage como source of truth quando disponível.
+				"""
+		}, {
+			type:          "event-consumer"
+			sourceContext: "cmt"
+			event:         "CriteriaActivated"
+			reaction: """
+				PHASE 1+ FORWARD-REF: cmt-to-dlv relation NÃO
+				existe Phase 0. Quando operacional Phase 1+: DLV
+				consume via ACL e atualiza prj-active-criteria
+				projection per BD12 cache invalidation explicit;
+				triggera eventual evaluation para evidence ingerida
+				em estado evaluating-pending-criteria. Phase 0
+				FALLBACK: sync-on-each-query via QueryCommitment
+				Criteria — sem cache projection operacional Phase
+				0; cada evaluation resolve criteria sync.
+				"""
+			description: """
+				PHASE 1+ FORWARD-REF (paralelo a P2P/CTR pattern).
+				BD12 cache invalidation explicit depende deste
+				event Phase 1+; Phase 0 sync-only criteria
+				resolution via QueryCommitmentCriteria absorve cost
+				de polling cada evaluation. Trade-off Phase 0
+				aceitável: simplicity + deterministic > latency.
+				CommitmentAccepted event NÃO é declarado inbound
+				Phase 0 — validação implícita de commitment
+				existence via QueryCommitmentCriteria sync (criteria
+				não existe se commitment não formalizado), evitando
+				superfície redundante per Phase 0 minimality.
+				"""
+		}, {
+			type:          "event-consumer"
+			sourceContext: "drc"
+			event:         "ResolutionRequiresVerificationUpdate"
+			reaction: """
+				PHASE 1+ FORWARD-REF: drc-to-dlv relation NÃO
+				existe Phase 0 (apenas dlv-to-drc forward
+				direction). Quando operacional Phase 1+: DLV
+				consume via ACL signal estruturado de DRC dispute
+				resolution requiring DLV emit nova Verification per
+				BD8 post-finality DRC-driven path; emit reasonCode=
+				drc-driven-correction + drcResolutionRef attribute.
+				Phase 0 FALLBACK: post-finality corrections via
+				supervisedDecision approve-post-finality-supersession
+				(BD8 path A) com manual coordination DRC↔founder.
+				"""
+			description: """
+				PHASE 1+ FORWARD-REF (drc-to-dlv reverse relation).
+				BD8 dual path pós-finality preserved: Phase 0 path
+				A supervisedDecision operacional; path B DRC-driven
+				materializa Phase 1+. Phase 0 manual cross-BC
+				coordination DRC↔founder absorve cost.
+				"""
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger: """
+				sh-02 fornecedor OR sh-01 originadora submete
+				evidence para commitmentRef estruturado com
+				integrityProofRef DSSE-anchored. Phase 0 manual
+				via internal channel (Phase 1+ supplier API
+				materializa per oq-dlv-4 paralelo a P2P).
+				Alternativa direct (event-driven path primário é
+				EvidenceCommitted from LOG).
+				"""
+			command: "RecordEvidence"
+			resultingEvents: ["EvidenceRecorded"]
+			description: """
+				Sync command direct ingestion path. EvidenceRecorded
+				em resultingEvents é evento DLV-INTERNAL (NÃO
+				cross-BC published per BD4) — listed em
+				resultingEvents para satisfazer schema MinItems(1)
+				constraint, NÃO para advertise como public contract.
+				VISIBILITY=internal-only (semantic note; schema não
+				suporta visibility field tipado Phase 0 — ver def-
+				communication-schema-enrichment para promotion
+				Phase 1+). Layer 1 integrity check parser-time per
+				BD11; rejection sync se proof ausente/inválida.
+				Naming distinto de EvidenceCommitted (LOG event,
+				cross-BC) reflete estágios semânticos diferentes:
+				LOG persistência → DLV ingestion aggregate creation.
+				"""
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger: """
+				sh-01 originadora OR DLV internal trigger (eventual
+				policy Phase 1+) solicita evaluation para
+				(commitmentRef, evidenceRef) específico — typically
+				após RecordEvidence/EvidenceCommitted + criteria
+				active.
+				"""
+			command: "EvaluateVerification"
+			resultingEvents: ["DeliveryVerified", "DeliveryRejected"]
+			description: """
+				Sync command core operation. Função pura sobre
+				(evidence, criteria via criteriaVersion snapshot,
+				integrityProof) per BD1; outcome binário verified |
+				rejected per BD7 anti-default; emit atomic per BD14.
+				Estado intermediário evaluating-pending-criteria
+				(BD12) ou exception-pending (BD6) NÃO produz
+				immediate cross-BC event — terminal events apenas.
+				Phase 0 cache miss criteria triggera sync
+				QueryCommitmentCriteria fallback. Resulting events
+				são MUTUALLY EXCLUSIVE per evaluation (uma das duas
+				outcomes terminal); listed both em resultingEvents
+				para shape do contract.
+				"""
+		}, {
+			type:       "query-surface"
+			query:      "QueryVerificationStatus"
+			returnType: "VerificationStatus"
+			description: """
+				VISIBILITY=internal-consumers-only (semantic note;
+				schema não suporta visibility field tipado Phase 0
+				— ver def-communication-schema-enrichment). Retorna
+				status atual de verification por (commitmentRef,
+				evidenceRef): outcome (verified | rejected |
+				evaluating-pending-criteria | exception-pending),
+				criteriaVersion, reasonCode (se rejected),
+				retryPath (se rejected), finalityAt,
+				exceptionHistory (se aplicável). Inclui estados
+				intermediários internos (BD12 evaluating-pending-
+				criteria; BD6 exception-pending) — diferentemente
+				de cross-BC events que expõem apenas terminal.
+				NÃO faz parte do contrato público de integração
+				downstream — consumers internos são sh-01/sh-02
+				(debugging/coordenação operacional), DRC (dispute
+				context investigation), audit functions. Cross-BC
+				downstream (INV/REW/NIM) NÃO consultam estados
+				intermediários — operam apenas sobre terminal
+				events (DeliveryVerified, DeliveryRejected) per BD8
+				+ BD12 + BD6 contract limpo.
+				"""
+		}, {
+			type:       "query-surface"
+			query:      "QueryEvidenceLedger"
+			returnType: "EvidenceLedger"
+			description: """
+				Retorna trail completo por commitmentRef: lista de
+				EvidenceRecords ingested (evidenceRef + recordedAt
+				+ integrityProofRef + supersededByRef?) +
+				Verifications emitidas (outcome + criteriaVersion +
+				decidedAt + finalityAt + reasonCode + retryPath +
+				exceptionHistory) em ordering canônica via
+				eventLogOffset. Imutabilidade preservada per BD2 +
+				BD3. Consumidores: audit Lei 12.846/SCD/CVM +
+				5-year retention; DRC dispute investigation; replay
+				forensic engine. Audit-trail focused (vs
+				QueryVerificationStatus que é status-snapshot
+				focused) — duas query-surfaces complementares com
+				escopos distintos.
+				"""
+		}]
+		outbound: [{
+			type: "event-publisher"
+			trigger: """
+				EvaluateVerification produz outcome=verified
+				(atomic emit per BD14a-b): aggregate Verification
+				state + DeliveryVerified event publication AS-ONE;
+				cross-BC ACL deduplica via eventLogOffset (at-most-
+				once cross-BC observability per BD14c). Dedup key
+				canonical eventLogOffset; FALLBACK identidade
+				lógica (commitmentRef, evidenceRef, eventType=
+				DeliveryVerified) cobre scenarios com partições
+				múltiplas / replay parcial / multi-log ingestion
+				(semantic note; schema não suporta dedupKey field
+				tipado Phase 0 — ver def-communication-schema-
+				enrichment).
+				"""
+			event: "DeliveryVerified"
+			consumers: ["inv", "rew", "nim", "drc"]
+			description: """
+				Hard binding cross-BC para 4 consumidores per cap-
+				delivery-lifecycle-public-events Lote 1.2:
+				(a) INV — faturamento gate (verified é precondition
+				    de invoice issuance);
+				(b) REW — qualidade-de-execução signal para credit
+				    scoring (data completeness per BD10 + ce-04);
+				(c) NIM — mecanismos de rede signal para incentive
+				    design;
+				(d) DRC — contexto para post-verification dispute
+				    investigation per BD8 (within finality window).
+				Payload categórico determinístico (BD10 no
+				scoring): commitmentRef, evidenceRef,
+				criteriaVersion, decidedAt, finalityAt
+				(=decidedAt+30d per BD8), decidedBy,
+				integrityProofRef, supersededByRef?,
+				exceptionHistory?. NENHUM campo numérico-
+				statistical. OBS NÃO é consumer explícito —
+				metrics são side-effect de observabilidade
+				operacional, não integração contractual cross-BC.
+				"""
+		}, {
+			type: "event-publisher"
+			trigger: """
+				EvaluateVerification produz outcome=rejected
+				(atomic emit per BD14a-b): aggregate Verification
+				state + DeliveryRejected event publication AS-ONE;
+				reasonCode + retryPath determinísticos per BD13
+				mandatory; cross-BC ACL deduplica per BD14c. Dedup
+				key canonical eventLogOffset; FALLBACK identidade
+				lógica (commitmentRef, evidenceRef, eventType=
+				DeliveryRejected) (semantic note; schema não
+				suporta dedupKey field tipado Phase 0 — ver def-
+				communication-schema-enrichment).
+				"""
+			event: "DeliveryRejected"
+			consumers: ["inv", "rew", "nim", "drc"]
+			description: """
+				Mesmo conjunto de consumers que DeliveryVerified
+				com semantics distintas:
+				(a) INV — bloqueia invoice path para commitment
+				    (rejected ≠ progressão econômica);
+				(b) REW — signal negativo para credit scoring
+				    (data completo via reasonCode taxonomy);
+				(c) NIM — signal para mechanism design (e.g.,
+				    padrões sustained de rejection sinalizam
+				    criteria evolution need);
+				(d) DRC — entry point IMEDIATO de dispute Phase 0
+				    per BD8; sh-02 pode contestar via DRC quando
+				    retryPath=non-retryable.
+				Payload mandatory carries reasonCode + retryPath
+				per BD13 schema constraint (closed struct rejeita
+				events sem ambos). OBS NÃO é consumer explícito.
+				"""
+		}, {
+			type:          "query-dependency"
+			targetContext: "cmt"
+			query:         "QueryCommitmentCriteria"
+			purpose: """
+				Sync resolution de criteriaVersion vigente para
+				commitmentRef Phase 0. Phase 0 é caminho PRIMÁRIO
+				(CMT events PHASE 1+ FORWARD-REF — sem cache
+				event-driven Phase 0); Phase 1+ vira fallback
+				quando prj-active-criteria projection materializa
+				via CriteriaActivated event consumption. Validação
+				implícita de commitment existence cobre ausência
+				de CommitmentAccepted inbound (criteria não existe
+				se commitment não formalizado).
+				"""
+			description: """
+				Caminho primário Phase 0 para criteria resolution
+				durante evaluation per BD12. Latência tolerada
+				porque evaluation path SLA é mais permissivo que
+				ingestion per BD4. Cache miss / commitment not-
+				yet-formalized retorna null → DLV escala via
+				insufficient-criteria escalation OR aguarda em
+				evaluating-pending-criteria.
+				"""
+		}, {
+			type:          "query-dependency"
+			targetContext: "idc"
+			query:         "QueryEvidenceProof"
+			purpose: """
+				OPCIONAL Phase 0 — usado APENAS quando
+				criteriaVersion explicitamente requer full-proof-
+				verification (signer authority resolution,
+				certificate chain) AND integrityProofSnapshot na
+				EvidenceRecord não contém material suficiente para
+				validação local (defense in depth Layer 1 deep
+				per BD9). Default path: local-only verification
+				per BD11 (DSSE complete payload OR offline
+				snapshot). DLV NUNCA depende de IDC online para
+				correctness operacional.
+
+				FALLBACK: se IDC indisponível durante full-proof-
+				verification request, evaluation NÃO falha aberta
+				— comporta-se como integrity-indeterminate →
+				DeliveryRejected com reasonCode=integrity-
+				unverifiable-remote (fail-safe, não fail-open).
+				Preserva invariante BD7 anti-default + BD11 local-
+				first com graceful degradation sob falha de IDC.
+				"""
+			description: """
+				Operacional via idc-to-dlv relation existing.
+				Bidirectional usage: DLV → IDC para semantic
+				verification deep (Layer 1+ quando criteria
+				declara), IDC → DLV para integrity primitives
+				(proof creation handled IDC internally). DLV
+				consume proof verification result; NÃO replica
+				proof generation logic (boundary preservation IDC
+				owns proof primitive). Path secundário/raro Phase
+				0 — maioria das criteria declara proof-validation-
+				local-sufficient.
+				"""
+		}]
+		rationale: """
+			Inbound: 4 event-consumers (2 LOG operacionais Phase
+			0: EvidenceCommitted + EvidenceSuperseded; 1 CMT
+			(CriteriaActivated) PHASE 1+ FORWARD-REF; 1 DRC
+			(ResolutionRequiresVerificationUpdate) PHASE 1+
+			FORWARD-REF — aguardando materialization de cmt-to-
+			dlv + drc-to-dlv relations no context-map) + 2
+			command-handlers sync (RecordEvidence ingestion
+			alternativa + EvaluateVerification core function) +
+			2 query-surfaces (Status com estados intermediários
+			internal-consumers-only + Ledger audit trail).
+			CommitmentAccepted REMOVIDO Phase 0 — redundante
+			com QueryCommitmentCriteria sync para validação de
+			commitment existence; reduz superfície sem perda
+			operacional.
+
+			Outbound: 2 event-publishers terminal Phase 0
+			(DeliveryVerified + DeliveryRejected — cap-delivery-
+			lifecycle-public-events Lote 1.2 hard binding INV/
+			REW/NIM/DRC; payload categórico determinístico per
+			BD10 no scoring + BD13 mandatory reasonCode+
+			retryPath; atomic emit per BD14 com at-most-once
+			cross-BC observability + dedup fallback identidade
+			lógica) + 2 query-dependencies (CMT criteria
+			resolution Phase 0 primary path + IDC full proof
+			verification Phase 0 OPCIONAL com fail-safe fallback).
+
+			DLV NÃO publica eventos intermediários cross-BC.
+			Apenas eventos terminais são expostos: DeliveryVerified
+			+ DeliveryRejected. Estados intermediários (evaluating,
+			evaluating-pending-criteria per BD12, exception-
+			pending per BD6, ingestion states) são internal a DLV
+			— consultáveis via QueryVerificationStatus apenas
+			(internal-consumers-only). Contract público
+			downstream (INV/REW/NIM/DRC) opera EXCLUSIVAMENTE
+			sobre terminal events; consumers nunca observam estado
+			intermediário, eliminando classe de complexity de
+			eventual consistency cross-BC e simplificando
+			downstream consumer logic.
+
+			DLV NÃO depende de disponibilidade externa para
+			correctness operacional. Network-independent ingestion
+			path per BD11 (local-first via DSSE complete payload
+			OR offline snapshot); IDC dependency é opcional
+			(usada apenas para criteria que requer full-proof
+			verification deep) com fail-safe fallback (rejected
+			com reasonCode=integrity-unverifiable-remote, NÃO
+			fail-open). 7 relations operacionais Phase 0 (log-to-
+			dlv, idc-to-dlv, bdg-to-dlv transitive, dlv-to-inv,
+			dlv-to-rew, dlv-to-nim, dlv-to-drc) + 2 forward-refs
+			Phase 1+ (cmt-to-dlv para criteria events, drc-to-
+			dlv para dispute resolution) — paralelo estrutural a
+			P2P/CTR forward-ref pattern.
+
+			3 PHASE 1+ FORWARD-REFS (CMT CriteriaActivated + DRC
+			ResolutionRequiresVerificationUpdate; CommitmentAccepted
+			removido) com Phase 0 FALLBACKS operacionais
+			completos: sync-on-each-query QueryCommitmentCriteria
+			absorve cost de polling (BD12 cache invalidation
+			explicit deferred Phase 1+); supervisedDecision
+			approve-post-finality-supersession (BD8 path A)
+			substitui DRC-driven Phase 0 path B. Trade-off Phase
+			0 aceitável: simplicity + deterministic > latency
+			optimization.
+
+			Visibility/dedup/fallback semantics documentadas via
+			description text Phase 0 (schema #InboundCommandHandler
+			/ #InboundQuerySurface / #OutboundEventPublication
+			não suportam fields tipados visibility/dedupKey/
+			fallback Phase 0). Promoção para schema-typed Phase
+			1+ via deferred decision def-communication-schema-
+			enrichment (trigger: ≥3 canvases dependem
+			semanticamente; description-text source-of-truth
+			torna-se ambígua em scale).
+
+			Replay determinism preserved transversalmente: todos
+			events imutáveis com eventLogOffset ordering canônica
+			(BD3 + BD5); commands produzem outcomes determinísticos
+			sob mesmos inputs + versão de lógica (BD2); cross-BC
+			ACL deduplica via eventLogOffset com fallback
+			identidade lógica (BD14c at-most-once); query results
+			são projeções determinísticas sobre Event Log up-to-
+			offset em qualquer momento.
+
+			Boundary preservation transversal: DLV consume signals
+			(events) e serve queries; emit decisões binárias
+			categóricas; NÃO invoca commands em outros BCs (anti-
+			mini-NIM enforced per BD10). DRC consume DLV events
+			para dispute path mas DRC owns dispute lifecycle (DLV
+			produz signal, não dispute artifact per BD8). LOG owns
+			evidence lifecycle (captura + persistência + lineage
+			declaration); DLV consume committed facts apenas (não
+			intermediários) per EvidenceCommitted naming. CMT
+			owns criteria lifecycle (declaration + activation +
+			versioning); DLV consume sync via QueryCommitment
+			Criteria Phase 0. IDC owns proof primitive
+			(generation); DLV consume verification opcional Phase
+			0. Boundaries documented em capability rationales +
+			BDs Lote 1-4 + esta communication.
+			"""
 	}
 
 	// =============================================
