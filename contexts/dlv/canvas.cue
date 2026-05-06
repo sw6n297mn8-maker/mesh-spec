@@ -2815,32 +2815,560 @@ canvas: artifact_schemas.#Canvas & {
 	}]
 
 	// =============================================
-	// INCENTIVE ANALYSIS — placeholder; conteúdo em commit 1.5
+	// INCENTIVE ANALYSIS (3 participants, 4 vetores adversariais)
 	// =============================================
 
 	incentiveAnalysis: {
 		participants: [{
-			stakeholderRef:            "sh-01"
-			participantType:           "Placeholder — preenchido em commit 1.5."
-			desiredBehavior:           "Placeholder."
-			correctOperationIncentive: "Placeholder."
-			manipulationVector:        "Placeholder."
-			manipulationCost:          "Placeholder."
-			vsBenefit:                 "Placeholder."
-			designResponse:            "Placeholder."
-			rationale:                 "Skeleton; 4 vetores adversariais substantivos (forgery de evidência; premature approval por gaming critérios; withholding de evidência válida; multi-actor coordinated attack) em commit 1.5."
+			stakeholderRef:  "sh-01"
+			participantType: "Originadora consumindo verified status para coordenar fluxo macroeconômico — orquestra commitment progression upstream/downstream baseado em DLV terminal events."
+			desiredBehavior: """
+				Submeter EvaluateVerification quando criteria +
+				evidence legítimas estão presentes; usar override
+				paths (emergency-override BD7, post-finality BD8,
+				criteria-override BD12) APENAS em situações
+				genuínas com justificativa documentada; aceitar
+				rejected como signal estruturado, não pressionar
+				agente DLV para approve quando criteria não
+				atendidos.
+				"""
+			correctOperationIncentive: """
+				Macrofluxo automatizado 24/7 (cc-03) sob authority
+				verificável; INV/REW/FCE downstream operam com
+				confiança; audit trail Lei 12.846/SCD/CVM
+				defensible em qualquer momento; emergency override
+				path resolve deadlock operacional sem comprometer
+				invariante.
+				"""
+			manipulationVector: """
+				[VETOR-2 premature-approval-gaming]
+				pressionar founder a usar criteria-version-override
+				(BD12) sustained para evaluations sob criteriaVersion
+				N+1 antes de activation formal por urgência fictícia.
+				OR pressionar emergency-override (BD7) com out-of-
+				band evidence spuriosa. OR submeter EvaluateVerification
+				em looping para forçar reasonCode favorável sob race
+				conditions criteria-vs-evidence.
+				"""
+			manipulationCost: """
+				M1 audit trail loud: cada override carrega actor +
+				justification + timestamp imutáveis (BD13 +
+				reasonCode categorical). M2 rate metrics:
+				criteria-override-rate sustained > 2% triggera
+				founder review + design feedback (esc-criteria-
+				override-rate-sustained); padrão sustained vira
+				tension-entry → deferred-decision → ADR per P4
+				artifact ordering. M4 reconciliation: criteria-
+				override exige posterior CMT criteria activation
+				formal — incompatibilidade com pressure sustained.
+				responsabilidade jurídica (dp-10) sobre originadora
+				justificando override fraudulento.
+				"""
+			vsBenefit: """
+				Benefício de manipulation: aceleração de commitment
+				lifecycle (skipping criteria activation timing) ou
+				emergency cash flow para fornecedor preferred.
+				Custo: audit trail + rate signal sustained +
+				responsabilidade jurídica + DRC dispute risk se
+				sh-02 contestar. Risco residual: founder pode
+				aprovar override sem escrutínio cuidadoso (controle
+				pre-PMF) — mitigated por M4 cumulative tracking +
+				P5 cost-of-rubber-stamp visible via metrics +
+				reconciliationStatus sustained pending sinaliza
+				abuso.
+				"""
+			designResponse: """
+				P1 (LOUD): override events com payload categórico
+				estruturado. P4 (feedback): rate breach esc-
+				criteria-override-rate-sustained dispara design
+				review obrigatório (artifact ordering tension/
+				deferred/ADR). M3: founder único approver Phase 0
+				+ INVARIANT non-implicit-delegation. M4:
+				reconciliation status tracked desde Phase 0 com
+				OBS visibility de pending sustained. lens-
+				incentive-alignment como guardrail cognitivo.
+				"""
+			rationale: """
+				Originadora tem path de manipulation via override
+				gaming (premature approval). Defense estruturada
+				via P1+P4+M2+M4 — audit + feedback + reconciliation
+				+ rate signal. Anti-paralysis P5 garante que
+				rejection rate sustained NÃO aceitável é signal
+				correlativo: se rejected sustained alta E override-
+				rate sustained alta, ambos vetores coexistem —
+				founder review identifica padrão.
+				"""
+		}, {
+			stakeholderRef:  "sh-02"
+			participantType: "Fornecedor respondente cuja execução é verificada — recebe DeliveryVerified/Rejected; via canal próprio (Phase 1+) submete RecordEvidence direta; Phase 0 manual via NTF + originadora intermediation."
+			desiredBehavior: """
+				Submeter evidência genuína via LOG (EvidenceCommitted)
+				com integridade DSSE válida; aceitar rejected +
+				retryPath signal como feedback actionable (corrigir
+				+ resubmit em retryable); contestar via DRC apenas
+				quando cabível (não retaliation por classification
+				adversa).
+				"""
+			correctOperationIncentive: """
+				Verified determinístico vinculado a evidência
+				criptograficamente provável; cash flow predictable
+				(INV invoicing pós-verified em window bounded);
+				DRC dispute path Phase 0 disponível pós-finality
+				para correção legítima; integridade ≠ verdade
+				honest claim — sh-02 sabe que Layer 1+2 cobrem
+				casos individuais; Layer 3 REW/NIM cobrem patterns
+				coletivos.
+				"""
+			manipulationVector: """
+				[VETOR-1 forgery-de-evidencia]
+				submeter evidência com integrityProofRef
+				cryptographically válida mas conteúdo falso (e.g.,
+				GPS coordinates spoofed; timestamp manipulado;
+				photo de delivery falsa) — Layer 1 passa; Layer 2
+				detection depende da criteria specificity.
+
+				[VETOR-3 withholding-de-evidencia-valida]
+				atrasar deliberadamente RecordEvidence/
+				EvidenceCommitted para forçar exception-pending
+				sustained, criando pressure operacional via cash
+				flow downstream e pushing originadora a usar
+				emergency-override OR criteria-version-override
+				por pressão.
+				"""
+			manipulationCost: """
+				VETOR-1 forgery: M1 audit trail + Layer 2 cross-
+				evidence consistency (bd-truth-vs-integrity-defense-
+				in-depth) + Layer 3 REW/NIM pattern detection —
+				single forgery pode passar; sustained forgery
+				padrão é detectável pós-hoc; DRC dispute path com
+				fraud reasonCode + responsabilidade jurídica + Lei
+				12.846/SCD/CVM 5-year audit retention.
+
+				VETOR-3 withholding: BD6 14-day timer fail-safe
+				(auto-rejection se exception-pending sustained);
+				P5 anti-paralysis força forward motion; OBS metric
+				exception-pending-rate-by-supplier sustained
+				sinaliza pattern. M4 reconciliation impossível em
+				fraud — DRC dispute path materialize.
+				"""
+			vsBenefit: """
+				VETOR-1 benefício: verified outcome para entrega
+				não-realizada/incompleta = cash flow injusto.
+				Custo: detection probabilística composição 3
+				layers + audit trail criminalmente defensible +
+				DRC path. VETOR-3 benefício: pressure operacional
+				forçando override favorável. Custo: BD6 timer
+				auto-rejected; sh-02 impactado por rejected
+				cumulativo; pattern sustained sinaliza via OBS
+				metric.
+
+				Risco residual VETOR-1: collusion all signers
+				(mitigation via Layer 3 REW/NIM Phase 1+ + DRC
+				investigation). Risco residual VETOR-3: Phase 0
+				manual review é gargalo se founder não detecta
+				padrão sustained.
+				"""
+			designResponse: """
+				Defense em camadas (BD9 3 layers): L1 cryptographic
+				+ L2 cross-evidence consistency em DLV; L3 pattern
+				detection em REW/NIM downstream. P5 anti-paralysis
+				(BD6 timer fail-safe) + P6 cross-BC awareness (DRC
+				dispute path estruturado). M2 esc-integrity-failure-
+				rate-sustained + esc-exception-extension-rate-
+				sustained signals com sample gate (rate-based) +
+				artifact ordering tension/deferred/ADR. lens-
+				incentive-alignment guardrail. Phase 0 supplier API
+				ausente (oq-dlv-4) limita actionable contract
+				direto com sh-02 — RecordEvidence sync alternative
+				path serve emergency.
+				"""
+			rationale: """
+				Fornecedor é stakeholder com 2 vetores adversariais
+				(forgery + withholding) cobrindo individual fraud
+				(single transaction) + sustained pressure
+				(lifecycle gaming). Defense complementar via 3
+				layers BD9 + timer fail-safe BD6 + cross-BC DRC
+				path. Risco residual reconhecido (collusion all
+				signers; Phase 0 manual review gargalo) — Phase 1+
+				mitigation via REW/NIM Layer 3 maturation +
+				supplier API materialization. Vetores são
+				estruturados via labels [VETOR-N <name>] para
+				instrumentação futura; promotion para sub-estrutura
+				tipada candidate Phase 1+ se recurrence cross-
+				canvas emergir.
+				"""
+		}, {
+			stakeholderRef:  "sh-05"
+			participantType: "Operador agente DLV (agt-dlv-primary): valida integridade L1 + cross-evidence L2; aplica criteria match deterministic per snapshot; emit terminal verifications atomic; gerencia exception lifecycle + supersession + finality window. Anti-mini-NIM enforced rigidamente."
+			desiredBehavior: """
+				Executar function pura sob criteria versionados;
+				emit terminal events atomicamente; respeitar
+				boundaries (não scoring per BD10; não inferir
+				criteria per BD12; não escolher entre evidências
+				per BD5; não forecasting de Layer 3 per BD9).
+				Reportar honestly quando override path requerido
+				— não esconder pattern sustained de override-rate.
+				"""
+			correctOperationIncentive: """
+				Audit trail regulatory-grade reduce blast radius
+				operacional + responsabilidade jurídica (dp-10);
+				deterministic gate elimina ambiguidade de
+				julgamento; replay-safe via eventLogOffset; anti-
+				mini-NIM enforced via 3 boundaries hard (BD7/BD12/
+				BD10) protege agente de drift cognitivo.
+				"""
+			manipulationVector: """
+				[VETOR-4 multi-actor-coordinated-attack]
+				coalizão sh-01-sh-02-sh-05 onde fornecedor submete
+				forgery, originadora pressiona override, agente
+				cede sob pressure (e.g., aprova criteria-version-
+				override sustained sob justificativa fictícia OR
+				emite verified com integridade-indeterminate em
+				vez de fail-safe rejected). OU bias do agente em
+				routing autonomous decisions (e.g., sustained
+				underuse de exception-pending para evitar 14-day
+				delay; over-rejection de evidence borderline para
+				evitar dispute risk).
+				"""
+			manipulationCost: """
+				M1 audit trail: cada decisão agente rastreada com
+				timestamp + actor=agt-dlv-primary + reasonCode +
+				rationale imutáveis. M2 rate metrics: agent decision
+				distribution monitored — sustained skew (e.g.,
+				exception-rate sustained < baseline; over-rejection
+				rate sustained) é OBS signal. P4 design review:
+				padrão sustained em decisões agente vira tension-
+				entry obrigatória (potential agent calibration
+				issue OR adversarial coordination signal). P5
+				anti-paralysis: agente sabe que indecisão sustained
+				gera signal próprio (exception-pending-rate).
+				responsabilidade jurídica (dp-10) sobre operador
+				agente — verificação cripto + audit trail.
+				"""
+			vsBenefit: """
+				Benefício de bias: simplificação operacional
+				(over-rejection evita dispute) OR coalizão favorece
+				partes preferred. Custo: detection observable +
+				audit + responsabilidade jurídica. Coalizão sh-01+
+				sh-05 detected via correlation founder-approval-
+				rate vs override-rate sustained (founder review
+				surface). Risco residual: subtle bias dentro de
+				envelope autonomous (mitigated por anti-mini-NIM
+				3 boundaries hard + replay determinism property-
+				based testing — replay sob mesma timeline produz
+				mesmo outcome; bias pattern visible em divergence).
+				"""
+			designResponse: """
+				Anti-mini-NIM enforcement transversal (BD7+BD12+
+				BD10 hard boundaries) + agent-spec Phase 4 declared
+				negative-action constraints + envelope agent-
+				governance Phase 5 com section antifragility design
+				(forward-ref). M2 OBS metrics múltiplas: rejection-
+				rate-by-reasonCode-distribution + exception-rate-
+				distribution + override-rate-distribution. P1 LOUD:
+				nenhuma decisão agente é silenciosa. P4 feedback:
+				padrão sustained dispara design review com tension-
+				entry obrigatória (artifact ordering tension/
+				deferred/ADR). lens-incentive-alignment guardrail
+				durante design review.
+				"""
+			rationale: """
+				Operador agente é vetor adversarial estrutural
+				(VETOR-4 coordenação OR bias subtle). Defense
+				estruturada via anti-mini-NIM transversal + audit
+				trail + replay determinism + design review
+				obrigatória sustained. Coalizão multi-actor é
+				risco residual (P6 cross-BC awareness + DRC
+				dispute path são safety nets). Phase 0 manual
+				founder review absorve cost de detection; Phase 1+
+				automated via OBS metric + REW/NIM Layer 3 cross-
+				pattern.
+				"""
 		}]
-		rationale: "Placeholder — incentive analysis completo (4 vetores cobrindo forgery + premature approval + withholding + coordinated multi-actor) entra em commit 1.5."
+		rationale: """
+			3 participants cobrindo 4 vetores adversariais
+			alinhados com V6 + ajuste founder F5 cross-BC
+			inconsistency awareness:
+			- VETOR-1 forgery-de-evidencia (sh-02 individual fraud)
+			- VETOR-2 premature-approval-gaming (sh-01 override
+			  pressure)
+			- VETOR-3 withholding-de-evidencia-valida (sh-02
+			  sustained pressure)
+			- VETOR-4 multi-actor-coordinated-attack (sh-05 + coalition)
+
+			Vetores são labeled [VETOR-N <name>] em prose para
+			instrumentação futura (grep/parsing) sem requerer
+			schema modification — candidate Phase 1+ promotion
+			se recurrence cross-canvas emergir (paralelo a def-
+			014 communication enrichment).
+
+			Defense transversal (P1-P6 + M1-M4):
+			- P1 LOUD: override events com audit trail categorical
+			- P2 BOUNDED: caps cumulativos (BD6 30d) + 1 override
+			  active per state
+			- P3 RECONCILIATION mandatory (status tracked Phase 0
+			  manual)
+			- P4 design feedback: rate sustained → tension/
+			  deferred/ADR ordering
+			- P5 anti-paralysis: BD6 14-day fail-safe forward
+			  motion
+			- P6 cross-BC awareness: DRC dispute path para
+			  inconsistency downstream
+			- M1 categorical reasonCodes (alinhados com BDs)
+			- M2 rate signals com sample size gate (N ≥ 50 OR
+			  janela ≥ 14d)
+			- M3 founder único approver Phase 0 + INVARIANT non-
+			  implicit-delegation
+			- M4 reconciliation status tracked Phase 0 manual com
+			  OBS visibility de pending sustained
+
+			F1-F5 failure modes mapeados a defenses estruturais:
+			- F1 rubber-stamp → caps + rate metrics + artifact
+			  obligation
+			- F2 over-cautious → P5 anti-paralysis fail-safe +
+			  cost visibility
+			- F3 override stacking → state machine constraint
+			- F4 override-as-norm → P4 design review trigger
+			  obrigatório
+			- F5 cross-BC inconsistency → P6 awareness + DRC
+			  dispute path obrigatório
+
+			Risco residual reconhecido em vetor 4 (subtle agent
+			bias + coalizão multi-actor) — mitigation via Phase
+			1+ REW/NIM Layer 3 + supplier API + automated OBS
+			signaling. Phase 0 cost-absorption via founder manual
+			review é compromisso aceito explicitamente.
+
+			Anti-mini-NIM transversal preservado: DLV decide
+			sufficiency; REW/NIM scoram patterns; LOG owns
+			evidence lineage; CMT owns criteria — 3 boundaries
+			hard (BD7+BD12+BD10) protegem agente de drift
+			cognitivo.
+			"""
 	}
 
 	// =============================================
-	// OWNERSHIP — domainAgentSpec real; governanceScope em commit 1.5
+	// OWNERSHIP + GOVERNANCE SCOPE ANTIFRÁGIL
+	// 7 autonomousDecisions + 6 supervisedDecisions + 7 escalationCriteria
+	// Materializa modelo antifrágil aprovado: 6 princípios + 4 mecanismos +
+	// 5 failure modes (P1-P6 + M1-M4 + F1-F5).
 	// =============================================
 
 	ownership: {
 		domainAgentSpec: "contexts/dlv/agents/dlv-primary-agent.cue"
-		governanceScope: {}
-		rationale:       "Skeleton commit 1.1 estabelece domainAgentSpec canônico (forward reference — agent-spec será autorado em Phase 4 do bootstrap WI-042). governanceScope completo (5 autonomousDecisions cobrindo evidence ingestion + integrity validation + criteria evaluation + verification emit + supersession; 3 supervisedDecisions cobrindo override de rejection + manual reconciliation + criteria version override; 5 escalationCriteria cobrindo integrity proof failure + criteria version mismatch + supersession contention + economic finality breach + regulatory edge) entra em commit 1.5."
+		governanceScope: {
+			autonomousDecisions: [{
+				id:          "validate-evidence-integrity-ingestion-time"
+				description: "Validar integridade local da prova IDC (DSSE-anchored) parser-time durante RecordEvidence/EvidenceCommitted ingestion per BD11. Layer 1 syntax check: integrityProofRef PRESENTE + format compliance + material verificável LOCALMENTE (DSSE complete OR offline snapshot) + envelope syntax válido. Falha → command rejected com reasonCode=integrity-proof-unverifiable-local. DLV NUNCA depende de rede para aceitar ingestion."
+				rationale:   "Boundary anti-mini-NIM ingestion-side: DLV não confia em LOG implicitamente — exigir prova ingestion-time é demonstração operacional de não-confiança. Deterministic check syntax-level (não semantic full); semantic check pertence a evaluation per BD9 Layer 1 deep. Local-first é precondition de cc-03 24/7."
+			}, {
+				id:          "ingest-evidence"
+				description: "Materializar EvidenceRecord aggregate per BD4 separation pós-Layer 1 pass: append-only de (commitmentRef, evidenceRef, integrityProofRef, recordedAt) + emit EvidenceRecorded internal event (NÃO cross-BC published per BD4). Sem julgamento, sem avaliação, sem efeito downstream cross-BC."
+				rationale:   "Append-only sem julgamento per BD4 separation; precondition de evaluation. Distinção ingestion-time (boundary input) vs evaluation-time (function pure) é deliberada — fusão acoplaria latency budgets + criaria race condition criteria-vs-evidence. Auditabilidade preservada via aggregate identity (commitmentRef, evidenceRef) imutável."
+			}, {
+				id:          "resolve-criteria-sync"
+				description: "Resolver criteriaVersion vigente para commitmentRef via QueryCommitmentCriteria sync (Phase 0 PRIMARY path; Phase 1+ via prj-active-criteria projection cache). Cache miss / commitment not-yet-formalized retorna null → estado evaluating-pending-criteria interno (não cross-BC) per BD12."
+				rationale:   "BD12 cache invalidation explicit deferred Phase 1+; Phase 0 sync absorve cost de polling per evaluation. Função determinística sobre input (commitmentRef) → criteriaVersion via CMT sync; não envolve julgamento. Boundary clean: CMT owns criteria lifecycle, DLV consume."
+			}, {
+				id:          "evaluate-verification-deterministic"
+				description: "Executar function pura sobre tripla causal (evidence ingestada, criteria via criteriaVersion snapshot, integrityProof) per BD1 RECTOR + Layer 2 cross-evidence consistency per BD9 (3 classes iniciais consistency/range/temporal + extensão via criteriaVersion). Outcome binário verified | rejected per BD7 anti-default; insuficiência = rejected + reasonCode estruturado."
+				rationale:   "RECTOR thesis-invariant; deterministic gate é precondition de cc-03 24/7 + BD2 idempotency + BD3 replay determinism. Função pura sem julgamento — habilita automation. Layer 1+2 deterministic em DLV; Layer 3 statistical em REW/NIM (BD9 + BD10 boundary)."
+			}, {
+				id:          "emit-terminal-verification-atomic"
+				description: "Aggregate Verification state transition + DeliveryVerified|DeliveryRejected event publication AS-ONE per BD14a-b atomic emit. Cross-BC ACL deduplica via eventLogOffset com fallback identidade lógica (commitmentRef, evidenceRef, eventType) per BD14c at-most-once observability. Recovery path determinístico (transactional outbox pattern Phase 3) converge para either ambos succeed OR ambos rollback."
+				rationale:   "Atomicity é commitment estrutural público; consumers downstream podem assumir 'event observed → aggregate queryable' sem cross-check defensivo. Idempotency BD2 + atomicity BD14a-b + at-most-once BD14c são 3 propriedades distintas complementares — eliminam classe inteira de cross-BC consistency complexity."
+			}, {
+				id:          "apply-supersession-within-window"
+				description: "Aplicar supersession lineage explícita declared by LOG (EvidenceSuperseded event Phase 0 path A) OR fallback DLV via ordering canônica eventLogOffset + hash tie-breaker em ausência de LOG event (path B per BD5). Dentro de finality window 30d (BD8), triggera nova evaluation autonomous sob nova identidade (commitmentRef, evidenceRef-N+1). Verifications históricas IMUTÁVEIS — supersession produz NOVA Verification, não muta anterior."
+				rationale:   "Anti-mini-NIM (BD5): DLV não escolhe entre evidências — LOG declara lineage (path primário) ou DLV ordena determinísticamente em ausência (path fallback robust-against-failure-of-adjacent-BC). Replay-safe via eventLogOffset global determinístico. Total ordering canonical preserva idempotency BD2 + replay BD3."
+			}, {
+				id:          "transition-exception-state-timer"
+				description: "Aplicar BD6 14-day timer fail-safe per exception-pending state baseado em DLV system time (NÃO wall-clock externo). No T+timer-final, transição automática para terminal: humano resolveu (verified | rejected com reasonCode=exception-resolved-{outcome}) OR auto-rejection forçada com reasonCode=exception-unresolved-timeout. exceptionHistory append-only preserva granularidade temporal + causalidade."
+				rationale:   "P5 anti-paralysis fail-safe: preserva forward motion sob indecisão humana sem comprometer invariante 'no evidence verified → no economic progression'. Timer DLV system time é replay-safe per BD3. Estado único + history rico permite auditabilidade sem explosão de estado."
+			}]
+			supervisedDecisions: [{
+				id:          "approve-with-emergency-override"
+				description: "BD7 emergency channel para deadlock operacional (ingestion path failure, evidence fisicamente disponível mas tecnicamente indisponível, operação manual offline). Path: founder/approver justifica out-of-band evidence existence; DLV emite DeliveryVerified com reasonCode=exception-emergency-override + attribute evidence-out-of-band-ref. Mandatory audit attached; reconciliationStatus=pending até evidence ingestion path normaliza (Phase 1+ auto-reconciliation; Phase 0 manual). reconciliationStatus=pending sustained > 14 dias DEVE aparecer em OBS metric pending-reconciliation-rate."
+				rationale:   "Resolve tensão hard line vs realidade operacional sem enfraquecer anti-default (BD7). M1 LOUD via mandatory audit; M4 reconciliation via tracked status. P5 anti-paralysis preserva forward motion sob ingestion path failure. Phase 0 founder único approver per M3 [INVARIANT Phase 0]: non-implicit-delegation."
+			}, {
+				id:          "approve-post-finality-supersession"
+				description: "BD8 path A: founder/approver autoriza emit nova Verification pós-finality (>30d desde decidedAt original) com reasonCode=post-finality-correction + attribute supervisedOverrideRef. Cross-BC notification: DRC manual Phase 0 (founder coordena); Phase 1+ auto-trigger via DRC native flow (path B BD8). reconciliationStatus tracked com OBS visibility de pending sustained."
+				rationale:   "P6 cross-BC awareness: override pós-finality afeta INV/REW/FCE estado já consumido — DRC dispute path é safety net obrigatório. Hard line é anti-AUTÔNOMA pós-finality, NÃO absoluta — preserva finality forte sem cegueira sistêmica diante de fatos novos."
+			}, {
+				id:          "criteria-version-override"
+				description: "BD12 override: founder/approver autoriza evaluation sob criteriaVersion N+1 antes de activation formal por urgência operacional. Criteria N+1 DEVE existir em CMT (criteria-existence invariant preserved). Emite com reasonCode=criteria-version-override-applied. Cross-BC notification: CMT manual Phase 0; auto Phase 1+. reconciliationStatus=pending até CriteriaActivated event normal cross-BC chega; pending sustained > 14 dias visível em OBS pending-reconciliation-rate."
+				rationale:   "Resolve urgência operacional preservando criteria-existence invariant. M4 reconciliation: criteria activation formal eventually occurs via CMT path normal; override é skip-temporal de timing, não bypass de definition. P6 cross-BC awareness: CMT criteria lifecycle owner notificado."
+			}, {
+				id:          "extend-exception-window"
+				description: "BD6 estender 14-day timer ATÉ máximo 30 dias TOTAL desde primeiro entry da exceptionHistory. CUMULATIVAS — extensions adicionam tempo ao timer existente; NÃO reiniciam o relógio do primeiro entry. Cap absoluto bounded por construção. Justificativa documentada por extension individual; founder DEVE justificar cada extension."
+				rationale:   "Anti-rubber-stamp via cap absoluto cumulativo (P2 BOUNDED). Distinta de exception-during-exception (proibido por BD6) — esta é extensão de single exception ativa, não criação de nova. P4 feedback: extension-rate sustained vira tension-entry candidate via esc-exception-extension-rate-sustained."
+			}, {
+				id:          "override-rejection"
+				description: "RE-EVALUATE-WITH-NEW-INPUT semantics — NÃO 'approve despite rejection'. Founder/approver autoriza re-trigger evaluation quando rejected anterior é diagnostically incorreto E nova evidence ingerida (novo evidenceRef) OR nova criteriaVersion ativa está disponível. EXIGE PRECONDITION: nova input causal (evidence OR criteria); BD7 anti-default preserved (NÃO bypass de evidence requirement). Outcome é fresh evaluation sob nova identidade (commitmentRef, evidenceRef-novo)."
+				rationale:   "Caminho recovery legítimo SEM violar anti-default: precondition de evidence ingestada OR criteria nova garante que approve não emerge silenciosamente. Naming clarification: NÃO é universal escape hatch — é structured re-evaluation sob nova base causal. Sem nova input → operação não pode prosseguir; founder deve aguardar evidence/criteria materialize."
+			}, {
+				id:          "revert-auto-rejection"
+				description: "BD6 (h) edge case: founder reverte exception-unresolved-timeout dentro de janela curta pós-fire (e.g., < 24h) quando timeout fired durante última hora antes de resolução humana válida (e.g., extension supervisedDecision timestamped antes do timeout). Distinta de override-rejection — paths separados por BD6 design."
+				rationale:   "Edge case post-timeout: preserva determinism (caminho separado, não retroativo) + audit trail explicit. Phase 0 raro mas necessário para safety net contra timing precision issues."
+			}]
+			escalationCriteria: [{
+				id:        "emergency-override-rate-sustained"
+				condition: "RATE-BASED com sample gate: emergency-override-rate (count de approve-with-emergency-override invocations / count de evaluate-verification em janela 30d) > 5% AND (N ≥ 50 OR janela ≥ 14d). Sample gate evita ruído estatístico em low volume."
+				action:    "Founder review obrigatório investigando: (a) ingestion path failure técnico (signal de sh-02 supplier API maturation oq-dlv-4) OU (b) abuse pattern via originadora pressure. Artifact ordering OBRIGATÓRIO per breach sustained: transient (1 janela) → tension-entry; recurrent (2+ janelas) → deferred-decision; structural (3+ janelas OR design implication) → ADR. Conexão a oq-dlv-4 supplier API para Phase 1+ resolution path normal."
+				rationale: "M2 antifragility: rate sustained = signal estruturado de design pressure. P4 feedback closes loop: override-rate vira artifact que registra evolução do sistema. Anti-mini-NIM transversal: sustained pattern não é absorvido como 'novo normal' — vira input para design review."
+			}, {
+				id:        "post-finality-correction-rate-sustained"
+				condition: "RATE-BASED com sample gate: post-finality-correction-rate (count de approve-post-finality-supersession / count terminal verifications em janela 30d) > 1% AND (N ≥ 50 OR janela ≥ 14d)."
+				action:    "Founder review: window 30d Phase 0 calibration via signal empírico — rate alta indica window curto demais OR pre-finality detection failing. Artifact ordering OBRIGATÓRIO: transient → tension-entry; recurrent → deferred-decision; structural → ADR. Conexão a oq-dlv-2 calibration via empirical data."
+				rationale: "M2 antifragility: window 30d hard-coded é tension-entry candidate via empirical signal — calibração emerge de operational data, não de assumption. P4 feedback: rate breach materializa learning via artifact."
+			}, {
+				id:        "criteria-override-rate-sustained"
+				condition: "RATE-BASED com sample gate: criteria-override-rate (count de criteria-version-override / count evaluations em janela 30d) > 2% AND (N ≥ 50 OR janela ≥ 14d)."
+				action:    "Founder review: CMT criteria-activation timing issue OR criteria definition gap. Artifact ordering OBRIGATÓRIO: transient → tension-entry; recurrent → deferred-decision; structural → ADR. Conexão a CMT criteria-lifecycle review (cross-BC coordination)."
+				rationale: "M2 antifragility: rate sustained = CMT criteria activation flow inadequado OU sh-01 abuse pattern. P6 cross-BC awareness: signal cross-BC para CMT review (não DLV-only)."
+			}, {
+				id:        "exception-extension-rate-sustained"
+				condition: "RATE-BASED com sample gate: exception-extension-rate (count de extend-exception-window / count exceptions em janela 30d) > 10% AND (N ≥ 50 OR janela ≥ 14d)."
+				action:    "Founder review: 14-day window inadequate per criteria type OR humano capacity issue. Artifact ordering OBRIGATÓRIO: transient → tension-entry; recurrent → deferred-decision; structural → ADR. Conexão a oq-dlv-7 timer parameterization per criteria type Phase 1+."
+				rationale: "M2 antifragility: extension-rate sustained = signal de 14-day window inadequate (oq-dlv-7) OR humano capacity insuficiente (Phase 1+ tier separation). P5 fail-safe preserved (cap absoluto 30d).  P4 feedback closes loop."
+			}, {
+				id:        "integrity-failure-rate-sustained"
+				condition: "RATE-BASED com sample gate: integrity-failure-at-ingestion-rate (count de RecordEvidence/EvidenceCommitted rejected com reasonCode=integrity-proof-unverifiable-local OR integrity-failure / count de ingestion attempts em janela 30d) > X% (Phase 0 baseline TBD via empirical data) AND (N ≥ 50 OR janela ≥ 14d)."
+				action:    "Founder review investigando F1 forgery vector signal OR LOG operational issue (cross-BC awareness P6). Artifact ordering OBRIGATÓRIO se sustained: transient → tension-entry; recurrent → deferred-decision; structural → ADR. Cross-BC notification LOG manual Phase 0."
+				rationale: "M2 antifragility + P6 cross-BC awareness: integrity failure pattern pode ser DLV bug, LOG-side issue, OR adversarial attack — investigation path multi-BC. P1 LOUD: cada failure registrada em audit trail."
+			}, {
+				id:        "exception-cumulative-cap-reached"
+				condition: "ABSOLUTE (sem sample gate): frequência de exceptions atingindo 30d cap absoluto (BD6 hard limit) sustained — count de exceptions onde cumulative extension reached 30 dias TOTAL em janela 90d > 0 sustained."
+				action:    "Founder review: cap absoluto sustained sinaliza 14-day window structurally inadequate per criteria type (oq-dlv-7) OR humano capacity insuficiente OR criteria complexity exceeds Phase 0 design. Artifact ordering OBRIGATÓRIO: transient (1 incident) → tension-entry; recurrent (2+) → deferred-decision; structural (3+) → ADR + tier separation Phase 1+."
+				rationale: "ABSOLUTE threshold (não rate-based) porque cap absoluto é evento individual significant — single incident já merece atenção; sustained pattern é signal estrutural. Distinção rate-vs-absolute preserva clareza operacional."
+			}, {
+				id:        "regulatory-fiscal-ambiguity"
+				condition: "ABSOLUTE per-incident (sem sample gate): caso individual envolvendo zona cinza fiscal/regulatória — supplier sob sanção during verification lifetime, cross-border supply com regulatório específico, fiscal anomaly em criteria/evidence interpretation, criteria match deterministic mas regulatory context creates ambiguidade."
+				action:    "Escalação founder com parecer especializado required (compliance officer OR legal advisory). Verification BLOQUEADA até decisão. Artifact ordering caso-a-caso: typical case → tension-entry (registro); recurring pattern → deferred-decision para criteria/regulatory-criteria evolution; structural → ADR + cross-BC coordination."
+				rationale: "Integridade legal é constraint inviolável (CLAUDE.md nivel 1); zona cinza exige julgamento humano especializado. ABSOLUTE per-incident porque single incident já é potential regulatory exposure. Distinta de outros escalations (rate-based operational signals)."
+			}]
+		}
+		rationale: """
+			governanceScope materializa modelo antifrágil de
+			governança per founder review (Phase 1.5):
+
+			6 PRINCÍPIOS ESTRUTURAIS:
+			- P1 LOUD: audit trail imutável + categorical
+			  reasonCode + actor + timestamp; nenhuma decisão
+			  silenciosa por construção
+			- P2 BOUNDED: caps cumulativos (BD6 30d total) +
+			  per-instance limits (1 override active per state) +
+			  time-bounded justifications
+			- P3 RECONCILIATION mandatory: cada override exige
+			  closure (reconciliação automática Phase 1+ OR
+			  cross-BC notification + DRC path)
+			- P4 FEEDBACK estrutural: rate sustained > threshold
+			  → artifact ordering OBRIGATÓRIO (transient →
+			  tension-entry; recurrent 2+ janelas → deferred-
+			  decision; structural 3+ janelas OR design
+			  implication → ADR). Sistema aprende com pressure;
+			  override vira input estruturado de evolução.
+			- P5 anti-paralysis: BD6 14-day fail-safe forward
+			  motion preserva commitment lifecycle sob indecisão
+			  humana; cost de não-decidir é alto e auditável
+			- P6 CROSS-BC awareness: override considera
+			  externalidade INV/REW/NIM/DRC; mandatory
+			  notification + DRC dispute path para inconsistency
+			  potential
+
+			4 MECANISMOS OPERACIONAIS:
+			- M1 categorical reasonCodes (BD13 + alinhados com
+			  BDs Lote 1-4); cada override path produz reasonCode
+			  estruturado distinct
+			- M2 rate-based escalation com sample size gate
+			  (N ≥ 50 OR janela ≥ 14d) + mandatory artifact
+			  action por breach sustained — antifragility loop
+			  fechado
+			- M3 [INVARIANT Phase 0 enforced by founder
+			  discipline; Phase 1+ schema-typed via deferred def]:
+			  Founder único approver Phase 0 (paralelo a P2P/SSC)
+			  + non-implicit-delegation constraint — toda
+			  delegação DEVE ser explícita via update
+			  governanceScope, não implícita via prática
+			- M4 reconciliation status tracked Phase 0 manual
+			  (pending | completed | not-applicable);
+			  reconciliationStatus=pending sustained > 14 dias
+			  DEVE aparecer em OBS metric pending-reconciliation-
+			  rate (auto-escalation Phase 1+ via OBS infra
+			  maturation)
+
+			5 FAILURE MODES MAPEADOS:
+			- F1 rubber-stamp → caps + rate metrics + artifact
+			  obligation
+			- F2 over-cautious → P5 anti-paralysis fail-safe +
+			  cost visibility (rejection-rate sustained vira OBS
+			  signal)
+			- F3 override stacking → state machine constraint
+			  (1 override active per Verification per state;
+			  exception-during-exception proibido per BD6)
+			- F4 override-as-norm → P4 design review trigger
+			  obrigatório per artifact ordering
+			- F5 cross-BC inconsistency → P6 awareness + DRC
+			  dispute path obrigatório (BD8 path A + path B)
+
+			ESTRUTURA:
+			- 7 autonomousDecisions cobrindo function pura +
+			  lifecycle automation (validate-integrity → ingest
+			  → resolve-criteria → evaluate → emit-atomic →
+			  apply-supersession → transition-exception-timer)
+			- 6 supervisedDecisions cobrindo 4 override channels
+			  (emergency BD7; post-finality BD8; criteria-version
+			  BD12; exception-extension BD6) + 2 normal
+			  supervised (override-rejection re-evaluate-with-
+			  new-input semantics; revert-auto-rejection edge
+			  case BD6 (h))
+			- 7 escalationCriteria cobrindo 5 rate-based com
+			  sample gate (emergency-override + post-finality +
+			  criteria-override + exception-extension +
+			  integrity-failure) + 2 absolute (exception-
+			  cumulative-cap-reached BD6 hard cap; regulatory-
+			  fiscal-ambiguity per-incident inviolable)
+
+			Phase 0 simplificações registradas (compromisso
+			explícito):
+			- M3 founder único approver (paralelo a P2P/SSC);
+			  Phase 1+ tier separation per oq-dlv quando org
+			  cresce
+			- M4 reconciliation manual com OBS visibility de
+			  pending sustained; auto-trigger Phase 1+ via OBS
+			  infra
+			- M2 founder review manual; auto-trigger Phase 1+ via
+			  OBS metric infrastructure
+			- Thresholds Phase 0 baseline (5%/1%/2%/10%) com
+			  sample gate; calibração via verificationMetrics
+			  Lote 1.6 + empirical data Phase 1+
+
+			Antifragility property: pressão sobre override paths
+			gera sinais que FORTALECEM o design (P4 artifact
+			ordering closes loop), em vez de degradar invariantes
+			(P1 LOUD + P2 BOUNDED) ou causar paralisia (P5 fail-
+			safe). Override deixa de ser 'escape hatch' passivo
+			e vira mecanismo ATIVO de design feedback. Sistema
+			aprende com pressure; override é input estruturado de
+			evolução, não falha a esconder.
+
+			Anti-mini-NIM transversal preservado: 7 autonomous
+			operam dentro de 3 boundaries hard (BD7 evidence-side
+			+ BD12 criteria-side + BD10 scoring-side); 6
+			supervised respeitam mesmas boundaries (override
+			emergency requires evidence claim; criteria-override
+			requires criteria existence; nenhuma supervised
+			autoriza scoring inline). Boundary preservation NÃO
+			degrada com complexidade governance.
+
+			Forward-ref Phase 5: agent-governance envelope
+			materializa enforcement mechanism para
+			supervisedDecisions + escalationCriteria —
+			governanceScope DECLARA o que é permitido/escalável;
+			envelope EXECUTA o gate runtime. Coerência
+			governanceScope ↔ agent-spec ↔ envelope é critical
+			path Phase 4-5.
+			"""
 	}
 
 	// =============================================
