@@ -412,30 +412,25 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-purchase-scope"
 		name:        "PurchaseScope"
-		description: "Descrição estruturada do escopo de um Pedido de Compra — descrição do item/serviço, volume requerido, prazo de entrega, location relevante."
+		description: "Descrição estruturada do escopo de um Pedido de Compra — descrição do item/serviço, volume estimado, prazo de entrega, location relevante. Alinhado nominalmente com SSC vo-rfq-scope para coerência cross-BC vocabulary (estimatedVolume + deadline + location)."
 		fields: [{
 			kind: "primitive"
 			name: "description"
 			type: "string"
 		}, {
 			kind: "primitive"
-			name: "requestedVolume"
+			name: "estimatedVolume"
 			type: "decimal"
 		}, {
-			kind:        "primitive"
-			name:        "unit"
-			type:        "string"
-			description: "Unidade de medida (un, kg, m³, hour, etc)."
-		}, {
 			kind: "primitive"
-			name: "deliveryDeadline"
+			name: "deadline"
 			type: "datetime"
 		}, {
 			kind: "primitive"
 			name: "location"
 			type: "string"
 		}]
-		rationale: "Estruturação do escopo de PO é precondição de emit válido. Volume + unit sustentam allocation tracking (prj-allocation-tracking computa volume agregado por authorityRef + supplier + category)."
+		rationale: "Estruturação do escopo de PO é precondição de emit válido. estimatedVolume sustenta allocation tracking aggregate-level (prj-allocation-tracking computa volume agregado por authorityRef + supplier + category). Nomenclatura alinhada com SSC vo-rfq-scope (estimatedVolume + deadline) per cross-BC vocabulary consistency — drift prévio (requestedVolume + deliveryDeadline + unit) corrigido mecanicamente sem rationale defensável para divergência. Unit removido: não usado em invariants nem allocation tracking; sustentação prévia era especulativa. Quando unit emergir como conceito primário (e.g., per-categoryRef unit canonization), formalizar como VO próprio ou extension."
 	}, {
 		code:        "vo-cancellation-reason"
 		name:        "CancellationReason"
@@ -539,11 +534,6 @@ domainModel: artifact_schemas.#DomainModel & {
 			name:           "cancellationReason"
 			valueObjectRef: "vo-cancellation-reason"
 			description:    "Presente quando status=cancelled."
-		}, {
-			kind:        "primitive"
-			name:        "validationFailureNote"
-			type:        "string"
-			description: "Optional — populated quando status=requested persiste sem progredir para emitted (authority validation falhou; audit trail de attempt failed). Vazio quando state=requested ainda transientemente aguardando validation OR quando state=emitted (validation passou)."
 		}]
 
 		lifecycle: {
