@@ -322,6 +322,33 @@ package artifact_schemas
 	recipient: #NonEmptyString
 
 	rationale: #NonEmptyString
+
+	// Queue governance fields per adr-075 (Caminho D' bounded-wait
+	// queue governance): aplicáveis a routes com channel='alert-and-block'
+	// que implementam bounded wait + escape hatch supervisionado.
+	// Optional — routes sem bounded queue não declaram.
+	maxQueueDepth?: int & >=1
+	maxQueueAge?:   #DurationDescriptor
+	overflowPolicy?: #OverflowPolicy
+}
+
+// Fail-safe overflow policy per adr-075 para bounded-wait queues.
+// auto-cancel-and-escalate é única action Phase 0: preserva invariants
+// sob queue pressure (NÃO auto-approve which would bypass RECTOR gates
+// — DDoS-induced queue overflow induziria auto-approves se permitido).
+// Fail-safe by design.
+#OverflowPolicy: {
+	action: "auto-cancel-and-escalate"
+
+	// Reason code aplicado quando overflow dispara cancellation.
+	// MUST match um dos reasonCodes declarados em vo-cancellation-reason
+	// (OR equivalente) constraint do domain-model do BC alvo. CUE não
+	// resolve cross-context enum aqui — contract validado por inspeção
+	// + runner cross-file futuro. P2P canonical: 'queue-overflow'.
+	cancelReasonCode: string & !=""
+
+	// Re-routes overflow event via existing escalation taxonomy do envelope.
+	escalateVia: #EscalationCategory
 }
 
 // ========================================
@@ -454,7 +481,64 @@ package artifact_schemas
 	immediateAction: #RegressionAction
 
 	rationale: #NonEmptyString
+
+	// Reference to signal code from agent-spec per adr-075 (Caminho D'
+	// signal-as-contract). Scope resolution deterministic via signal
+	// payload snapshot at trigger time — runtime evaluation derives
+	// state from audit log; envelope declares contracts, not state.
+	// Audit trail captures {trigger code, signal-payload-snapshot,
+	// action, resolved-scope}. Substitui runner-implicit actor-scoping
+	// por contract explícito auditável.
+	scopedBySignal?: #ObservabilitySignalRef
+
+	// Clearance condition para sustained containment effects per
+	// adr-075. Discriminated union: Phase 0 single variant
+	// (no-signal-in-window). Variants futuros (metric-below-threshold,
+	// duration-elapsed, manual-review) adicionados como extensions
+	// não-breaking quando primeira instância requisitar (def-013
+	// trigger 2). Runtime evaluation deriva state from audit log;
+	// envelope declares contracts, not state.
+	clearanceCondition?: #ClearanceCondition
 }
+
+// Discriminated union para clearance condition variants per adr-075.
+// Estado deriva de audit log (single source of truth); schema declares
+// trigger condition + clearance condition; runner queries log para
+// derivar status atual. Pattern paralelo circuit breaker / rate limiter
+// em sistemas críticos. Phase 0: 1 variant materializada; outros
+// variants extension-friendly via discriminated union pattern (paralelo
+// #DomainEvent + #DomainField extensions historicamente).
+#ClearanceCondition: #ClearanceByNoSignalInWindow
+
+// Variant Phase 0: clearance quando ausência sustentada de signal
+// matching scope por janela mínima.
+#ClearanceByNoSignalInWindow: {
+	// Discriminator value (single Phase 0; extensible via variant addition).
+	type: "no-signal-in-window"
+
+	// Reference ao signal cuja ausência clears containment.
+	signalRef: #ObservabilitySignalRef
+
+	// Janela mínima sem signal occurrence para clear.
+	window: #DurationDescriptor
+
+	// Scope de evaluation:
+	//   inherit-from-trigger: scope vem do scopedBySignal do trigger
+	//     (ator-afetado para actor-localized; category para systemic);
+	//   global: ausência global de signal cross-scope.
+	scope: "inherit-from-trigger" | "global"
+
+	// Threshold máximo de occurrences durante window. 0 = clearance
+	// requer zero occurrences (default rigorous); >0 permite alguma
+	// recorrência tolerada antes de re-trigger.
+	maxOccurrences: int & >=0
+}
+
+// Duration descriptor format para queue governance + clearance windows.
+// Per adr-075 — formato bounded structured (vs descriptive prose como
+// driftDetection.evaluationCadence) para campos que exigem
+// machine-evaluable parsing pelo runner.
+#DurationDescriptor: string & =~"^[0-9]+(h|d|w)$"
 
 // O que acontece imediatamente quando um regression trigger dispara.
 #RegressionAction:

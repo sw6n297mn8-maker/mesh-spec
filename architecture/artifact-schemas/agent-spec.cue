@@ -424,6 +424,14 @@ package artifact_schemas
 
 	// Nível de severidade do sinal.
 	level: #SignalLevel
+
+	// Lista de campos do signal payload — declara contract para
+	// scope resolution em refs externos (e.g., #RegressionTrigger
+	// scopedBySignal em envelope governance per adr-075). Phase 0:
+	// list-of-string (presence validation only). Typed payloadSchema
+	// (PayloadType + map fieldName-to-type) deferred via def-013
+	// trigger 1 quando ≥2 envelopes adotarem scopedBySignal pattern.
+	payloadFields?: [#NonEmptyString, ...#NonEmptyString]
 }
 
 #SignalLevel:
@@ -470,3 +478,10 @@ package artifact_schemas
 
 #BoundedContextRef: string & =~"^[a-z][a-z0-9-]*$"
 #NonEmptyString:    string & !=""
+
+// Reference type para signal codes — typed alias permite future
+// extension (e.g., cross-validation contra agent-spec signals[].code
+// via runner) sem schema breaking change. Per adr-075 (Caminho D'
+// signal-as-contract): refs em envelope governance referenciam
+// signals via este typed ref para auditability.
+#ObservabilitySignalRef: string & =~"^sig-[a-z][a-z0-9-]*$"
