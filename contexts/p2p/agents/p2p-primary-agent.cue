@@ -465,6 +465,20 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			coversCategory: "escalation"
 			trigger:        "Drift sustentado detectado por monitoring obligation"
 			level:          "warn"
+			// payloadFields per adr-075 Caminho D' signal-as-contract:
+			// declara campos do payload para refs externos (envelope
+			// governance scopedBySignal/clearanceCondition).
+			payloadFields: [
+				"authorityRef",
+				"supplierRef",
+				"categoryRef",
+				"observedDistribution",
+				"declaredAllocationPolicy",
+				"windowStart",
+				"windowEnd",
+				"sustainedThresholdEvidence",
+				"recommendation",
+			]
 		}, {
 			code:           "sig-fragmentation-detected"
 			name:           "Fragmentation Pattern Detected"
@@ -472,6 +486,20 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			coversCategory: "escalation"
 			trigger:        "Pattern report gerado por escalation actions"
 			level:          "warn"
+			// payloadFields per adr-075 Caminho D' signal-as-contract:
+			// declara campos do payload para refs externos (envelope
+			// governance scopedBySignal/clearanceCondition em
+			// regression triggers Tier 2 Hard + Tier 3 Systemic do
+			// Actor-Scoped Adaptive Containment).
+			payloadFields: [
+				"requesterRef",
+				"categoryRef",
+				"affectedPurchaseOrderIds",
+				"windowStart",
+				"windowEnd",
+				"thresholdGamingEvidence",
+				"recommendation",
+			]
 		}]
 		auditTrail: {
 			requiredFields: [
