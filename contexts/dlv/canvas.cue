@@ -277,11 +277,223 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
+	// BUSINESS DECISIONS — Lote 1/4 (núcleo determinístico)
+	// Lote 2 (lifecycle/estados) + Lote 3 (economia/fronteiras) +
+	// Lote 4 (BDs restantes) appended em commits subsequentes.
+	// Ordering aprovado pelo founder: businessDecisions (1.3) ANTES
+	// de communication (1.4) tanto em commit order quanto em source
+	// order — BDs governam o que communication materializa.
+	// =============================================
+
+	businessDecisions: [{
+		id: "bd-evidence-criteria-match-deterministic"
+		decision: """
+			Toda decisão DLV de verificação é função pura sobre tripla
+			de inputs estruturados — (evidence, criteria,
+			integrityProof) — produzindo output binário verified |
+			rejected reproduzível bit-a-bit em replay. NÃO há terceiro
+			estado: insuficiência de evidência é tratada como rejected
+			+ reasonCode estruturado (e.g., insufficient-evidence,
+			integrity-failure, criteria-mismatch, ...) — taxonomy
+			específica fechada em domain-model (Phase 3) ou BD
+			dedicado posterior; aqui declarada como categoria aberta
+			para acomodar reasonCodes derivados de businessDecisions
+			de outros lotes (e.g., evidence-withheld via incentive
+			Analysis Lote 1.5; exception-unresolved-timeout via
+			bd-exception-state-transitive Lote 2). Excepções
+			operacionais (regulatory edge, criteria-version-override,
+			manual-reconciliation) são flagged via escalation
+			supervisedDecision separada, fora do output da função.
+			Avaliação NÃO consulta estado externo mutável durante a
+			função (cache de criteria é snapshot imutável referenciado
+			por criteriaVersion; integrityProof é verificada localmente
+			sobre evidenceRef DSSE-anchored).
+			"""
+		rationale: """
+			RECTOR estrutural do BC e thesis-invariant central da Mesh:
+			é a propriedade que torna recebíveis Mesh mais confiáveis
+			que tradicionais (per dlv subdomain rationale).
+			Determinismo é precondition de (a) cc-03 24/7 sem
+			aprovação humana no caminho normal — gate é função
+			numérica, não julgamento; (b) bd-verification-idempotent —
+			mesmo input produz mesmo output; (c) bd-replay-
+			deterministic-criteria-versioned — decisão histórica
+			reconstruível bit-a-bit. Sem determinismo, gate degrade
+			para acordo informal e a invariante 'no evidence → no
+			economic progression' colapsa. Output binário (V6) é
+			decisão consciente: terceiro estado 'insufficient' cria
+			ambiguidade operacional (downstream INV/REW/FCE precisam
+			decidir ou esperar?) que viola single-source-of-truth do
+			macrofluxo — V5→V6 endurecimento.
+			"""
+		consequences: """
+			(a) Criteria evolution exige version bump explícito (CMT
+			owns criteriaVersion lifecycle); silent criteria mutation
+			é proibido por construção. (b) Insuficiência de evidência
+			materializa-se como DeliveryRejected + reasonCode —
+			downstream taxonomy clara permite retry path (sh-02
+			fornecedor pode submeter evidência adicional sob
+			commitmentRef original; novo evidenceRef triggers nova
+			avaliação per bd-verification-idempotent). (c) Excepções
+			operacionais NÃO contornam determinismo do caminho
+			autônomo — supervisedDecision separada com humano-in-
+			loop + audit trail. (d) Replay engine (forensic + dispute)
+			opera sobre inputs imutáveis sem necessidade de estado
+			externo — habilita audit Lei 12.846/SCD/CVM e DRC dispute
+			resolution com integridade temporal.
+			"""
+	}, {
+		id: "bd-verification-idempotent"
+		decision: """
+			Identidade canônica de avaliação DLV é a tupla
+			(commitmentRef, evidenceRef). Mesma identidade produz o
+			MESMO outcome (verified | rejected) com o MESMO reasonCode
+			SOB OS MESMOS INPUTS E VERSÃO DE LÓGICA DE AVALIAÇÃO —
+			propriedade condicional, não garantia absoluta: bug fix em
+			parsing OU evolução de engine de matching pode produzir
+			outcomes legitimamente distintos para a mesma identidade
+			histórica (ver bd-replay-deterministic-criteria-versioned
+			para tratamento). Em operação normal sob versão de lógica
+			vigente, retries, replays e duplicatas de RecordEvidence/
+			EvaluateVerification por at-least-once delivery convergem
+			para o MESMO outcome. criteriaVersion é ATTRIBUTE imutável
+			da decisão emitida, NÃO componente da identidade —
+			deliberado: criteria upgrade downstream (CMT publica
+			criteriaVersion N+1) NÃO re-triggera avaliação de
+			verifications existentes sob versão N. Reavaliação
+			operacional padrão (que produz NOVO DeliveryVerified |
+			DeliveryRejected event) ocorre APENAS com novo evidenceRef
+			registrado (e.g., supersession via EvidenceSuperseded LOG
+			— ver bd-evidence-supersession-not-choice em Lote 2).
+			Reavaliações excepcionais — replay forensic, audit
+			reconstruction, DRC dispute investigation — NÃO produzem
+			novo outcome operacional: são leituras determinísticas do
+			passado sob inputs imutáveis, não ato decisório novo
+			(separação articulada em bd-replay-deterministic-criteria-
+			versioned).
+			"""
+		rationale: """
+			Idempotency é precondition operacional de at-least-once
+			delivery em sistemas event-driven (default semantics da
+			Mesh): sem idempotency, retry de RecordEvidence ou
+			re-publication de EvidenceRecorded LOG poderia gerar
+			verifications duplicadas com outcomes inconsistentes
+			(race condition entre cache de criteria e evidence
+			propagation), violando determinismo (bd-evidence-criteria-
+			match-deterministic) na camada operacional. Identity
+			(commitmentRef, evidenceRef) — NÃO incluindo
+			criteriaVersion — é decisão crítica V6: incluir
+			criteriaVersion na identidade significaria que upgrade de
+			criteria invalidaria verifications passadas (forçando
+			re-evaluation), quebrando economic finality (bd-economic-
+			finality-window em Lote 3) e replay determinism
+			(bd-replay-deterministic-criteria-versioned).
+			criteriaVersion como attribute permite coexistência de
+			verifications sob versões distintas no Event Log —
+			propriedade essencial para auditabilidade histórica e
+			dispute resolution sob critérios vigentes à época.
+			Garantia condicional (vs absoluta) à versão de lógica de
+			avaliação reconhece que motor pode evoluir (bug fix,
+			parser hardening) sem comprometer audit: replay sob
+			versão de lógica histórica reproduz outcome original
+			(bd-replay-deterministic-criteria-versioned), enquanto
+			operação corrente usa versão atual.
+			"""
+		consequences: """
+			(a) Storage layer DLV exige unique constraint em
+			(commitmentRef, evidenceRef) sobre o aggregate de
+			Verification — duplicatas detectadas no insert path,
+			retornando outcome existente (idempotent emit). (b)
+			Criteria evolution NÃO invalida verifications históricas
+			— versão N permanece válida indefinidamente para decisões
+			emitidas sob ela; versão N+1 aplica apenas a novo
+			evidenceRef pós-criteria activation. (c) Supersession
+			(evidência substituída por nova evidenceRef sob mesmo
+			commitmentRef) NÃO viola idempotency: nova identidade
+			(commitmentRef, evidenceRef-N+1) é distinta — produz nova
+			verification, com total ordering (timestamp + evidenceRef
+			hash tie-breaker per bd-evidence-supersession-not-choice
+			Lote 2). (d) DRC dispute lifecycle opera sobre
+			verifications imutáveis — contestação produz dispute
+			artifact em DRC consumindo a verification DLV existente
+			como evidência da decisão original; NÃO muta verification
+			DLV nem trigger nova avaliação operacional. Replay/audit
+			por DRC é leitura determinística (per bd-replay-
+			deterministic-criteria-versioned), não re-decisão.
+			(e) Versão de lógica de avaliação é versionada como
+			engine artifact (Phase 3 domain-model); decisões DLV
+			carregam reference imutável à versão de lógica vigente à
+			época para suportar replay condicional.
+			"""
+	}, {
+		id: "bd-replay-deterministic-criteria-versioned"
+		decision: """
+			Qualquer decisão DLV histórica é reconstruível bit-a-bit
+			por replay engine consumindo a tripla imutável CAUSAL
+			(evidenceRef, criteriaVersion, integrityProofSnapshot) —
+			sem necessidade de estado mutável externo. Metadata da
+			decisão original (decidedAt, decisionOutcome, reasonCode,
+			decidedBy) é OUTPUT do replay quando reconstruído, NÃO
+			input causal — inputs causais são apenas (evidenceRef,
+			criteriaVersion, integrityProofSnapshot). A identidade do
+			replay diverge da identidade da decisão original (que é
+			(commitmentRef, evidenceRef) per bd-verification-
+			idempotent): replay reconstrói o ato decisório sob
+			critérios vigentes à época, NÃO re-decide sob critérios
+			atuais. criteriaVersion é snapshot criptograficamente
+			endereçado (CMT owns lifecycle de criteriaVersion como
+			artifact imutável; criteriaVersionRef em decisão DLV é
+			hash-anchored para version do CMT snapshot, não um
+			símbolo mutável).
+			"""
+		rationale: """
+			Replay determinism é precondition de (a) forensic audit
+			Lei 12.846/SCD/CVM (5 anos retention) — auditor precisa
+			reconstruir decisão histórica sem ambiguidade; (b) DRC
+			dispute resolution — disputas pós-verificação dentro da
+			economic finality window exigem evidência da decisão
+			original sob critérios da época, não re-decisão sob
+			critérios atuais; (c) regulatory trail — Bacen/SCD podem
+			solicitar reconstrução de decisão específica anos depois.
+			criteriaVersion como snapshot imutável (não símbolo) é
+			crítico: se criteriaVersion fosse referência mutável (e.g.,
+			'latest construction-civil v3'), criteria evolution
+			invalidaria silenciosamente histórico — replay produziria
+			outcomes diferentes da decisão original. Snapshot-by-hash
+			força CMT a publicar nova criteriaVersion para qualquer
+			mudança, e DLV preserva referência hash original
+			independente de evolução downstream.
+			"""
+		consequences: """
+			(a) CMT owns criteriaVersion lifecycle como artifact
+			imutável append-only com hash content-addressing; mutation
+			in-place é proibida por construção. (b) DLV decision
+			events (DeliveryVerified | DeliveryRejected) carregam
+			criteriaVersionRef hash-anchored — consumidores downstream
+			(INV/REW/NIM/DRC) podem resolver ao snapshot exato. (c)
+			Replay engine é projeção determinística do Event Log —
+			replay corretude validada por property-based tests (mesmo
+			Event Log + mesma versão de lógica → mesmo resultado em
+			qualquer execução). (d) Criteria evolution path (CMT
+			publica criteriaVersion N+1) é evento explícito; cache
+			invalidation em DLV é controlada (Phase 1+ via
+			criteriaActivation event consumido — ver Lote 4
+			communication). (e) Versionamento explícito habilita
+			progressive rollout de critérios (e.g., shadow evaluation
+			sob versão nova antes de ativar para produção) sem afetar
+			decisões em vôo. (f) integrityProofSnapshot deve ser
+			conteúdo-suficiente (não depende de lookup externo
+			mutável) — refinamento operacional Phase 3 domain-model
+			validará shape; aqui declarado como input causal estável.
+			"""
+	}]
+
+	// =============================================
 	// COMMUNICATION — placeholder; conteúdo em commit 1.4
 	// =============================================
 
 	communication: {
-		rationale: "Placeholder — communication completa (5 inbound: EvidenceRecorded LOG + CommitmentAccepted CMT + criteria activation CMT + EvidenceSuperseded LOG + verification dispute DRC; 2 outbound: VerificationCompleted + VerificationRejected; 2 query-deps: QueryCommitmentCriteria CMT + QueryEvidenceProof IDC; 2 commands: RecordEvidence sync + EvaluateVerification sync; 2 query-surfaces: QueryVerificationStatus + QueryEvidenceLedger) entra em commit 1.4. Ordering aprovado pelo founder: businessDecisions (1.3) ANTES de communication (1.4)."
+		rationale: "Placeholder — communication completa (5 inbound: EvidenceRecorded LOG + CommitmentAccepted CMT + criteria activation CMT + EvidenceSuperseded LOG + verification dispute DRC; 2 outbound: DeliveryVerified + DeliveryRejected; 2 query-deps: QueryCommitmentCriteria CMT + QueryEvidenceProof IDC; 2 commands: RecordEvidence sync + EvaluateVerification sync; 2 query-surfaces: QueryVerificationStatus + QueryEvidenceLedger) entra em commit 1.4. Naming Delivery* events alinhado com bd-evidence-criteria-match-deterministic + cap-delivery-lifecycle-public-events Phase 1.2."
 	}
 
 	// =============================================
