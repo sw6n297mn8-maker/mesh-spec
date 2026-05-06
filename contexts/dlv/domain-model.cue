@@ -677,8 +677,111 @@ domainModel: artifact_schemas.#DomainModel & {
 	}]
 
 	// =============================================
-	// PROJECTIONS + POLICIES — Part 3 forward-ref
+	// PROJECTIONS (3 Phase 0 operacionais)
+	// Read models determinísticos sobre Event Log;
+	// NÃO introduzem decisão (apenas ordering canonical via
+	// eventLogOffset).
 	// =============================================
+
+	projections: [{
+		code:        "prj-canonical-current-verification"
+		name:        "Canonical Current Verification"
+		description: "Mapping commitmentRef → canonical-current Verification (latest sob ordering eventLogOffset). Read-only projeção determinística sobre Event Log de DeliveryVerified + DeliveryRejected + SupersessionApplied events. Selection é via eventLogOffset ordenação canonical (NÃO inferência, NÃO 'best evidence' selection — anti-mini-NIM BD5)."
+		consumesEvents: [
+			"evt-delivery-verified",
+			"evt-delivery-rejected",
+			"evt-supersession-applied",
+		]
+		queryCapabilities: [{
+			code:        "qry-canonical-current"
+			description: "Retorna canonical-current Verification para commitmentRef específico (latest by eventLogOffset)."
+			rationale:   "Habilita downstream consumers (INV/REW/NIM/DRC) projetar canonical-current via ordering canonical sem ambiguidade — oq-dlv-5 founder-flagged answer: canonical-current = latest by eventLogOffset; histórico imutável referenciado via supersededByRef."
+		}]
+		rationale: """
+			Sem este projection, consumers downstream implementariam
+			projection logic divergente per BC — fonte de drift cross-
+			consumer (INV trata latest como canonical; REW agrega
+			histórico; etc). Centralizar via projeção canonical em
+			DLV elimina classe de inconsistência cross-BC.
+			Determinismo: ordering por eventLogOffset (NÃO timestamp,
+			NÃO selection logic) garante replay-safety (BD3) +
+			at-most-once observability (BD14c).
+			"""
+	}, {
+		code:        "prj-evidence-lineage"
+		name:        "Evidence Lineage"
+		description: "Mapping commitmentRef → ordered chain de EvidenceRecords + linkage de supersession (via supersededByRef no aggregate Verification). Read-only projeção determinística sobre evt-evidence-recorded + evt-supersession-applied events. Audit trail completo histórico imutável."
+		consumesEvents: [
+			"evt-evidence-recorded",
+			"evt-supersession-applied",
+		]
+		queryCapabilities: [{
+			code:        "qry-evidence-lineage"
+			description: "Retorna chain ordered de EvidenceRecords para commitmentRef (ingestion eventLogOffset ordering) + linkage supersededBy."
+			rationale:   "Materializa QueryEvidenceLedger query-surface (canvas Phase 1.4) — habilita audit Lei 12.846/SCD/CVM (5 anos retention) + DRC dispute investigation forensic + Replay Determinístico engine input."
+		}]
+		rationale: """
+			Audit trail focused (vs canonical-current focused).
+			Histórico imutável é precondition de forensic audit +
+			DRC dispute resolution + replay determinism (BD3).
+			Determinismo: ordering por ingestion eventLogOffset
+			(distinct de decision eventLogOffset per micro-ajuste b)
+			via cada evt-evidence-recorded carries; supersession
+			linkage via evt-supersession-applied.
+			"""
+	}, {
+		code:        "prj-exception-tracking"
+		name:        "Exception Tracking"
+		description: "Mapping (commitmentRef, evidenceRef) → exceptionHistory + active status. Read-only projeção determinística sobre evt-exception-entered + evt-exception-extended + evt-exception-resolved events. Estado vigente é projeção do último entry sem resolvedAt per BD6 (NÃO inferência — extração mecânica do histórico)."
+		consumesEvents: [
+			"evt-exception-entered",
+			"evt-exception-extended",
+			"evt-exception-resolved",
+		]
+		queryCapabilities: [{
+			code:        "qry-exception-tracking"
+			description: "Retorna exceptionHistory completo + computed active status (último entry sem resolvedAt) para identity (commitmentRef, evidenceRef)."
+			rationale:   "Materializa parte de QueryVerificationStatus query-surface (canvas Phase 1.4) cobrindo exception state intermediário. Internal-consumers-only per BD12 — DLV-internal observability; NÃO publicado cross-BC."
+		}]
+		rationale: """
+			Internal-consumers-only per BD12 — exception state é
+			INTERNO a DLV (NÃO publicado cross-BC; expostos apenas
+			via query-surface). Consumers: sh-01/sh-02/DRC/audit
+			(internal); downstream INV/REW/NIM operam apenas sobre
+			terminal events públicos.
+			Determinismo: estado vigente é último entry sem
+			resolvedAt — projeção mecânica, não inferência. Cumulative
+			duration computado para inv-exception-cumulative-cap
+			(30d cap absoluto).
+			"""
+	}]
+
+	// =============================================
+	// POLICIES (1 event-handler — supersession routing)
+	// Pure routing; NÃO decision. Phase 1+ eventual automation;
+	// Phase 0 catalog declarado para document pattern.
+	// =============================================
+
+	policies: [{
+		code:             "pol-supersession-applied-handler"
+		name:             "Supersession Applied Handler"
+		description:      "Quando evt-supersession-applied é registrado (marker de supersession lineage aplicada via cmd-record-evidence + aggregate emission), policy automática issues cmd-evaluate-verification para a nova Verification (com nova IdempotencyIdentity commitmentRef + evidenceRef-N+1). PURE ROUTING — NÃO decisão; sempre roteia sem condicional. Phase 1+ eventual policy automation; Phase 0 sync caminho explicit alternativo (founder/agent invoca cmd-evaluate-verification manualmente)."
+		triggeredByEvent: "evt-supersession-applied"
+		issuesCommand:    "cmd-evaluate-verification"
+		rationale: """
+			Event-handler routing per founder ajuste 4: supersession
+			é REAÇÃO ao LOG event, NÃO decisão DLV. Policy NÃO escolhe
+			entre evidências (anti-mini-NIM BD5); apenas encaminha
+			signal para evaluation cycle subsequent. Phase 1+ pattern
+			automation: quando supersession lineage aplicada (via
+			cmd-record-evidence + aggregate creation com nova
+			identity), evaluation segue automaticamente. Phase 0:
+			declarado catalog mas operacionalização Phase 1+ quando
+			runtime infrastructure (eventual policy worker) materializa.
+			Phase 0 caminho operacional: sync via cmd-evaluate-
+			verification explicit invocation pós-cmd-record-evidence.
+			"""
+	}]
 
 	rationale: """
 		Domain Model DLV materializa propriedades formais do BC como
