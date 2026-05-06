@@ -486,6 +486,386 @@ canvas: artifact_schemas.#Canvas & {
 			mutável) — refinamento operacional Phase 3 domain-model
 			validará shape; aqui declarado como input causal estável.
 			"""
+	}, {
+		id: "bd-ingestion-evaluation-separation"
+		decision: """
+			DLV separa estruturalmente duas operações distintas: (1)
+			INGESTION via RecordEvidence command — append-only de
+			(commitmentRef, evidenceRef, integrityProofRef,
+			recordedAt) sem julgamento, sem avaliação, sem efeito
+			downstream; produz evento de domínio EvidenceRecorded
+			interno e nada mais. (2) EVALUATION via
+			EvaluateVerification command — função pura sobre
+			(evidence ingestada, criteria via criteriaVersion
+			snapshot, integrityProof) que emite DeliveryVerified |
+			DeliveryRejected. As duas operações têm aggregates
+			distintos: ingestion materializa EvidenceRecord;
+			evaluation materializa Verification. Trigger de
+			evaluation pode ser síncrono (EvaluateVerification
+			explícito chamado por agente upstream) OU eventual
+			(timer/policy quando criteria + evidence + commitment
+			estão todos disponíveis); Phase 0 prioriza síncrono
+			explícito, Phase 1+ pode adicionar trigger eventual
+			policy-driven. Ingestion NÃO valida critérios — apenas
+			integridade local da prova IDC; evidence pode ser
+			ingestada antes, durante ou depois de criteria
+			activation sem afetar correctness.
+			"""
+		rationale: """
+			Separação previne 4 problemas operacionais que
+			apareceriam em design coupled (ingestion + evaluation
+			no mesmo command): (a) Race condition criteria-vs-
+			evidence — se evaluation executasse no momento da
+			ingestion, evidence chegando antes de criteria ativada
+			produziria rejeição falsa (criteria não disponível ≠
+			criteria não atendida); separação permite re-evaluation
+			determinística quando criteria ativam sem mutar
+			EvidenceRecord ingestado. (b) Atomicity blast radius —
+			ingestion (append imutável, operação leve) tem perfil
+			operacional diferente de evaluation (função sobre
+			snapshots, pode ser custosa em criteria complexos);
+			fusão acoplaria latency budgets. (c) Replay determinism
+			— replay precisa reconstruir decisão sem re-ingestar
+			evidência (ingestion já é fato registrado); separação
+			faz replay = re-execução pura da função evaluation
+			sobre EvidenceRecord imutável. (d) Anti-mini-NIM
+			enforcement — ingestion sem julgamento força evaluation
+			a ser função sobre inputs já-comprometidos (não pode
+			escolher quais evidências considerar; só avalia sob
+			critérios versionados). Análoga a SSC ingestion
+			(RFQOpened) vs decision (SourcingDecisionMade) —
+			separação canônica do macrofluxo Mesh entre captura
+			de fato e ato decisório.
+			"""
+		consequences: """
+			(a) Aggregate model Phase 3: EvidenceRecord (ingestion-
+			time identity (commitmentRef, evidenceRef),
+			integrityProofRef, recordedAt — imutável) distinto de
+			Verification (evaluation-time identity (commitmentRef,
+			evidenceRef), outcome, reasonCode, criteriaVersion
+			attribute, decidedAt). (b) EvidenceRecorded é evento
+			interno DLV (NÃO publicado cross-BC); apenas
+			Verification events são públicos (DeliveryVerified |
+			DeliveryRejected). (c) Evaluation pode ser disparada
+			múltiplas vezes para mesmo (commitmentRef, evidenceRef)
+			— convergem para mesmo outcome sob mesmos inputs e
+			versão de lógica per bd-verification-idempotent
+			(operações repetidas idempotentes; primeiro emit é
+			canonical). (d) Trigger eventual Phase 1+ exige policy
+			explícita: 'avaliar quando criteriaVersion(commitmentRef)
+			está ativo E evidenceRecord existe E commitment está em
+			estado evaluable' — codificada como projection-driven
+			worker, não como side effect de ingestion. (e) Ingestion
+			path tem SLA latência inferior a evaluation path
+			(ingestion é write-thru ao Event Log; evaluation pode
+			ser criteria-bound).
+			"""
+	}, {
+		id: "bd-evidence-supersession-not-choice"
+		decision: """
+			Quando múltiplas evidências chegam para o mesmo
+			commitmentRef, DLV NÃO ESCOLHE entre elas — aplica
+			SUPERSESSION linear determinística. Total ordering
+			canônica sobre conjunto de evidenceRefs por
+			commitmentRef ANCORA EM POSIÇÃO NO EVENT LOG
+			(eventLogOffset monotônico globalmente determinístico),
+			preservando replay-safety por construção. Tie-breaker
+			secundário evidenceRef hash (SHA-256 lexicographic
+			ordering) absorve qualquer empate teórico de offset
+			(improvável dado single-writer Event Log Phase 0;
+			preservado como safety net). recordedAt timestamp
+			permanece como ATTRIBUTE da EvidenceRecord (audit +
+			observability), NÃO como fonte de ordering — clock skew
+			cross-ingestion-paths não afeta correctness.
+
+			Trigger de supersession tem caminho primário e fallback
+			determinístico:
+			(a) PRIMÁRIO: EvidenceSuperseded LOG event consumido
+			    por DLV — LOG declara explicitamente que
+			    evidenceRef-N+1 substitui evidenceRef-N (LOG owns
+			    supersession lineage como source of truth quando
+			    disponível).
+			(b) FALLBACK: na AUSÊNCIA de EvidenceSuperseded
+			    explícito (LOG pode atrasar, falhar OU ainda não
+			    modelar lineage para certos fluxos Phase 0), DLV
+			    aplica ordering canônica (eventLogOffset + hash)
+			    sobre o conjunto de evidenceRefs registradas para
+			    commitmentRef e trata o latest sob ordering como
+			    canonical-current. Fallback NÃO viola boundary
+			    (LOG owns lineage quando declarada); apenas evita
+			    travar DLV quando upstream falha — robust-against-
+			    failure-of-adjacent-BC. Quando EvidenceSuperseded
+			    LOG event chega tardio para fluxo já no fallback,
+			    DLV reconcilia: se ordering LOG-declared diverge
+			    de ordering DLV-fallback, diferença é flagged como
+			    anomaly OBS metric (sig-supersession-lineage-drift)
+			    — não corrupção de state (ambas convergem para
+			    latest sob ordering canônica), mas signal para
+			    revisar lineage declaration upstream.
+
+			A evidência mais recente sob esta ordering é canonical-
+			current; evidências anteriores sob mesmo commitmentRef
+			tornam-se superseded e produzem Verification events com
+			reasonCode=evidence-superseded apontando para
+			evidenceRef-novo via supersededByRef attribute.
+			Verifications históricas NÃO são mutadas (immutability
+			per bd-verification-idempotent + bd-replay-deterministic-
+			criteria-versioned); supersession produz NOVA
+			verification sob nova identidade (commitmentRef,
+			evidenceRef-N+1) — não re-decisão da verification
+			anterior.
+			"""
+		rationale: """
+			Supersession linear é decisão estrutural de anti-mini-
+			NIM: DLV ESCOLHENDO entre evidências competing seria
+			julgamento (qual evidência é melhor?), violando o
+			boundary 'DLV decide suficiência por critério, não
+			qualidade entre evidências'. Linear ordering força LOG
+			(que ingere) a declarar lineage explícita — desloca
+			decisão para o domínio onde lineage de evidência é
+			primary concern. Total ordering ancorada em
+			eventLogOffset (não recordedAt) é necessária para 3
+			propriedades: (a) replay determinism — qualquer
+			execução de replay produz mesma ordering em qualquer
+			máquina, qualquer momento, sem dependência de relógio
+			local; (b) idempotency — múltiplas chegadas concurrent
+			de EvidenceSuperseded com mesmo (commitmentRef,
+			evidenceRef-novo) convergem para mesmo state; (c) clock
+			skew safety — Phase 0 não assume sincronização perfeita
+			de clocks cross-BC; eventLogOffset é fonte canônica
+			global determinística, eliminando classe inteira de
+			race conditions cross-ingestion-paths (múltiplos
+			workers, retries, reordering temporal).
+
+			Verifications históricas immutable preservam audit
+			trail completo (qual decisão foi tomada sob qual
+			evidência em qual momento) — supersession adiciona
+			lineage forward, não reescreve passado.
+			EvidenceSuperseded LOG event como trigger primário
+			respeita boundary: LOG owns evidence lifecycle
+			(incluindo replacement), DLV reage. Fallback DLV em
+			ausência de LOG event evita brittle dependency:
+			robust-against-failure-of-adjacent-BC é princípio
+			estrutural Mesh — DLV não pode travar porque LOG
+			atrasou. sig-supersession-lineage-drift OBS metric
+			cria observabilidade real para divergence rate primário-
+			vs-fallback, fechando feedback loop estrutural sobre
+			saúde do upstream LOG.
+			"""
+		consequences: """
+			(a) Aggregate Phase 3: Verification carrega
+			supersededByRef attribute (opcional, hash-anchored);
+			evidence-superseded reasonCode é categoria estrutural
+			da taxonomy aberta (bd-evidence-criteria-match-
+			deterministic Lote 1).
+			(b) Supersession produz NOVA evaluation sob nova
+			identidade (commitmentRef, evidenceRef-N+1) — emit
+			DeliveryVerified ou DeliveryRejected sob novo
+			evidenceRef + criteriaVersion vigente à época da nova
+			evaluation (NÃO da anterior).
+			(c) Downstream INV/REW/NIM consumem Verification events
+			e devem manter projeção de canonical-current
+			Verification por commitmentRef (latest sob ordering) —
+			projection logic é responsabilidade do consumidor, não
+			de DLV.
+			(d) Race condition concurrent EvidenceSuperseded events
+			com diferentes evidenceRef-N+1 candidatos para mesmo
+			commitmentRef: resolved deterministicamente por ordering
+			canônica (eventLogOffset + hash); converge para mesmo
+			final state.
+			(e) Janela entre supersession trigger e nova evaluation
+			completion é finita mas non-zero; downstream consumers
+			podem observar Verifications stale transitoriamente
+			(eventual consistency) — economic finality window
+			(bd-economic-finality-window Lote 3) bounds tolerância.
+			(f) DRC dispute pós-supersession: contestação opera
+			sobre Verification HISTÓRICA específica (audit trail
+			completo); supersession não invalida path de dispute
+			para verification anterior dentro de finality window.
+			(g) Edge case clock skew sustentado entre ingestion
+			paths: NÃO afeta correctness (eventLogOffset é fonte
+			canônica); recordedAt monotonicity per ingestion path
+			pode ser monitorada como OBS metric secundária para
+			diagnóstico operacional.
+			(h) Event Log offset é fonte canônica de ordering
+			globalmente — elimina classe inteira de race
+			conditions cross-ingestion-paths (múltiplos workers de
+			ingestion, retries, reordering temporal); recordedAt
+			vira metadata audit-friendly, não input causal de
+			correctness.
+			(i) Fallback path tem cobertura limitada Phase 0 (LOG
+			event ausente apenas em scenarios degraded); operação
+			normal usa LOG-declared lineage. sig-supersession-
+			lineage-drift OBS metric mede divergence rate primário-
+			vs-fallback como sinal de saúde do upstream LOG.
+			"""
+	}, {
+		id: "bd-exception-state-transitive"
+		decision: """
+			Toda evaluation que entra em estado de exceção
+			(escalation pending por insufficient-authority,
+			criteria-version-override, manual-reconciliation,
+			regulatory-fiscal-ambiguity) tem JANELA MANDATÓRIA DE
+			TRANSIÇÃO de 14 dias (Phase 0 hard-coded; Phase 1+
+			pode parameterizar per criteria type via openQuestion
+			oq-dlv-7). Timer baseado em DLV system time (não
+			wall-clock externo) — replay-safe: replay determinístico
+			reconstrói transição sob mesma timeline de events
+			ingerida.
+
+			Estado de exceção é único por (commitmentRef,
+			evidenceRef): apenas UMA exception ativa por evaluation,
+			NÃO consolidação em composite reasonCode. Quando nova
+			condição de exception surge enquanto exception anterior
+			está pending, escalação opera sobre estado vigente
+			único (último entry da história); histórico de
+			exceptions é PRESERVADO append-only via exceptionHistory
+			attribute na Verification aggregate:
+
+			    exceptionHistory: [
+			        {reason, timestamp, triggeredBy,
+			         resolvedAt?, resolution?},
+			        ...
+			    ]
+
+			Cada entry preserva ordering temporal, causalidade
+			(triggeredBy: actor humano OR system), e evolução do
+			incidente. Estado vigente da exception (último entry
+			sem resolvedAt) é projeção determinística do histórico.
+
+			Timer 14 dias NÃO reseta com nova entry — preserva
+			blast radius temporal a partir do PRIMEIRO entry da
+			history (granularidade de auditabilidade preservada;
+			estado controlado).
+
+			Founder OR designated approver pode estender janela via
+			supervisedDecision extend-exception-window com
+			justificativa documentada e novo deadline; extensions
+			são CUMULATIVAS (adicionam tempo ao timer existente;
+			NÃO reiniciam o relógio do primeiro entry); Phase 0 max
+			30 dias TOTAL desde primeiro entry per exception (cap
+			absoluto, não cap-por-extensão).
+
+			No T+timer-final do entry da exception, transição
+			automática para terminal state ocorre — humano resolveu
+			(terminal: verified OR rejected com reasonCode=
+			exception-resolved-{outcome}; exceptionHistory entry
+			final marca resolvedAt + resolution) OU ausência de
+			resolução triggers terminal forçado (terminal: rejected
+			com reasonCode=exception-unresolved-timeout). Estado de
+			exceção NÃO é estado terminal: lifecycle DLV é
+			{pending-evaluation → {evaluating → {verified |
+			rejected | exception-pending}} → exception-pending
+			{dentro do timer} → terminal {verified | rejected}}.
+			exception-during-exception é proibido por construção
+			no NÍVEL DE ESTADO (uma única exception ativa) mas
+			PRESERVADO no nível de histórico (todas as condições
+			que dispararam exception ficam em exceptionHistory).
+			"""
+		rationale: """
+			Estados de exceção sem terminal mandatório são vetor
+			clássico de stuck workflow: escalação esquecida, manual
+			reconciliation indefinida, regulatory edge ambígua sem
+			decisão — consequência é commitment lifecycle bloqueado,
+			downstream INV/REW/FCE bloqueados, fornecedor sem
+			feedback. Em B2B financeiro, stuck state vira
+			reclamação regulatória (Bacen exige resolução de
+			pendências em prazos definidos). Janela mandatória
+			força resolução: ou humano resolve com audit trail, ou
+			sistema resolve por timeout com audit trail.
+
+			14 dias Phase 0 é compromisso operacional: tempo
+			suficiente para founder revisar backlog semanal de
+			escalations sem ser tão longo que bloqueie commitment
+			lifecycle (CMT formalization timeline tipicamente < 30
+			dias). Auto-rejection no T+timer é fail-safe (não
+			fail-open): se humano não responde, sistema rejeita
+			com reasonCode auditável — preserva invariante 'no
+			evidence verified → no economic progression' mesmo sob
+			falha humana.
+
+			Estado único + exceptionHistory append-only preserva
+			granularidade temporal + causalidade + actor sem
+			permitir explosão de estado: estado é simples
+			(projeção determinística do último entry sem
+			resolvedAt), histórico é rico (auditor pode reconstruir
+			sequência completa, identificar causalidade entry-N
+			triggered-by-system vs entry-M triggered-by-actor,
+			diagnosticar patterns sustainados). Timer baseado em
+			primeiro entry preserva blast radius temporal —
+			múltiplos triggers de exception não estendem janela
+			implicitamente.
+
+			Extension supervised cumulativa (não reset) com cap
+			absoluto preserva propriedade de bounded blast radius:
+			founder pode justificar mais tempo, mas não
+			indefinidamente; cap-por-cumulativo (vs cap-por-
+			extensão) evita escape via múltiplas extensions
+			pequenas. Timer DLV system time (não wall-clock)
+			preserva replay determinism — replay sob mesma
+			timeline de events produz mesmas transições.
+
+			Phase 1+ parametrização per criteria type reconhece
+			que critérios complexos (e.g., obras plurianuais)
+			podem requerer windows distintas — explicitamente
+			deferred para oq-dlv-7.
+			"""
+		consequences: """
+			(a) Lifecycle público mínimo (cap-delivery-lifecycle-
+			public-events Lote 1.2) inclui terminal events apenas:
+			DeliveryVerified, DeliveryRejected — exception states
+			são internos a DLV (não publicados cross-BC); INV/REW/
+			NIM observam apenas terminal outcomes.
+			(b) DRC NÃO observa exception states publicamente
+			Phase 0 — exception é internal a DLV para evitar ruído
+			operacional (stuckness transitória, false alerts antes
+			de timer fire); public lifecycle expõe apenas terminal
+			events. Phase 1+ DRC pode ganhar query-surface para
+			exception lineage (oq-dlv-1) quando DRC tooling
+			justifique acesso (e.g., dispute investigation post-
+			exception-unresolved-timeout em pattern sustained).
+			(c) Timer 14 dias é deterministic worker (projection-
+			driven Phase 1+; Phase 0 manual founder review
+			semanal); cron-like scheduling fora de DLV core (PLT
+			infrastructure) baseado em DLV system time.
+			(d) reasonCode taxonomy aberta (bd-evidence-criteria-
+			match-deterministic Lote 1) inclui exception-resolved-
+			verified, exception-resolved-rejected, exception-
+			unresolved-timeout como categorias estruturais.
+			(e) exceptionHistory attribute na Verification
+			aggregate carrega lista append-only de entries (cada
+			um com reason, timestamp, triggeredBy, resolvedAt?,
+			resolution?); single active exception é último entry
+			sem resolvedAt — projeção determinística.
+			(f) Audit trail Lei 12.846/SCD/CVM preserva exception
+			lineage completa (entry → escalations → resolution OR
+			timeout) — extends regulatory traceability; sustained
+			exception-unresolved-timeout rate é OBS metric (Lote
+			1.6 verificationMetrics) sinalizando capacidade humana
+			insuficiente vs criteria complexity.
+			(g) Idempotency preserved (bd-verification-idempotent
+			Lote 1): exception retry / replay produz mesmo final
+			terminal state sob mesma timeline de eventos; 14-dia
+			clock é monotônico per (commitmentRef, evidenceRef),
+			não wall-clock global.
+			(h) Edge case extension durante última hora antes de
+			timeout: deterministic ordering preserva —
+			supervisedDecision extend-exception-window timestamped
+			antes do timeout prevalece (cumulativo); após timeout,
+			supervisedDecision torna-se revert-auto-rejection
+			(caminho separado, supervisedDecision distinta).
+			(i) Granularidade temporal preservada: auditor pode
+			reconstruir sequência de exceptions, identificar
+			causalidade (entry-N triggered-by-system vs entry-M
+			triggered-by-actor), e diagnosticar patterns
+			sustainados (e.g., recorrência de regulatory-edge em
+			mesma vertical sinaliza criteria evolution needed).
+			(j) Cap absoluto 30 dias TOTAL Phase 0 é compromisso
+			estruturalmente bounded — extensions múltiplas pequenas
+			NÃO podem agregar acima do cap; founder DEVE justificar
+			cada extension individual mas o sistema enforça hard
+			cap.
+			"""
 	}]
 
 	// =============================================
