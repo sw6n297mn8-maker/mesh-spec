@@ -66,8 +66,9 @@ canvas: artifact_schemas.#Canvas & {
 
 	purpose: """
 		Verificar execução operacional contra critérios versionados
-		acordados em CMT, decidindo suficiência de evidência para
-		progressão econômica. DLV consome evidência (LOG via contract
+		acordados em CMT, decidindo deterministicamente suficiência
+		de evidência para progressão econômica. DLV consome
+		evidência (LOG via contract
 		estruturado), valida integridade a partir de provas IDC
 		(validação local — sem confiança implícita), aplica critérios
 		versionados (CMT criteriaVersion snapshot) e produz decisões
@@ -172,13 +173,104 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// CAPABILITIES — placeholder; conteúdo em commit 1.2
+	// CAPABILITIES (4)
 	// =============================================
 
 	capabilities: {
 		operational: [{
-			description: "Placeholder — capabilities operacionais (4 entries) entram em commit 1.2."
-			rationale:   "Skeleton commit 1.1 estabelece shape; conteúdo substantivo (cc-04 audit contínuo via DSSE-anchored verification trail; cc-03 24/7 operação via deterministic gate; cap-evidence-criteria-match-deterministic core thesis-invariant enforcement; cap-delivery-lifecycle-public-events para INV/REW/NIM/DRC consumers) entra em commit 1.2."
+			description: """
+				Avaliação determinística de evidência operacional contra
+				critérios versionados (CMT criteriaVersion snapshot):
+				match function pura sem julgamento — input (evidence +
+				criteria + integrityProof) → output (verified | rejected)
+				reproduzível bit-a-bit em replay. Insuficiência de
+				evidência é tratada como rejected + reasonCode (não
+				terceiro estado); excepções operacionais (e.g.,
+				regulatory edge) flagged via escalation, fora do output
+				da função.
+				"""
+			rationale: """
+				Sem capability própria de domain-definition — emerge
+				da análise dos businessDecisions: criteria-evidence
+				matching deterministic é o RECTOR estrutural do BC e
+				o thesis-invariant central da Mesh. Determinismo é
+				precondition de cc-03 (24/7), idempotency e replay;
+				sem isso, gate vira julgamento e degrade para acordo
+				informal. Identity de avaliação + criteriaVersion
+				attribute pertencem ao layer de businessDecisions
+				(1.3), NÃO ao shape da capability.
+				"""
+		}, {
+			capabilityRef: "cc-04"
+			description: """
+				Auditoria contínua e regulatory-grade de verificações:
+				cada verificação carrega imutavelmente evidenceRef
+				(DSSE-anchored via IDC) + criteriaVersion +
+				commitmentRef + decisionOutcome + decidedAt; trail de
+				cadeia de evidência satisfaz audit Lei 12.846/SCD/CVM
+				(5 anos retention) e habilita forensic replay
+				(qualquer decisão DLV reconstruível bit-a-bit a partir
+				de inputs imutáveis).
+				"""
+			rationale: """
+				Capability matches cc-04 do domain-definition
+				(auditoria contínua); DLV-specific aspect: cadeia de
+				evidência DSSE-anchored (validação local de prova IDC,
+				sem confiança implícita) torna trail criptograficamente
+				verificável end-to-end — diferencial vs auditoria
+				tradicional baseada em logs interpretativos.
+				"""
+		}, {
+			capabilityRef: "cc-03"
+			description: """
+				Operação 24/7 via deterministic gate: EvaluateVerification
+				consome evidence + criteria sync, retorna outcome
+				immediate sem janela de aprovação humana no caminho
+				normal. Determinismo (capability anterior) habilita
+				automation: gate é função numérica reproduzível, não
+				julgamento. Supervised paths (override-rejection +
+				manual-reconciliation + criteria-version-override)
+				materializados como escalation com humano-in-the-loop
+				separados, sem bloquear caminho autônomo.
+				"""
+			rationale: """
+				Capability matches cc-03 do domain-definition (24/7);
+				DLV-specific aspect: deterministic gate é precondition
+				operacional — sem determinismo, 24/7 vira hand-off
+				humano sustentado e o gate degrade. Anti-mini-NIM
+				enforced: DLV decide suficiência, NÃO scoring nem
+				políticas (REW/NIM territory).
+				"""
+		}, {
+			description: """
+				Lifecycle público mínimo via 2 events pareados
+				(DeliveryVerified + DeliveryRejected) consumidos por
+				INV (faturamento gate), REW (qualidade-de-execução
+				signal), NIM (mecanismos de rede signal), DRC (entry
+				point de contestação) — single source of truth para
+				decisão de suficiência de evidência downstream do
+				macrofluxo. Events carregam (commitmentRef, evidenceRef,
+				criteriaVersion, decisionOutcome, decidedAt) imutáveis;
+				rationale de match completo permanece intra-DLV (audit
+				query-surface QueryEvidenceLedger), preservando
+				confidencialidade competitiva de critérios sob
+				criteriaVersion proprietário. DRC consome ambos events
+				com semântica diferenciada: DeliveryRejected como
+				entry point imediato de disputa; DeliveryVerified
+				como contexto para disputa posterior dentro da
+				economic finality window (post-verification-dispute
+				path).
+				"""
+			rationale: """
+				Sem capability própria de domain-definition — emerge
+				dos businessDecisions: lifecycle público mínimo é
+				decisão estrutural (precondition do macrofluxo entre
+				verification gate e progressão econômica). 2 events
+				suficientes; DRC owns dispute lifecycle (sem event
+				próprio DLV→DRC). Naming Delivery* (não Verification*)
+				preserva vínculo econômico com macrofluxo (delivery →
+				invoicing → settlement) e alinhamento cross-BC.
+				"""
 		}]
 		hasSyncSurface:  true
 		hasAsyncSurface: true
