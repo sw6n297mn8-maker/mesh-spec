@@ -1510,6 +1510,655 @@ canvas: artifact_schemas.#Canvas & {
 			aggregation cost. Default: hard line (preserve
 			boundary).
 			"""
+	}, {
+		id: "bd-evidence-integrity-mandatory"
+		decision: """
+			DLV REJEITA ingestion via RecordEvidence sem
+			integrityProofRef attached — operação ingestion-time
+			é comando estruturado com integrityProofRef como
+			CAMPO OBRIGATÓRIO, não opcional. RecordEvidence sem
+			integrityProofRef → command rejected NO PARSING/
+			VALIDATION layer ANTES de qualquer side effect;
+			nenhum EvidenceRecord é criado, nenhum evento interno
+			emitido, ingestion path retorna erro estruturado ao
+			caller. Distinção crítica: este BD é sobre INGESTION-
+			TIME mandate (boundary input contract); bd-truth-vs-
+			integrity-defense-in-depth Layer 1 Lote 3 é sobre
+			EVALUATION-TIME validation (mesma prova revalidada
+			durante function); bd-ingestion-evaluation-separation
+			Lote 2 estabelece a separação de concerns mas não
+			especifica que integrityProofRef é mandatory
+			ingestion-time. BD11 fecha o loop: integrity é hard
+			requirement no boundary, não compromisso para mais
+			tarde.
+
+			Validação ingestion-time inclui:
+			(a) integrityProofRef field PRESENTE e não-vazio no
+			    comando RecordEvidence;
+			(b) integrityProofRef format compliance (estrutura
+			    DSSE-anchored; hash format válido);
+			(c) integrityProofRef referencia material verificável
+			    LOCALMENTE via payload DSSE completo OU snapshot
+			    suficiente para validação offline; ausência de
+			    material local verificável → command rejected
+			    (reasonCode=integrity-proof-unverifiable-local).
+			    DLV NUNCA depende de rede para aceitar ingestion
+			    — local-first é precondition de cc-03 (24/7
+			    determinístico).
+			(d) integrity proof verification syntática (DSSE
+			    envelope bem-formado; signing/payload structure).
+
+			Validação semântica completa (full proof verification,
+			signer authority, etc.) ocorre EVALUATION-TIME per
+			BD9 Layer 1 — ingestion-time é parser/syntax check;
+			eval-time é semantic validation.
+
+			Sem este BD, ingestion poderia aceitar evidence sem
+			proof (com promessa implícita de "validar depois") —
+			cria janela onde DLV tem EvidenceRecord ingestados
+			sem integrity, expostos a corruption/tampering pré-
+			evaluation, e quebra anti-mini-NIM (DLV não confia
+			em LOG implicitamente — exigir prova é demonstração
+			operacional de não-confiança).
+			"""
+		rationale: """
+			Anti-mini-NIM hard line no ingestion boundary: DLV
+			não confia em LOG sobre integridade implícita —
+			exigir integrityProofRef ingestion-time é
+			demonstração operacional de "verificação local
+			sempre, sem confiança implícita". Boundary contract
+			explícito: LOG produz evidence com proof DSSE-
+			anchored (IDC owns proof primitive); DLV ingere
+			apenas evidence com proof attached. Inverter (DLV
+			aceita evidence "limpa" e valida proof depois)
+			inverteria boundary: DLV confiaria implicitamente
+			em LOG durante a janela ingestion-to-evaluation,
+			criando window de inconsistência e ataque (adversário
+			injetaria evidence sem proof, DLV ingere, depois
+			falha eval — mas EvidenceRecord state já existe,
+			race conditions cross-aggregate possíveis).
+
+			Distinção ingestion-time vs evaluation-time check é
+			deliberada: ingestion-time é boundary input contract
+			(parser/syntax), eval-time é semantic validation
+			(full cryptographic verification). Separação reflete
+			custo operacional: parser check é leve (campo
+			presente + format); semantic check pode ser custoso
+			(signer authority resolution, certificate chain).
+			Ingestion path tem SLA latência inferior per BD4 —
+			parser check cabe; full semantic check pertence a
+			evaluation onde latência tolerada.
+
+			Local verifiability sem network dependency é
+			precondition de cc-03 24/7: se ingestion dependesse
+			de IDC online resolution, network partition
+			degradaria DLV; local DSSE payload completo OR
+			offline-verifiable snapshot é hard contract — DLV
+			ingestion path é network-independent por construção.
+
+			Boundary clarity para LOG: LOG sabe exatamente o
+			contract — evidence sem proof é unsupported em DLV
+			boundary; LOG implementação não pode degradar
+			silenciosamente (e.g., 'enviar agora, attach proof
+			depois'). Hard contract elimina classe de
+			ambiguidade operacional.
+			"""
+		consequences: """
+			(a) Domain-model Phase 3: aggregate EvidenceRecord
+			carries integrityProofRef como required field
+			(constraint =~"^proof-[a-f0-9]+$" hash-anchored ou
+			equivalente); aggregate cannot be constructed sem
+			proof.
+			(b) RecordEvidence command schema Phase 3 carries
+			integrityProofRef como required field; CUE schema
+			rejeita comandos sem este field por construção.
+			(c) Ingestion path latency budget: parser check +
+			format validation < 100ms p99 (Phase 0 baseline);
+			full semantic validation moved to evaluation path
+			(latency budget separado per BD4).
+			(d) Boundary contract LOG↔DLV explicit: LOG events
+			EvidenceRecorded carry integrityProofRef obligatório
+			(Phase 0 communication Lote 1.4 schema); cross-BC
+			ACL valida shape antes de DLV ingestion.
+			(e) Anti-mini-NIM transversal: BD11 reforça boundary
+			no ingestion-side; BD9 Layer 1 reforça boundary no
+			evaluation-side; BD4 estabelece separação. Triad
+			garante DLV verifica localmente em ambos pontos
+			operacionais.
+			(f) Failure mode operacional: RecordEvidence
+			rejected retorna erro estruturado (e.g.,
+			MissingIntegrityProof + retryable=true se LOG pode
+			resubmeter com proof); upstream LOG pode reagir
+			(retry com proof, escalation se proof não
+			disponível).
+			(g) Edge case audit: se RecordEvidence rejected
+			sustained (rate alta), OBS metric sinaliza LOG-side
+			bug ou ataque (alguém tentando bypass integrity);
+			integrity-failure-at-ingestion-rate é
+			verificationMetrics Lote 1.6 candidate.
+			(h) Network independence Phase 0: ingestion path
+			NÃO faz network calls a IDC durante RecordEvidence
+			parsing; toda verificação local-first via DSSE
+			payload completo no command OR offline snapshot
+			cached. Network dependency Phase 1+ apenas em
+			evaluation path (full semantic check), nunca em
+			ingestion.
+			"""
+	}, {
+		id: "bd-criteria-declared-upfront"
+		decision: """
+			Avaliação de evidência sob commitmentRef requer que
+			criteria estejam DECLARADOS E ATIVOS em CMT ANTES
+			da evaluation pode proceder — criteria é precondition
+			TEMPORAL+ESTRUTURAL, não default nem implícito.
+			Quando RecordEvidence ingerido para commitmentRef
+			sem criteria active: evidence é registrada (ingestion
+			succeeds per BD4 separation), mas evaluation NÃO
+			pode proceder — commitment fica em estado evaluating-
+			pending-criteria até criteria activation event
+			materializar para o commitmentRef. Quando
+			RecordEvidence ingerido após criteria activation:
+			evaluation pode proceder imediatamente (sync command)
+			OR via eventual policy Phase 1+ (per BD4).
+
+			Estado evaluating-pending-criteria é INTERNO a DLV
+			e NÃO publicado via events cross-BC — preserva
+			contract público limpo (cap-delivery-lifecycle-
+			public-events Lote 1.2 expõe apenas terminal events
+			DeliveryVerified | DeliveryRejected). Exposição via
+			query-surface QueryVerificationStatus apenas (Phase
+			1.4) para debugging/coordenação operacional sh-01/
+			sh-02 quando necessário. Downstream INV/REW/NIM/DRC
+			NÃO observam estado intermediário — paralelo a
+			exception-pending per BD6 (mesma política: estados
+			intermediários internos; só terminal events
+			públicos).
+
+			Cache invalidation EXPLÍCITA: criteria activation é
+			evento cross-BC consumed por DLV (criteriaActivation
+			event de CMT — Phase 1.4 communication). DLV mantém
+			prj-active-criteria projection derivada do event
+			stream; evaluation consulta projection para resolver
+			criteriaVersion vigente para commitmentRef. Cache
+			invalidation é trigger de event explicit, NÃO timer
+			implícito nem polling — preserva replay determinism
+			(cache state em qualquer momento histórico é
+			reconstruível via Event Log replay).
+
+			Distinção operacional crítica:
+			- bd-no-evidence-no-verified Lote 3: evidence é
+			  precondition causal de verified (anti-default
+			  evidence-side);
+			- bd-criteria-declared-upfront: criteria é
+			  precondition temporal+estrutural de evaluation
+			  (anti-implicit criteria-side);
+			- bd-replay-deterministic-criteria-versioned Lote 1:
+			  criteria é hash-anchored snapshot imutável (CMT
+			  owns lifecycle).
+			Triad cobre 3 ângulos: evidence presence, criteria
+			existence, criteria immutability.
+
+			Sem criteria active, evaluation NÃO pode proceder
+			via nenhum path autônomo — supervisedDecision
+			approve-without-criteria NÃO existe (paralelo a BD7
+			anti-default). Override via supervisedDecision
+			(criteria-version-override Phase 1.5) opera apenas
+			sobre criteria existentes (e.g., founder pode
+			autorizar evaluation sob criteriaVersion N+1 antes
+			de activation formal por urgência operacional, mas
+			criteria N+1 DEVE existir em CMT).
+			"""
+		rationale: """
+			Anti-implicit criteria — evita classe de bug onde
+			evaluation procede sob 'criteria default' ou
+			'criteria herdada de outro commitment' por
+			inferência. Criteria declarado upfront é
+			demonstração operacional de intencionalidade: cada
+			commitment carrega criteria explícito que CMT
+			formaliza ANTES de DLV evaluation ser possível. Sem
+			este invariante, evaluation poderia proceder sob
+			criteria implícito (e.g., 'criteria mais comum da
+			vertical', 'criteria do commitment anterior'),
+			criando ambiguidade operacional e quebrando audit
+			trail (auditor não pode reconstruir 'sob qual
+			criteria foi avaliado' sem inferência arbitrária).
+
+			Cache invalidation explícita via event é decisão
+			crítica: alternativa (cache TTL, polling)
+			introduziria non-determinism em path crítico
+			(replay sob mesma timeline produziria states
+			diferentes dependendo de timing); event-driven
+			cache é function determinística sobre Event Log —
+			cada commit no Event Log avança cache state
+			previsivelmente. Replay engine reconstrói cache
+			exatamente para qualquer ponto histórico per BD3.
+
+			Estado intermediário evaluating-pending-criteria
+			INTERNO (não público cross-BC) preserva limpeza do
+			contract: paralelo a exception-pending per BD6 —
+			estados intermediários são detalhe operacional
+			interno; só terminal events vazam para downstream.
+			Esta política consistente cross-BD reduz cognitive
+			load para consumers (INV/REW/NIM/DRC podem assumir
+			que events recebidos são SEMPRE terminal — nunca
+			intermediate).
+
+			Boundary clarity CMT↔DLV: CMT owns criteria
+			lifecycle (declaration, activation, version
+			evolution); DLV consume criteria activation events
+			ACL. Inverter (DLV computa criteria local)
+			introduziria mini-CMT em DLV — anti-mini-NIM
+			violation análoga a bd-no-scoring-by-dlv (DLV não
+			computa REW domain). DLV é consumer de criteria,
+			não autor.
+			"""
+		consequences: """
+			(a) prj-active-criteria projection Phase 3: derived
+			de CMT criteriaActivation events ACL; query
+			interface (commitmentRef → criteriaVersion vigente
+			OR null se not-yet-activated). Projection rebuild
+			via Event Log replay determinístico per BD3.
+			(b) Lifecycle DLV per commitmentRef Phase 0:
+			{pending-evaluation (no evidence)} → {evaluating-
+			pending-criteria (evidence ingested, criteria not
+			active)} → {evaluating (evidence + criteria
+			active)} → {verified | rejected | exception-
+			pending → terminal}. evaluating-pending-criteria
+			é estado intermediário operacional INTERNO; expõe
+			via QueryVerificationStatus Phase 1.4 mas NÃO via
+			events públicos.
+			(c) supervisedDecision criteria-version-override
+			Phase 1.5: opera apenas sobre criteria EXISTENTES
+			em CMT; founder pode override 'criteria N+1' antes
+			de activation formal mas N+1 deve existir; bd-
+			criteria-declared-upfront preserved (criteria
+			existe; activation timing é o que é overridden).
+			(d) Race condition criteria activation late:
+			evidence ingerida antes de criteria activation
+			aguarda em evaluating-pending-criteria; quando
+			criteriaActivation event chega, eventual policy
+			Phase 1+ trigger evaluation OR sync command upstream
+			pode triggerar explicitamente. Race resolved via
+			cache state determinístico (event ordering canônica
+			per BD5).
+			(e) Anti-mini-NIM transversal: BD12 reforça boundary
+			criteria-side (CMT owns); BD10 reforça boundary
+			scoring-side (REW/NIM owns); BD7 reforça boundary
+			evidence-side (LOG owns). 3 boundaries protege DLV
+			de absorver responsabilidades adjacentes.
+			(f) Replay determinism: criteria cache state em
+			qualquer momento histórico = projection
+			determinística sobre Event Log até offset; replay
+			engine reconstrói cache identicamente.
+			(g) Forensic audit: auditor pode reconstruir 'qual
+			criteriaVersion era ativa para commitmentRef em
+			decidedAt T' via projection replay até offset
+			correspondente — propriedade verificável property-
+			based test.
+			(h) Public contract clean: events cross-BC nunca
+			carregam evaluating-pending-criteria status —
+			downstream simplifica logic (terminal events only;
+			intermediate states queryable on-demand).
+			"""
+	}, {
+		id: "bd-rejection-with-rationale"
+		decision: """
+			Toda DeliveryRejected emit DEVE carregar reasonCode
+			estruturado (taxonomy aberta per BD1) + retryPath
+			signal estrutural que orienta downstream consumer
+			sobre qual ação é apropriada.
+
+			retryPath é FUNÇÃO DETERMINÍSTICA de (reasonCode,
+			criteriaVersion-context, finality-state) — NÃO
+			atribuído arbitrariamente pelo executor. Mapping
+			reasonCode → retryPath é tabela determinística parte
+			do schema Phase 3 domain-model: cada reasonCode da
+			taxonomy aberta tem retryPath canonical determinable
+			bit-a-bit em qualquer replay. Exemplos:
+			- reasonCode=insufficient-evidence → retryable
+			  (deterministic: insufficient implica resubmissão
+			  pode resolver)
+			- reasonCode=integrity-failure → retryable
+			  (deterministic: corrupted proof pode ser corrigida
+			  via novo evidenceRef)
+			- reasonCode=cross-evidence-inconsistency-{class}
+			  → retryable (deterministic: inconsistency pode
+			  resolver via evidence completion/correction)
+			- reasonCode=post-finality-correction → non-
+			  retryable (deterministic: pós-finality fecha
+			  retry path normal)
+			- reasonCode=drc-driven-correction → non-retryable
+			  (deterministic: DRC owns dispute path)
+			- reasonCode=exception-unresolved-timeout → non-
+			  retryable (deterministic: timeout fail-safe é
+			  terminal forçado)
+			- reasonCode=exception-emergency-override (em
+			  DeliveryVerified, não rejected — but listed for
+			  completeness) → não aplicável (verified path)
+			Nova reasonCode classes (Phase 1+ extension via
+			criteria version) DEVEM declarar retryPath canonical
+			no schema extension — extensibility com determinism
+			preservado.
+
+			3 valores Phase 0 (lista pode ser estendida Phase 1+
+			via schema extension, additive enum):
+			(a) retryable: sh-02 fornecedor pode submeter
+			    evidência adicional/corrigida sob mesmo
+			    commitmentRef (novo evidenceRef triggers nova
+			    avaliação per BD2).
+			(b) non-retryable: commitment está em estado
+			    terminal irrecuperável via path normal — sh-02
+			    NÃO pode simply resubmit; resolução requer
+			    caminho distinto (DRC dispute; founder
+			    supervisedDecision; aceitação).
+			(c) exception: estado intermediário pending
+			    resolução humano-in-loop OR cross-BC trigger;
+			    sh-02 deve aguardar terminal transition (BD6
+			    14-day timer OR escalation resolution).
+
+			DeliveryRejected SEM reasonCode é estruturalmente
+			proibido: schema rejeita event payload sem
+			reasonCode (closed struct constraint Phase 3
+			domain-model). DeliveryRejected SEM retryPath é
+			igualmente proibido. Silent rejection (rejected sem
+			rationale auditável) é anti-pattern adversarial:
+			oculta diagnostic information de sh-02, REW, DRC,
+			audit — quebra accountability.
+
+			Distinção de bd-evidence-criteria-match-deterministic
+			Lote 1: BD1 estabelece que reasonCode EXISTE como
+			categoria estrutural; BD13 estabelece que reasonCode
+			+ retryPath são MANDATORY + DETERMINISTIC +
+			ACTIONABLE (semanticamente útil para downstream).
+			Não é redundância — BD1 é sobre presença; BD13 é
+			sobre qualidade do contract.
+			"""
+		rationale: """
+			Anti-silent-rejection é estrutural anti-fraude
+			operacional: silent rejection (rejected sem
+			rationale) é vetor adversarial onde sistema age sem
+			accountability — sh-02 fornecedor não sabe se
+			rejeição é correção legítima OR bias adversarial OR
+			bug operacional. Rationale obrigatório força
+			transparência accountable: cada rejeição é
+			justificada categórica e auditable.
+
+			retryPath determinístico (não arbitrário) é
+			precondition de replay-safety per BD3: replay sob
+			mesma timeline DEVE produzir mesmo retryPath signal
+			— se retryPath fosse atribuído arbitrariamente,
+			replay produziria signals divergentes para mesma
+			decisão histórica, quebrando consumer contract.
+			Mapping table parte do schema é hard guarantee:
+			função (reasonCode, criteriaVersion, finality-state)
+			→ retryPath é pura, determinística, replay-safe.
+
+			retryPath signal estrutural é decisão de design
+			para actionable contract: alternativa (sh-02 inferir
+			retry path do reasonCode) introduziria coupling
+			forte entre sh-02 logic e DLV taxonomy interna;
+			explicit signal desacopla — DLV publica intent
+			('isto é retryable', 'não tente novamente'); sh-02
+			age sem precisar decoder. Análoga a HTTP status
+			code (200/400/500 carries actionable semantic além
+			de message body).
+
+			3 valores Phase 0 (retryable/non-retryable/exception)
+			cobrem casos identificados; extensão Phase 1+
+			possível via semantic categories adicionais (e.g.,
+			'retryable-with-cooldown', 'retryable-with-evidence-
+			replacement-only') sem quebrar contract existente —
+			extensibility pattern análogo a Layer 2 check
+			classes BD9. Adições Phase 1+ DEVEM preservar
+			determinism: nova retryPath value declara mapping
+			canonical de reasonCode classes que mappam a ela.
+
+			Distinção scoring-vs-rationale: rationale é
+			categorical (qual classe de fail); scoring seria
+			numérica (quão grave). DLV produz rationale
+			(categorical) per BD10 hard line; scoring é REW/NIM
+			territory. retryPath é categorical (3 valores
+			discretos), não score — preserva BD10 boundary.
+
+			Audit Lei 12.846/SCD/CVM benefit: cada rejeição
+			registrada com rationale categorical + retryPath
+			determinístico + decidedAt + decidedBy é auditable
+			end-to-end. Sem rationale, audit teria que inferir
+			motivos — regulatorily inadequate.
+			"""
+		consequences: """
+			(a) Verification event schema Phase 3:
+			DeliveryRejected payload includes required fields
+			reasonCode (string, taxonomy aberta) + retryPath
+			(enum: retryable | non-retryable | exception).
+			Closed struct constraint rejeita events sem ambos.
+			Schema também declara mapping reasonCode →
+			retryPath como tabela determinística (constraint
+			cross-field).
+			(b) sh-02 fornecedor consumer logic: query
+			DeliveryRejected event → switch on retryPath
+			(retryable → corrigir + resubmit RecordEvidence;
+			non-retryable → escalation/dispute path;
+			exception → await terminal transition). Logic
+			explícito, não inferido.
+			(c) DRC consumer logic: DeliveryRejected events com
+			retryPath=non-retryable são candidate dispute
+			artifacts (sh-02 contesta classification);
+			retryPath=exception não disparam dispute
+			imediatamente (await terminal); retryPath=retryable
+			expectation é resubmission, não dispute.
+			(d) verificationMetrics Lote 1.6 inclui distribution
+			retryPath rate (retryable% vs non-retryable% vs
+			exception%) — sustained anomaly em ratio sinaliza
+			operational issue (e.g., high non-retryable rate
+			sinaliza criteria evolution needed; high exception
+			rate sinaliza humano capacity issue).
+			(e) Phase 1+ extensibility retryPath: novos valores
+			registráveis via schema extension (e.g., retryable-
+			with-cooldown carries cooldownDuration); contract
+			compatibility via additive enum extension (semver-
+			compatible). Determinism preservado: nova value
+			declara mapping canonical via schema.
+			(f) Anti-fraude observable: silent-rejection rate
+			sustained (esperado 0; non-zero indica bug crítico
+			de schema enforcement) é verificationMetrics Lote
+			1.6 candidate (paralelo a verified-without-evidence-
+			or-override-attempts BD7).
+			(g) Boundary preservation: DLV publica rationale +
+			retryPath (categorical, factual, determinístico);
+			REW/NIM aggrega/scora se aplicável (suas
+			projeções, contratos próprios). DLV NÃO compute
+			aggregate retry rates como signal —
+			verificationMetrics são OBS metrics operacionais,
+			não signals consumed downstream para decision-
+			making per BD10 distinção.
+			(h) Replay property-based test: ∀ replay execution
+			com mesma timeline, retryPath emitted é idêntico
+			— verificável via property test sobre Event Log
+			replay.
+			"""
+	}, {
+		id: "bd-atomic-emit"
+		decision: """
+			Emit de DLV decision (terminal verification:
+			verified OR rejected) é OPERAÇÃO ATÔMICA: aggregate
+			Verification state change + DeliveryVerified|
+			DeliveryRejected event publication ocorrem AS-ONE
+			— ambos succeed OR ambos rollback. NÃO existe
+			estado parcial publicly observável onde Verification
+			aggregate registrado mas event não publicado, nem
+			event publicado sem aggregate registrado.
+
+			Garantia tem três aspectos operacionais:
+
+			(a) NO-PARTIAL-STATE: crash entre aggregate write e
+			    event publish NÃO produz estado inconsistente
+			    permanentemente — recovery path determinístico
+			    (transactional outbox pattern OR equivalent;
+			    implementação details Phase 3 domain-model)
+			    converge para either ambos succeed OR ambos
+			    rollback.
+
+			(b) IDEMPOTENT-RECOVERY: recovery por crash/retry
+			    preserva BD2 idempotency — atomic emit retry
+			    para mesma identidade (commitmentRef,
+			    evidenceRef) converge para mesmo event final
+			    published, sem duplicate events visible cross-
+			    BC.
+
+			(c) NO-DUPLICATE-PUBLISH cross-BC: event publication
+			    é IDEMPOTENTE do ponto de vista cross-BC: cada
+			    (commitmentRef, evidenceRef) produz NO MÁXIMO
+			    UM DeliveryVerified OU DeliveryRejected visível
+			    externamente — retries de publish (recovery por
+			    crash, outbox processor re-execution, ACL
+			    retransmission) NÃO geram eventos duplicados
+			    observáveis cross-BC. Cross-BC ACL deduplica
+			    via eventLogOffset hash-anchored; consumers
+			    (INV/REW/NIM/DRC) podem assumir at-most-once
+			    observability sem implementar deduplication
+			    defensivo.
+
+			Atomicity é commitment ESTRUTURAL público:
+			consumidores downstream (INV, REW, NIM, DRC) podem
+			assumir que DeliveryVerified ou DeliveryRejected
+			event observado IMPLICA Verification aggregate
+			registrada em DLV (e portanto state queryable via
+			QueryVerificationStatus / QueryEvidenceLedger Phase
+			1.4). Inverso também: Verification aggregate
+			registrada IMPLICA event eventually published
+			(eventual consistency bounded por event delivery
+			SLA Phase 0 — typically segundos, max minutos em
+			retries).
+
+			Distinção dos níveis de idempotency:
+			- BD2 logical: mesma identidade (commitmentRef,
+			  evidenceRef) → mesmo outcome (verified vs
+			  rejected)
+			- BD14 (a)+(b) operational atomic: commit + publish
+			  AS-ONE; recovery determinístico
+			- BD14 (c) cross-BC observability: at-most-once
+			  event visible externally (deduplication via
+			  eventLogOffset)
+			3 propriedades distintas, complementares; juntas
+			eliminam classe inteira de cross-BC consistency
+			complexity.
+			"""
+		rationale: """
+			Atomic emit é precondition do contract público com
+			downstream consumers: sem atomicity, consumers
+			observariam states inconsistentes (event sem
+			aggregate, aggregate sem event) e teriam que
+			implementar reconciliation logic complexa para
+			detectar/recover — coupling forte e propenso a
+			bugs. Atomic guarantee elimina classe inteira de
+			cross-BC consistency complexity: consumers tratam
+			events como signals confiáveis sem necessidade de
+			cross-check com DLV state.
+
+			At-most-once observability cross-BC fecha o
+			contract externo: consumers não precisam
+			implementar deduplication defensivo (e.g., 'já vi
+			este eventLogOffset?' lookup para cada event
+			recebido) — DLV+ACL garante at-most-once. Reduz
+			coupling complexity downstream e elimina classe
+			de bug (consumers re-processando duplicate events
+			com side effects inadvertidos).
+
+			Implementação Phase 3 typically usa transactional
+			outbox pattern (aggregate write + event-to-publish
+			em mesma transaction local; outbox processor
+			publica eventually) OR equivalent (event sourcing
+			native atomicity, saga compensation).
+			Implementação details DOMAIN-MODEL territory;
+			canvas estabelece o contract (atomic + at-most-
+			once cross-BC), domain-model materializa o
+			pattern.
+
+			Crash recovery determinismo é crítico: recovery
+			path DEVE convergir para terminal state estável
+			sem decisão arbitrária runtime (ambiguidade durante
+			recovery introduziria non-determinism em path
+			crítico, quebrando replay). Outbox pattern resolve:
+			recovery sempre processa pending outbox entries até
+			completion OR explicit rollback flag.
+
+			Eventual consistency window bounded é compromisso
+			operacional aceito: alternativa (synchronous cross-
+			BC commit, e.g., 2PC) introduziria coupling
+			temporal forte cross-BC e degradaria liveness sob
+			falha de outro BC. Eventual consistency com bounded
+			SLA (segundos típicos, minutos sob retry) é trade-
+			off adequado para B2B financial workflow (vs
+			microsegundos required em high-frequency trading).
+
+			Distinção idempotency vs atomicity vs cross-BC dedup:
+			- BD2 cobre adversário retry: 'múltiplas chegadas
+			  de mesmo comando convergem para mesmo outcome';
+			- BD14 (a)+(b) cobre adversário failure: 'crash
+			  mid-emit não produz estado inconsistente';
+			- BD14 (c) cobre adversário publish-retry: 'cross-
+			  BC observers nunca veem duplicates'.
+			3 propriedades; sistema com BD2 mas sem BD14 (a)+(b)
+			ainda teria estados parcial-publicly-observáveis
+			durante crashes; sistema com BD14 (a)+(b) mas sem
+			(c) ainda exporia consumers a duplicate events.
+			"""
+		consequences: """
+			(a) Domain-model Phase 3 implementa atomic emit via
+			transactional outbox pattern (recommended) OR
+			equivalente: aggregate write + event-to-publish
+			atomically commit em local transaction; outbox
+			processor (background worker) publica events para
+			cross-BC distribution eventually.
+			(b) Recovery path determinismo: outbox processor
+			retomba pending entries em ordem (FIFO ou priority-
+			based per Phase 3); idempotent publish (cross-BC
+			ACL deduplica via eventLogOffset). Recovery NUNCA
+			cria duplicate Verification aggregates ou divergent
+			events.
+			(c) Cross-BC contract Phase 1.4: consumers (INV/REW/
+			NIM/DRC) podem assumir 'event observed → aggregate
+			queryable em DLV' sem cross-check defensivo.
+			Reduz coupling complexity downstream.
+			(d) Eventual consistency SLA Phase 0: target p95
+			< 5s entre commit aggregate e event published cross-
+			BC; p99 < 60s sob retry; sustained breach é OBS
+			metric (event-publish-latency-p99) sinalizando
+			operational issue.
+			(e) Failure mode operacional: crash entre commit e
+			publish → outbox processor recovery converge para
+			publish completion; nenhum manual intervention
+			required no caminho normal. Sustained outbox
+			backlog sinaliza infra issue (PLT outage, network
+			partition); escalation operacional separada (não
+			DLV domain).
+			(f) Replay determinism: replay reconstrói Event Log
+			determinístico (commit aggregate + publish event
+			AS-ONE means Event Log contém pares atomic);
+			replay engine processa events identicamente.
+			(g) Cross-BC reconciliation Phase 1+: se downstream
+			consumer observa aggregate state divergente de event
+			stream (improbable mas possível em edge cases),
+			cross-BC reconciliation tooling (PLT
+			infrastructure) detecta + alerts; DLV state é
+			authoritative (consumers reconciliam para DLV).
+			(h) Distinção operacional clara para consumers:
+			BD2 (idempotency) tells consumers retries are safe;
+			BD14 (atomicity) tells consumers events are
+			reliable signals; BD14 (no-dup-publish) tells
+			consumers events are at-most-once. Juntas:
+			consumers não precisam de defensive cross-checking
+			ou complex reconciliation logic.
+			(i) Cross-BC ACL Phase 0+ implementa deduplication
+			via eventLogOffset hash-anchored como idempotency
+			key — at-most-once delivery semantics observável
+			publicamente. Consumers não implementam dedup
+			defensivo; reduz coupling complexity downstream.
+			Sustained duplicate-event-rate cross-BC > 0 é OBS
+			metric crítica sinalizando ACL bug ou outbox
+			processor issue (Phase 0 baseline target: 0).
+			"""
 	}]
 
 	// =============================================
@@ -1521,14 +2170,208 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// STAKEHOLDERS — placeholder; conteúdo em commit 1.3
+	// STAKEHOLDERS (3)
 	// =============================================
 
 	stakeholders: [{
-		stakeholderRef:    "sh-01"
-		roleInContext:     "Placeholder — completado em commit 1.3."
-		impactDescription: "Placeholder — completado em commit 1.3."
-		rationale:         "Skeleton stakeholder; 3 stakeholders substantivos (sh-01 originadora consumindo verified status para coordenar fluxo; sh-02 fornecedor consumindo verification outcome com retry path; sh-05 operador agente DLV) em commit 1.3."
+		stakeholderRef: "sh-01"
+		roleInContext: """
+			Originadora consumindo verified status DLV para
+			coordenar fluxo macroeconômico — orquestra
+			commitment progression entre upstream BCs (P2P PO
+			emission, CMT formalization) e downstream BCs (INV
+			invoicing, FCE settlement) baseado em DLV terminal
+			events (DeliveryVerified | DeliveryRejected). Em
+			pre-PMF, sh-01 é founder ou função interna
+			designada; pós-PMF, originadoras podem ser
+			distribuídas por área operacional. Phase 0 modela
+			como entidade única sem diferenciação interna.
+			"""
+		impactDescription: """
+			Originadora ganha (a) gate verificável determinístico
+			— verified DLV é signal canônico para INV faturar +
+			FCE pagar, eliminando ambiguidade 'evidência foi
+			suficiente?'; (b) audit trail Lei 12.846/SCD/CVM
+			completo em cada decisão, com criteriaVersion
+			snapshot + integrityProofRef + decidedAt +
+			reasonCode — defensible em auditoria regulatória;
+			(c) economic finality 30 dias bounded — downstream
+			pode agir (INV invoice, FCE settlement) com
+			confiança temporal; (d) emergency override path
+			supervised para deadlock operacional sem compromisso
+			anti-fraude. Risco: complexidade de governança
+			(multiple override paths) requer disciplina de uso
+			(per founder alerta) — abuso degradaria invariante.
+			"""
+		rationale: """
+			sh-01 é stakeholder primário operacional —
+			orquestrador do macrofluxo. DLV verified status é
+			signal canônico para sh-01 coordenar progressão
+			downstream; rejected/exception status é signal para
+			sh-01 retry path coordination com sh-02.
+			"""
+	}, {
+		stakeholderRef: "sh-02"
+		roleInContext: """
+			Fornecedor respondente cuja execução operacional é
+			verificada por DLV — recebe DeliveryVerified
+			(commitment progride para faturamento downstream)
+			OU DeliveryRejected com reasonCode + retryPath
+			signal (sh-02 conhece exatamente qual ação tomar).
+			retryPath retryable: sh-02 corrige evidence e
+			resubmit; non-retryable: sh-02 escala via dispute
+			(DRC) ou aceita closure; exception: sh-02 aguarda
+			terminal transition. Phase 0 supplier API NOT
+			modeled (per oq-p2p-4 paralelo); sh-02 interaction
+			reduzida a notification via NTF transversal +
+			manual response.
+			"""
+		impactDescription: """
+			Fornecedor ganha (a) determinismo no gate — função
+			pura sobre evidência + criteria, sem julgamento
+			arbitrário; (b) actionable rejection — retryPath
+			signal indica próxima ação clara, eliminando
+			ambiguidade adversarial 'por que rejeitado e o que
+			fazer?'; (c) integridade ≠ verdade honest claim —
+			verified emit não é claim de truth absoluta; sh-02
+			sabe que Layer 1+2 deterministic + Layer 3 REW/NIM
+			provê defense in depth sistêmica; (d) emergency
+			override path acessível via originadora (sh-01) em
+			caso de ingestion path failure sustentado, evitando
+			deadlock por dependência técnica. Risco: rejected
+			sustained (especialmente non-retryable) impacta
+			cash flow do fornecedor — DRC dispute path é safety
+			net, mas processo tem prazos próprios.
+			"""
+		rationale: """
+			sh-02 é stakeholder secundário operacional — target
+			da decisão de verification. DLV outcome afeta
+			diretamente cash flow do fornecedor; actionable
+			rejection (retryPath) é design crítico de UX. Phase
+			0 manual; supplier API formalized Phase 1+ via
+			cross-BC coordination com NPM.
+			"""
+	}, {
+		stakeholderRef: "sh-05"
+		roleInContext: """
+			Operador agente DLV (agt-dlv-primary): valida
+			integridade Layer 1 + Layer 2 cross-evidence
+			consistency; aplica criteria match deterministic
+			per criteriaVersion snapshot; emit terminal
+			verifications atomicamente; gerencia exception
+			states transitivos com timer 14-day; aplica
+			supersession ordering canônica via eventLogOffset;
+			registra exceptionHistory append-only para audit.
+			Anti-mini-NIM enforced rigidamente: NÃO computa
+			scoring (REW/NIM territory), NÃO escolhe entre
+			evidências (LOG owns lineage), NÃO infere criteria
+			(CMT owns), NÃO gera Layer 3 anomaly detection
+			(REW/NIM territory). Múltiplos canais supervised
+			(emergency override BD7, post-finality supersession
+			BD8, criteria-version-override BD12, exception
+			extension BD6) requerem disciplina de uso para
+			evitar abuso de override.
+			"""
+		impactDescription: """
+			Operador agente ganha (a) gate determinístico claro
+			— Layer 1 + Layer 2 + criteria match são funções
+			numéricas reproduzíveis, não julgamentos; (b)
+			anti-mini-NIM hard line documentada (BD9 + BD10) —
+			guardrail cognitivo durante execution, evita drift
+			para responsabilidades adjacentes; (c) audit trail
+			regulatory-grade end-to-end — cada decisão com
+			criteriaVersion + integrityProofRef + reasonCode +
+			retryPath + exceptionHistory imutáveis; (d) replay-
+			safe via eventLogOffset + DLV system time —
+			decisões reconstruíveis bit-a-bit em qualquer
+			momento. Risco: complexidade de governança alta
+			com 4 canais supervised (emergency override BD7 +
+			post-finality supersession BD8 + criteria-version-
+			override BD12 + exception extension BD6) exige
+			envelope agent-governance Phase 5 muito bem
+			amarrado para evitar abuso de canais supervised
+			OR travamento operacional por medo de usar.
+			Founder alerta explícito (forward-ref Phase 1.5):
+			governanceScope finalize precisa materializar
+			design antifrágil de uso de override.
+			"""
+		rationale: """
+			sh-05 é stakeholder operacional crítico — executor
+			das decisões DLV. Anti-mini-NIM enforcement em
+			capability rationale + agent-spec (Phase 4) +
+			envelope (Phase 5) é defesa em camadas contra
+			drift cognitivo do agente. Múltiplos canais
+			supervised exigem disciplina; founder alerta sobre
+			complexidade de governança é forward-ref para
+			cuidado em Phase 1.5 governanceScope finalize
+			como sistema antifrágil (não só permissões, mas
+			controle real de uso).
+			"""
+	}]
+
+	// =============================================
+	// COSTS ELIMINATED (2)
+	// =============================================
+
+	costsEliminated: [{
+		costRef: "ce-01"
+		contribution: """
+			DLV elimina custo de transação 'verificação
+			presencial repetitiva' substituindo inspeção física
+			in-loco por evidência criptograficamente verificável
+			(Layer 1 IDC proof + Layer 2 cross-evidence
+			consistency deterministic). Auditor regulatório/
+			dispute resolution DRC pode reconstruir decisão
+			histórica bit-a-bit via replay determinístico (BD3)
+			sem necessidade de re-inspeção física — tripla
+			causal (evidenceRef, criteriaVersion,
+			integrityProofSnapshot) é suficiente para reproduzir
+			outcome sob critérios da época. cc-04 capability
+			formaliza este atributo como audit regulatory-grade
+			Lei 12.846/SCD/CVM com 5-year retention. Ce-01
+			elimination é diferencial central da tese Mesh per
+			dlv subdomain rationale.
+			"""
+		rationale: """
+			Per dlv subdomain rationale: 'verificação presencial
+			repetitiva substituída por evidência
+			criptograficamente verificável'. DLV é o BC que
+			materializa esta substituição — sem DLV como gate
+			verificável, evidência cryptographic ficaria sem
+			consumer determinístico, e verificação degradaria
+			para julgamento manual repetitivo per commitment.
+			"""
+	}, {
+		costRef: "ce-04"
+		contribution: """
+			DLV contribui para eliminação de 'custo de risco
+			com dados incompletos' produzindo dados completos
+			de execução verificada (Verification events com
+			payload rich: criteriaVersion, integrityProofRef,
+			reasonCode, retryPath, exceptionHistory,
+			supersededByRef, finalityAt) que REW consome para
+			scoring de risco mais preciso. Defense in depth 3
+			layers (BD9) com Layer 1+2 deterministic em DLV +
+			Layer 3 statistical em REW/NIM produz dataset
+			complete: integridade verificada localmente,
+			consistency cross-evidence, padrões anomaly
+			detectáveis post-hoc. REW pode modelar credit risk
+			com data completeness inalcançável em sistemas
+			tradicionais (verificação manual produz dados
+			sparse). cc-04 capability + cap-delivery-lifecycle-
+			public-events formalizam o pipeline de signal-
+			production.
+			"""
+		rationale: """
+			Per dlv subdomain rationale: 'DLV produz dados
+			completos de execução verificada que REW consome
+			para scoring mais preciso'. Boundary clean (BD10
+			anti-mini-NIM): DLV produz signals categóricos
+			rich; REW agrega + scora. ce-04 elimination
+			depende desta separação clean — REW com dados
+			completos (não inferidos) produz scoring superior
+			a credit bureaus tradicionais.
+			"""
 	}]
 
 	// =============================================
