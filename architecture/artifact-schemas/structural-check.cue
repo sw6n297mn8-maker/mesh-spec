@@ -51,6 +51,9 @@ package artifact_schemas
 } | {
 	kind: "directory-pair-coverage"
 	rule: #DirectoryPairCoverageRule
+} | {
+	kind: "at-least-one-block-present"
+	rule: #AtLeastOneBlockPresentRule
 })
 
 _#StructuralCheckBase: {
@@ -119,9 +122,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -250,4 +253,24 @@ _#StructuralCheckBase: {
 	// estado válido (e.g., task-spec sem work-event = admission=defined
 	// per work-governance state machine).
 	bidirectional: bool | *false
+}
+
+// Rule shape para kind=at-least-one-block-present.
+// Verifica que o artefato sob validação contém pelo menos um dos
+// blocos listados em blockNames presente E não-vazio. Útil para
+// constraints "at-least-one-of-N" que CUE schema não consegue expressar
+// declarativamente sobre fields opcionais (limites de disjunção CUE
+// sobre fields opcionais). Cada blockName é caminho dot-separated para
+// field top-level OR aninhado. Empty list / single-name list rejeitados
+// (min 2): caso degenera para required-block kind existente. Bloco
+// "presente non-empty" significa: para listas, len >= 1; para optional
+// fields, valor não-ausente. Layered enforcement: schema valida CONTEÚDO
+// de elementos (string non-empty constraints); structural-check valida
+// EXISTÊNCIA do bloco como lista non-empty. Princípio canônico: quando
+// CUE não consegue expressar a regra, enforcement sobe para CI
+// structural-check — não vira convenção.
+#AtLeastOneBlockPresentRule: {
+	// Lista de caminhos dot-separated (top-level OR aninhado) cujo
+	// at-least-one deve estar presente non-empty. Min 2 nomes.
+	blockNames: [string & !="", string & !="", ...string & !=""]
 }
