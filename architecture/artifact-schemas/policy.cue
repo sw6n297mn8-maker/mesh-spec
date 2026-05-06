@@ -18,7 +18,20 @@ import (
 	"strings"
 )
 
-#Policy: {
+// Renomeado de #Policy → #PolicyRegistryEntry (per amendment adr-065
+// 2026-05-06) para resolver colisão homônima no package artifact_schemas
+// com #Policy de domain-model.cue (event → command automation, com
+// fields code/triggeredByEvent/issuesCommand/guards). Unificação
+// implícita das duas definições exigia campos de AMBAS em todas as
+// instâncias domainModel.policies, quebrando cue vet --concrete em
+// todos os domain-models pré-existentes (SSC/CMT/BDG). Rename é
+// semanticamente apropriado: "#PolicyRegistryEntry" reforça intent
+// registry-only de PLR per adr-065 (não engine; identidade canônica
+// por entry) e separa do conceito legacy domain-model. Sem instâncias
+// existentes em domain/policies/ — rename mecânico sem impacto
+// downstream. Schema fields/constraints/_schema.location idênticos
+// pré-rename — apenas o identifier muda.
+#PolicyRegistryEntry: {
 	// Código canônico estável. Convenção: pol-<slug-curto>.
 	id: string & =~"^pol-[a-z][a-z0-9-]*$"
 
