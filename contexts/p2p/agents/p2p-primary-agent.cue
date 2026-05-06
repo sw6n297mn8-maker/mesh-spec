@@ -372,29 +372,106 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}]
 
 	// =============================================
-	// CONTEXT REQUIREMENTS (stub — completados em Parte 3)
+	// CONTEXT REQUIREMENTS
 	// =============================================
 
 	contextRequirements: {
 		artifacts: [{
 			artifactType: "canvas"
-			rationale:    "Stub minimal — completado em Parte 3 (5 artifacts + estimatedBudget)."
+			rationale:    "Canvas P2P declara purpose (anti-mini-NIM como invariant transversal; emitir PO sob authority pré-validada; escopo Procure-only Phase 0 per Adj 1 founder), capabilities (cap-04 audit Lei 12.846 + cc-03 24/7 + 2 P2P-specific PO lifecycle e authority validation), businessDecisions (6: bd-procurement-requires-sourcing-authority RECTOR + 5 operacionais incluindo bd-no-supplier-revalidation-by-p2p NEGATIVO), governance scope (5 autonomousDecisions + 3 supervisedDecisions + 5 escalationCriteria), incentive analysis (sh-01/sh-02/sh-05 vetores adversariais), assumptions (3) e openQuestions (7). Slices necessários para operar gate determinístico, escalations supervisionadas, drift detection, fragmentation detection."
+			requiredSlices: [
+				"ownership",
+				"governanceScope",
+				"capabilities",
+				"communication",
+				"incentiveAnalysis",
+			]
+		}, {
+			artifactType: "domain-model"
+			rationale:    "Source of truth para operationalScope refs (1 aggregate + 5 events + 2 commands + 5 invariants + 4 projections). Necessário para cada action validar domainModelRefs ⊆ operationalScope per tq-ag-02. Behavior-first ordering + lifecycle do agg-purchase-order (requested → emitted | cancelled — semântica 'emit attempt recorded' Patch 1) + 5-layer anti-mini-NIM defense + cross-BC dependsOnAggregateState (1 invariant inv-purchase-order-requires-valid-authority → SSC agg-sourcing-process via QuerySourcingDecision per adr-055) — todos consumidos pelo agente para enforcement operacional. 4 patches founder domain-model preservados (Patch 1 emit attempt recorded + Patch 2 ACL recorded not originated + Patch 3 monitoring not enforcement + Patch 4 requested→cancelled keep). Fix mechanical (e4ab2e0) precedeu Phase 4: vo-purchase-scope alinhado com SSC vo-rfq-scope cross-BC vocabulary (estimatedVolume + deadline; unit removido) + validationFailureNote removido do agg-purchase-order.fields per Ajuste 3 founder Opção A (audit trail single source)."
+		}, {
+			artifactType: "glossary"
+			rationale:    "Terminologia canônica do BC P2P (15 terms: Pedido de Compra + Autoridade de Sourcing + Authority Type + Allocation Convergence + Authority Validation + PO Lifecycle + Originadora absorvendo Comprador/Requisitante + Maverick + Fragmentation Pattern + Allocation Bias + Renegotiation Pressure + 2 events PurchaseOrderEmitted/Cancelled). Action names + audit trail field semantics + rationale alinham com glossary. Loanwords PT-BR + EN (Purchase Order, Maverick, Authority Type, Allocation Bias, Renegotiation Pressure) preservados em codes/fields per schema regex ASCII; PT-BR em descriptions."
+			requiredSlices: ["terms"]
+		}, {
+			artifactType: "agent-governance"
+			rationale:    "Envelope p2p-primary-agent.governance.cue (forward-ref Phase 5 par sequencial) declara autonomyOverrides atuais (Phase 0: 1 mutation propose-and-wait act-emit-purchase-order com promotion path + 1 mutation hard-supervised act-cancel-purchase-order; 2 escalations collect-and-report act-detect-allocation-drift + act-detect-fragmentation-pattern; 2 validations execute-and-log; 2 queries execute-and-log), escalationRouting (channel + SLA + recipient por category — Phase 0 founder only per ADR-037 pre-PMF), blastRadiusCaps (POs/period proporcionais por categoryRef + amount thresholds), calibration (promotion/regression criteria — métricas po-emission-latency + supervisor-override-rate + escalation-rate por category + allocation-drift-frequency), driftDetection + failureHandling (rollback automático em violation rate). Agent consulta envelope para resolver QUANDO escalar (do spec) → COMO escalar (do envelope)."
+		}, {
+			artifactType: "context-map"
+			rationale:    "P2P integra cross-BC com 2 dependências OPERATIONAL Phase 0 (SSC via QuerySourcingDecision sync + 3 published decision events ACL — authority feed; CMT via 2 published events P2P PurchaseOrderEmitted hard binding + PurchaseOrderCancelled withdrawal/negative signal) e 2 known-absent Phase 0 NÃO-operacionais (CTR via ContractActivated PHASE 1+ FORWARD-REF oq-p2p-1 — ctr-to-p2p relation NÃO operacional Phase 0 per Adj 3 founder canvas; NIM via PO data feed pendente paralelo oq-ssc-2 — fitnessSignals.poData feed não modelado Phase 0). Context map slice de relationships informa contracts ATIVOS (SSC/CMT) e identifica pendências de formalização explícitas como known-absent (oq-p2p-1/4/6 + oq-ssc-2/3/5), não como operational dependencies."
+			requiredSlices: ["relationships"]
 		}]
 		estimatedBudget: "heavy"
 	}
 
 	// =============================================
-	// OBSERVABILITY (stub — completados em Parte 3)
+	// OBSERVABILITY
 	// =============================================
 
 	observability: {
 		signals: [{
 			code:           "sig-mutation-executed"
 			name:           "Mutation Executed"
-			description:    "Stub minimal — completado em Parte 3 (9 signals)."
+			description:    "Sinal emitido após command processado (post-approval em propose-and-wait; hard-supervised em cancel). Cobertura: act-emit-purchase-order (post-state-transition agg-purchase-order requested→emitted + evt-purchase-order-emitted), act-cancel-purchase-order (post-state-transition →cancelled + evt-purchase-order-cancelled)."
 			coversCategory: "mutation"
-			trigger:        "Stub completado em Parte 3"
+			trigger:        "Imediatamente após state transition em agg-purchase-order + emit do event pareado"
 			level:          "info"
+		}, {
+			code:           "sig-validation-result"
+			name:           "Validation Result"
+			description:    "Sinal emitido após validation actions. Cobertura: act-validate-authority (cache hit/miss + sync fallback outcome + authorityType resolution), act-validate-emit-request-scope (payload structural validation outcome). Reporta outcome (success/insufficiency/failure) + rationale técnico + cache/sync timing."
+			coversCategory: "validation"
+			trigger:        "Após validação concluída"
+			level:          "info"
+		}, {
+			code:           "sig-query-served"
+			name:           "Query Served"
+			description:    "Sinal emitido após cada query atendida. Cobertura: act-query-active-purchase-orders, act-query-purchase-order-by-id."
+			coversCategory: "query"
+			trigger:        "Após retorno de query consumida por CMT/CTR/controllers/originadora/auditoria"
+			level:          "info"
+		}, {
+			code:           "sig-escalation-triggered"
+			name:           "Escalation Triggered"
+			description:    "Sinal emitido quando qualquer escalationCondition dispara. Captura category + rationale + action que disparou + recommendation se aplicável + escalationConditionsOverride aplicado (se action tem override hard-supervised ou collect-and-report)."
+			coversCategory: "escalation"
+			trigger:        "EscalationCondition disparada (any category)"
+			level:          "warn"
+		}, {
+			code:           "sig-supervision-requested"
+			name:           "Supervision Requested"
+			description:    "Sinal emitido quando autonomyLevel propose-and-wait gera recommendation aguardando aprovação humana. Cobertura: act-emit-purchase-order, act-cancel-purchase-order (hard-supervised). Promoção para execute-and-log de act-emit via envelope.governance.promotionCriteria mantém este signal apenas para casos pendentes de human gate; act-cancel preserva signal sempre."
+			coversCategory: "mutation"
+			trigger:        "Recommendation criada, aguardando aprovação"
+			level:          "info"
+		}, {
+			code:           "sig-constraint-violation"
+			name:           "Constraint Violation"
+			description:    "Sinal emitido quando onViolation block-and-escalate ativada em qualquer constraint. Captura constraint code + invariant origem + violation context. cst-allocation-monitoring-mandatory emite warn (não constraint-violation crítico) porque onViolation warn-and-continue."
+			coversCategory: "mutation"
+			trigger:        "Constraint violation detectada"
+			level:          "error"
+		}, {
+			code:           "sig-po-emitted"
+			name:           "Purchase Order Emitted"
+			description:    "Sinal P2P-specific emitido após PurchaseOrderEmitted publicado. Captura: purchaseOrderId + authorityRef + authorityType + supplier + categoryRef + amount + scope.estimatedVolume + emittedAt + emittedBy + requestedBy + decisionRationaleLink (referência ao SSC sourcingDecisionId vinculado para reconstrução do gate independente do agent log para auditoria contínua cap-04 + insumo NIM futuro paralelo a oq-ssc-2)."
+			coversCategory: "mutation"
+			trigger:        "PO materializada e PurchaseOrderEmitted publicado"
+			level:          "info"
+		}, {
+			code:           "sig-allocation-drift"
+			name:           "Allocation Drift Detected"
+			description:    "Sinal P2P-specific emitido por act-detect-allocation-drift (sh-05 vector). Captura: authorityRef + supplier + categoryRef + observedDistribution (volume real per supplier no horizonte) + declaredAllocationPolicy (split-by-percentage upstream SSC) + window + sustainedThresholdEvidence + recommendation (reconsiderar fitness rules). Feed para SSC reconsiderar regras (loop pendente oq-p2p-3 + oq-ssc-3 bridge)."
+			coversCategory: "escalation"
+			trigger:        "Drift sustentado detectado por monitoring obligation"
+			level:          "warn"
+		}, {
+			code:           "sig-fragmentation-detected"
+			name:           "Fragmentation Pattern Detected"
+			description:    "Sinal P2P-specific emitido por act-detect-fragmentation-pattern (sh-01 vector). Captura: proponente requesterRef + categoria + POs envolvidas (lista) + janela + threshold gaming evidence (distribuição amounts sub-threshold + frequência) + recommendation. Cross-BC coordination com BDG term-fracionamento bidirecional pendente Phase 0 (oq-p2p-6)."
+			coversCategory: "escalation"
+			trigger:        "Pattern report gerado por escalation actions"
+			level:          "warn"
 		}]
 		auditTrail: {
 			requiredFields: [
@@ -405,11 +482,233 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 				"output-summary",
 				"decision-rationale",
 				"governance-version",
+				"purchase-order-id",
+				"authority-ref",
+				"authority-type",
+				"supplier-ref",
+				"category-ref",
+				"requested-by",
+				"cancellation-reason",
 			]
-			storageHint: "Stub minimal — storageHint completado em Parte 3 (Event Log P2P imutável + Lei 12.846 retention)."
-			rationale:   "Stub minimal — auditTrail rationale completado em Parte 3 com 14 fields rationale."
+			storageHint: "Event Log P2P imutável com retention regulatory-grade (mínimo 5 anos per Lei 12.846 procurement audit + Bacen quando categoria é regulada). decisionRationaleLink (ref/hash apontando para SSC sourcingDecisionId vinculado) anexado a cada PO emitida — sustenta auditoria contínua (cap-04) sem reconsulta cross-BC. Audit trail do agente em partição dedicada por categoryRef para query patterns operacionais. Para state=requested persistente (attempts failed validation per Patch 1), validation context completo é registrado (cache hit/miss + sync fallback timestamp + authorityType resolution attempt) preservando audit defensible mesmo para attempts não-progressed — sem campo dedicado no aggregate per Ajuste 3 founder Opção A. Para state=emitted→cancelled (race condition pós-emit antes de Cancelled chegar), audit trail registra heuristic flag cmt-formalization-status: not-yet-confirmed-at-cancel-time per Ajuste 2 founder (best-effort acknowledgment de limitação Phase 0; reconciliação cross-BC via oq-p2p-2)."
+			rationale:   "7 mínimos cobrem reconstituição genérica (timestamp/agent-id/action-code/input-summary/output-summary/decision-rationale/governance-version). Field decision-rationale no audit trail é decisionRationaleLink/hash apontando para vo-decision-rationale do SSC sourcingDecisionId vinculado (referência canônica via authorityRef + content hash sustenta integridade e evita storage redundante — moat de inteligência preserved cross-context). 7 P2P-specific fields cobrem reconstituição de contexto BC: purchase-order-id é root identity do aggregate (presente em todas actions, mesmo queries — vincula audit ao processo); authority-ref + authority-type registram cobertura de authority no momento do emit + binding regime (one-shot hard / preferred soft / strategic advisory Phase 0); supplier-ref registra outcome supplier-specific per Q1 canvas (1 PO = 1 supplier); category-ref sustenta segmentação operacional (allocation tracking + fragmentation detection por categoria); requested-by registra originadora (audit defensible per Lei 12.846 5 anos + sh-01 vector traceability); cancellation-reason populated quando state=cancelled (reasonCode failed-validation-cleanup vs admin-override vs demand-cancelled vs supplier-withdrawal vs scope-mismatch — distingue cenários per Patch 1 + Patch 4 founder). Audit reconstrutível (teste canônico): dado o registro + payload do event referenciado, é possível reconstituir inputs + decisão de authority + outcome — sustenta cap-04 + Lei 12.846 + moat de inteligência via NIM consumer Phase 1+. Validation context completo para attempts failed (Patch 1) + race condition heuristic flag (Ajuste 2) registrados como audit-only fields contextuais (sem first-class no schema requiredFields — capturados via input-summary + output-summary)."
 		}
 	}
 
-	rationale: "Agent spec P2P scaffold (Parte 1 de 4): identity + operationalScope + 8 actions completos; stubs mínimos de constraint/escalation/contextRequirements/observability satisfazem schema min-1 e serão substituídos nas Partes 2-3. Outer rationale completo finalizado em Parte 3."
+	rationale: """
+		P2P é segundo BC do trio canônico Mesh (SSC → P2P → CMT) — SSC
+		decide sourcing; P2P emite pedido sob authority; CMT formaliza
+		compromisso. agt-p2p-primary é o operador único deste BC: aplica
+		gate determinístico de authority pré-validada SSC para emitir
+		POs supplier-specific (Phase 0 escopo Procure-only per Adj 1
+		founder canvas — pagamento é FCE; faturamento é INV); opera
+		lifecycle público mínimo (requested → emitted | cancelled,
+		semântica 'emit attempt recorded' per Patch 1 founder domain-
+		model); monitora drift de allocation aggregate-level (Patch 3
+		monitoring obligation, NÃO enforcement); detecta padrões
+		fragmentation (sh-01) localmente. Anti-mini-NIM rigorously
+		enforced: NÃO consulta NPM (boundary explícita via inv-no-
+		supplier-revalidation-by-p2p NEGATIVO; P2P NÃO possui supplier
+		pool — apenas purchase authority per Patch 4 founder canvas);
+		NÃO formaliza commitment econômico (CMT) nem decide sourcing
+		(SSC) — boundary preservada via separation of concerns.
+
+		Spec ↔ Governance separation per ADR-037: este spec declara
+		CAPACIDADE operacional + QUANDO escalar; envelope (p2p-primary-
+		agent.governance.cue, par sequencial Phase 5) declara AUTONOMIA
+		atual via promotion criteria + autonomyOverrides intermediários
+		+ COMO escalar (channel/SLA/recipient).
+
+		Princípio canônico (post-founder review SSC 2026-05-01,
+		canonizado em BDG + reforçado em SSC + IDC): Phase 0 baseline
+		mutations propose-and-wait, mesmo aquelas declaradas
+		autonomousDecision no canvas (validate-sourcing-authority,
+		match-authority-to-supplier, emit-po-on-valid-authority,
+		publish-po-lifecycle-events, enforce-allocation-policy). Canvas
+		autonomousDecisions significam 'não exigem julgamento humano
+		(gate determinístico)', NÃO 'execução sem governança'.
+		Promotion para execute-and-log de act-emit-purchase-order é
+		decisão do envelope.governance via promotion criteria (po-
+		emission-latency + supervisor-override-rate + escalation-rate
+		por category) + rollback automático per failureHandling —
+		preserva P10. tq-gv-14 bloqueia override execute-and-log direto;
+		envelope poderá declarar promotion path com intermediários sem
+		violar P10. act-cancel-purchase-order é exceção justificada à
+		promoção: escalationOverride hard-supervised mesmo após
+		governance promotion futura porque (a) custo cross-BC (CMT
+		path interrupted; supplier reputacional); (b) canvas
+		supervisedDecision cancel-emitted-po explícita; (c)
+		operacionalmente irreversível pós-emit.
+
+		Decide-vs-execute pattern (tq-agg-09) em Phase 0:
+		Para mutations com impacto irreversível ou cross-BC, o padrão
+		decide→execute NÃO é modelado como pares de actions distintos.
+		Em vez disso, o gate humano é implementado via autonomyLevel
+		'propose-and-wait' — a 'decisão' ocorre no momento da aprovação
+		humana e a execução é consequência direta dessa aprovação.
+		Aplica a:
+		- act-cancel-purchase-order (custo cross-BC para CMT path +
+		  supplier reputacional; sempre supervised per canvas —
+		  escalationOverride hard-supervised mesmo após governance
+		  promotion futura).
+		Exceção explícita: act-emit-purchase-order NÃO segue split
+		decide-X/execute-X porque seu outcome é determinístico (transition
+		requested→emitted via guards numéricos authority válida sim/não)
+		a partir do gate (cache + sync fallback → authorityType +
+		supplier ∈ authority + categoryRef match), não julgamento. Gate
+		é função, não julgamento — mesma exceção que SSC act-evaluate-
+		and-conclude-rfq + BDG act-execute-coverage-gate. Audit
+		reproduzível via authorityRef + cache state snapshot. act-detect-
+		allocation-drift + act-detect-fragmentation-pattern também não
+		seguem split: ações são determinísticas (statistical detection
+		sob signal source autoritativo prj-allocation-tracking + prj-
+		purchase-history-by-category); collect-and-report cobre escopo.
+
+		Canvas decision propagation (tq-dmg-11 análogo): decisões
+		semânticas fechadas no canvas P2P + 4 patches founder canvas + 4
+		patches founder domain-model + 3 ajustes founder Phase 4
+		propagam consistentemente para spec:
+		- Q1 canvas multi-supplier first-class via authorityRef
+		  discriminator → operationalScope.events incluem 3 ACL events
+		  carregando SupplierRefList + AllocationPolicy upstream SSC;
+		  sig-po-emitted captura supplier (singular per PO) + authorityRef
+		  + authorityType resolvidos
+		- bd-no-supplier-revalidation-by-p2p (Patch 4 founder canvas:
+		  P2P NÃO possui supplier pool — apenas purchase authority)
+		  → cst-no-supplier-revalidation NEGATIVO (verification por
+		  absence: agent code NÃO consulta NPM; operationalScope NÃO
+		  inclui NPM refs); escalation 'authority-exhausted' (não
+		  'pool-exhausted') refletido em out-of-scope category
+		- bd-cancellation-pre-formalization-only + Patch 2 founder
+		  canvas (PurchaseOrderCancelled withdrawal/negative signal) →
+		  cst-cancellation-pre-formalization-only (Ajuste 2 founder
+		  Phase 4: best-effort heuristic + race acknowledged — NÃO
+		  promete enforcement deterministic que P2P não pode entregar)
+		  + act-cancel-purchase-order description articula 2 cenários
+		- Adj 3 founder canvas (CTR ContractActivated/QueryContractStatus
+		  PHASE 1+ FORWARD-REF) → contextRequirements.context-map
+		  registra como known-absent Phase 0; escalationCondition
+		  ambiguous-case (decisionType strategic-award Phase 0 advisory
+		  binding) cobre janela de bridge
+		- Patch 1 founder domain-model (state requested = 'emit attempt
+		  recorded') + Ajuste 3 founder Phase 4 Opção A (audit trail
+		  single source, sem campo dedicado no aggregate) →
+		  act-emit-purchase-order description articula semântica + audit
+		  trail registra validation context completo para attempts
+		  persistentes failed validation
+		- Patch 2 founder domain-model (3 ACL events recorded not
+		  originated by aggregate decision) → operationalScope.events
+		  inclui 3 ACL com contexto (recordings de SSC events
+		  traduzidos)
+		- Patch 3 founder domain-model (inv-allocation-convergence
+		  monitoring obligation NÃO enforcement) → cst-allocation-
+		  monitoring-mandatory onViolation warn-and-continue (NÃO
+		  block-and-escalate); act-detect-allocation-drift category
+		  escalation + autonomyLevel collect-and-report
+		- Patch 4 founder domain-model (lifecycle requested→cancelled
+		  keep) → act-cancel-purchase-order cobre 2 transitions; sig-
+		  po-emitted captura state=requested context para attempts
+		  failed validation no audit trail
+		- Ajuste 1 founder Phase 4 (cross-BC vocabulary alignment vo-
+		  purchase-scope com SSC vo-rfq-scope: estimatedVolume +
+		  deadline; unit removido) → act-validate-emit-request-scope
+		  description usa nomes corrigidos; sig-po-emitted captura
+		  scope.estimatedVolume
+
+		Canonical removal test (tq-agg-10): SE remover agt-p2p-primary,
+		das 5 invariantes:
+		- 3 ficam totalmente protegidas por outros enforcers
+		  (inv-cancellation-pre-formalization-only via aggregate
+		  lifecycle guard + heuristic flag CMT formalization status
+		  best-effort no schema #StateTransition; inv-purchase-order-
+		  lifecycle-public-events via atomic transition no lifecycle
+		  do agg-purchase-order emitindo events pareados; inv-no-
+		  supplier-revalidation-by-p2p via boundary structural absence
+		  — operationalScope + queryDeps NÃO incluem NPM, runner static
+		  check garante ausência).
+		- 2 ficam com cobertura parcial Phase 0 (inv-purchase-order-
+		  requires-valid-authority RECTOR + inv-allocation-convergence-
+		  aggregate-level) — agente é enforcer operacional do gate
+		  como PROCESSO; mecanismos estruturais (cross-BC dependsOnAggre-
+		  gateState formalizado per adr-055 apontando SSC agg-sourcing-
+		  process; prj-allocation-tracking como projection auto-
+		  mantida) são complementos parciais. Pós-resolução estrutural
+		  (oq-p2p-1 CTR contract activation bridge; oq-p2p-3 + oq-ssc-3
+		  feedback loop bridge), enforcement migra mais para domain/
+		  external. NÃO é red flag oculto — é red flag conhecido,
+		  declarado em canvas (mech-agent-gate é design pattern, não
+		  bug), com caminho de resolução documentado em openQuestions.
+
+		Phase 0 caveats explícitos:
+		- act-cancel-purchase-order race condition pós-emit antes de
+		  Cancelled chegar (CMT formalization detected) é assumed rara
+		  Phase 0; reconciliação cross-BC futura cobrirá oq-p2p-2.
+		  Per Ajuste 2 founder Phase 4: best-effort heuristic + race
+		  acknowledged — agente NÃO promete enforcement deterministic
+		  que não pode entregar (sem query-dep operacional CMT Phase
+		  0); registra incerteza em audit trail flag.
+		- act-detect-fragmentation-pattern é mecanismo SECUNDÁRIO per
+		  canvas — defesa primária estrutural depende de coordenação
+		  cross-BC com BDG (Fracionamento bidirecional, oq-p2p-6) e
+		  dados acumulados em prj-purchase-history-by-category (janela
+		  mínima viável ≥30 dias). Phase 0 limitação reconhecida.
+		- act-detect-allocation-drift é SIGNAL feed a SSC (reconsideração
+		  de fitness rules), NÃO enforcement local Phase 0; loop pendente
+		  oq-p2p-3 + oq-ssc-3 bridge. Phase 1+ pode evoluir para hard
+		  gate se feedback loop estabilizar.
+		- as-p2p-1 (authority cobertura suficiente para demand operacional)
+		  é premissa de act-validate-authority; se invalidada (taxa de
+		  escalação insufficient-authority sustentada), gate regride
+		  para sole-source supervisado como norma — re-issue SSC OR
+		  approve-po-without-sourcing-authority como caminho default.
+		- as-p2p-2 (PO history como signal robusto SSC-mantido /
+		  P2P-mantido) é premissa de act-detect-fragmentation-pattern;
+		  se invalidada (manipulation cross-PO via Fracionamento OR
+		  drift sustentado de patterns), defesa primária falha; detection
+		  latente vira única linha.
+		- as-p2p-3 (strategic-award authority transition advisory→hard
+		  Phase 1+ pós-CTR ContractActivated) é premissa de Adj 3
+		  founder canvas; bridge pendente oq-p2p-1.
+		- Cross-BC cache invalidation pós-cancelamento CTR (oq-ssc-5/oq-
+		  p2p-2 compartilhada) e feedback loop P2P→SSC (oq-p2p-3) não
+		  modelados Phase 0; drift potencial documentado em escalation
+		  Condition unclassifiable-anomaly.
+		- Supplier API (acceptance/rejection by supplier) Phase 1+ per
+		  oq-p2p-4; Phase 0 modela apenas notification (NTF transversal)
+		  sem aceite/rejeição.
+		- Attempts persistentes (state=requested failed validation)
+		  visibility cross-context é via projection separada se demanda
+		  emergir Phase 1+ (não exposta em prj-purchase-orders Phase 0
+		  por filtro state=emitted; audit trail captura validation
+		  context completo per Ajuste 3 founder Opção A — single source
+		  of truth sem campo duplicado no aggregate).
+
+		Volume catalog: 8 actions (1 mutation propose-and-wait + 1
+		mutation hard-supervised + 2 validations execute-and-log + 2
+		escalations collect-and-report + 2 queries execute-and-log), 6
+		constraints (5 derivadas 1:1 de invariantes + 1 operacional
+		sustaining canvas 3 supervisedDecisions Phase 0; cst-allocation-
+		monitoring-mandatory warn-and-continue per Patch 3; cst-
+		cancellation-pre-formalization-only com best-effort heuristic
+		per Ajuste 2), 6 escalation conditions (cobertura tq-ag-10 +
+		5 categorias canvas escalationCriteria), 9 signals (6 canônicos
+		+ sig-po-emitted + sig-allocation-drift + sig-fragmentation-
+		detected P2P-specific), 14 audit fields (7 mínimos + 7 P2P-
+		specific para reconstituição cap-04 auditoria contínua + Lei
+		12.846 procurement audit; field decision-rationale armazenado
+		como ref/hash apontando para SSC sourcingDecisionId vinculado,
+		payload completo no event). estimatedBudget heavy (5 artifacts
+		+ cross-BC SSC reads + 4 lenses + audit trail rico).
+
+		Glossary alignment: action names + signal codes + audit field
+		names alinhados com glossary P2P (15 terms). Loanwords PT-BR +
+		EN preservados em codes/fields per schema regex ASCII (Purchase
+		Order, Maverick, Authority Type, Allocation Bias, Renegotiation
+		Pressure, Fragmentation Pattern) com PT-BR em descriptions/
+		rationale per UL local. Sem divergências terminológicas
+		identificadas nesta autoria. Cross-BC vocabulary consistency
+		via fix mechanical (e4ab2e0) restaurada (vo-purchase-scope ↔
+		vo-rfq-scope SSC: estimatedVolume + deadline + location;
+		divergência prévia corrigida sem rationale defensável).
+		"""
 }
