@@ -2855,8 +2855,7 @@ canvas: artifact_schemas.#Canvas & {
 				justification + timestamp imutáveis (BD13 +
 				reasonCode categorical). M2 rate metrics:
 				criteria-override-rate sustained > 2% triggera
-				founder review + design feedback (esc-criteria-
-				override-rate-sustained); padrão sustained vira
+				founder review + design feedback (criteria-override-rate-sustained); padrão sustained vira
 				tension-entry → deferred-decision → ADR per P4
 				artifact ordering. M4 reconciliation: criteria-
 				override exige posterior CMT criteria activation
@@ -2879,7 +2878,7 @@ canvas: artifact_schemas.#Canvas & {
 				"""
 			designResponse: """
 				P1 (LOUD): override events com payload categórico
-				estruturado. P4 (feedback): rate breach esc-
+				estruturado. P4 (feedback): rate breach
 				criteria-override-rate-sustained dispara design
 				review obrigatório (artifact ordering tension/
 				deferred/ADR). M3: founder único approver Phase 0
@@ -2973,9 +2972,7 @@ canvas: artifact_schemas.#Canvas & {
 				+ L2 cross-evidence consistency em DLV; L3 pattern
 				detection em REW/NIM downstream. P5 anti-paralysis
 				(BD6 timer fail-safe) + P6 cross-BC awareness (DRC
-				dispute path estruturado). M2 esc-integrity-failure-
-				rate-sustained + esc-exception-extension-rate-
-				sustained signals com sample gate (rate-based) +
+				dispute path estruturado). M2 integrity-failure-rate-sustained + exception-extension-rate-sustained signals com sample gate (rate-based) +
 				artifact ordering tension/deferred/ADR. lens-
 				incentive-alignment guardrail. Phase 0 supplier API
 				ausente (oq-dlv-4) limita actionable contract
@@ -3201,7 +3198,7 @@ canvas: artifact_schemas.#Canvas & {
 			}, {
 				id:          "extend-exception-window"
 				description: "BD6 estender 14-day timer ATÉ máximo 30 dias TOTAL desde primeiro entry da exceptionHistory. CUMULATIVAS — extensions adicionam tempo ao timer existente; NÃO reiniciam o relógio do primeiro entry. Cap absoluto bounded por construção. Justificativa documentada por extension individual; founder DEVE justificar cada extension."
-				rationale:   "Anti-rubber-stamp via cap absoluto cumulativo (P2 BOUNDED). Distinta de exception-during-exception (proibido por BD6) — esta é extensão de single exception ativa, não criação de nova. P4 feedback: extension-rate sustained vira tension-entry candidate via esc-exception-extension-rate-sustained."
+				rationale:   "Anti-rubber-stamp via cap absoluto cumulativo (P2 BOUNDED). Distinta de exception-during-exception (proibido por BD6) — esta é extensão de single exception ativa, não criação de nova. P4 feedback: extension-rate sustained vira tension-entry candidate via exception-extension-rate-sustained."
 			}, {
 				id:          "override-rejection"
 				description: "RE-EVALUATE-WITH-NEW-INPUT semantics — NÃO 'approve despite rejection'. Founder/approver autoriza re-trigger evaluation quando rejected anterior é diagnostically incorreto E nova evidence ingerida (novo evidenceRef) OR nova criteriaVersion ativa está disponível. EXIGE PRECONDITION: nova input causal (evidence OR criteria); BD7 anti-default preserved (NÃO bypass de evidence requirement). Outcome é fresh evaluation sob nova identidade (commitmentRef, evidenceRef-novo)."
@@ -3418,7 +3415,7 @@ canvas: artifact_schemas.#Canvas & {
 			(latência > 30s p95 sustained OR taxa de errors
 			sync sustained > 1%); criteria-override-rate sustained
 			elevada pode sinalizar timing-related issue (CMT
-			activation flow inadequado sem cache) per esc-
+			activation flow inadequado sem cache) per
 			criteria-override-rate-sustained.
 			"""
 		rationale: """
@@ -3473,8 +3470,7 @@ canvas: artifact_schemas.#Canvas & {
 			drc-to-dlv reverse relation não materializa em
 			horizonte (Phase 1 deadline 2026-Q4 paralelo a
 			oq-dlv-1) OR post-finality-correction-rate sustained
-			via path A elevada (esc-post-finality-correction-
-			rate-sustained breach) signaliza overload de
+			via path A elevada (post-finality-correction-rate-sustained breach) signaliza overload de
 			supervisedDecision channel sem auto-DRC path; volume
 			cresce além de capacidade founder review manual.
 			"""
@@ -3533,7 +3529,7 @@ canvas: artifact_schemas.#Canvas & {
 		impact: """
 			Phase 0 hard-coded 30d alinhado com V6; calibração
 			via post-finality-correction-rate empirical per
-			esc-post-finality-correction-rate-sustained breach.
+			post-finality-correction-rate-sustained breach.
 			Phase 1+ promotion para criteria-type-specific window
 			via criteriaVersion declaration (paralelo a Layer 2
 			check classes oq-dlv-6).
@@ -3672,7 +3668,7 @@ canvas: artifact_schemas.#Canvas & {
 		impact: """
 			Phase 0 hard-coded 14d alinhado com BD6 + V6;
 			calibração via exception-extension-rate empirical
-			per esc-exception-extension-rate-sustained breach
+			per exception-extension-rate-sustained breach
 			OR exception-cap-hit-count signal sustained. Cap
 			absoluto 30d cumulative preserved across all criteria
 			types Phase 0; per-type parameterization Phase 1+
@@ -3707,7 +3703,7 @@ canvas: artifact_schemas.#Canvas & {
 			status=insufficient-sample (NÃO valor numérico, NÃO
 			0; consumers tratam como invalid). SCOPE: DLV-
 			internal-only; EXPOSURE: NOT published cross-BC.
-			BINDING: esc-emergency-override-rate-sustained.
+			BINDING: emergency-override-rate-sustained.
 			"""
 		target: """
 			sustained < 5% em janela trimestral steady-state.
@@ -3737,7 +3733,7 @@ canvas: artifact_schemas.#Canvas & {
 			SAMPLE GATE: mesmo (N ≥ 50 OR janela ≥ 14d; senão
 			status=insufficient-sample). SCOPE: DLV-internal-
 			only; EXPOSURE: NOT published cross-BC. BINDING:
-			esc-post-finality-correction-rate-sustained.
+			post-finality-correction-rate-sustained.
 			"""
 		target: """
 			sustained < 1% em janela trimestral. Breach triggera
@@ -3761,8 +3757,7 @@ canvas: artifact_schemas.#Canvas & {
 			janela rolling 30d (consistente com outros rates;
 			evita misturar universos numerator-vs-denominator).
 			SAMPLE GATE: mesmo (N ≥ 50 OR janela ≥ 14d).
-			SCOPE: DLV-internal-only. BINDING: esc-criteria-
-			override-rate-sustained.
+			SCOPE: DLV-internal-only. BINDING: criteria-override-rate-sustained.
 			"""
 		target: """
 			sustained < 2% em janela trimestral. Breach triggera
@@ -3788,7 +3783,7 @@ canvas: artifact_schemas.#Canvas & {
 			state for (commitmentRef, evidenceRef)'. Re-entries
 			após resolução contam como NOVA exception instance
 			(distinct id). Janela rolling 30d. SAMPLE GATE:
-			mesmo. SCOPE: DLV-internal-only. BINDING: esc-
+			mesmo. SCOPE: DLV-internal-only. BINDING:
 			exception-extension-rate-sustained.
 			"""
 		target: """
@@ -3820,7 +3815,7 @@ canvas: artifact_schemas.#Canvas & {
 			median of last 30d) — NÃO escalation automática até
 			baseline empírico estabelecido; logging obrigatório
 			+ founder review manual se spike abrupto. PHASE 1+
-			BINDING: esc-integrity-failure-rate-sustained
+			BINDING: integrity-failure-rate-sustained
 			(threshold sustained > X% TBD baseline empírico).
 			"""
 		target: """
@@ -3850,7 +3845,7 @@ canvas: artifact_schemas.#Canvas & {
 			(absolute count). Janela rolling 90d. SAMPLE GATE:
 			NOT applicable (single incident já é signal
 			significativo). SCOPE: DLV-internal-only. BINDING:
-			esc-exception-cumulative-cap-reached.
+			exception-cumulative-cap-reached.
 			"""
 		target: """
 			sustained > 0 em janela 90d → escalação. Breach
@@ -3879,7 +3874,7 @@ canvas: artifact_schemas.#Canvas & {
 			(per-incident). SCOPE: DLV-internal-only. PRIORITY:
 			OVERRIDES ALL rate-based escalation criteria
 			(integridade legal CLAUDE.md nivel 1 inviolable).
-			BINDING: esc-regulatory-fiscal-ambiguity.
+			BINDING: regulatory-fiscal-ambiguity.
 			"""
 		target: """
 			Qualquer ≥ 1 = escalação imediata (founder + parecer
