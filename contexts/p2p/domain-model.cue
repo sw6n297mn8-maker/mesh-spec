@@ -439,7 +439,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:        "primitive"
 			name:        "reasonCode"
 			type:        "string"
-			description: "demand-cancelled | scope-mismatch | supplier-withdrawal | failed-validation-cleanup | admin-override | other"
+			description: "demand-cancelled | scope-mismatch | supplier-withdrawal | failed-validation-cleanup | admin-override | queue-overflow | other"
 		}, {
 			kind:        "primitive"
 			name:        "narrative"
@@ -447,9 +447,9 @@ domainModel: artifact_schemas.#DomainModel & {
 			description: "Justificativa documentada — obrigatória."
 		}]
 		constraints: [
-			"reasonCode deve ser um dos: demand-cancelled, scope-mismatch, supplier-withdrawal, failed-validation-cleanup, admin-override, other",
+			"reasonCode deve ser um dos: demand-cancelled, scope-mismatch, supplier-withdrawal, failed-validation-cleanup, admin-override, queue-overflow, other",
 		]
-		rationale: "Cancellation reasons são input crítico para drift signal + fragmentation pattern detection. ReasonCode failed-validation-cleanup distingue cancel de attempt recorded (state requested) de withdrawal pre-CMT (state emitted) per Patch 1 + Patch 4 founder."
+		rationale: "Cancellation reasons são input crítico para drift signal + fragmentation pattern detection. ReasonCode failed-validation-cleanup distingue cancel de attempt recorded (state requested) de withdrawal pre-CMT (state emitted) per Patch 1 + Patch 4 founder. ReasonCode queue-overflow adicionado per adr-075 Caminho D' Phase 5: sustenta #OverflowPolicy.cancelReasonCode references quando bounded wait queue (route insufficient-context) atinge maxQueueDepth/maxQueueAge limits — auto-cancel-and-escalate fail-safe action limpa attempt + escala via existing escalation taxonomy, preservando invariants sob queue pressure (NÃO auto-approve sob pressure — classe de erro adversarial vetada por design)."
 	}]
 
 	// =============================================
