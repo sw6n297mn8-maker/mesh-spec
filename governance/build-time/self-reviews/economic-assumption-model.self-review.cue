@@ -13,7 +13,7 @@ economicAssumptionModel: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-07"
 
-	roundsExecuted: 2
+	roundsExecuted: 3
 	maxRounds:      4
 
 	status: "stable"
@@ -311,6 +311,73 @@ economicAssumptionModel: build_time.#SelfReviewReport & {
 			cue vet ./... EXIT=0 (post-Round-2 SRR addition);
 			zero changes a schema content; only SRR meta-declaration
 			expansion.
+			"""
+	}, {
+		round:     3
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 2 falsifiability prediction proven concrete via
+			founder R4++ attack-driven adversarial validation
+			(documented em mesh-economic-assumptions.self-review.cue
+			Round 2). Schema's M1 mitigation (round-based refinement
+			discipline) operating em production discipline.
+
+			**Round 2 prediction** declarou: 'Schema PODE ESTAR
+			INCOMPLETO por construção; refinements são EPISTÊMICOS
+			(reality discovery), NÃO arquiteturais (decision change)'.
+
+			**R4++ attack scenario discovered missing reality**
+			(empirical validation):
+
+			End-to-end attack 'Loop de Extração Colusivo Multi-BC'
+			(bootstrap + colusão + reciclagem + extração) demonstrated
+			formally valid actions only achieving payoff_privado > 0
+			AND impacto_sistêmico < 0. This reveals MISSING REALITY
+			INVARIANT not captured pre-attack: actors optimize for
+			private payoff, alignment with system-level outcomes is
+			NOT default.
+
+			**Instance evolution per Round 2 discipline**:
+
+			ri-09 (misaligned incentives) added to mesh-economic-
+			assumptions.cue Round 2 instance commit. Schema unchanged
+			— refinement is via instance addition + SRR Round, NÃO
+			schema mutation. Pattern Popper falsifiability operating:
+			theory specific enough to be wrong → adversarial pass
+			discovers gap → instance refined within existing schema
+			frame → schema's empirical adequacy increased.
+
+			**Round 3 conclusion**:
+
+			Schema SRR Round 2 declared M1 (round-based refinement
+			discipline) as mitigation against schema incompleteness.
+			This Round 3 documents M1 operating concretely: founder
+			R4++ adversarial pass added Round 2 to instance SRR +
+			ri-09 + imp-09 to instance, SEM mutating schema. Audit
+			trail complete: Round 1 schema design → Round 2 schema
+			falsifiability declaration → Round 3 falsifiability
+			prediction validated empirically.
+
+			Schema design CONTINUES correta para realidades
+			empiricamente observadas + schema's own framing
+			(types + criteria + prefix discipline + cardinality)
+			endured attack-driven evolution — types accommodated
+			ri-09 addition without modification; tq-eam-* enforced
+			absolute language em new ri-09 statement (founder text
+			'optimize... is not aligned... by default' verifies
+			tq-eam-01).
+
+			Future falsifiability iterations: continue adding rounds
+			per discovery; schema refinement (when needed) requires
+			ADR explicitly distinguishing decision change from
+			reality discovery. Phase B cross-cutting binding still
+			deferred until reality model maturity adequate (founder
+			rule).
+
+			cue vet ./... EXIT=0 (post-Round-3 schema SRR addition);
+			zero schema content changes (M1 discipline preserved).
 			"""
 	}]
 

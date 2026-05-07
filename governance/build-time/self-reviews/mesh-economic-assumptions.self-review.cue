@@ -13,7 +13,7 @@ meshEconomicAssumptions: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-07"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 
 	status: "stable"
@@ -273,42 +273,273 @@ meshEconomicAssumptions: build_time.#SelfReviewReport & {
 
 			cue vet ./... EXIT=0 (post-write); full repo clean.
 			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Founder R4++ adversarial canonical block — attack-driven
+			validation of economic-mechanism layer (precursor a
+			economic-mechanism-model.cue future artifact NIM bootstrap).
+			Pattern recursive: R4 base + R4+ refinements applied to
+			REALITY model (instance ri-01..08); R4++ attacks proposed
+			MECHANISMS via end-to-end scenario before any mechanism
+			artifact exists. Adversarial validation BEFORE write
+			discipline established (founder R4+ pre-commit pattern)
+			now applied to next layer.
+
+			**1. TESE**:
+
+			O sistema só é robusto se: ações formalmente válidas NÃO
+			permitirem extração de valor sistêmico, mesmo sob atores
+			racionais otimizando payoff privado (ri-09). Erro NÃO é
+			fraude. Erro é: payoff privado positivo com impacto sistêmico
+			negativo. Founder R4++ insight canonical: 'você não está
+			modelando fraude, você está modelando racionalidade econômica
+			adversarial'.
+
+			**2. ATTACK SCENARIO — 'Loop de Extração Colusivo Multi-BC'**:
+
+			Phase 1 — Bootstrap legítimo (cold start):
+			- 3 empresas A/B/C sem histórico prévio
+			- A compra B → invoice; B compra C → invoice; C compra A →
+			  invoice (supply chain circular controlada)
+			- Todas passam DLV verification + INV emission + structural-
+			  checks (zero violation)
+			Payoff Phase 1: + reputação inicial; + volume válido;
+			+ entrada no sistema
+			Mecanismo anti-spam (Bloco 1) NÃO bloqueia. Causa: ri-01 +
+			cold start = indistinguível de atividade legítima.
+
+			Phase 2 — Colusão leve (cluster fechado):
+			- Transações continuam apenas entre A/B/C
+			- Volume aumenta progressivamente
+			- Consistência interna perfeita; padrão local saudável
+			Payoff Phase 2: ++ aumento de score; + densidade de atividade
+			Mecanismo anti-colusão (Bloco 2) falha parcialmente. Causa:
+			cluster pequeno legítimo ≈ cluster colusivo (mesma topologia
+			local); detecção dependeria de grafo global expensivo.
+
+			Phase 3 — Reciclagem de ativos:
+			- Receivables reutilizados como garantia + base de crédito +
+			  encadeamento financeiro
+			- Mesmo ciclo gera múltiplos 'ativos derivados'
+			Payoff Phase 3: +++ multiplicação de capacidade financeira;
+			+ leverage artificial
+			Mecanismo anti-recycling (Bloco 3) detecta MAS NÃO BLOQUEIA.
+			Causa: observabilidade ≠ constraint. Lineage tracking sem
+			limite de transformação.
+
+			Phase 4 — Extração (evento de saída):
+			- Participantes param de honrar
+			- Externalizam risco para terceiros expostos
+			- Capturam valor acumulado em fases 1-3
+			Payoff Phase 4: ++++ ganho privado | impacto sistêmico
+			++ perda sistêmica (colapso localizado)
+			ri-08 payoff asymmetry materializado concretamente; ri-09
+			misaligned incentives canonical → Phase 4 demonstra payoff_
+			privado > 0 AND impacto_sistêmico < 0 achievable via formally
+			valid actions only.
+
+			**3. PAYOFF ANALYSIS** (núcleo do problema):
+
+			| Fase | Ação        | Payoff privado | Impacto sistêmico |
+			|------|-------------|----------------|-------------------|
+			| 1    | bootstrap   | +              | neutro            |
+			| 2    | colusão     | ++             | degradando        |
+			| 3    | reciclagem  | +++            | risco oculto      |
+			| 4    | saída       | ++++           | colapso           |
+
+			Conclusão crítica: ataque é ECONOMICAMENTE RACIONAL; sistema
+			PERMITE. Confirma: ri-09 NÃO é opcional — é central.
+
+			**4. BREAKPOINTS por mecanismo proposto**:
+
+			BP-1 — Anti-spam (Bloco 1) FALHA:
+			Causa: dependência de histórico inexistente; não distingue
+			novo legítimo vs cluster sintético em cold-start.
+
+			BP-2 — Anti-colusão (Bloco 2) FALHA:
+			Causa: cluster pequeno ≈ legítimo (mesma topologia); detecção
+			depende de escala global computacionalmente cara.
+
+			BP-3 — Anti-recycling (Bloco 3) FALHA:
+			Causa: rastreia mas não limita; observabilidade sem
+			constraint ativo.
+
+			BP-4 — Incentivo NÃO controlado (FALHA TRANSVERSAL):
+			Causa: ação válida → payoff destrutivo possível; ausência
+			de alinhamento econômico modelado. Materializa exatamente
+			ri-09 NEW.
+
+			**5. REQUIRED MECHANISM UPGRADES** (v2 requirements para
+			economic-mechanism-model.cue future):
+
+			U1 — Cold Start Discriminator:
+			Receivables só ganham peso se: conectados a participantes
+			com histórico independente OR validados por diversidade de
+			contraparte. Introduz dimensão: isolamento vs integração na
+			rede.
+
+			U2 — Local Anti-collusion Detection:
+			Cluster fechado sofre penalização se: baixa diversidade de
+			contraparte AND alta densidade interna AND baixa conectividade
+			externa. NÃO precisa grafo global; análise local suficiente.
+
+			U3 — Recycling Constraint (não só tracking):
+			Cada ativo tem limite de transformação econômica útil OR
+			decaimento de valor por reutilização. Exemplo formal:
+			value_effective = value / (1 + reuse_depth). Constraint
+			econômico ≠ tracking observability.
+
+			U4 — Payoff Alignment (CORE):
+			Sistema deve garantir: NÃO existe estratégia onde
+			payoff_privado > 0 AND impacto_sistêmico < 0. Critério de
+			DESIGN, não heurística runtime.
+
+			**6. INTERACTION TESTS** (composição cross-mechanism):
+
+			I1 — Bootstrap + Colusão: novo participante → cluster fechado
+			→ crescimento DEVE degradar automaticamente (U1+U2 combined).
+
+			I2 — Colusão + Reciclagem: cluster gera ativos → recicla →
+			amplifica DEVE perder eficiência rapidamente (U2+U3
+			combined).
+
+			I3 — Reciclagem + Extração: ativos inflados → saída
+			coordenada DEVE limitar exposição sistêmica (U3+U4
+			combined).
+
+			**7. DETERMINISM CHECK**:
+
+			Sistema NÃO pode: (a) inferir intenção; (b) depender de
+			heurística subjetiva; (c) usar decisões humanas no core
+			loop; (d) depender de timing perfeito.
+
+			Sistema DEVE: (a) reagir apenas a estrutura observável;
+			(b) aplicar regras determinísticas. Coerente com P10
+			(deterministic gates vs stochastic recommendations).
+
+			**8. COVERAGE MATRIX** (reality coverage pos-attack):
+
+			| Reality              | Covered? | Como               |
+			|----------------------|----------|--------------------|
+			| ri-01 volume         | parcial  | U1 necessário      |
+			| ri-03 colusão        | parcial  | U2 necessário      |
+			| ri-04 reuse          | parcial  | U3 necessário      |
+			| ri-07 composição     | NÃO      | U2+U3 combined     |
+			| ri-08 payoff assim.  | NÃO      | U4 necessário      |
+			| ri-09 incentivos     | NÃO      | U4 core            |
+
+			Conclusão coverage: 6 das 9 ri-NN ainda parcial OR not
+			covered por mechanisms v1 propostos. v2 (U1-U4) endereça
+			gaps mas requires composição correta (interaction tests
+			I1-I3 verify).
+
+			**9. RESIDUAL RISKS** (mesmo após v2 mechanisms):
+
+			RR-1: Métricas manipuláveis (Goodhart's Law). Qualquer
+			métrica explícita vira target de otimização per ri-06.
+
+			RR-2: Ataques inter-temporais (timing). ri-05 declara
+			latency exploitable; v2 mechanisms ainda não modelam
+			temporal dynamics explicitly.
+
+			RR-3: Ataques cross-BC complexos. ri-07 declara
+			composition risk; cross-BC chains (INV → SCF → REW → INV)
+			exigem network-level analysis (NIM responsibility full).
+
+			Esses 3 riscos são território NIM completo (economic-
+			mechanism-model.cue + posterior network-intelligence layer).
+
+			**10. CRITÉRIO FINAL**:
+
+			Sistema válido se: qualquer estratégia válida NÃO gera
+			ganho privado líquido via degradação sistêmica.
+
+			Founder R4++ conclusão forte: 'O sistema atual não falha
+			por bug. Ele falha porque ainda não controla incentivos'.
+
+			**INSTANCE EVOLUTION DRIVEN BY ATTACK** (Round 2 outputs):
+
+			ri-09 NEW: 'Actors within the system optimize for private
+			payoff, and such optimization is not aligned with system-
+			level outcomes by default.' Captures BP-4 reality
+			canonically.
+
+			imp-09 NEW: 'System mechanisms must produce incentive
+			alignment by design; alignment between private payoff
+			and system-level outcomes cannot be assumed.' Derived
+			from ri-09. Drives U4 mechanism upgrade.
+
+			Pattern recursive validation per Round 2 schema SRR
+			(economic-assumption-model.self-review.cue): falsifiability
+			discipline predicted that schema MAY BE INCOMPLETE; R4++
+			attack discovered ri-09 missing → Round 2 prediction
+			proven empirical concrete. Schema falsifiable principle
+			operating; refinement is EPISTEMIC (reality discovery)
+			NÃO arquitetural (decision change). adr-082 unchanged;
+			SRR Round 2 captures evolution.
+
+			**FUTURE WORK MAPPED** (v2 mechanisms → economic-mechanism-
+			model.cue future artifact):
+
+			- 4 upgrades U1-U4 são input requirements
+			- 3 interaction tests I1-I3 são validation requirements
+			- Determinism check is design constraint
+			- Coverage matrix establishes ri-* → mechanism-id
+			  traceability
+			- Residual risks declared honestly (RR-1..3 são NIM
+			  full territory)
+
+			Path A (CUE encoding) deferred até founder canonical block
+			v2 mechanisms validated by R4++ findings. Refinement
+			discipline preserved: schema → instance → adversarial
+			validation → mechanism design → second adversarial → encode.
+
+			cue vet ./... EXIT=0 (post-Round-2 instance evolution +
+			SRR addition); zero schema changes (schema falsifiability
+			discipline operating: refinement via SRR rounds + instance
+			additions, NÃO schema mutation).
+			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		Economic Assumption Model first instance (8 ri-NN + 3 cap-adv-NN
-		+ 8 imp-NN) materializes Layer -1 per ADR-082. Founder R4+
-		adversarial canonical block compiled + 3 mandatory corrections
-		applied PRE-COMMIT (ri-01 absolute language; ri-07 cross-BC
-		composition NEW; ri-08 payoff asymmetry NEW; imp-07 + imp-08
-		correspondingly). Coverage matrix: 8 attacks A1-A8 covered;
-		7 removals R1-R7 confirm non-redundancy; 6 interactions I1-I6
-		including 3 cross-BC R4+ scenarios; 5 determinism breakers; 6
-		residual risks (RR1-RR6 incl founder insight 'attacks modeled
-		but incentive landscape not modeled' → NIM future). Asymmetry
-		canonical: artefato NECESSÁRIO mas NÃO SUFICIENTE; define o
-		que NÃO pode ser assumido. tq-eam-01..04 satisfeitos.
-		Pattern emergente: adversarial review BEFORE first commit
-		produces stronger artifact than post-hoc revision.
-		"""
+		Economic Assumption Model first instance materializes Layer -1
+		per ADR-082. 9 ri-NN (era 8; ri-09 misaligned incentives added
+		Round 2 driven by R4++ attack) + 3 cap-adv-NN + 9 imp-NN.
 
-	singleRoundRationale: """
-		Authoring via founder R4 + R4+ adversarial canonical blocks
-		pre-write iterativo. R4+ pre-commit iteration identificou + corrigiu
-		3 critical gaps ANTES de first commit (ri-01 gradient language;
-		A7 cross-BC reality missing; A8 payoff asymmetry missing) —
-		pattern 'adversarial review BEFORE write' materializa founder
-		rule 'modelando ANTES dos problemas se manifestarem'. Mechanical
-		fixes aplicados durante compile (status enum 'stable' não
-		'adversarial-validated'; required fields populated; failCount/
-		warnCount/infoCount; package + import). Round único suficiente
-		— qualidade incorporada via 2 founder adversarial passes
-		dialéticos pre-write (R4 base + R4+ refinement). Pattern
-		paralelo srr-inv-primary-agent Round 1+2+3 adversarial proof
-		discipline; primeiro instance Layer -1 sets pattern para
-		future #EconomicAssumptionModel evolution + future economic-
-		mechanism-model.cue NIM bootstrap.
+		Round 1 (founder R4 + R4+ adversarial pre-write): 3 mandatory
+		corrections aplicadas pre-commit (ri-01 absolute language;
+		ri-07 cross-BC composition NEW; ri-08 payoff asymmetry NEW).
+		8 attacks A1-A8 + 7 removals R1-R7 + 6 interactions I1-I6 +
+		5 determinism breakers + coverage matrix + 6 residual risks
+		(RR1-RR6 incl founder insight 'attacks modeled but incentive
+		landscape not modeled').
+
+		Round 2 (founder R4++ attack-driven adversarial validation):
+		End-to-end attack 'Loop de Extração Colusivo Multi-BC' (4
+		phases bootstrap + colusão + reciclagem + extração) demonstrou
+		formally valid actions only achieving payoff_privado > 0 AND
+		impacto_sistêmico < 0. 4 breakpoints BP-1..4 identificados em
+		mecanismos v1 propostos; 4 required upgrades U1-U4 mapped;
+		3 interaction tests I1-I3; coverage matrix updated (6 das 9
+		ri-NN parcial OR not covered por v1); 3 residual risks NIM
+		territory. Instance evolution driven: ri-09 + imp-09 added
+		canonically. Schema falsifiability discipline (Round 2 schema
+		SRR prediction) proven concrete via attack-driven discovery.
+
+		Pattern recursive validation: R4+ pre-commit pattern (reality
+		discovery before instance commit) extended to mechanism layer
+		(R4++ attack pre-write before economic-mechanism-model.cue
+		first commit). Adversarial review BEFORE encoding > post-hoc
+		revision applied ao próximo layer.
+
+		tq-eam-01..04 satisfeitos. Honesty arquitetural: 'O sistema
+		atual não falha por bug. Ele falha porque ainda não controla
+		incentivos' (founder R4++ canonical conclusion).
 		"""
 }

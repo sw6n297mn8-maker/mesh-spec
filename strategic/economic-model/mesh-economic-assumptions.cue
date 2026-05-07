@@ -5,7 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // mesh-economic-assumptions.cue — First instance of #EconomicAssumptionModel.
 // Materializes Layer -1 (Economic Reality Layer) per ADR-082.
 //
-// 8 reality invariants (ri-01..08) + 3 adversarial capabilities + 8 system
+// 9 reality invariants (ri-01..09) + 3 adversarial capabilities + 9 system
 // implications. Sistema declara canonicamente realidades do ambiente
 // adversarial onde opera; sistema deve sobreviver APESAR delas.
 //
@@ -21,9 +21,23 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //     refinement applied)
 //   imp-07 + imp-08 added correspondingly tracing ri-07/ri-08.
 //
+// Pós-R4++ founder attack-driven adversarial validation (Round 2 SRR):
+//   (R4++-1) ri-09 NEW: misaligned incentives reality — actors optimize
+//     for private payoff; alignment with system-level outcomes is NOT
+//     default. End-to-end attack scenario "Loop de extração colusivo
+//     multi-BC" demonstrated payoff_privado > 0 com impacto_sistêmico
+//     < 0 achievable via formally valid actions only — ri-09 captures
+//     the central reality this proves.
+//   (R4++-2) imp-09 NEW: mechanisms must produce incentive alignment
+//     BY DESIGN; alignment cannot be assumed (NÃO emergent property).
+//   Pattern emergente per Round 2 schema SRR falsifiability discipline:
+//   schema's empirical incompleteness discovered via adversarial review
+//   → refinement is EPISTEMIC (reality discovery), not architectural.
+//
 // Mechanism-level concerns (when attack pays vs costs; system auto-
-// protection mechanisms) deferred para economic-mechanism-model.cue
-// future artifact (NIM bootstrap).
+// protection mechanisms; v2 mechanism upgrades U1-U4 from R4++ SRR
+// Round 2) deferred para economic-mechanism-model.cue future artifact
+// (NIM bootstrap).
 
 economicModel: artifact_schemas.#EconomicAssumptionModel & {
 	realityInvariants: [{
@@ -87,6 +101,13 @@ economicModel: artifact_schemas.#EconomicAssumptionModel & {
 			achievable under formally valid operations.
 			"""
 		rationale: "Valid operations can produce asymmetric payoff structures that concentrate gains and distribute losses."
+	}, {
+		id: "ri-09"
+		statement: """
+			Actors within the system optimize for private payoff, and such
+			optimization is not aligned with system-level outcomes by default.
+			"""
+		rationale: "System participants act under local incentive optimization, which can produce globally harmful outcomes even when all actions are formally valid."
 	}]
 
 	adversarialCapabilities: [{
@@ -175,5 +196,14 @@ economicModel: artifact_schemas.#EconomicAssumptionModel & {
 			"""
 		derivedFrom: ["ri-08"]
 		rationale: "Gross-only evaluation ignores asymmetric downside exposure."
+	}, {
+		id: "imp-09"
+		statement: """
+			System mechanisms must produce incentive alignment by design;
+			alignment between private payoff and system-level outcomes
+			cannot be assumed.
+			"""
+		derivedFrom: ["ri-09"]
+		rationale: "Mecanismos que assumem alinhamento implícito entre payoff privado e sistêmico falham por construção; alignment é design responsibility (mechanism design), NÃO emergent property."
 	}]
 }
