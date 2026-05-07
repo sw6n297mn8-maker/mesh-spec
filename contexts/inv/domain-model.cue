@@ -470,6 +470,17 @@ domainModel: artifact_schemas.#DomainModel & {
 		- Lifecycle 2 estados fechado — anti-mini-FCE (paid não existe)
 		- Projection derivada não autoritativa — anti-runtime-coupling
 
+		**Disambiguação temporal explícita** (preventiva contra drift):
+		- Invoice.issuedAt = tempo SEMÂNTICO do domínio (quando invoice
+		  nasceu canonicamente). Usado em regras de domínio (e.g.,
+		  cancellation window calculation: now - Invoice.issuedAt).
+		- evt-X.eventTimestamp = tempo TÉCNICO do registro (quando
+		  event entrou no log). NUNCA usar eventTimestamp para regras
+		  de domínio — usar issuedAt (Invoice entity) ou regimeVersion
+		  (vo-regime-version) para decisões temporais. Mistura
+		  silenciosa entre os dois gera comportamento divergente
+		  difícil de detectar.
+
 		**Properties formalmente verificáveis** (cue vet enforces):
 		- Determinismo: invariants em forma lógica formal (∀, ⇔, ∧, ⇒)
 		- Idempotency: identity (commitmentRef, evidenceRef) tupla única
