@@ -268,67 +268,196 @@ glossary: artifact_schemas.#Glossary & {
 			relatedTerms: ["term-invoice", "term-invoice-cancellation-process", "term-invoice-issued"]
 			rationale: "G3 cancellation explicit-event-only materializado como contrato semântico público. Downstream BCs reconstroem lifecycle completo via event log canônico (InvoiceIssued + InvoiceCancelled paired); sem inferência sobre estado interno INV. Consumo contextual reflete realidade operacional: FCE ignora pós-settle por design (correção é DRC), MAS ATO sempre processa (estorno fiscal independente de timing settlement). Event NÃO é 'irrelevante pós-settle' globalmente — é irrelevante apenas para FCE specific; outros BCs mantêm relevância."
 		},
+
+		// ============================================================
+		// LAYER 3 — MECHANISMS (4 termos: invariantes estruturais +
+		// boundary protectors)
+		// ============================================================
+
+		{
+			code:   "term-atomic-dual-emission"
+			name:   "Emissão Dupla Atômica"
+			termEn: "Atomic Dual Emission"
+			category: "rule"
+			definition: """
+				Garantia estrutural de que InvoiceIssued e
+				ReceivableMaterialized são tratados como uma única unidade
+				indivisível: ambos existem ou nenhum existe. Não há estado
+				observável onde apenas um dos dois foi gerado. Violação
+				seria qualquer inconsistência observável entre os dois
+				eventos — invoice sem receivable correspondente, receivable
+				sem invoice precedente, OR amount divergente entre ambos.
+				"""
+			antiTerms: [{
+				term: "saga pattern"
+				clarification: "Saga é coordenação multi-step com compensation posterior; atomic-dual-emission garante AUSÊNCIA de estado intermediário observável — não há step parcial nem compensation step"
+			}, {
+				term: "best-effort emission"
+				clarification: "Best-effort permite estado parcial observável (um evento agora, outro depois); atomic-dual-emission proíbe esse estado por construção — resultado é binário (ambos OR nenhum)"
+			}]
+			relatedTerms: ["term-invoice-issued", "term-receivable-materialized", "term-invoice-issuance-process"]
+			rationale: "Materializa BD7 atomic-dual-emission como invariante estrutural de domínio. Protege contra divergência fatura↔recebível que quebraria lastro SCF (recebível materializado sem fatura válida) + contabilidade ATO (lançamento incompleto). Indivisibilidade lógica é propriedade do domínio (declared como contract); mecanismo de garantia é responsabilidade da infraestrutura (fora do escopo do domínio)."
+		},
+
+		{
+			code:   "term-idempotency-identity"
+			name:   "Identidade de Idempotência"
+			termEn: "Idempotency Identity"
+			category: "rule"
+			definition: """
+				Tupla (commitmentRef, evidenceRef) que define unicidade
+				canônica de Invoice no domínio INV — mesma realidade fiscal
+				verificada gera uma e só uma invoice. Identity independe
+				de tempo, ordem de processamento ou número de tentativas:
+				múltiplas observações da tupla (replay, partição, multi-log
+				ingestion, reorder) são reconhecidas como repetição da
+				MESMA realidade, NÃO criação de nova invoice. Identity
+				NÃO inclui criteriaVersion nem regimeVersion (são
+				attributes do fato, não componentes de unicidade). Violação
+				seria duas invoices distintas sob mesma tupla, OR identity
+				dependendo de versions (quebraria replay safety
+				pós-version-bump).
+				"""
+			antiTerms: [{
+				term: "chave técnica de banco de dados"
+				clarification: "Identity é condição semântica de unicidade do fato no domínio (mesma realidade fiscal verificada); chave de banco é detalhe de persistência. Identity sobrevive a mudança de tecnologia"
+			}, {
+				term: "retry-key"
+				clarification: "Retry-key é mecanismo de implementação client-side; idempotency-identity é propriedade do domínio (mesma tupla = mesmo fato), independente de quem tenta emit ou quantas vezes"
+			}]
+			relatedTerms: ["term-invoice", "term-invoice-issuance-process"]
+			rationale: "Materializa BD3 issuance-idempotent como invariante estrutural. Identity como condição de unicidade do fato (não chave técnica) + independência de tempo/ordem/tentativas é precondition de replay determinístico + cross-BC dedup at-most-once + tolerância a reorder/concorrência. Exclusão de criteriaVersion/regimeVersion preserva replay safety: mesma tupla sob nova versão de regra é repetição do mesmo fato (não nova invoice); mudança de regra aplica a verifications futuras via nova evidenceRef."
+		},
+
+		{
+			code:   "term-regime-version"
+			name:   "Versão de Regime Fiscal"
+			termEn: "Regime Version"
+			category: "value"
+			definition: """
+				Identificador imutável de versão das regras fiscais
+				externas (CFOP, alíquotas, retenções jurisdicionais)
+				aplicadas no momento da issuance. Atributo do Invoice
+				declarando QUAL versão de regime estava vigente; INV
+				consome o identifier resolvido externamente, NÃO o resolve
+				nem o interpreta. Bump de version é evento upstream
+				(publication regulatória + ADR); aplica-se a invoices
+				geradas após sua ativação upstream, nunca a invoices
+				históricas. Violação seria silent regime mutation (mudar
+				versão sem novo identifier), aplicar versão diferente da
+				declarada, OR INV calculando/inferindo regime.
+				"""
+			antiTerms: [{
+				term: "regra fiscal interpretada"
+				clarification: "RegimeVersion é apenas IDENTIFICADOR; interpretação fiscal é mini-ATO proibido (BD2). INV consome regime resolvido como input read-only; mudança requer ADR + bump explícito"
+			}, {
+				term: "versão de schema fiscal interno INV"
+				clarification: "RegimeVersion refere-se a regras EXTERNAS jurisdicionais (legislação tributária); não é versão de schema do INV — é dependência externa cuja autoridade é regulação fiscal vigente"
+			}]
+			relatedTerms: ["term-fiscal-regime", "term-invoice"]
+			rationale: "Materializa BD2 deterministic-fiscal-projection como boundary protector explícito anti-mini-ATO. RegimeVersion é IDENTIFIER, não logic — protege contra config-virando-lógica que transformaria INV em interpretador fiscal. Imutabilidade pós-emit per regimeVersion garante audit reproducibility indefinida (forensic fiscal Phase 5+ pode reproduzir bit-a-bit qualquer invoice sob regimeVersion declarada)."
+		},
+
+		{
+			code:   "term-fiscal-document-reference"
+			name:   "Referência de Documento Fiscal"
+			termEn: "Fiscal Document Reference"
+			category: "value"
+			definition: """
+				Referência canônica para identificador de documento fiscal
+				externo (e.g., NF-e number + chave de acesso no regime
+				brasileiro; equivalentes em outros regimes jurisdicionais).
+				Liga o Invoice INV ao documento fiscal autoritativo na
+				jurisdição correspondente. É reference (ponte semântica),
+				NÃO integração — INV declara o identifier; emissão técnica
+				do documento na autoridade fiscal é responsabilidade de
+				adapter externo (Phase 1+ forward-ref, fora do boundary
+				INV). Uma vez associado a uma invoice, nunca é alterado
+				nem substituído. Violação seria tratar reference como
+				pipeline de integração, assumir INV emite documento na
+				autoridade, OR alterar/substituir reference pós-association.
+				"""
+			antiTerms: [{
+				term: "integração SEFAZ"
+				clarification: "fiscal-document-reference é ponte semântica (identifier canônico); integração técnica com autoridade fiscal (SEFAZ no BR) é adapter externo Phase 1+ — fora do boundary INV. INV declara o reference, adapter materializa o documento"
+			}, {
+				term: "URL de download"
+				clarification: "Reference é identifier no formato canônico do regime (e.g., chave de acesso NF-e 44 dígitos); NÃO endpoint técnico. Resolução de URL ou download são concerns de infraestrutura"
+			}]
+			relatedTerms: ["term-invoice", "term-fiscal-regime"]
+			rationale: "Materializa cc-04 audit trail regulatory-grade como ponte canônica entre Invoice INV e documento fiscal autoritativo externo. Reference (não integração) protege contra escopo creep — emissão técnica é adapter Phase 1+, INV permanece focado em declaração canônica. Imutabilidade absoluta pós-association (nunca alterado nem substituído) garante audit reproducibility e satisfaz retention legal regulatória (≥5 anos NF-e)."
+		},
 	]
 
 	rationale: """
-		Glossary materializa 9 termos canônicos em 2 layers (Phase 2
+		Glossary materializa 13 termos canônicos em 3 layers (Phase 2
 		incremental per founder orientation 'escreve + valida + escala').
 		Firewall semântico contra drift de agente, drift humano, e drift
 		cross-BC. Cada termo cobre boundary específica emergente em BDs.
 
 		**Layer 1 — CORE (6 termos fundacionais)**:
 
-		*Identidade canônica* (term-invoice + term-receivable): BD7
-		atomic dual emission + BD3 idempotency identity (commitmentRef,
+		*Identidade canônica* (term-invoice + term-receivable): BD7 atomic
+		dual emission + BD3 idempotency identity (commitmentRef,
 		evidenceRef). Identity declarada explicitamente em term-invoice
-		protege contra anti-pattern clássico de agente (usar invoiceId
-		como primário). Receivable como entity separate de Invoice
-		protege anti-mini-SCF (transferibilidade decidida por SCF, não
-		INV).
+		protege contra anti-pattern clássico (usar invoiceId como
+		primário). Receivable como entity separate de Invoice protege
+		anti-mini-SCF (transferibilidade decidida por SCF, não INV).
 
 		*Processos canônicos* (term-invoice-issuance-process +
-		term-invoice-cancellation-process): BD2 deterministic-fiscal-
-		projection + BD5 lifecycle 2 estados + BD10 anti-orchestrator +
-		G3 cancellation explicit-event-only. Naming explícito '-process'
-		distingue da Layer 2 events (term-invoice-issued /
-		term-invoice-cancelled) — process é operação INV-internal; event
-		é fact-record público pós-process. Anti-orchestrator antiTerm
-		em term-invoice-issuance-process reflete BD10 semanticamente.
+		term-invoice-cancellation-process): BD2 + BD5 + BD10 + G3.
+		Naming explícito '-process' distingue da Layer 2 events — process
+		é operação INV-internal; event é fact-record público pós-process.
 
 		*Inputs canônicos* (term-fiscal-regime + term-commitment-terms-
-		projection): BD2 apply-only fiscal projection + BD4 commitment-
-		projection availability+completeness+freshness. Boundary anti-
-		mini-ATO (regime ≠ lógica interpretativa) + anti-runtime-coupling
-		(projection ≠ sync query). Wording 'representação local derivada'
-		(NÃO 'cache exato') preserva determinismo operacional sem negar
-		eventual consistency real do sistema.
+		projection): BD2 apply-only + BD4 freshness gate. Boundary
+		anti-mini-ATO + anti-runtime-coupling.
 
 		**Layer 2 — INTERFACE (3 events: contratos semânticos públicos
 		da rede)**:
 
 		Per founder orientation 'INV está no centro do fluxo econômico
-		— eventos são linguagem pública da rede, não detalhe interno'.
-		3 events declarados como termos canônicos por serem consumidos
-		cross-BC (regra: se outro BC consome → glossary term):
-		term-invoice-issued (FCE+ATO), term-receivable-materialized
-		(SCF), term-invoice-cancelled (FCE+ATO contextual consumption).
-		Glossary define SIGNIFICADO do evento (fact-record passivo,
-		contrato semântico); shape do payload é responsabilidade de
-		schemas separados (Phase 3 domain-model + AsyncAPI Phase 1+) —
-		separação de concerns: glossary = semantic contract; schemas =
-		wire-level structure.
+		— eventos são linguagem pública da rede'. 3 events declarados
+		como termos canônicos por serem consumidos cross-BC (regra: se
+		outro BC consome → glossary term): term-invoice-issued (FCE+ATO),
+		term-receivable-materialized (SCF), term-invoice-cancelled
+		(FCE+ATO contextual consumption). Glossary define SIGNIFICADO;
+		shape do payload é responsabilidade de schemas separados (Phase
+		3 domain-model + AsyncAPI Phase 1+).
 
-		**Insight arquitetural**: INV tem 2 contratos paralelos:
-		(1) Fiscal contract — InvoiceIssued + InvoiceCancelled
-		consumidos por ATO; (2) Financial substrate contract —
-		ReceivableMaterialized consumido por SCF. Layer 2 explicita
-		ambos como contratos semânticos públicos distintos.
+		**Layer 3 — MECHANISMS (4 termos: invariantes estruturais +
+		boundary protectors)**:
 
-		**Layers 3-4 (PENDENTES Phase 2 incremental)**: governance
-		mechanisms (atomic-dual-emission + idempotency-identity +
-		regime-version + fiscal-document-reference) + edge concepts.
-		Próximo commit aguardando founder validation Layer 2 antes
-		de Layer 3 propose.
+		*Bloco 1 — Consistência interna* (term-atomic-dual-emission +
+		term-idempotency-identity): garantem que o sistema não se
+		contradiz. Atomic-dual-emission garante indivisibilidade lógica
+		entre Invoice e Receivable (BD7); Idempotency-identity garante
+		unicidade do fato no domínio independente de tempo/ordem/
+		tentativas (BD3). Ambos declarados como propriedades do
+		domínio; mecanismos de garantia são responsabilidade da
+		infraestrutura (fora do escopo do glossary).
+
+		*Bloco 2 — Boundary externo* (term-regime-version +
+		term-fiscal-document-reference): garantem que o sistema não
+		invade outros domínios. Regime-version protege anti-mini-ATO
+		(IDENTIFIER, não logic — INV não interpreta regime; BD2);
+		Fiscal-document-reference protege anti-escopo-creep
+		(ponte semântica, não integração; cc-04 audit trail).
+
+		**Insight arquitetural** (cumulativo Layers 1-3):
+		(1) Fiscal contract (InvoiceIssued + InvoiceCancelled →
+		    ATO consumption);
+		(2) Financial substrate contract (ReceivableMaterialized →
+		    SCF consumption);
+		(3) Consistência interna (atomic + idempotent);
+		(4) Boundary externo (regime-version + fiscal-doc-reference).
+
+		**Layer 4 (PENDENTE Phase 2 incremental)**: edge concepts
+		(staleness, freshness, replay window) — conceitos que NÃO são
+		regras operacionais (per founder warning Layer 4 = conceitos
+		edge, NÃO escalation/halt/observability/monitoring). Próximo
+		commit aguarda founder Layer 4 anti-pattern map antes de
+		propose para evitar mistura glossary com governance.
 
 		Glossário não evolui sem causa real per founder orientation
 		(over-refinement risk): próxima evolução só acontece se surgir
