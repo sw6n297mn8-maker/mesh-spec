@@ -13,7 +13,7 @@ invPrimaryAgent: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-07"
 
-	roundsExecuted: 2
+	roundsExecuted: 3
 	maxRounds:      4
 
 	status: "stable"
@@ -843,34 +843,429 @@ invPrimaryAgent: build_time.#SelfReviewReport & {
 			cue vet ./contexts/inv/... EXIT=0 (post-R2);
 			full repo cue vet ./... EXIT=0.
 			"""
+	}, {
+		round:     3
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Founder R3 adversarial review post-R2 — third adversarial
+			pass focused em CROSS-BC composition (NÃO INV isolated).
+			Founder thesis Round 3: 'Até aqui você validou domínio
+			isolado (INV) + execução local correta + invariantes
+			protegidos + limites declarados. Agora vem o que destrói
+			90% dos sistemas bons: composição entre BCs'.
+
+			INV agora interage com: CMT (regimeVersion projection
+			origin) + DLV (DeliveryVerified trigger) + SCF (Receivable
+			anticipation) + ATO (regime tax logic ownership) + FCE
+			(financial settlement). Round 1 cobriu domain violations
+			internas; Round 2 cobriu observation/ordering/verification-
+			uncertainty; Round 3 cobre cross-BC composition gaps
+			invisíveis a single-BC review.
+
+			5 cross-BC system-level gaps identificados (4 RED + 1
+			YELLOW) — TODOS declarados canonicamente neste Round 3
+			SEM mudanças no agent-spec INV. Founder explicit
+			instruction: 'Você não precisa mudar o INV. Você precisa:
+			declarar o que o INV NÃO resolve'. Honesty arquitetural:
+			SRR é vehicle canonical para system-level assumptions além
+			do scope INV agent-level enforcement; cst-system-boundary-
+			acknowledged R2 cobre INV-direct boundaries (observation +
+			single-entry-point); R3 cobre CROSS-BC interpretation
+			boundaries (separadas conceitualmente).
+
+			**System Boundary & Cross-BC Assumptions — 5 declarações
+			canonical**:
+
+			**FINDING X1 — Cross-BC temporal fracture** (RISCO
+			SISTÊMICO):
+
+			Setup adversarial: (1) DLV emite DeliveryVerified
+			(terminal); (2) INV reactivamente emite Invoice +
+			Receivable atomic (sc-inv-01 enforced; cst-gate-issue-*
+			passing); (3) SCF antecipa Receivable (financial
+			anticipation downstream); (4) DLV depois corrige
+			(delivery foi inválido — late evidence supersession via
+			LOG event); (5) INV NÃO reage (correto per design — anti-
+			mini-orchestrator BD10 + cst-issue-forbidden-
+			responsibilities); (6) SCF já operou.
+
+			Resultado: cada BC localmente correto (INV ✔ correto per
+			design; SCF ✔ correto per cache snapshot; DLV ✔ corrigiu);
+			MAS rede como um todo está em estado economicamente
+			inconsistente. Cancellation chain delegada externamente
+			(compensation policies) NÃO declarada canonicamente.
+
+			Onde isso é tratado hoje: NÃO no INV (correto — INV non-
+			reactive by design); NÃO no agent-spec (correto — system-
+			level concern, NÃO agent-level); NÃO no structural-check
+			INV (correto — crosses BC boundaries). Gap = system-level
+			declarative.
+
+			**Declaração X1 canonical**: 'INV is NON-REACTIVE BY
+			DESIGN; downstream inconsistency resolution is delegated
+			to compensation policies external to INV. Downstream
+			consumers (SCF/REW/FCE) MUST NOT assume economic
+			finality from INV alone — INV emite fiscal fact under
+			projection state at emission time; subsequent projection
+			corrections (DLV evidence supersession; CMT regime
+			revision) MUST be reconciled via downstream compensation
+			policies, NÃO via INV reactive correction'. Anti-mini-
+			orchestrator boundary preservation transversal — INV
+			nunca chama outro BC para corrigir; downstream BCs
+			implementam suas próprias compensation chains.
+
+			Severidade: RISCO SISTÊMICO — escolha arquitetural
+			deliberada (não-reactive design) que estava implícita;
+			agora canonical declared.
+
+			**FINDING X2 — Receivable semantic drift** (RISCO DE
+			MODELO):
+
+			Setup adversarial: SCF começa (gradual semantic drift)
+			a tratar Receivable como ativo financeiro — adiciona
+			operationally: discount calculation; risk scoring;
+			liquidity assessment; transferability semantics. INV
+			define Receivable canonicamente em term-receivable
+			(glossary): 'espelho neutro' / 'pre-financial artifact'
+			com antiTerms anti-mini-SCF (anti-eligibilityScore +
+			anti-transferRate + anti-discountAttribute). Drift
+			silencioso: mesmo objeto, duas ontologias.
+
+			Consequência: bugs semânticos cross-BC; pricing errado
+			(Receivable como financial instrument tem pricing model
+			diferente de pre-financial artifact); risco mal calculado
+			(SCF treating directly Receivable as collateral skips
+			required transformation step).
+
+			Round 1 cobertura parcial: glossary anti-mini-SCF
+			antiTerms documentam boundary; cst-issue-forbidden-
+			responsibilities forbidden-fields [paymentMethod,
+			paymentSchedule, accountRef, riskScore, eligibilityFlag]
+			previne field bloat NO PAYLOAD. MAS NÃO cobre semantic
+			interpretation downstream (SCF/REW podem interpretar
+			'pre-financial' como 'financial-with-implicit-defaults').
+
+			**Declaração X2 canonical**: 'Receivable emitted by INV
+			is PRE-FINANCIAL ARTIFACT (espelho neutro per term-
+			receivable) and MUST be transformed before financial
+			interpretation. SCF/REW/FCE MUST apply explicit
+			transformation policy (discount calculation, risk
+			scoring, liquidity assessment, transferability semantics)
+			via their own domain-models — they CANNOT consume
+			Receivable directly as financial instrument. Receivable.
+			amount + currency são fiscal-grade espelho; financial
+			interpretation é downstream BC responsibility con
+			explicit transformation step'. Anti-mini-SCF boundary
+			preservation transversal.
+
+			Severidade: RISCO DE MODELO — clássico drift cross-BC
+			(same artifact, different ontologies); destrutivo se
+			não declarado canonicamente.
+
+			**FINDING X3 — Projection authority cross-BC** (RISCO
+			CONTROLADO mas needs explicit):
+
+			Setup adversarial: INV consome CMT projection
+			(commitmentRef freshness + regimeVersion lookup) per
+			BD4 + GUARDS (projection.available + projection.fresh +
+			projection.complete em act-issue-invoice). CMT projection
+			pode estar: atrasada (replication lag); inconsistente
+			(partial update); corrompida (downstream system bug).
+			INV emite Invoice válida localmente (passa todos GUARDS
+			+ structural gates) mas baseada em estado global errado
+			(CMT projection diverged from CMT canonical state).
+
+			Round 1 + Round 2 cobertura parcial: stale guard via
+			act-block-emit-on-stale (REACTIVE BLOCK; classification-
+			disciplined per cst-react-classification-mandatory);
+			verify outcome via cst-issue-* GUARDS. MAS NÃO protege
+			INTEGRIDADE DA ORIGEM — se CMT projection diz stale=false
+			but actually inconsistent, INV trusts the projection.
+
+			**Declaração X3 canonical**: 'Projection consumida por
+			INV é ADVISORY; truth authority is the EXTERNAL ORIGIN BC.
+			CMT projection (regimeVersion + commitment lifecycle
+			state) → CMT é authoritative source; INV consumes
+			assuming projection integrity is maintained AT SOURCE.
+			INV NÃO guarantee projection correctness — INV declares
+			expectation. Each projection consumed declares its origin
+			BC + integrity dependency contract'. Cross-BC projection
+			contract Phase 1+ (futura ADR + structural-check kind
+			'projection-integrity-contract').
+
+			Severidade: RISCO CONTROLADO (already mitigated parcial
+			via stale guard + GUARDS) mas needs explicit canonical
+			declaration de authority distinct from consumption.
+
+			**FINDING X4 — Cross-agent race condition** (RISCO REAL
+			DE PRODUÇÃO):
+
+			Setup adversarial: 2 agents concurrent — Agent A
+			executando act-issue-invoice; Agent B executando act-
+			cancel-invoice — para mesma (commitmentRef, evidenceRef)
+			tuple OR sobre mesma invoiceId. Possíveis resultados
+			problemáticos: (a) Agent A emite InvoiceIssued APÓS
+			Agent B já validou cancel pre-execution gates; (b) Agent
+			B cancel passa baseado em estado snapshot antigo (B leu
+			Invoice issued; A ainda emitindo concurrent → B cancel
+			race condition).
+
+			Round 2 cobertura parcial: cst-gate-cancel-ordering
+			aggregate-state-evaluation-time-check (state-based
+			predecessor) protege contra reorder/replay; cst-gate-
+			issue-idempotency-pre-execution + identity-source-
+			discipline (aggregate canonical, NÃO projection)
+			protegem contra projection-poisoning. MAS NÃO protegem
+			CONCURRENT READS at infrastructure layer — eventually-
+			consistent read-from-aggregate could return stale state
+			even em aggregate canonical.
+
+			**Declaração X4 canonical**: 'All actions (issue +
+			cancel + reactive) MUST evaluate gates AGAINST LATEST
+			aggregate state at execution time. Strong read OR
+			equivalent guarantee (read-your-own-writes consistency;
+			linearizable read; appropriate database isolation level)
+			IS REQUIRED. Eventually-consistent reads são NOT
+			ACCEPTABLE para gate evaluation — gate decisions baseadas
+			em stale state geram race conditions inter-agent.
+			Infrastructure layer responsibility (database isolation
+			level OR event log strict ordering OR distributed lock
+			OR equivalent) — agent declara requirement; infra
+			provê'. Pattern paralelo a R2-residual-3 (verify-
+			uncertain SOFT depende envelope governance Phase 5;
+			X4 strong read depende infrastructure layer).
+
+			Severidade: RISCO REAL DE PRODUÇÃO — concurrent agents
+			são realidade operacional (multi-instance deployment;
+			rolling updates; multi-region failover); strong read
+			requirement explicit é prevention layer.
+
+			**FINDING X5 — Financial finality illusion** (RISCO DE
+			INTERPRETAÇÃO EXTERNA):
+
+			Setup adversarial: sistema externo (downstream consumer
+			OR external integration) assume implicitly: 'Invoice
+			emitida == obrigação financial final == credit/payment/
+			settlement guarantee'. Mas INV model canônico (term-
+			invoice + term-invoice-issued + glossary): Invoice =
+			fiscal fact (regulatory documented transaction event);
+			NÃO implica pagamento (FCE responsibility); NÃO implica
+			liquidação (settlement layer); NÃO implica
+			irreversibilidade econômica (sc-inv-05 cancellation-
+			boundary explicitly allows fiscal cancellation within
+			window).
+
+			Consequência: decisões erradas downstream; crédito errado
+			(SCF anticipating financial finality from fiscal-only
+			document); risco sistêmico (cascade de assumptions
+			erradas — e.g., counterparty assumes Invoice == settled
+			obligation → makes downstream commitment based on it).
+
+			Round 1 cobertura parcial: glossary term-invoice +
+			anti-mini-FCE/SCF antiTerms documentam boundary; cst-
+			issue-forbidden-responsibilities prevents INV from
+			computing payment/credit. MAS NÃO previne external
+			interpretation — INV cannot control how downstream
+			consumers interpret Invoice events.
+
+			**Declaração X5 canonical**: 'Invoice emitted by INV
+			REPRESENTS FISCAL FACT (regulatory documented transaction
+			event; tax-regime-compliant artifact for audit trail
+			≥5 anos NF-e), NOT FINANCIAL FINALITY. Invoice existence
+			MUST NOT be derived as: payment confirmation (FCE owns);
+			settlement guarantee (settlement layer responsibility);
+			economic irreversibility (cancellable within window per
+			sc-inv-05); credit decision basis (SCF must apply own
+			risk model + transformation per X2). External consumers
+			MUST NOT derive financial decisions from Invoice
+			existence alone — Invoice é fiscal building block; financial
+			interpretation requires explicit downstream domain logic'.
+			Anti-mini-FCE boundary preservation transversal +
+			interpretation-clarity declaration.
+
+			Severidade: RISCO DE INTERPRETAÇÃO EXTERNA — sistemas
+			distribuídos quebram tipicamente em INTERPRETAÇÃO
+			(cada BC interpretando outputs de outros conforme suas
+			próprias semantics) MORE THAN em execução (cada BC
+			executando localmente correto).
+
+			**RESUMO X1-X5 SEVERITY MATRIX**:
+
+			| ID | Tipo                            | Severidade |
+			|----|--------------------------------|------------|
+			| X1 | Consistência econômica cross-BC | RED        |
+			| X2 | Drift semântico Receivable      | RED        |
+			| X3 | Projection authority            | YELLOW     |
+			| X4 | Race condition cross-agent      | RED        |
+			| X5 | Finalidade financeira           | RED        |
+
+			**REMAINING RISKS POST-R3** — limites residuais:
+
+			(R3-residual-1) X1-X2-X5 declarações são PURE-DECLARATIVE
+			via SRR — NÃO enforced em INV agent-spec (per founder
+			explicit instruction 'Você não precisa mudar o INV').
+			Mitigation depende de: (a) cross-BC review discipline
+			leitura SRR INV antes de design downstream; (b) Phase 1+
+			structural-check kind 'cross-bc-interpretation-contract'
+			OR equivalent.
+
+			(R3-residual-2) X3 projection authority depende de origin
+			BC (CMT) implementing projection-integrity-contract.
+			INV consumes assuming integrity — gap se CMT não
+			canonical contract Phase 1+. Pattern: declarar
+			expectation explicitly enables future ADR pattern
+			'projection contract' formalization.
+
+			(R3-residual-3) X4 strong read requirement é
+			INFRASTRUCTURE-LAYER responsibility — agent declara;
+			infra provê. Phase 0 sem deployment infrastructure
+			specs = declarative only. Mitigation: ADR Phase 1+
+			specifying database isolation level + event log
+			ordering guarantees + distributed lock pattern.
+
+			**WHAT R3 DOES NOT COVER** (founder mentioned R4
+			possibility):
+
+			Founder offered R4: 'ataque econômico (não técnico) →
+			como explorar a Mesh para arbitragem / fraude /
+			captura de valor'. R3 cobre cross-BC TECHNICAL
+			composition; R4 cobriria cross-BC ECONOMIC adversarial
+			(adversário com agency econômica explorando boundaries
+			declarados para arbitragem ou captura de valor).
+			Distinção: R3 protege correctness; R4 protegeria
+			incentive-compatibility. R4 deferred — founder rule:
+			'só faço se passar R3'.
+
+			**INSIGHT FOUNDER R3 — quote canonical**:
+
+			'Você saiu de "agent robusto" para algo mais raro:
+			sistema que sabe exatamente ONDE pode quebrar. Isso é
+			o que separa arquitetura séria de arquitetura bonita.'
+
+			'Se você fizer isso [aplicar R3] você chega em algo
+			MUITO raro: um sistema que não só é correto, mas
+			impossível de interpretar errado.'
+
+			**SCOPE BOUNDARY DECLARATIVE COMPLETE — agent-level
+			vs system-level**:
+
+			Pós-R3 INV declara 3 níveis distintos de boundary:
+
+			(Nível 1) AGENT-LEVEL ENFORCED — 13 constraints (5
+			issue + 6 cancel + 2 reactive transversais) +
+			structural gates per Phase 3.5 sc-inv-* + escalation
+			conditions com sub-classifications. Hard enforcement
+			via verification YAML.
+
+			(Nível 2) AGENT-LEVEL ACKNOWLEDGED — 1 constraint
+			cst-system-boundary-acknowledged (R2: observation
+			consistency + single entry point) + cst-schema-
+			openness-acknowledged (Round 1: schema injection
+			gap). Advisory enforcement; declared system-level
+			limits visible em agent-spec.
+
+			(Nível 3) CROSS-BC SYSTEM-LEVEL DECLARED — SRR Round 3
+			5 declarações X1-X5 (não enforced em agent-spec; pure
+			SRR documentation). Cross-BC composition concerns;
+			honesty arquitetural sobre o que INV NÃO RESOLVE.
+
+			Pattern emergente: 3 níveis de declaration mature
+			honesty — agent-level enforced (gates + constraints) +
+			agent-level acknowledged (advisory ACK constraints) +
+			SRR cross-BC declared (system-level documentation).
+			Replicável para outros BCs após validação INV.
+
+			**SCHEMA SATISFAÇÃO POS-R3**:
+			- tq-srr-01 ✓ (artifact identity inalterada)
+			- tq-srr-02 ✓ (roundsExecuted=3 == len(roundDetails)=3;
+			  status=stable com zero fail)
+			- tq-srr-03 ✓ (summary atualizado abaixo capturando R3)
+			- tq-srr-04 ✓ (findings vazio = N/A)
+			- tq-srr-05 ✓ (substantive content: referencia 5 X1-X5
+			  attacks com setups específicos cross-BC + 5
+			  declarações canonical concretas + concrete elements
+			  como term-receivable / anti-mini-SCF / sc-inv-05 /
+			  cst-issue-forbidden-responsibilities / BD4 / BD10
+			  + severity matrix + 3 remaining risks distinct R3)
+
+			**COMPARISON Round 1 / Round 2 / Round 3**:
+
+			Round 1: domain violations + enforcement mismatch +
+			boundary leakage + interaction (cancel+issue race
+			internal) + determinism + 4 riscos residuais altos
+			(schema openness + runtime-only + clock authority +
+			validation-time fantasma).
+
+			Round 2: observation consistency (atomic emit ≠
+			observation) + replay ordering inversion (sequence →
+			state-based) + verify-uncertain distinction (SOFT vs
+			HARD) + single entry point. 5 mudanças estruturais
+			agent-spec (1 NEW constraint + 1 refactored gate +
+			1 escalation sub-classification).
+
+			Round 3: cross-BC composition (X1-X5) — INV non-
+			reactive design + Receivable pre-financial + projection
+			authority external + strong read requirement infra +
+			Invoice ≠ financial finality. 5 declarações
+			canonical SRR-only (founder instruction: no agent-spec
+			changes).
+
+			Total post-R3: 8 attacks Round 1 + 4 findings Round 2
+			+ 5 findings Round 3 = 17 distinct adversarial vectors
+			canonical. 3 distinct boundary levels (enforced + ack +
+			SRR-declared).
+
+			cue vet ./contexts/inv/... EXIT=0 (post-R3 — no agent-
+			spec changes); full repo cue vet ./... EXIT=0.
+			"""
 	}]
 
 	findings: {}
 
 	summary: """
 		Agent Spec INV (agt-inv-primary) materializado em 3 commits
-		Phase 4 (Part 1 42497fd issue; Part 2 5c49f54 cancel; Part
-		3 78fbeb6 reactive) + Round 2 founder adversarial review
-		consolidated. 5 actions + 14 constraints (era 13; +1 cst-
-		system-boundary-acknowledged R2 ACK) + 5 escalationConditions
-		(suspicious-input com sub-classifications VERIFIED → HARD
-		vs VERIFICATION-UNCERTAIN → SOFT per R2-3) + 8 signals + 20
-		audit fields fiscal-grade. Round 1 adversarial proof: 8
-		attacks A1-A8 + 5 removals R1-R5 + 3 interactions I1-I3 +
-		determinism proof via 5 NO patterns + coverage matrix 6
-		categorias + 4 riscos residuais altos. Round 2 (founder
-		adversarial pass): +4 findings (R2-1 observation
+		Phase 4 (Part 1 42497fd issue; Part 2 5c49f54 cancel; Part 3
+		78fbeb6 reactive) + Round 2 founder R2 adversarial review
+		(cdcf933) + Round 3 founder R3 cross-BC adversarial review
+		(SRR-only). 5 actions + 14 constraints + 5 escalationConditions
+		(suspicious-input sub-classifications VERIFIED → HARD vs
+		VERIFICATION-UNCERTAIN → SOFT per R2-3) + 8 signals + 20
+		audit fields fiscal-grade.
+
+		3-round adversarial proof completo:
+
+		Round 1 (8 attacks A1-A8 + 5 removals R1-R5 + 3 interactions
+		I1-I3 + determinism proof via 5 NO patterns + coverage
+		matrix 6 categorias + 4 riscos residuais altos schema-
+		openness/runtime-only/clock-authority/validation-time).
+
+		Round 2 (founder adversarial — 4 findings: R2-1 observation
 		consistency HIGH + R2-2 replay ordering inversion MED-HIGH
-		+ R2-3 verify-uncertain OPER + R2-4 single entry point GOV)
-		→ 5 mudanças estruturais agent-spec (cst-gate-cancel-ordering
-		state-based + cst-system-boundary-acknowledged NEW + suspicious-
-		input sub-classifications + header + rationale). Asymmetry
+		+ R2-3 verify-uncertain OPER + R2-4 single entry point GOV
+		→ 5 mudanças estruturais agent-spec).
+
+		Round 3 (founder cross-BC adversarial — 5 findings declared
+		SRR-only per founder explicit instruction 'Você não precisa
+		mudar o INV. Você precisa: declarar o que o INV NÃO resolve':
+		X1 cross-BC temporal fracture RED + X2 Receivable semantic
+		drift RED + X3 projection authority cross-BC YELLOW + X4
+		cross-agent race condition RED + X5 financial finality
+		illusion RED).
+
+		Total adversarial canonical: 17 distinct vectors (8 R1 +
+		4 R2 + 5 R3) + 3 boundary levels distinct (agent-enforced
+		+ agent-acknowledged + SRR-cross-BC-declared). Asymmetry
 		triádica issue/cancel/reactive preservada. 11 traps base
-		(6 cancel T1-T6 + 5 reactive T-R1..T-R5) + 4 R2 findings
-		endereçados estruturalmente OR declarados canonicamente.
-		Honesty arquitetural: 'sistema só falha de formas conhecidas,
-		explícitas e rastreáveis'. tq-ag-01..13 satisfeitos.
-		tq-srr-01..05 satisfeitos. cue vet ./... clean. Pattern
-		replicável para outros BCs após R2 validation INV.
+		(6 cancel T1-T6 + 5 reactive T-R1..T-R5) + 4 R2 +
+		5 R3 findings.
+
+		Honesty arquitetural mature pattern: 'sistema que sabe
+		exatamente ONDE pode quebrar' (founder R3 quote). tq-ag-
+		01..13 satisfeitos. tq-srr-01..05 satisfeitos pos-R3.
+		cue vet ./... clean. Pattern replicável outros BCs.
+		R4 (ataque econômico — incentive-compatibility) deferred
+		until founder explicit trigger.
 		"""
 }
