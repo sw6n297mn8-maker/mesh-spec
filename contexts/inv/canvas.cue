@@ -110,4 +110,103 @@ canvas: artifact_schemas.#Canvas & {
 			é specification (não define regras).
 			"""
 	}
+
+	capabilities: {
+		operational: [{
+			capabilityRef: "cc-03"
+			description: """
+				Operação 24/7 via gate determinístico de emissão:
+				InvoiceIssued + ReceivableMaterialized atomic emit
+				triggered por consumo de DeliveryVerified (DLV
+				terminal=approved); sem janelas de aprovação humana no
+				caminho normal. Gate é função categórica (verification
+				approved sim/não → fatura nasce sim/não), não
+				julgamento. Cancelamento dentro de janela fiscal segue
+				mesmo padrão: gate categórico (within-window sim/não),
+				sem interpretação.
+				"""
+			rationale: """
+				Capability matches cc-03 do domain-definition (24/7
+				disponibilidade); INV-specific aspect: emission gate é
+				deterministic (verification approved sim/não), não
+				exige reasoning sobre payload. Paralelo P2P (authority
+				gate deterministic) e DLV (criteria match function
+				pura). Cancelamento fora-da-janela é supervisedDecision
+				separado, não orchestration.
+				"""
+		}, {
+			capabilityRef: "cc-04"
+			description: """
+				Auditoria contínua e regulatory-grade de invoices
+				emitidas: cada InvoiceIssued carrega imutavelmente
+				(commitmentRef, evidenceRef, criteriaVersion,
+				regimeVersion, taxBreakdown, fiscalDocRef, issuedAt) +
+				trace completo dos inputs e outputs fiscais aplicados,
+				sem interpretação ou justificativa do regime; trail
+				satisfaz exigência fiscal regulatória (retenção legal
+				NF-e ≥5 anos). InvoiceCancelled preserva trail completo
+				do invoice cancelado (fiscalCancellationRef +
+				reasonCode categórico).
+				"""
+			rationale: """
+				Capability matches cc-04 do domain-definition (audit
+				contínuo); INV-specific aspect: audit trail é
+				fiscal-grade (regulação tributária exige
+				rastreabilidade documento + inputs + outputs, sem
+				justificativa de regime que invadiria domínio ATO).
+				Imutabilidade pós-emit é invariante estrutural —
+				soft-delete proibido (G3 guardrail).
+				"""
+		}, {
+			description: """
+				Cômputo fiscal apply-only deterministic: dado regime
+				fiscal resolvido (read-only input), commitment terms
+				verificados (read-only via CMT projection cache) e
+				verification outcome categórico (approved), INV calcula
+				taxBreakdown aplicando tabelas declarativas (CFOP +
+				alíquotas + retenções) — sem interpretar regime, sem
+				decidir enquadramento, sem alterar amount. Função pura:
+				input idêntico → output idêntico reproduzível em replay
+				(paralelo BD2 DLV idempotency).
+				"""
+			rationale: """
+				Sem capability própria de domain-definition — emerge da
+				análise dos businessDecisions: apply-only é o RECTOR
+				estrutural anti-mini-ATO. Sem isso, INV vira
+				interpretador fiscal e absorve responsabilidade ATO.
+				Determinismo é precondition de cc-03 (24/7) e cc-04
+				(audit reproducible).
+				"""
+		}, {
+			description: """
+				Emissão atômica com lifecycle público mínimo:
+				InvoiceIssued + ReceivableMaterialized emitidos
+				atomicamente via primitive de infraestrutura que
+				garante consistência entre estado e publicação de
+				eventos; InvoiceCancelled emitido como evento explícito
+				dentro de janela fiscal. Conservação de valor:
+				ReceivableMaterialized.amount == InvoiceIssued.amount
+				sempre (mesma fonte computacional). Idempotência: tupla
+				(commitmentRef, evidenceRef) gera no máximo um
+				InvoiceIssued (replay-safe). Sem eventos intermediários
+				ou de ajuste — ajustes pós-issued vivem em DRC/ATO,
+				não em INV.
+				"""
+			rationale: """
+				Sem capability própria de domain-definition —
+				capability core do INV. Sustenta G1 (idempotência
+				operacional), G2 (receivable.amount == invoice.amount
+				sempre) e G3 (cancelamento sempre evento explícito,
+				não soft-delete). Lifecycle público mínimo (3 events
+				cobrindo nascimento atomic + morte dentro da janela
+				fiscal) previne INV virar workflow engine; correções
+				fora dessa janela são DRC (disputa) ou ATO (ajuste
+				contábil), não mutações INV. Atomic emit é
+				responsabilidade da infrastructure (declarado como
+				contract, não mecanismo).
+				"""
+		}]
+		hasSyncSurface:  false
+		hasAsyncSurface: true
+	}
 }
