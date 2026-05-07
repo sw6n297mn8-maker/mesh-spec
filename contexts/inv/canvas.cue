@@ -1019,6 +1019,53 @@ canvas: artifact_schemas.#Canvas & {
 			(regime anomaly fora do envelope determinístico) e 7
 			escalationCriteria cobrindo todos os modos de falha estrutural.
 
+			**Halt Model** (quando INV para de agir autonomamente — micro-
+			estrutura prose-encoded prepara promoção a schema field
+			Phase 1+; padrão [HALT-CONDITION] trigger / effect / scope):
+
+			[HALT-CONDITION]
+			trigger: projection-missing OR projection-stale (BD4 fail)
+			effect: block-emit
+			scope: per-commitmentRef (esc-projection-missing soft retry;
+			       esc-projection-stale HARD block até root cause resolved)
+
+			[HALT-CONDITION]
+			trigger: regime-fiscal-unresolvable
+			effect: supervised-only
+			scope: per-emit (block autonomous; supervisedDecision
+			       emit-invoice-with-regime-anomaly único path)
+
+			[HALT-CONDITION]
+			trigger: cancel-requested-outside-fiscal-window
+			effect: supervised-only (escalation-routed)
+			scope: per-cancel (block INV; routing para DRC ou ATO conforme
+			       contexto via esc-cancel-requested-outside-fiscal-window)
+
+			[HALT-CONDITION]
+			trigger: atomic-emit-primitive-failure isolated
+			effect: block-emit
+			scope: per-commitmentRef afetado (esc-atomic-emit-primitive-failure)
+
+			[HALT-CONDITION]
+			trigger: atomic-emit-primitive-failure systemic (pattern detected)
+			effect: freeze-flow
+			scope: global INV emission até integridade do primitive restaurada
+			       (escalado per esc-atomic-emit-primitive-failure quando
+			       pattern sistêmico detectado)
+
+			[HALT-CONDITION]
+			trigger: audit-trail-write-failure
+			effect: block-emit
+			scope: per-emit (block immediate + alarm regulatório; sem emit
+			       sem audit trail per cc-04 + BD8 invariant inviolável)
+
+			[HALT-CONDITION]
+			trigger: duplicate-issuance-attempt sustained (pattern threshold)
+			effect: supervised-only (hard escalation)
+			scope: per-pattern-detected (Phase 1+ via observação;
+			       comportamento adversarial vs replay legítimo)
+
+
 			**Quem pode quebrar o INV** (vetores explícitos):
 			(a) sh-05 agente via shortcut heurístico — bloqueado por gates
 			BD1+BD3+BD4 + sh-05 incentive analysis;
@@ -1077,4 +1124,201 @@ canvas: artifact_schemas.#Canvas & {
 			detection metrics + calibration regression triggers).
 			"""
 	}
+
+	assumptions: [{
+		id:         "as-inv-1"
+		assumption: "Latência típica de propagação CommitmentAccepted (CMT) → INV projection cache é << janela fiscal regulada do regime aplicável (e.g., << 24h regime brasileiro SEFAZ). Emit gate aguarda projection consistency sem violar SLA de ce-06 (eliminação ciclo recebimento)."
+		invalidationSignal: "esc-projection-missing soft escalations excedem threshold operacional (Phase 1+ via observação) — indicaria latência cross-BC anômala incompatível com janela fiscal."
+		rationale: "[ASSUMPTION-TYPE: cross-bc] Hipótese estratégica viabilizando BD4 retry-first sem violar promessa de ciclo curto a sh-02; falsa = renegociar arquitetura cross-BC ou estender janela operacional."
+	}, {
+		id:         "as-inv-2"
+		assumption: "Regime fiscal externo (CFOP, alíquotas, retenções) é stable read-only com lead time regulatório suficiente para version bump (regimeVersion) pré-emit. Mudanças retroativas são raras e tratadas via ADR + supersession entry, não via mutação de invoices históricas."
+		invalidationSignal: "Publicação regulatória de mudança fiscal com aplicação retroativa < lead time mínimo (e.g., 24h) detectada > 2x em 12 meses → BD2 imutabilidade-pos-emit + audit-trail-immutable conflitam com requisito regulatório."
+		rationale: "[ASSUMPTION-TYPE: regulatory] Sustenta BD2 + cc-04 audit trail imutável; falsa = INV precisa de mecanismo de re-emit retroativo (que viola G3 + BD7), exige ADR fundamental."
+	}, {
+		id:         "as-inv-3"
+		assumption: "Janela fiscal SEFAZ (24h regime brasileiro) é representativa estruturalmente da janela canônica em outros regimes jurisdicionais — abstração 'janela fiscal regulada' funcionará para multi-jurisdictional Phase 1+ sem mudança de state machine."
+		invalidationSignal: "Novo regime jurisdicional onboarded com janela << 1h (cancelamento real-time) OU >> 7d (cancelamento extended) → state machine 2 estados (issued|cancelled) pode ser insuficiente para representar lifecycle real."
+		rationale: "[ASSUMPTION-TYPE: regulatory] Sustenta vertical-agnostic claim + BD5 generalização de janela; falsa = state machine precisa expansão (paralelo adr-043 verticalApplicability rollout)."
+	}, {
+		id:         "as-inv-4"
+		assumption: "Primitive de infraestrutura para atomic emit (transactional outbox pattern ou equivalente) tem disponibilidade ≥ 99.9% em condições operacionais normais. Falhas são isoladas (single commitmentRef) na maioria dos casos; falhas sistêmicas são raras."
+		invalidationSignal: "esc-atomic-emit-primitive-failure dispara > 2x em 7d OU pattern sistêmico detectado (esc-atomic-emit-primitive-failure freeze de fluxo ativado) — degradação infra não-isolada."
+		rationale: "[ASSUMPTION-TYPE: infrastructure] Sustenta BD7 atomic-dual-emission como invariante operacional; falsa = freeze de fluxo torna-se padrão operacional em vez de exceção, viola cc-03 (24/7)."
+	}, {
+		id:         "as-inv-5"
+		assumption: "Consumers downstream (FCE, ATO, SCF) implementam dedup at-most-once ancorado em identity (commitmentRef, evidenceRef) per BD3 — replay/partição cross-BC NÃO causa side-effect duplicado a jusante."
+		invalidationSignal: "Auditoria cross-BC detecta duplicação observada (e.g., FCE settlement duplicado para mesmo invoice; SCF receivable duplicado; ATO lançamento duplicado) — consumer não respeitou contract de identity-based dedup."
+		rationale: "[ASSUMPTION-TYPE: cross-bc] Sustenta replay-safety end-to-end Mesh; falsa = INV identity não é suficiente, precisa dedupKey explícito no schema (ver def-014 paralelo a DLV)."
+	}, {
+		id:         "as-inv-6"
+		assumption: "Cancelamento dentro da janela fiscal é evento RARO em operação normal (taxa < 1% das invoices issued). Cancellation é mecanismo de correção pré-settlement, não fluxo regular."
+		invalidationSignal: "vm-inv-3 (ratio cancellation/issuance) > 1% sustained 30d — indicaria problema upstream (DLV emit eventos errôneos, CMT terms inconsistentes) OR design bug onde cancel é parte do fluxo normal."
+		rationale: "[ASSUMPTION-TYPE: economic] Sustenta BD5 + escopo limitado de cancellation operations; falsa = cancellation handling vira componente principal (não exception path), exige redesign de governance scope."
+	}]
+
+	openQuestions: [{
+		id:        "oq-inv-1"
+		question:  "Qual threshold operacional preciso para esc-projection-missing escalation soft (quanto tempo aguardar projection antes de alarm)? Default Phase 0 deferred — observação empírica necessária."
+		impact:    "[IMPACT-LEVEL: local] Threshold muito baixo gera falso positivo (alarm normal latency cross-BC); muito alto atrasa diagnóstico de problema real. Afeta BD4 retry path effectiveness e ce-06 (ciclo recebimento) SLA."
+		deadline:  "2026-09-01"
+		rationale: "Threshold concreto exige baseline empírico de latency cross-BC CMT→INV; observação Phase 0/1 informa Phase 1+ ADR."
+	}, {
+		id:        "oq-inv-2"
+		question:  "Mecanismo concreto para detectar 'projection stale' em BD4 (eventLogOffset comparison vs version vector vs timestamp comparison)? Definição operacional ainda pendente Phase 0."
+		impact:    "[IMPACT-LEVEL: cross-bc] BD4 freshness check é gate determinístico crítico; mecanismo errado gera false positive (block emit indevido) OR false negative (emit sob terms stale, divergência fiscal sutil). Afeta cross-BC consistency CMT↔INV."
+		deadline:  "2026-07-01"
+		rationale: "Domain-model Phase 3 deve materializar invariant CUE-codificável para staleness check; eventLogOffset ordering canonical é forte candidato (paralelo BD3 idempotency identity pattern)."
+	}, {
+		id:        "oq-inv-3"
+		question:  "Pattern threshold para esc-duplicate-issuance hard escalation (qual taxa indica comportamento adversarial vs replay legítimo)?"
+		impact:    "[IMPACT-LEVEL: local] Threshold muito baixo trata replay normal como adversarial (false alarm caro); muito alto deixa adversarial pass-through sem detecção. Afeta detecção de anomalia upstream (bug recorrente OR ataque)."
+		deadline:  "2026-09-01"
+		rationale: "Pattern detection threshold exige baseline de replay legitimate rate; observação Phase 1+ informa decisão; sem dados Phase 0 = Phase 0 fica em soft default."
+	}, {
+		id:        "oq-inv-4"
+		question:  "Tratamento de regime fiscal jurisdicional não-suportado em Phase 0 (INV bootstrapped com regime brasileiro SEFAZ canônico). Multi-jurisdictional support requer adapter por regime?"
+		impact:    "[IMPACT-LEVEL: systemic] vertical-agnostic claim depende de extensibilidade real para outros regimes (VAT EU, GST APAC); sem path concreto, claim é teórico. Afeta capability transversal de toda a Mesh para multi-jurisdictional."
+		deadline:  "2026-12-01"
+		rationale: "Decisão estrutural Phase 1+ (multi-jurisdictional onboarding) — Phase 0 mantém BR-only com placeholder para extensão; ADR Phase 1+ define regime adapter pattern."
+	}, {
+		id:        "oq-inv-5"
+		question:  "Race condition handling: InvoiceCancelled emitido por INV (within-window) chega após FCE iniciar PaymentSettled mas antes de completar — qual o protocolo?"
+		impact:    "[IMPACT-LEVEL: systemic] Edge case raro mas crítico: settlement parcial pode ocorrer; reconciliação financeira fica incerta; sh-01 pode ser cobrado por invoice cancelada; sh-02 pode ter recebido funding sob receivable cancelado. Afeta cadeia INV→FCE→DRC integralmente."
+		deadline:  "2026-08-01"
+		rationale: "Cross-BC saga pattern necessário Phase 3 domain-model + Phase 5 envelope; Phase 0 placeholder = cancel pós-settle inicio é DRC scope (compensating action), não INV."
+	}]
+
+	verificationMetrics: [{
+		id:     "vm-inv-1"
+		metric: "Latência p99 entre DLV DeliveryVerified consumed e InvoiceIssued atomic emit (canonical ce-06 SLA proxy)."
+		target: "< 5s p99 em condições operacionais normais (janela 7d rolling)"
+		// Sem onBreach: observability signal — degradação latency é
+		// diagnóstico operacional (potencial throughput infra),
+		// não escalation criteria estrutural per ownership.governanceScope.
+		rationale: "Observability signal — sem escalation direta; exige avaliação contextual (human-in-the-loop) sobre causa raiz de latency degradation. Latency baixa é precondition para ce-06 elimination claim (sh-02 antecipa imediatamente após verification); degradação indica problema infra OR projection cache thrashing."
+	}, {
+		id:     "vm-inv-2"
+		metric: "Success rate de emit (no-failure + no-escalation): InvoiceIssued + ReceivableMaterialized atomic emit completed sem disparar nenhum esc-* criterion."
+		target: "≥ 99.5% em janela 7d rolling (cc-03 24/7 disponibilidade + BD7 atomic invariant operational)"
+		onBreach: {
+			escalationRef: "esc-atomic-emit-primitive-failure"
+			rationale:     "Drop sustained em success rate indica degradação do atomic emit primitive — escalation canônica é primitive-failure path (que escalia para freeze de fluxo se sistêmico). Métrica é signal agregado de health do atomic invariant BD7."
+		}
+		rationale: "Failure rate alta indica degradação infra (atomic primitive) OU cross-BC consistency issues (projection stale frequente, regime unresolvable). Threshold reflete cc-03 promise."
+	}, {
+		id:     "vm-inv-3"
+		metric: "Ratio InvoiceCancelled / InvoiceIssued em janela 30d rolling."
+		target: "< 1% sustained — cancelamento é mecanismo de correção, não fluxo regular (as-inv-6 invariante)"
+		// Sem onBreach: observability signal — ratio elevado dispara
+		// founder review (invalidação de as-inv-6 assumption), não
+		// escalation criteria pré-existente. Decisão design: ratio
+		// alto exige análise contextual (problema upstream DLV vs
+		// design bug de cancellation flow vs degradação operacional)
+		// que não mapeia 1:1 para esc-* específico.
+		rationale: "Observability signal — sem escalation direta; ratio elevado triggera founder review (invalida as-inv-6 economic assumption) com análise contextual case-by-case (não auto-routing). Ratio elevado indica problema upstream (DLV emit eventos errôneos, terms CMT inconsistentes) OR design bug; valida assumption as-inv-6."
+	}, {
+		id:     "vm-inv-4"
+		metric: "Ocorrências de esc-projection-stale (HARD escalation) por janela 7d."
+		target: "0 em condições normais; qualquer ocorrência = investigação imediata"
+		onBreach: {
+			escalationRef: "esc-projection-stale"
+			rationale:     "Métrica é signal direto de stale escalation — qualquer ocorrência reflete acionamento deste escalation criterion. Link 1:1 explícito (não há indireção)."
+		}
+		rationale: "Staleness é signal de problema estrutural (consumer lag, projection bug, schema mismatch), distinto de delay normal. Tolerância zero é design choice (BD4 differentiation missing-vs-stale)."
+	}, {
+		id:     "vm-inv-5"
+		metric: "Ratio InvoiceCancelled-with-FCE-pre-settle / total InvoiceCancelled em janela 30d (cancelamento dentro da janela DEVE preceder settlement na maioria absoluta dos casos)."
+		target: "≥ 95% (cancellation pós-settle é edge case raro = oq-inv-5 race condition)"
+		// Sem onBreach: observability signal — ratio baixo expõe
+		// race condition cross-BC (oq-inv-5 unresolved); requer
+		// design work cross-BC (saga pattern Phase 3+5), não
+		// escalation operacional pré-existente.
+		rationale: "Observability signal — sem escalation direta; ratio baixo dispara design work cross-BC (não escalation operacional). Indica race condition cross-BC frequente OU INV cancelando após FCE settle (timing bug). Valida bd-cancellation-bounded-and-explicit operational expectation."
+	}, {
+		id:     "vm-inv-6"
+		metric: "Replay rate observado (tentativas de emit InvoiceIssued para tupla (commitmentRef, evidenceRef) já existente, capturada por esc-duplicate-issuance soft path) em janela 7d."
+		target: "Baseline empírico Phase 0 (TBD via observação); pattern threshold para hard escalation determinado Phase 1+ via oq-inv-3"
+		onBreach: {
+			escalationRef: "esc-duplicate-issuance-attempt-detected"
+			rationale:     "Pattern detection threshold liga métrica observada ao escalation hard quando padrão indica adversarial — link metric→escalation é gate de soft-vs-hard transition (Phase 1+ via observação empírica de replay legitimate rate)."
+		}
+		rationale: "BD3 idempotency monitoring; replay rate normal vs anomalo é signal estrutural — ainda sem baseline, threshold é Phase 1+ adjustment."
+	}]
+
+	rationale: """
+		INV é Bounded Context supporting Wave 0 commitment-lifecycle Phase
+		Invoicing — projeção determinística de DeliveryVerified em obrigação
+		de faturamento (InvoiceIssued) e direito creditório
+		(ReceivableMaterialized), aplicando regime fiscal regulado de forma
+		determinística sob frase canônica 'INV aplica, não interpreta'.
+
+		**Identidade estrutural** (subdomainType=supporting, businessRole=
+		operational-enabler, wardleyEvolution=product, vertical-agnostic):
+		BC narrow-scope no spine commitment-lifecycle entre DLV (verifica
+		execução) e FCE (executa pagamento) / SCF (origina produtos sobre
+		recebível) / ATO (contabiliza). Boundary core anti-mini-ATO: regime
+		fiscal é input externo read-only, não lógica interna do BC.
+
+		**Núcleo determinístico** codificado em 4 BDs Lote 1 (BD1
+		issuance-requires-verification RECTOR herdado da invariante Mesh
+		'dinheiro só move quando operação comprova'; BD2 deterministic-
+		fiscal-projection função pura sobre commitmentTerms read-only; BD3
+		issuance-idempotent identity (commitmentRef, evidenceRef) replay-
+		safe; BD4 requires-local-commitment-projection presença + completude
+		+ freshness gate). **Lifecycle e cancelamento** em 2 BDs Lote 2
+		(BD5 lifecycle 2 estados {issued, cancelled} — draft removido do
+		domínio; BD6 cancellation bounded dentro janela fiscal + sempre
+		evento explícito). **Boundaries anti-mini** em 4 BDs Lote 3 (BD7
+		atomic-dual-emission conservation amount; BD8 no-supersession-
+		reaction; BD9 no-metrics-feedback anti-mini-NIM transversal; BD10
+		no-downstream-coordination anti-orchestrator com fechamento de uso
+		indireto).
+
+		**Governance scope** reflete escopo determinístico estreito: 4
+		autonomousDecisions + 1 supervisedDecision + 7 escalationCriteria
+		diferenciados (ver ownership.rationale para Halt Model micro-
+		estruturado). **7 vetores explícitos de quem pode quebrar INV**
+		(sh-05, CMT drift, infra primitive, regime corrupto, audit infra,
+		DLV payload, **bug interno domain logic** — vetor mais perigoso
+		porque vem de dentro). **3 decisões irreversíveis** (Issued+
+		Materialized atomic; Cancelled; audit entries) com blast radius
+		cross-BC máximo (cadeia downstream completa SCF+FCE+ATO + Bacen
+		audit + sh-03 funding rede = Mesh-level systemic event).
+
+		**Estado epistêmico** explícito: 6 assumptions com type tags
+		([cross-bc], [regulatory], [infrastructure], [economic]) e
+		invalidationSignals observables; 5 openQuestions com impact levels
+		([local], [cross-bc], [systemic]) e deadlines ISO concretas
+		Phase 1+; 6 verificationMetrics com targets quantificados — 3
+		observability-only (vm-inv-1 latency, vm-inv-3 cancel ratio,
+		vm-inv-5 cancel-pre-settle ratio) sinalizando design choice
+		legítima de não-ligar a escalation, 3 com onBreach.escalationRef
+		fechando loop metric → action → governance (vm-inv-2 →
+		atomic-emit-failure, vm-inv-4 → projection-stale, vm-inv-6 →
+		duplicate-issuance pattern). INV reconhece o que SABE (gates
+		determinísticos), o que ASSUME (latency cross-BC, regime stable,
+		cancellation rare), o que NÃO SABE (thresholds operacionais,
+		mecânica de staleness, multi-jurisdictional adapter), e QUANDO
+		PARA DE AGIR (Halt Model em ownership.rationale com 7
+		[HALT-CONDITION] entries cobrindo block-emit, freeze-flow, e
+		supervised-only effects).
+
+		**Phase 0 limitations honest**: thresholds via observação empírica
+		(oq-inv-1, oq-inv-3); domain-model staleness mechanism Phase 3
+		(oq-inv-2); multi-jurisdictional adapter Phase 1+ (oq-inv-4);
+		cross-BC saga cancel-vs-settle race Phase 3+5 (oq-inv-5); replay
+		rate baseline Phase 0/1+ (vm-inv-6 target TBD). Forward-refs
+		declarados (Phase 4 agent-spec, Phase 5 envelope) — boundary entre
+		canvas (design intent) e envelope (runtime override) preservado.
+
+		**Schema usage**: primeira instância operacional do field
+		#VerificationMetric.onBreach (per ADR-077); padrão metric →
+		escalation (loop governance executável) demonstrado em 3 das 6
+		métricas. Backfill 8 canvases existentes (CMT, BDG, DLV, IDC, NPM,
+		P2P, SSC, CTR) é WI separado. Workarounds prose micro-estruturada
+		([HALT-CONDITION], [ASSUMPTION-TYPE], [IMPACT-LEVEL]) preparam
+		terreno para promoção a schema fields Phase 1+ via WI canvas-
+		schema-hardening sem fabricação de fake compliance.
+		"""
 }
