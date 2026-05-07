@@ -248,7 +248,19 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 
 		"epistemic-and-validation": {
 			target:    "#Canvas"
-			objective: "Capturar estado epistêmico (assumptions + openQuestions + verificationMetrics) + compor rationale root-level + executar validation final."
+			objective: """
+				Capturar estado epistêmico (assumptions + openQuestions +
+				verificationMetrics) + compor rationale root-level + executar
+				validation final.
+
+				Para verificationMetrics, diferenciar dois tipos operacionais:
+				**control metrics** (com ação automática via escalation
+				declarada em onBreach.escalationRef) e **observation metrics**
+				(sem ação automática, dependentes de análise humana
+				contextual). Per ADR-077 + ADR-078: ausência de onBreach
+				NÃO é oversight — observability-only é design choice
+				legítima.
+				"""
 			process: [{
 				action: "Declarar assumptions com invalidationSignal"
 				detail: "Cada assumption tem id (as-<code>-N), assumption, invalidationSignal (machine-evaluable ou observable), rationale. Heurística: assumption sem invalidationSignal é fé não-falsificável."
@@ -256,8 +268,55 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 				action: "Declarar openQuestions com deadlines"
 				detail: "Cada question tem id (oq-<code>-N), question, impact, deadline (data ISO), rationale. Cross-references entre BCs (oq compartilhada) são bem-vindas."
 			}, {
-				action: "Declarar verificationMetrics com targets"
-				detail: "Cada metric tem id, metric (descrição), target (threshold concreto quantificado), rationale."
+				action: "Classificar e declarar cada verificationMetric"
+				detail: """
+					Fluxo de decisão 5-step para CADA verificationMetric (per
+					ADR-078):
+
+					(1) Identificar se a métrica representa:
+					    (a) violação direta de invariante operacional (e.g.,
+					        atomicity failure rate, integrity breach count)
+					    (b) degradação indireta ou sinal diagnóstico (e.g.,
+					        latency p99, ratio agregado sem threshold crítico)
+
+					(2) Se tipo (a) — control metric:
+					    - Verificar se existe escalationCriterion canônico no
+					      governanceScope que responde a essa violação
+					    - Se existir → declarar onBreach.escalationRef apontando
+					      para o id correspondente
+					    - Se NÃO existir escalationCriterion canônico: criar
+					      escalationCriterion APENAS se a ação corretiva for
+					      determinística e bem definida; caso contrário,
+					      classificar metric como observability-only (NÃO
+					      criar escalation prematuramente)
+
+					(3) Se tipo (b) — observability-only:
+					    - Classificar como observability-only (sem onBreach)
+					    - Explicitar no rationale POR QUE não há ação automática
+					      (causalidade não-determinística; interpretação
+					      contextual; ratio agregado sem threshold crítico)
+					    - Se for candidata a promoção future (e.g., ratio
+					      elevado pode correlacionar com single root cause
+					      identificável Phase 1+) → rationale DEVE indicar
+					      explicitamente essa possibilidade
+
+					(4) Em caso de dúvida:
+					    - Default = observability-only (NÃO forçar ligação
+					      artificial)
+					    - Promoção observability-only → control exige evidência
+					      empírica de causalidade ESTÁVEL e REPRODUZÍVEL Phase
+					      1+ (NÃO 'acho que dá pra automatizar')
+
+					(5) Garantir consistency:
+					    - Metric com onBreach: causalidade clara e reproduzível
+					      para escalation referenciada
+					    - Metric observability-only: rationale explícito; NÃO
+					      depende de ação implícita
+
+					Cada metric tem id, metric (descrição), target (threshold
+					concreto quantificado), rationale, e onBreach quando
+					classificado como control.
+					"""
 			}, {
 				action: "Compor rationale root-level como SÍNTESE"
 				detail: "Rationale recapitula identity + classification + key invariants + governance scope. Não é repetição — é síntese que permite leitura standalone do canvas."
@@ -271,9 +330,76 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 				"verificationMetric target é threshold concreto — quantificado ou observable; 'qualidade boa' não é métrica.",
 				"rationale root-level é último step — preencher SOMENTE depois de outras sections completas; sintetizar, não inventar.",
 				"Per tq-mg-10 canonical removal test: se remover BC, invariants críticos permanecem protegidos por outros enforcers? Resposta esperada NÃO — BC é dono canônico de seus invariants.",
+				"""
+					HEURISTICS — Metric classification (per ADR-077 + ADR-078):
+
+					Use onBreach quando:
+					- A métrica detecta violação direta de invariante (e.g.,
+					  atomicity failure, integrity breach)
+					- A ação corretiva é conhecida e já modelada como
+					  escalationCriterion canônico
+					- A relação metric → action é determinística
+
+					NÃO usar onBreach quando:
+					- Métrica não tem threshold crítico claro de violação (e.g.,
+					  latency p99 sem SLA hard; trends sem breach point definido)
+					- A interpretação depende de contexto (negócio, volume,
+					  sazonalidade, calibração empírica)
+					- Não existe escalationCriterion canônico adequado
+					- A ação corretiva depende de julgamento humano
+
+					Anti-patterns (proibidos):
+					- Declarar onBreach sem escalationCriterion correspondente
+					- Ligar metrics a escalations 'aproximadas' (causalidade fraca)
+					- Forçar onBreach apenas para 'completar' o canvas
+					- Criar escalationCriteria artificiais só para satisfazer
+					  metrics
+					""",
+				"""
+					HEURISTIC — many-to-one (per ADR-077 link unidirecional):
+
+					É esperado e desejável que múltiplas metrics apontem para
+					a MESMA escalationCriterion quando indicam o mesmo failure
+					mode. Criar escalation dedicada por metric é anti-pattern
+					estrutural, MESMO quando metrics parecem distintas — se
+					convergem em mesmo failure mode, devem convergir para
+					mesma escalation.
+					""",
+				"""
+					HEURISTIC — escalation activation (no dead paths):
+
+					Toda escalationCriterion deve ter pelo menos um caminho
+					de ativação EXPLÍCITO E VERIFICÁVEL:
+					- evento/invariante direto, OU
+					- metric com onBreach
+					Escalation sem trigger observável é inválida (dead path).
+					""",
 			]
-			doneCriteria: "≥3 assumptions com invalidationSignals. ≥3 openQuestions com deadlines ISO. ≥3 verificationMetrics com targets quantificados. rationale root-level ≥500 runes sintetizando identity + invariants + governance. cue vet passa. founder approval explícito antes de commit."
-			ifGap:        "Se assumptions são poucas, BC pode estar over-confident — force ≥3. Se openQuestions são vazias, BC pretende certeza que não tem — invente honestamente as áreas de incerteza."
+			doneCriteria: """
+				≥3 assumptions com invalidationSignals. ≥3 openQuestions com
+				deadlines ISO. ≥3 verificationMetrics com targets quantificados.
+				Cada verificationMetric explicitamente classificada como
+				(a) control (com onBreach.escalationRef declarado) OU
+				(b) observability-only (sem onBreach, com rationale explícito
+				sobre por que não há ação automática). Toda metric com
+				onBreach referencia escalationCriterion válido no mesmo
+				canvas. Nenhuma metric com ligação ambígua (nem control nem
+				observability). rationale root-level ≥500 runes sintetizando
+				identity + invariants + governance. cue vet passa. founder
+				approval explícito antes de commit.
+				"""
+			ifGap: """
+				Se assumptions são poucas, BC pode estar over-confident —
+				force ≥3. Se openQuestions são vazias, BC pretende certeza
+				que não tem — invente honestamente as áreas de incerteza.
+				Se classificação metric ambígua (parece control mas sem
+				escalationCriterion canônico OR parece observability mas com
+				ação implícita), PARE — resolva criando escalationCriterion
+				canônico antes (caso control com causalidade determinística)
+				OU explicitando rationale design choice (caso observability)
+				— NÃO criar escalation prematuramente para 'completar'
+				classification flow.
+				"""
 		}
 	}
 
@@ -287,6 +413,7 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar coerência semântica: businessDecisions emergem do purpose; capabilities respeitam contorno (não invadem adjacents); governanceScope.supervisedDecisions cobrem decisões com julgamento.",
 			"Verificar canonical removal test (tq-mg-10): se removermos o BC, invariants críticos permanecem protegidos por outros enforcers? Resposta esperada NÃO — BC é dono canônico.",
 			"Verificar cross-context drift: BC propõe consumer cross-BC que outro BC não lista como source? Drift bloqueia commit até resolução.",
+			"Verificar consistency metric → escalation (per ADR-078): todas metrics com onBreach.escalationRef referenciam escalationCriterion existente no mesmo canvas (tq-cv-14); nenhuma metric observability-only depende implicitamente de ação automática; nenhuma escalationCriterion é dead path (toda escalation acionável por evento direto OR metric via onBreach); nenhuma duplicação desnecessária de escalations para metrics similares (many-to-one preferido sobre 1:1).",
 			"Submeter ao founder para aprovação explícita antes de commit — step próprio bloqueante per adr-057 founderConfirmation (NÃO absorvido na inspeção de critérios precedentes).",
 		]
 	}
