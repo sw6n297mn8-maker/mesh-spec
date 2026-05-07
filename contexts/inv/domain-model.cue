@@ -318,7 +318,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	aggregates: [{
 		code:        "agg-invoice"
 		name:        "Invoice Aggregate"
-		description: "Aggregate root canônico do domínio INV: Invoice com Receivable como entity interna. PART 1 placeholder — implementação completa (entities + lifecycle + wiring completo) em Part 2."
+		description: "Aggregate root canônico do domínio INV: Invoice como root com Receivable como entity interna. BD7 atomic-dual-emission implica MESMA unidade de verdade no momento de criação — separar aggregates transformaria garantia em coordenação. 8 invariants protegidos cobrem identidade canônica, atomicidade, imutabilidade fiscal, lifecycle bounded, integridade referencial."
 		rootIdentity: {
 			field: "invoiceId"
 			type: {
@@ -326,6 +326,15 @@ domainModel: artifact_schemas.#DomainModel & {
 				valueObjectRef: "vo-invoice-id"
 			}
 		}
+		fields: [
+			{kind: "value-object-ref", name: "commitmentRef", valueObjectRef: "vo-commitment-ref"},
+			{kind: "value-object-ref", name: "evidenceRef", valueObjectRef:   "vo-evidence-ref"},
+			{kind: "value-object-ref", name: "amount", valueObjectRef:        "vo-money"},
+			{kind: "value-object-ref", name: "regimeVersion", valueObjectRef: "vo-regime-version"},
+			{kind: "value-object-ref", name: "fiscalDocRef", valueObjectRef:  "vo-fiscal-doc-ref"},
+			{kind: "primitive", name:        "issuedAt", type:                "datetime"},
+			{kind: "primitive", name:        "status", type:                  "string"},
+		]
 		handlesCommands: ["cmd-issue-invoice", "cmd-cancel-invoice"]
 		emitsEvents: [
 			"evt-invoice-issued",
@@ -342,12 +351,155 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-cancellation-event-required",
 			"inv-receivable-referential-integrity",
 		]
-		rationale: "InvoiceAggregate como aggregate root canônico do domínio INV. Receivable como entity interna (Part 2) reflete BD7 atomic-dual-emission: Invoice e Receivable são MESMA unidade de verdade no momento de criação — separar aggregates transformaria garantia em coordenação. 8 invariants protegidos cobrem identidade canônica, atomicidade, imutabilidade fiscal, lifecycle bounded, integridade referencial. Part 1 placeholder — fields + entities + lifecycle materializados em Part 2."
+		entities: [{
+			code:        "ent-receivable"
+			name:        "Receivable"
+			description: "Entity interna do InvoiceAggregate representando direito creditório passível de transferência. Materializado atomicamente com Invoice (BD7); identity própria (receivableId) para referenciamento downstream (SCF) sem expor fiscal concerns. SEM lifecycle próprio — Receivable é fact-record imutável criado junto com Invoice; não muta independentemente."
+			identity: {
+				field: "receivableId"
+				type: {
+					kind:           "value-object-ref"
+					valueObjectRef: "vo-receivable-id"
+				}
+			}
+			fields: [
+				{kind: "value-object-ref", name: "invoiceId", valueObjectRef:     "vo-invoice-id"},
+				{kind: "value-object-ref", name: "commitmentRef", valueObjectRef: "vo-commitment-ref"},
+				{kind: "value-object-ref", name: "amount", valueObjectRef:        "vo-money"},
+				{kind: "primitive", name:        "createdAt", type:               "datetime"},
+			]
+			usesValueObjects: [
+				"vo-receivable-id",
+				"vo-invoice-id",
+				"vo-commitment-ref",
+				"vo-money",
+			]
+			rationale: "Receivable é entity interna (não aggregate separado) porque BD7 atomic-dual-emission implica vida-junta com Invoice — separação criaria 2 aggregates cuja consistência exigiria coordenação cross-aggregate, transformando garantia estrutural em distributed transaction. Entity interna preserva: (a) atomic creation (par com Invoice via mesma transação); (b) referential integrity (inv-receivable-referential-integrity); (c) identity própria (receivableId) para downstream SCF sem acoplamento a Invoice fiscal fields. SEM status/lifecycle próprio — Receivable não muta independentemente; herda visibilidade de Invoice (Invoice cancelled implica Receivable não-acionável via consumo SCF post-cancel — concern downstream)."
+		}]
+		usesValueObjects: [
+			"vo-invoice-id",
+			"vo-receivable-id",
+			"vo-commitment-ref",
+			"vo-evidence-ref",
+			"vo-money",
+			"vo-regime-version",
+			"vo-fiscal-doc-ref",
+			"vo-fiscal-cancellation-ref",
+		]
+		lifecycle: {
+			initialState: "issued"
+			states: ["issued", "cancelled"]
+			transitions: [{
+				from:               "issued"
+				to:                 "cancelled"
+				triggeredByCommand: "cmd-cancel-invoice"
+				emitsEvents: ["evt-invoice-cancelled"]
+				guards: ["inv-cancellation-boundary"]
+			}]
+		}
+		rationale: "InvoiceAggregate fechado em 2 estados: lifecycle mínimo + final. Estado inicial 'issued' implica que Invoice nasce com cmd-issue-invoice (estado pre-issued NÃO existe — issuance é atomic creation, não preparation/draft). Única transição é issued → cancelled triggered por cmd-cancel-invoice; não há transição para 'paid' (FCE concern), 'reversed' (DRC concern), ou 'amended' (não existe per BD5). Receivable como entity interna SEM lifecycle próprio reforça single-source-of-truth: nenhum estado existe fora do aggregate boundary."
+	}]
+
+	projections: [{
+		code:        "prj-invoice-by-identity"
+		name:        "Invoice By Identity"
+		description: "Mapping (commitmentRef, evidenceRef) → invoiceId. Read-only projeção determinística sobre evt-invoice-issued events. Suporta verificação de idempotência (BD3 issuance-idempotent) — query 'existe Invoice para esta tupla?' antes de emit. Pode estar stale (eventually-consistent com event log) MAS é DERIVADA, nunca AUTORITATIVA: identity canonical permanece em Invoice entity/aggregate; projection é otimização de read."
+		consumesEvents: [
+			"evt-invoice-issued",
+		]
+		queryCapabilities: [{
+			code:        "qry-invoice-by-identity"
+			description: "Retorna invoiceId para tupla (commitmentRef, evidenceRef) específica, OR not-found se nenhuma Invoice ainda emitida."
+			rationale:   "Suporta BD3 idempotent issuance: cmd-issue-invoice consulta projection antes de emit; se tupla já existe, command é no-op (replay-safe). Query é read-only sobre projection; identity canonical decision permanece em aggregate (projection é cache derivado, não fonte)."
+		}]
+		rationale: "Projection é derivada exclusivamente de evt-invoice-issued events (próprio domain-model events). Não consome eventos externos cross-BC (pattern paralelo DLV — projections consomem somente domain events internos). Pode estar stale durante replay/recovery sem violar invariantes (idempotency check via projection é Phase 1+ otimização; Phase 0 caminho sync alternativo: aggregate state lookup direct). Read-only por design; mutação de estado canonical permanece em aggregate via cmd-issue-invoice."
 	}]
 
 	rationale: """
-		Part 1 placeholder rationale (implementação completa em Part 2
-		com aggregate fields + Receivable entity + lifecycle + projections
-		+ policies + outer rationale completo).
+		Domain Model INV materializa formal compilation do glossary:
+		18 termos canônicos do glossary mapeiam para 3 events + 2
+		commands + 8 invariants + 8 valueObjects + 1 aggregate (com 1
+		entity interna + lifecycle 2 estados) + 1 projection. Compilação
+		é determinística (não design livre) — cada construto domain-
+		model existe como consequência direta de termo glossary +
+		invariant declarado em BDs do canvas.
+
+		**Aggregate único como single source of truth**:
+		InvoiceAggregate (root: Invoice; entity interna: Receivable)
+		reflete BD7 atomic-dual-emission — Invoice + Receivable são
+		MESMA unidade de verdade. Separar em 2 aggregates transformaria
+		garantia estrutural em distributed coordination (anti-pattern).
+		Receivable SEM lifecycle/status próprio: herda visibilidade do
+		Invoice; é fact-record imutável criado atomicamente; não há
+		estado fora do aggregate boundary (founder check 1 satisfied).
+
+		**Lifecycle mínimo fechado** (founder check 2 satisfied):
+		Invoice.status ∈ {issued, cancelled}. Sem pending/processing/
+		paid/reversed (esses são FCE/ATO/DRC territory). Única
+		transition: issued → cancelled triggered por cmd-cancel-invoice
+		com guard inv-cancellation-boundary. State machine é
+		closed-by-construction — schema enforce.
+
+		**Projection derivada nunca autoritativa** (founder check 3
+		satisfied): prj-invoice-by-identity consome SOMENTE eventos
+		internos do domain-model (evt-invoice-issued); pode estar stale
+		MAS é cache otimização, não source-of-truth. Identity canonical
+		permanece em aggregate via cmd-issue-invoice; projection serve
+		idempotency check Phase 1+. Cache externa de CMT terms
+		(commitment-terms-cache mencionada em canvas BD4) NÃO está
+		modelada como projection do domain-model — é infra/adapter
+		Phase 1+, não conceito do domínio INV.
+
+		**Sem policy cross-BC** (founder check 4 satisfied): consumo
+		de eventos externos (evt-delivery-verified de DLV; eventos CMT)
+		é responsabilidade canvas/agent layer (event-consumer entries
+		em communication; agent-spec Phase 4). Pattern paralelo DLV —
+		policies em domain-model triggers SOMENTE em eventos internos
+		(no orchestration cross-BC; no decisão contextual; no estado
+		próprio). pol-delivery-verified-handler hipotético seria
+		canvas inbound consumer + agent reaction, NÃO policy do domain.
+
+		**Boundary preservation transversal** (anti-mini-NIM/FCE/SCF/
+		ATO + anti-orchestrator):
+		- reasonCode: string (não enum no type) — taxonomia em
+		  policy/regime/adapter, não domain core (anti-mini-ATO)
+		- cancellationWindow: função pura externa — domínio usa, não
+		  define (anti-orchestrator + anti-procedural-leakage)
+		- Receivable como entity interna sem autonomia — anti-mini-SCF
+		  (transferibilidade decidida por SCF, não INV)
+		- Lifecycle 2 estados fechado — anti-mini-FCE (paid não existe)
+		- Projection derivada não autoritativa — anti-runtime-coupling
+
+		**Properties formalmente verificáveis** (cue vet enforces):
+		- Determinismo: invariants em forma lógica formal (∀, ⇔, ∧, ⇒)
+		- Idempotency: identity (commitmentRef, evidenceRef) tupla única
+		- Atomicity: BD7 dual-emission via primitive infra (declarado
+		  como contract, não mecanismo)
+		- Replayability: events append-only; lifecycle states fechados;
+		  identity sem version components
+		- Imutabilidade: regime/amount/currency/fiscalDocRef immutable
+		  post-creation; cancelled state preserva entity record
+		- Auditability: cc-04 fiscal-grade trail via fiscalDocRef
+		  non-empty + immutable + lineage Invoice ↔ Receivable ↔
+		  InvoiceCancelled
+
+		**Phase 0 limitations honest**:
+		- Cancellation window logic depende de cancellationWindow(
+		  regimeVersion) função externa — Phase 0 lookup tabela
+		  declarativa simples; Phase 1+ multi-jurisdictional adapter
+		  per oq-inv-4 canvas
+		- Projection prj-invoice-by-identity é Phase 1+ optimization;
+		  Phase 0 caminho idempotency check sync via aggregate state
+		  lookup direct é alternativa válida
+		- Cross-BC event consumption (evt-delivery-verified DLV;
+		  eventos CMT) é canvas/agent territory; NÃO modelado em
+		  domain-model (paralelo DLV pattern)
+		- 4 forward-refs declarados (Phase 4 agent-spec; Phase 5
+		  envelope; Phase 1+ adapter SEFAZ; Phase 1+ multi-juris
+		  regime adapter)
+
+		Domain Model é COMPILAÇÃO do glossary, não design livre —
+		qualquer regra futura que NÃO encaixa neste modelo NÃO
+		pertence ao INV. Boundary fechado por construção formal.
 		"""
 }
