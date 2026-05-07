@@ -373,4 +373,344 @@ canvas: artifact_schemas.#Canvas & {
 			emit primitive), não contract de comunicação.
 			"""
 	}
+
+	businessDecisions: [
+		// =============================================
+		// LOTE 1 — NÚCLEO DETERMINÍSTICO (4 BDs)
+		// =============================================
+		{
+			id: "bd-issuance-requires-verification"
+			decision: """
+				Toda InvoiceIssued emitida AUTONOMAMENTE por INV EXIGE
+				DeliveryVerified terminal=approved precedente sob a
+				mesma (commitmentRef, evidenceRef). Sem verificação
+				de execução, no fatura. INV consome APENAS
+				DeliveryVerified status=approved e ignora
+				explicitamente todos os demais eventos DLV
+				(DeliveryRejected, supersession events, lifecycle
+				internos). Cancelamento de DLV (rejected) ou
+				superseded NÃO triggera fatura.
+				"""
+			rationale: """
+				RECTOR herdado da invariante central Mesh ('dinheiro
+				só move quando operação comprova') aplicada à camada
+				fiscal: 'fatura só nasce quando entrega é
+				verificada'. Sem este gate, INV emit faturas sem
+				lastro operacional, quebrando spine commitment-
+				lifecycle e habilitando classe inteira de fraude
+				(faturamento sem entrega).
+				"""
+			consequences: """
+				Gate determinístico pré-emit; nenhuma fatura autônoma
+				sem DeliveryVerified canônico. Rejection/supersession
+				events DLV NÃO disparam mutação INV. Identidade da
+				fatura (commitmentRef, evidenceRef) é diretamente
+				derivada do terminal event canônico — sem ambiguidade
+				de origem.
+				"""
+		},
+		{
+			id: "bd-deterministic-fiscal-projection"
+			decision: """
+				amount = f(commitmentTerms, verificationOutcome=
+				approved) — função pura, fechada, determinística.
+				Cômputo fiscal é aplicação de tabelas declarativas
+				read-only (CFOP + alíquotas + retenções) sob
+				regimeVersion explícito; INV NÃO interpreta regime,
+				NÃO decide enquadramento, NÃO altera valor. Regime
+				fiscal é input externo (resolvido fora do INV);
+				regimeVersion bump é exigência explícita para
+				qualquer mutação de regra.
+				"""
+			rationale: """
+				A1 + A4 guardrails consolidados; previne INV virar
+				mini-ATO (interpretador fiscal) ou mini-FCE
+				(negociador de valor). Determinismo é precondition
+				de cc-03 (24/7) e cc-04 (audit reproducible). Função
+				pura = replay bit-a-bit reconstrutível para forensic
+				+ dispute.
+				"""
+			consequences: """
+				Silent regime mutation proibida; mudança de regra
+				fiscal exige regimeVersion explícito. Fatura emitida
+				sob regimeVersion-N permanece reproduzível para
+				audit indefinidamente. INV não tem decisão econômica;
+				divergência commercial-vs-fiscal é DRC/ATO scope.
+				"""
+		},
+		{
+			id: "bd-issuance-idempotent"
+			decision: """
+				Tupla (commitmentRef, evidenceRef) gera no máximo um
+				InvoiceIssued. Replay-safe: mesma tupla consumida
+				múltiplas vezes (replay, partição, multi-log
+				ingestion) produz exatamente um evento publicado.
+				Identidade NÃO inclui criteriaVersion nem
+				regimeVersion — versions são attributes do evento,
+				não componentes de identity. Re-emissão sob
+				regimeVersion distinto NÃO ocorre via mutação de
+				invoice existente; mudança de regime aplica somente
+				a verificações FUTURAS (nova evidenceRef ou nova
+				verificação aprovada gera nova invoice sob regime
+				corrente).
+				"""
+			rationale: """
+				G1 guardrail; previne duplicação de fatura que
+				quebraria lastro SCF (recebível duplicado),
+				contabilidade ATO (lançamento duplicado) e
+				settlement FCE (pagamento duplicado). Identity sem
+				criteriaVersion/regimeVersion preserva idempotência
+				cross-version; isolamento entre identity (quem é a
+				invoice) e attributes (sob qual regra foi emitida)
+				evita re-emissão silenciosa que violaria BD2
+				imutabilidade fiscal.
+				"""
+			consequences: """
+				Aggregate identity check pré-emit via atomic
+				primitive; tentativa de emit duplicado é no-op
+				observável. Nova evidenceRef (post-supersession)
+				gera nova invoice válida (tupla distinta). Cross-BC
+				consumers (FCE, ATO, SCF) observam at-most-once via
+				dedup ancorado em identity. Mudança de regime fiscal
+				(regimeVersion bump) NÃO regenera invoices
+				históricas — aplica somente a verificações
+				subsequentes; audit trail preserva regimeVersion no
+				momento da emissão para reproducibilidade indefinida.
+				"""
+		},
+		{
+			id: "bd-requires-local-commitment-projection"
+			decision: """
+				INV exige disponibilidade local, completa E
+				consistente dos commitmentTerms necessários para
+				cálculo de amount via projection cache derivado de
+				eventos CMT (CommitmentAccepted). Emissão é BLOQUEADA
+				quando projection: (a) não está disponível, (b) está
+				incompleta — campos obrigatórios para fiscal projection
+				(amount, currency, dueDate, taxRegimeRef, parties)
+				ausentes —, OU (c) está stale relativo ao estado
+				mais recente conhecido do commitmentRef. Uso de
+				projection stale é tratado como ausência (emit
+				bloqueado, mesmo path de retry). INV NÃO faz fallback
+				sync query a CMT no caminho crítico (viola
+				hasSyncSurface=false).
+				"""
+			rationale: """
+				Garante determinismo + replay independence: INV não
+				depende de queries síncronas ao CMT no caminho de
+				emissão. Race condition cross-BC (DeliveryVerified
+				arriving antes de CommitmentAccepted devido a
+				partições/atrasos infra-level) é tratada como
+				ausência temporária de input — emit é gate-blocked
+				até projection consistente. Staleness protection
+				previne bug clássico de produção: emitir invoice com
+				terms antigos enquanto CMT já publicou
+				CommitmentStateChanged que projection ainda não
+				processou — divergência fiscal sutil + race silencioso
+				difícil de detectar.
+				"""
+			consequences: """
+				Emission gate inclui verificação de projection local
+				pré-emit (presença + completude + freshness);
+				ausência ou staleness resulta em no-op + retry via
+				event replay (Phase 0). Eventual consistency esperada
+				em operação normal (commitmentRef precede causalmente
+				evidenceRef). Phase 0 limitação: timeout de espera por
+				projection consistente é runner-level (TBD via ADR
+				Phase 1+ se escalation pattern emergir). INV permanece
+				isolado de dependência runtime sync com CMT.
+				"""
+		},
+
+		// =============================================
+		// LOTE 2 — LIFECYCLE E CANCELAMENTO (2 BDs)
+		// =============================================
+		{
+			id: "bd-lifecycle-issued-cancelled-only"
+			decision: """
+				Estados de domínio Invoice ∈ {issued, cancelled}.
+				Não há estado draft, partial, pending, ou amended
+				no domínio — draft é integration concern (transiente
+				em adapter de emissão fiscal Phase 1+, fora do
+				boundary canônico INV). Transição única permitida:
+				issued → cancelled (sob condições BD5).
+				"""
+			rationale: """
+				A2 guardrail; state machine mínima previne retry
+				logic surface, estado não-determinístico, ambiguidade
+				lifecycle. Cada estado adicional é vetor de
+				complexidade operacional + audit + invariante; INV
+				não precisa de nenhum (cômputo fiscal é instantâneo;
+				cancelamento é binário).
+				"""
+			consequences: """
+				Nenhum command INV produz draft; falha de emissão é
+				error externo (escalation), não estado salvo. State
+				representation simples = audit trail simples = schema
+				CUE simples. Amend de fatura emitida NÃO existe —
+				correção via cancelamento + re-emissão sob nova
+				evidenceRef ou via DRC/ATO.
+				"""
+		},
+		{
+			id: "bd-cancellation-bounded-and-explicit"
+			decision: """
+				Cancelamento INV-owned APENAS dentro de janela
+				fiscal regulada (e.g. SEFAZ ≤24h regime brasileiro;
+				janela generaliza por regime jurisdicional). Fora
+				da janela: NÃO há mutação INV — escalation
+				supervisedDecision direcionando correção para DRC
+				(disputa) ou ATO (ajuste contábil). Cancelamento
+				sempre evento InvoiceCancelled explícito — sem
+				soft-delete, sem overwrite, sem re-emissão silenciosa.
+				"""
+			rationale: """
+				A3 (parcial) + G3 guardrails consolidados. Janela
+				fiscal respeita regulação tributária externa (mutar
+				fora da janela viola legislação). Cancelamento
+				explícito preserva auditabilidade cross-BC: FCE/ATO
+				sempre reconstroem lifecycle via event log canônico,
+				sem inferência sobre estado interno INV.
+				"""
+			consequences: """
+				Gate categórico within-window sim/não pré-cancel;
+				tentativa fora-janela bloqueada + escalation. FCE
+				consume InvoiceCancelled para cancelar pending
+				settlement pré-settle (no-op pós-settle — correção
+				é DRC). ATO estorna lançamento. Imutabilidade
+				pós-issued garantida fora da janela.
+				"""
+		},
+
+		// =============================================
+		// LOTE 3 — BOUNDARIES ANTI-MINI (4 BDs)
+		// =============================================
+		{
+			id: "bd-atomic-dual-emission"
+			decision: """
+				InvoiceIssued + ReceivableMaterialized emitidos
+				atomicamente via primitive de infraestrutura que
+				garante consistência entre estado e publicação de
+				eventos — mesmo commit transacional, jamais
+				cálculos separados. Conservação de valor:
+				ReceivableMaterialized.amount == InvoiceIssued.amount
+				sempre, derivado da mesma fonte computacional (BD2
+				amount function).
+				"""
+			rationale: """
+				G2 guardrail; previne divergência fatura↔recebível
+				que quebraria lastro SCF (recebível materializado
+				sem fatura válida ou amount divergente) e
+				contabilidade ATO. Atomic emit é responsabilidade
+				da infrastructure (declarado como contract, não
+				mecanismo) — paralelo BD14 DLV transactional outbox
+				pattern.
+				"""
+			consequences: """
+				Falha de emissão impede ambos eventos (no half-
+				emission); SCF + FCE/ATO sempre observam estado
+				consistente. Reconciliação de divergências
+				fatura↔recebível NÃO existe (divergência é
+				impossível por construção, não detectada ex-post).
+				"""
+		},
+		{
+			id: "bd-no-supersession-reaction"
+			decision: """
+				INV NÃO consome supersession events de DLV. Quando
+				DLV supersession produz nova verificação aprovada
+				(nova evidenceRef), nova invoice emerge
+				automaticamente via tupla (commitmentRef,
+				evidenceRef-N+1) distinta — NÃO é mutação da invoice
+				antiga. Correção da invoice antiga: cancelamento INV
+				(se dentro janela fiscal) OU sinal para DRC/ATO
+				(fora janela).
+				"""
+			rationale: """
+				A3 (parcial) guardrail; supersession reabre DLV
+				scope, não INV scope. Manter INV reativo a
+				supersession criaria acoplamento bidirecional
+				DLV↔INV + mutação implícita de invoice antiga
+				(violando G3). BD3 (idempotent identity sobre
+				evidenceRef) garante que nova evidenceRef → nova
+				invoice naturalmente.
+				"""
+			consequences: """
+				Lineage de invoices por commitmentRef via
+				eventLogOffset ordering canonical; múltiplas invoices
+				válidas por commitmentRef quando há supersession
+				(cada uma com evidenceRef distinta). Cancelamento
+				da invoice antiga é decisão separada — INV não
+				automatiza correção retroativa.
+				"""
+		},
+		{
+			id: "bd-no-metrics-feedback"
+			decision: """
+				INV NÃO reage a métricas operacionais (taxa de
+				cancelamento, taxa de DLV-rejected, latência média
+				de emissão, distribuição de regimeVersion, etc.).
+				Métricas são observability-only; mudanças de
+				comportamento INV ocorrem via design evolution
+				(ADR/founder review), NUNCA via auto-tuning, self-
+				adaptation ou feedback loop interno.
+				"""
+			rationale: """
+				BD10 anti-mini-NIM transversal Mesh (paralelo DLV
+				bd-no-scoring-by-dlv). INV reagindo a métricas
+				viraria decisor econômico/risco (REW/NIM scope).
+				Métricas alimentam observability OBS + escalation
+				founder, não loops de tuning interno.
+				"""
+			consequences: """
+				Dashboards OBS expõem métricas INV para sh-04
+				founder review; thresholds de alarm geram escalation
+				explícita, não auto-modification. INV permanece
+				projeção determinística sob política externa (regime
+				+ criteria), nunca adaptativa internamente.
+				"""
+		},
+		{
+			id: "bd-no-downstream-coordination"
+			decision: """
+				INV NÃO coordena AUTONOMAMENTE com nem reage a
+				estados ou decisões de contextos downstream (FCE,
+				SCF, ATO, DRC). Emissão e cancelamento são funções
+				exclusivamente dos inputs upstream (DLV terminal
+				events, CMT projection cache, regime fiscal). Eventos
+				downstream NÃO entram em projection cache INV; INV
+				não os consome no caminho normal. Dados downstream
+				NÃO são utilizados como input de decisão nem direta
+				nem indiretamente no fluxo de emissão (sem flags
+				derivadas, sem caching silencioso, sem influência
+				implícita). Path supervised (e.g., DRC força
+				cancellation via human-in-loop governance) permanece
+				disponível como escalation explícita, distinto de
+				auto-reaction.
+				"""
+			rationale: """
+				Previne INV evoluir para orchestrator ou decision
+				engine financeiro. Mantém separação clara:
+				materialização (INV) ≠ execução (FCE) ≠ originação
+				(SCF) ≠ contabilidade (ATO) ≠ resolução de disputa
+				(DRC). Anti-drift estrutural — sem este BD, futura
+				tentação de 'INV reage a PaymentSettled para flag
+				invoice paid' violaria BD4 (lifecycle 2 states) mas
+				só por inferência composta; BD explícito bloqueia
+				por construção. Bloqueio de uso indireto fecha
+				loophole semântico ('ok, não reajo… mas posso ler e
+				usar implicitamente').
+				"""
+			consequences: """
+				Nenhum evento downstream altera comportamento autônomo
+				INV. INV permanece puramente reativo a fatos upstream.
+				Correções downstream (FCE pagamento estornado, ATO
+				ajuste contábil, DRC dispute resolution) NÃO mutam
+				invoice histórica — correção via cancelamento INV
+				(dentro janela) ou via DRC/ATO (fora janela).
+				Supervised intervention é caminho separado, registrada
+				como supervisedDecision com audit trail completo.
+				"""
+		},
+	]
 }
