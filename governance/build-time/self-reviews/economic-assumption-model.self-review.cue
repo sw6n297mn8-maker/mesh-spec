@@ -13,7 +13,7 @@ economicAssumptionModel: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-07"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 
 	status: "stable"
@@ -190,6 +190,128 @@ economicAssumptionModel: build_time.#SelfReviewReport & {
 			paralelo srr-structural-check + srr-artifact-schema schema
 			discipline.
 			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Founder R5 follow-up post-commit refinement — explicit
+			declaration of schema's own potential incompleteness. Founder
+			thesis Round 2: 'diferente de outros schemas, este schema
+			modela o que NÃO controlamos. Realidade não está sob
+			controle do sistema. Implica: SRR do schema NÃO pode ser
+			superficial — qualquer erro aqui contamina tudo abaixo'.
+
+			**SCHEMA INCOMPLETENESS DECLARATION (founder R5 mandatory)**:
+
+			Distintamente de outros artifact-schemas no repo:
+			- agent-spec.cue, structural-check.cue, canvas.cue, etc.
+			  modelam REGRAS DO SISTEMA (sistema controla; correctness
+			  é decidible internally; refinements são design choices)
+			- economic-assumption-model.cue modela REALIDADE DO MUNDO
+			  (sistema NÃO controla; correctness depende de empirical
+			  validity; refinements são discoveries, NÃO design choices)
+
+			**Consequência ontológica fundamental**:
+
+			Este schema PODE ESTAR INCOMPLETO. Por construção:
+			(a) Schema captura realidades empíricas observadas — pode
+			    haver realidades NÃO observadas ainda (unknown unknowns)
+			(b) Schema mis-categorizes existing realities — uma reality
+			    pode ser mejor modelada como capability, OR vice-versa
+			(c) Schema's prefix discipline (ri-NN/cap-adv-NN/imp-NN)
+			    pode ser insuficiente — futuras realidades podem exigir
+			    nova categoria ontológica não anticipada
+			(d) Schema's quality criteria (tq-eam-01..04) podem ser
+			    incompletas — futuras realidades podem violar
+			    assumptions implícitas dos criteria
+
+			**Discipline canonical declared (founder R4+ alert
+			explicitly extended R5)**:
+
+			- Omitir ri-* crítico = falha estrutural silenciosa
+			  (sistema implicitamente assume que não existe)
+			- Adicionar ri-* errado = ruído arquitetural
+			- Schema design errado contamina TODA a Layer -1 stack
+			- Mitigation: adversarial review per release/major change;
+			  community-wide review eventual; explicit incompleteness
+			  declaration (este Round 2)
+
+			**Asymmetric responsibility from other artifact-schemas**:
+
+			Outros schemas (agent-spec, structural-check, etc.) podem
+			ser refinados via ADR (decisão arquitetural reversível).
+			Este schema, quando refinado, NÃO é decisão — é
+			RECONHECIMENTO de realidade observada que estava omitted.
+			Refinement aqui é EPISTÊMICO (nova reality discovered),
+			NÃO arquitetural (decision change).
+
+			**Consequência prática para evolução**:
+
+			- Cada nova ri-NN proposta deve passar adversarial review
+			  como evolução do reality model (NÃO como feature
+			  addition)
+			- Cada modification deve trace empirical observation OR
+			  adversarial discovery (NÃO design choice)
+			- Schema refinements requerem NEW round em este SRR
+			  (paralelo a R4+ pre-commit iteration que added ri-07/08)
+			- Phase B (cross-cutting refs + structural enforcement)
+			  deve account for incompleteness — NÃO assume schema
+			  exhaustively captures reality
+
+			**Pattern emergente — recursive governance**:
+
+			Schema modeling reality requires self-aware governance:
+			schema's correctness depends on empirical adequacy, NÃO
+			internal consistency apenas. Sistema declara via este
+			Round 2 que schema é falsifiable (pode ser refuted by
+			observed reality not captured).
+
+			Pattern paralelo a Karl Popper falsifiability discipline em
+			scientific theory: theory's strength comes from being
+			specific enough to be wrong. Layer -1 schema declares
+			explicit list of realities ASSUMED — cada nova adversarial
+			review tem chance de discover unknown unknowns + propose
+			amendments.
+
+			**Mitigations against schema incompleteness**:
+
+			(M1) Round-based refinement discipline (paralelo SRR R1/R2
+			multi-round pattern): novas adversarial reviews adicionam
+			rounds, NÃO replace artifact silently.
+			(M2) tq-eam-04 prefix discipline previne ri-* hijacking via
+			cross-artifact ref ambiguity (system-wide consistency).
+			(M3) Phase B deferred until NIM bootstrap previne premature
+			binding to incomplete model — cross-cutting enforcement só
+			when reality model maturity adequate.
+			(M4) Founder R4+ pre-write iteration discipline establishes
+			adversarial review BEFORE first commit pattern — schema
+			itself benefited de bilateral pushback durante design
+			(catching gradient language, missing realities A7/A8).
+
+			**Insight founder R5 canonical**:
+
+			'Esse schema é o mais perigoso de todos porque modela o que
+			não controlamos'. SRR profundidade compensa risco
+			arquitetural — superficial SRR para schema modeling reality
+			contamina silenciosamente toda a Layer -1 stack downstream.
+
+			**Round 2 conclusion**:
+
+			Este SRR Round 2 declares explicitly: economic-assumption-
+			model.cue MAY BE INCOMPLETE in capturing economic reality.
+			Schema design é correta para realidades EMPIRICAMENTE
+			OBSERVADAS até R4+ adversarial review (8 ri-NN + 3 cap-adv-NN
+			+ 8 imp-NN); future adversarial reviews podem discover
+			realidades adicionais OR mis-categorizations. Refinement
+			path: Round 3+ via new adversarial reviews; Phase B
+			binding waits for reality model maturity.
+
+			cue vet ./... EXIT=0 (post-Round-2 SRR addition);
+			zero changes a schema content; only SRR meta-declaration
+			expansion.
+			"""
 	}]
 
 	findings: {}
@@ -200,14 +322,26 @@ economicAssumptionModel: build_time.#SelfReviewReport & {
 		'truths that constrain design but are not design decisions'.
 		3 discriminated types (#RealityInvariant + #AdversarialCapability
 		+ #SystemImplication) + 4 quality criteria type-specific
-		(tq-eam-01 absolute language / tq-eam-02 no mechanism encoding /
-		tq-eam-03 implications grounded / tq-eam-04 prefix discipline).
-		Singleton cardinality (canonical path strategic/economic-model/);
-		Phase A scope tight (declarative-only, no cross-cutting refs);
-		Phase B cross-cutting + structural enforcement deferred a NIM
-		bootstrap. R4+ adversarial pre-write iteration precedent
-		incorporated. uq-01..08 + tq-as-01..03 + tq-eam-01..04
-		satisfeitos. cue vet clean.
+		(tq-eam-01..04). Singleton cardinality; Phase A scope tight;
+		Phase B deferred a NIM bootstrap. R4+ adversarial pre-write
+		iteration precedent incorporated.
+
+		Round 2 (founder R5 follow-up) adiciona schema incompleteness
+		declaration explicit: distintamente de outros artifact-schemas
+		que modelam regras controladas pelo sistema, este schema modela
+		REALIDADE DO MUNDO (sistema NÃO controla). Schema PODE ESTAR
+		INCOMPLETO por construção (unknown unknowns; mis-categorizations;
+		insufficient prefix discipline; incomplete quality criteria).
+		Refinements são EPISTÊMICOS (reality discovery), NÃO arquiteturais
+		(decision change). Pattern recursive governance: schema's
+		correctness depends on empirical adequacy, NÃO consistency
+		alone. Mitigations: round-based refinement discipline (M1) +
+		tq-eam-04 prefix lock (M2) + Phase B deferred until maturity
+		(M3) + founder R4+ pre-write adversarial discipline (M4).
+
+		uq-01..08 + tq-as-01..03 + tq-eam-01..04 satisfeitos. cue vet
+		clean. Round 2 zero changes a schema content; SRR meta-
+		declaration expansion only.
 		"""
 
 	singleRoundRationale: """
