@@ -387,13 +387,154 @@ glossary: artifact_schemas.#Glossary & {
 			relatedTerms: ["term-invoice", "term-fiscal-regime"]
 			rationale: "Materializa cc-04 audit trail regulatory-grade como ponte canônica entre Invoice INV e documento fiscal autoritativo externo. Reference (não integração) protege contra escopo creep — emissão técnica é adapter Phase 1+, INV permanece focado em declaração canônica. Imutabilidade absoluta pós-association (nunca alterado nem substituído) garante audit reproducibility e satisfaz retention legal regulatória (≥5 anos NF-e)."
 		},
+
+		// ============================================================
+		// LAYER 4 — EDGE CONDITIONS (5 termos: condições de fronteira
+		// do sistema; sem ação, sem threshold, sem comportamento)
+		// ============================================================
+
+		{
+			code:   "term-staleness"
+			name:   "Defasagem"
+			termEn: "Staleness"
+			category: "value"
+			definition: """
+				Condição onde representação local de um fato externo não
+				reflete o estado mais recente da fonte canônica. Staleness
+				é relativa (relação entre representação observada e fonte
+				autoritativa), não absoluta. Violação seria classificar
+				staleness baseado apenas em tempo decorrido (sem referência
+				à fonte), OR tratar staleness como falha e não como
+				condição operacional.
+				"""
+			antiTerms: [{
+				term: "atraso temporal"
+				clarification: "Staleness não é apenas decorrer de tempo — projection pode estar atualizada mesmo após longo intervalo (se fonte não mudou); pode estar stale imediatamente após update (se fonte mudou ainda mais recentemente)"
+			}, {
+				term: "obsolescência"
+				clarification: "Obsolescência implica perda de relevância intrínseca; staleness é relativa ao 'estado mais recente da fonte específica' — projection stale ainda é dado válido, apenas defasado"
+			}]
+			relatedTerms: ["term-commitment-terms-projection"]
+			rationale: "Conceito orthogonal à ação — diferenciação operacional missing-retry vs stale-HARD-escalation pertence a governance scope (NÃO a este termo). Definir staleness como condição (não regra) preserva separação glossary/governance."
+		},
+
+		{
+			code:   "term-freshness"
+			name:   "Atualidade"
+			termEn: "Freshness"
+			category: "value"
+			definition: """
+				Freshness é a ausência de staleness — condição onde
+				representação local reflete o estado mais recente da
+				fonte canônica. Freshness é relativa (relação entre
+				representação observada e fonte autoritativa), não
+				absoluta — não significa 'recém-criada' ou 'atualizada
+				há pouco', mas 'consistente com a versão mais recente
+				da fonte'. Violação seria classificar freshness baseado
+				apenas em timestamp recente, OR tratar absence-of-update
+				como freshness automática.
+				"""
+			antiTerms: [{
+				term: "novidade absoluta"
+				clarification: "Freshness não é newness em sentido absoluto; é estado RELATIVO de conformidade com fonte. Projection freshness pode ser de minutos atrás (se fonte não mudou desde então) — freshness não exige update recente"
+			}, {
+				term: "validade"
+				clarification: "Validade é semântica (dado correto/legítimo); freshness é temporal-causal (sincronia com fonte). Stale data ainda pode ser válido; fresh data ainda pode ser inválido"
+			}]
+			relatedTerms: ["term-commitment-terms-projection", "term-staleness"]
+			rationale: "Contraponto positivo de staleness; ambos são lados da mesma relação representação↔fonte. Definir explícito como 'ausência de staleness' evita drift semântico futuro e interpretação errada de 'updated == fresh' — fresh exige sincronia com VERSÃO mais recente, não ato recente de update."
+		},
+
+		{
+			code:   "term-replay"
+			name:   "Replay"
+			termEn: "Replay"
+			category: "classification"
+			definition: """
+				Reprocessamento de um mesmo fato já observado anteriormente,
+				gerando observação repetida da MESMA realidade — não criação
+				de nova realidade. Replay é fenômeno inerente a sistemas
+				baseados em eventos, independente de sua causa específica.
+				Violação seria tratar replay como novo fato (geraria
+				duplicação inválida), OR tratar novo fato distinto como
+				replay (silenciaria emit legítimo).
+				"""
+			antiTerms: [{
+				term: "retry"
+				clarification: "Retry é ação intencional (sistema tenta novamente após falha); replay é observação passiva (mesmo fato chega múltiplas vezes). Retry é client-side; replay é phenomenon-side"
+			}, {
+				term: "reprocesso após falha"
+				clarification: "Reprocesso após falha implica error recovery; replay é fenômeno NORMAL em sistemas event-driven — pode ocorrer sem qualquer falha"
+			}]
+			relatedTerms: ["term-idempotency-identity"]
+			rationale: "Idempotency-identity (Layer 3) protege contra impacto de replay; este termo define o FENÔMENO. Definir replay como observável (não como falha) preserva semântica neutra — replay legítimo é parte normal do funcionamento; replay anômalo é signal de problema infra OR adversarial."
+		},
+
+		{
+			code:   "term-projection-availability"
+			name:   "Disponibilidade de Projeção"
+			termEn: "Projection Availability"
+			category: "value"
+			definition: """
+				Condição binária onde projection local existe e é
+				consultável, independente de freshness ou completude.
+				Availability é uma das três condições orthogonais de BD4
+				freshness gate (presença + completude + freshness);
+				ausência de availability significa que projection ainda
+				não foi materializada para um commitmentRef específico.
+				Violação seria tratar availability como condição agregada
+				(incluindo completude/freshness), OR assumir availability
+				via fallback heurístico.
+				"""
+			antiTerms: [{
+				term: "presence of data"
+				clarification: "Availability é específica para projection canônica do INV (cache derivado de CommitmentAccepted CMT); 'presence of data' genericamente não captura especificidade da projection"
+			}, {
+				term: "completude"
+				clarification: "Availability ≠ completude; projection pode existir (available) com campos faltando (incomplete). BD4 trata availability + completeness + freshness como três condições orthogonais de gate"
+			}]
+			relatedTerms: ["term-commitment-terms-projection"]
+			rationale: "Diferenciação availability vs completeness vs freshness é operacionalmente crítica — agentes que conflam as três produzem gate behavior errado. Definir availability como condição binária independente preserva separação ortogonal das três dimensões BD4."
+		},
+
+		{
+			code:   "term-finality-boundary"
+			name:   "Limite de Finalidade"
+			termEn: "Finality Boundary"
+			category: "rule"
+			definition: """
+				Limite estrutural onde mutação de um fato deixa de ser
+				possível dentro do BC que o originou. Após o limite,
+				qualquer correção ou mudança requer mecanismos externos
+				(compensating actions em outros BCs). Para INV, cancellation
+				window fiscal é instância concreta de finality-boundary
+				(pós-window, INV não muta — correção é DRC/ATO scope).
+				Violação seria permitir mutação após o limite definido,
+				OR confundir com expiration de recurso.
+				"""
+			antiTerms: [{
+				term: "deadline"
+				clarification: "Deadline implica miss = late completion (operação ainda possível, apenas tardia); finality-boundary é cutoff estrutural (operação NÃO mais possível pós-limite)"
+			}, {
+				term: "expiration"
+				clarification: "Expiration sugere resource decay (algo expira porque seu valor decai); finality-boundary é cutoff regulatório/contratual independente de decay — fato permanece válido pós-boundary, apenas imutável"
+			}]
+			relatedTerms: ["term-invoice-cancellation-process", "term-invoice"]
+			rationale: "Conceito abstrato que cancellation window fiscal instancia em INV. Definir finality-boundary como conceito generalizável permite reuso semântico futuro (e.g., supersession boundaries Phase 1+, regulatory retention boundaries). Distinção finality vs deadline vs expiration é crítica para agentes não confundirem categorias temporais distintas."
+		},
 	]
 
 	rationale: """
-		Glossary materializa 13 termos canônicos em 3 layers (Phase 2
+		Glossary materializa 18 termos canônicos em 4 layers (Phase 2
 		incremental per founder orientation 'escreve + valida + escala').
 		Firewall semântico contra drift de agente, drift humano, e drift
 		cross-BC. Cada termo cobre boundary específica emergente em BDs.
+
+		**Arquitetura semântica em 4 layers ortogonais**:
+		Layer 1 (CORE): entidades + processos + valores
+		Layer 2 (INTERFACE): eventos públicos cross-BC
+		Layer 3 (MECHANISMS): invariantes estruturais + boundary protectors
+		Layer 4 (EDGE CONDITIONS): condições de fronteira do sistema
 
 		**Layer 1 — CORE (6 termos fundacionais)**:
 
@@ -452,12 +593,35 @@ glossary: artifact_schemas.#Glossary & {
 		(3) Consistência interna (atomic + idempotent);
 		(4) Boundary externo (regime-version + fiscal-doc-reference).
 
-		**Layer 4 (PENDENTE Phase 2 incremental)**: edge concepts
-		(staleness, freshness, replay window) — conceitos que NÃO são
-		regras operacionais (per founder warning Layer 4 = conceitos
-		edge, NÃO escalation/halt/observability/monitoring). Próximo
-		commit aguarda founder Layer 4 anti-pattern map antes de
-		propose para evitar mistura glossary com governance.
+		**Layer 4 — EDGE CONDITIONS (5 termos: condições de fronteira
+		do sistema)**:
+
+		Per founder anti-pattern map: Layer 4 = condições do mundo, NÃO
+		regras operacionais (sem ação, sem threshold, sem IF/WHEN, sem
+		dependência outro BC, sem duplicar mechanism, com violação clara,
+		condição não comportamento). 5 termos: term-staleness +
+		term-freshness (condições orthogonais de sincronia projection),
+		term-replay (fenômeno observável event-driven), term-projection-
+		availability (3ª dimensão BD4 freshness gate), term-finality-
+		boundary (limite estrutural generalizável de mutação cessante).
+
+		causal-consistency considerada mas REJEITADA per advanced filter
+		'se eu remover, sistema fica mais ambíguo?' — overlap forte com
+		atomic-dual-emission (Layer 3) + BD1 RECTOR não justifica
+		inclusão (over-refinement risk).
+
+		**Insight arquitetural** (cumulativo Layers 1-4):
+		(1) Fiscal contract: InvoiceIssued + InvoiceCancelled → ATO
+		(2) Financial substrate contract: ReceivableMaterialized → SCF
+		(3) Consistência interna: atomic + idempotent (Layer 3 Bloco 1)
+		(4) Boundary externo: regime-version + fiscal-doc-reference
+		    (Layer 3 Bloco 2)
+		(5) Edge conditions: 4 dimensões de fronteira semântica
+		    (sincronia, observação repetida, disponibilidade, finalidade)
+
+		Phase 2 closure: 4 layers SUFICIENTES — não inventar Layer 5
+		(per founder warning over-refinement risk; entities + events +
+		mechanisms + edge conditions cobrem semântica completa do BC).
 
 		Glossário não evolui sem causa real per founder orientation
 		(over-refinement risk): próxima evolução só acontece se surgir
