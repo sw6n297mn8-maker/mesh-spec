@@ -46,7 +46,8 @@ package artifact_schemas
 	"work-governance" |
 	"policy" |
 	"validation-prompt" |
-	"economic-assumption-model"
+	"economic-assumption-model" |
+	"economic-mechanism-model"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -64,7 +65,8 @@ package artifact_schemas
 // def (deferred-decision), defg (deferred-decision-guide),
 // wg (work-governance),
 // pol (policy),
-// eam (economic-assumption-model).
+// eam (economic-assumption-model),
+// emm (economic-mechanism-model).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""
