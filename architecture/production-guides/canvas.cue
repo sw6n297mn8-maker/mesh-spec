@@ -270,8 +270,8 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 			}, {
 				action: "Classificar e declarar cada verificationMetric"
 				detail: """
-					Fluxo de decisão 5-step para CADA verificationMetric (per
-					ADR-078):
+					Fluxo de decisão 6-step para CADA verificationMetric (per
+					ADR-078 + ADR-079 refinement empirical via DLV validation):
 
 					(1) Identificar se a métrica representa:
 					    (a) violação direta de invariante operacional (e.g.,
@@ -279,16 +279,28 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 					    (b) degradação indireta ou sinal diagnóstico (e.g.,
 					        latency p99, ratio agregado sem threshold crítico)
 
+					(1.5) Se for control (tipo a), verificar execution path da
+					      ação corretiva:
+					      (a) executável diretamente — tripwire, invariant
+					          breach com resposta imediata via
+					          scope_enforcement INLINE (freeze, block, reject)
+					      (b) requer routing/escalation — coordenação, decisão
+					          externa, diagnóstico via escalationCriterion
+
 					(2) Se tipo (a) — control metric:
-					    - Verificar se existe escalationCriterion canônico no
-					      governanceScope que responde a essa violação
-					    - Se existir → declarar onBreach.escalationRef apontando
-					      para o id correspondente
-					    - Se NÃO existir escalationCriterion canônico: criar
-					      escalationCriterion APENAS se a ação corretiva for
-					      determinística e bem definida; caso contrário,
-					      classificar metric como observability-only (NÃO
-					      criar escalation prematuramente)
+					    - Se direct-action path (1.5.a) → declarar ação direta
+					      explícita no rationale (sem onBreach); ação fica
+					      INLINE no metric (tripwire pattern)
+					    - Se escalation-driven path (1.5.b):
+					      - Verificar se existe escalationCriterion canônico
+					        no governanceScope que responde a essa violação
+					      - Se existir → declarar onBreach.escalationRef
+					        apontando para o id correspondente
+					      - Se NÃO existir escalationCriterion canônico: criar
+					        escalationCriterion APENAS se a ação corretiva for
+					        determinística e bem definida; caso contrário,
+					        classificar metric como observability-only (NÃO
+					        criar escalation prematuramente)
 
 					(3) Se tipo (b) — observability-only:
 					    - Classificar como observability-only (sem onBreach)
@@ -374,19 +386,65 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 					- metric com onBreach
 					Escalation sem trigger observável é inválida (dead path).
 					""",
+				"""
+					HEURISTIC — direct-action vs escalation (control sub-paths,
+					per ADR-079):
+
+					Use direct-action (sem onBreach; ação INLINE no metric
+					rationale) APENAS quando:
+					- A ação é monotônica e segura (fail-safe: block/freeze/
+					  reject)
+					- A ação NÃO cria novo estado de negócio (não emite, não
+					  altera, não coordena)
+					- A ação NÃO depende de interpretação contextual
+
+					Tradução prática:
+					- ✅ freeze autonomous emit pipeline → OK (DLV tripwire)
+					- ✅ block ingestion silently → OK
+					- ✅ reject command → OK
+					- ❌ 'corrigir automaticamente' → PROIBIDO (cria estado)
+					- ❌ 'reprocessar com ajuste' → PROIBIDO (interpreta contexto)
+					- ❌ 'emit fallback event' → PROIBIDO (cria estado)
+
+					Use escalation (com onBreach) quando:
+					- A resposta exige coordenação externa ou decisão humana
+					- Há múltiplas possíveis ações (founder review com options)
+					- É necessário routing (founder, ops, outro BC)
+
+					Direct-action ≠ ação qualquer. Direct-action = fail-safe
+					invariant enforcement.
+
+					GUARDRAIL crítico — tripwire NÃO é fallback:
+					Tripwire (direct-action) NÃO é fallback para ausência de
+					escalation. Se a ação não é claramente fail-safe e
+					determinística, deve ser modelada como escalation — NÃO
+					forçar direct-action por falta de escalationCriterion
+					adequado.
+
+					GUARDRAIL — precedence quando ambos aplicáveis:
+					Quando uma métrica poderia acionar tanto direct-action
+					quanto escalation:
+					- Executar direct-action primeiro (fail-safe containment)
+					- Escalation pode ocorrer em paralelo ou após contenção
+					Containment precede diagnosis — race conditions de
+					decisão eliminadas por construção.
+					""",
 			]
 			doneCriteria: """
 				≥3 assumptions com invalidationSignals. ≥3 openQuestions com
 				deadlines ISO. ≥3 verificationMetrics com targets quantificados.
 				Cada verificationMetric explicitamente classificada como
-				(a) control (com onBreach.escalationRef declarado) OU
-				(b) observability-only (sem onBreach, com rationale explícito
-				sobre por que não há ação automática). Toda metric com
-				onBreach referencia escalationCriterion válido no mesmo
-				canvas. Nenhuma metric com ligação ambígua (nem control nem
-				observability). rationale root-level ≥500 runes sintetizando
-				identity + invariants + governance. cue vet passa. founder
-				approval explícito antes de commit.
+				(a) control OU (b) observability-only. Control metrics declaram
+				EITHER onBreach.escalationRef (escalation-driven path)
+				OR ação direta explícita no rationale (direct-action /
+				tripwire pattern, com guardrails fail-safe per ADR-079).
+				Observability-only metrics sem onBreach com rationale
+				explícito sobre por que não há ação automática. Toda metric
+				com onBreach referencia escalationCriterion válido no mesmo
+				canvas. Nenhuma metric com ligação ambígua. rationale
+				root-level ≥500 runes sintetizando identity + invariants +
+				governance. cue vet passa. founder approval explícito antes
+				de commit.
 				"""
 			ifGap: """
 				Se assumptions são poucas, BC pode estar over-confident —
