@@ -13,7 +13,7 @@ invPrimaryAgent: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-07"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 
 	status: "stable"
@@ -570,56 +570,307 @@ invPrimaryAgent: build_time.#SelfReviewReport & {
 			cue vet ./contexts/inv/... EXIT=0; full repo cue vet
 			./... EXIT=0.
 			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Founder R2 adversarial review post-Round 1 SRR — second
+			adversarial pass identificou 3 OBRIGATÓRIOS + 1
+			RECOMENDADO ajustes não cobertos no Round 1. Founder
+			tese de Round 2: 'está muito bom — mas ainda não está
+			à prova de adversário forte. Saiu de bem desenhado para
+			quase impossível de quebrar sem violar contratos
+			explícitos. Mas ainda existem 3 vetores onde sistema
+			real quebra mesmo com tudo isso'.
+
+			Quatro vetores adversariais que Round 1 NÃO cobria
+			completamente — TODOS aplicados via 5 mudanças no
+			agent-spec + declarações canônicas neste Round 2:
+
+			**FINDING R2-1 — Execution/Observation split** (RISCO
+			ALTO não declarado em Round 1):
+
+			Vetor adversarial: emit acontece corretamente atomic
+			(sc-inv-01 enforced via cst-gate-issue-atomic-feasibility-
+			execution + transactional outbox primitive); MAS leitura
+			do estado vê parcial. Sources de partial observation:
+			(a) projection atualiza antes de ambos eventos (skew
+			update-side); (b) reader pega snapshot intermediário
+			(read-side timing); (c) downstream consume out-of-order
+			(consumer-side ordering).
+
+			Round 1 protegia EMISSION (atomic guarantee declarada);
+			NÃO protegia OBSERVATION (consumer-side semantics).
+			Sistema implicitly assumia: 'se emit foi atômico → sistema
+			é consistente'. Falso em sistemas distribuídos.
+
+			Fix estrutural aplicado:
+			(a) Nova constraint cst-system-boundary-acknowledged
+			(behavioral-constraint kind: declarative-acknowledgment;
+			category: system-boundary-assumption). Declara
+			explicitamente: 'CONSUMERS MUST treat InvoiceIssued +
+			ReceivableMaterialized as atomic semantic pair —
+			partial observation is invalid state'. Ideal-mitigation
+			declarada: correlationId / event-grouping / same-txId
+			boundary (Phase 1+ promotion).
+			(b) Attack-vectors-residual declarados: [partial-
+			observation-via-projection-update-skew, snapshot-
+			intermediate-read, out-of-order-downstream-consumption].
+			(c) enforcementLevel: advisory (system-level assumption,
+			NÃO agent-enforceable Phase 0).
+
+			Risk classification: RISCO ALTO declarado canonicamente.
+			Honesty arquitetural: agent declara escopo real
+			(emission guaranteed; observation = system-level
+			responsibility distinta).
+
+			**FINDING R2-2 — Replay ordering inversion** (RISCO
+			MÉDIO-ALTO não explícito em Round 1):
+
+			Vetor adversarial: Cancel chega antes de Issue (replay
+			scenarios em event systems / message broker reorder /
+			network partition recovery). Round 1 cst-gate-cancel-
+			ordering verification usava 'event-ordering sequence
+			[InvoiceIssued, InvoiceCancelled] expected: strictly-
+			ordered' + 'predecessor-event-existence target=evt-
+			invoice-issued must-exist-before-cancel-emit' — ambos
+			implicitly sequence-based (event arrival).
+
+			Em event systems, ordering NÃO é garantido. Round 1
+			assumption (event sequence == real ordering) é falsa.
+			Consequência: cancel pode falhar indevidamente (Issue
+			ainda não chegou ao gate evaluator) OR pior — passar
+			com estado inconsistente (gate mal interpretou sequence).
+
+			Fix estrutural aplicado em cst-gate-cancel-ordering
+			verification YAML (commit consolidado R2):
+			(a) NEW check 'aggregate-state-evaluation-time-check
+			target=agg-invoice expected=Invoice exists in aggregate
+			canonical state with status=issued AT EVALUATION TIME'
+			com forbidden: rely-on-event-arrival-order-OR-event-
+			sequence-as-source-of-truth.
+			(b) REPLACED 'event-ordering' check com 'event-ordering-
+			at-evaluation-time' (system state ordering verifiable
+			via aggregate canonical state, NÃO event arrival).
+			(c) REPLACED 'predecessor-event-existence' com
+			'predecessor-state-existence target=agg-invoice'
+			(state-based predecessor check, NÃO event sequence).
+			(d) Updated rationale declara: 3 dimensões distintas
+			(temporal=window; ordering=causal AT evaluation time;
+			state-evaluation=authoritative source).
+
+			Invariante derivada introduzida (declarativa neste SRR):
+			'CancelInvoice só é válido se Invoice exists em
+			aggregate canonical state at EVALUATION TIME,
+			INDEPENDENTEMENTE da ordem de chegada dos eventos'.
+			Cancel re-checks aggregate state, NÃO confia em sequence.
+
+			Risk classification: RISCO MÉDIO-ALTO endereçado
+			estruturalmente (sequence-based → state-based replacement).
+
+			**FINDING R2-3 — False positive structural gate**
+			(RISCO OPERACIONAL importante não distinguido em
+			Round 1):
+
+			Vetor adversarial: infra glitch → agent acha que gate
+			falhou mas sistema está OK. Sources operacionais:
+			(a) DB timeout durante state lookup; (b) projection
+			indisponível durante check; (c) leitura inconsistente
+			(read isolation level temporário).
+
+			Round 1 escalation suspicious-input mapeava todos
+			structural gate failures para HARD imediato (single
+			classification: INFRASTRUCTURE-BREACH issue OR
+			TEMPORAL-INCONSISTENCY cancel). Tratava 'não consegui
+			verificar' == 'violação real'. Consequência: falso
+			negativo operacional — sistema para desnecessariamente,
+			escalations infladas, throughput loss.
+
+			Fix estrutural aplicado em escalationCondition
+			suspicious-input description + rationale (commit
+			consolidado R2):
+			(a) Sub-classifications introduzidas:
+			    - VERIFIED breach (INFRASTRUCTURE-BREACH OR
+			      TEMPORAL-INCONSISTENCY): real failure confirmed
+			      via cross-source comparison OR aggregate state
+			      contradiction → HARD imediato.
+			    - VERIFICATION-UNCERTAIN: agent NÃO consegue
+			      verificar gate (DB timeout, projection
+			      unavailable, leitura inconsistente). Verify
+			      failed mas violação NÃO confirmed → SOFT
+			      (audit-trail entry + retry-eligible
+			      classification + pattern-detection counter);
+			      HARD apenas em pattern sustained (envelope
+			      governance Phase 5 threshold).
+			(b) DECISION local mantém ABORT_ACTION em ambos
+			(no retry in-flight; preserva determinism); diferença
+			é SEVERITY systemic + retry-eligibility downstream.
+			(c) Updated rationale declara distinção founder R2:
+			'verify-failed ≠ invariant-violated'.
+
+			Risk classification: RISCO OPERACIONAL endereçado
+			estruturalmente (sub-classification SOFT vs HARD).
+
+			**FINDING R2-4 — Constraint bypass via alternative
+			path** (RISCO DE GOVERNANÇA SISTÊMICA recomendado):
+
+			Vetor adversarial: outra action futura emite Invoice
+			indiretamente. Sources: (a) batch import scripts
+			(bulk migration); (b) migration scripts (schema
+			evolution); (c) backfill scripts (historical data
+			population); (d) manual corrections via DB direto
+			(emergency operations).
+
+			Round 1 enforcement live no AGENT (act-issue-invoice
+			gate-enforced). MAS NÃO está garantido no SISTEMA
+			INTEIRO. Invariantes podem ser bypassed silently se
+			creation path NÃO passa pelo agent.
+
+			Fix declarativo aplicado em cst-system-boundary-
+			acknowledged (mesma constraint que cobre R2-1
+			observation consistency — 2 system-level assumptions
+			folded em 1 ACK):
+			(a) Acknowledged assumption: 'all Invoice creation
+			MUST pass through act-issue-invoice OR equivalent
+			gate-enforced path'.
+			(b) Attack-vectors-residual declarados: [backfill-
+			script-bypass, migration-bypass, batch-import-bypass,
+			manual-correction-bypass].
+			(c) Ideal-mitigation declarada: ADR-backfill-policy
+			+ structural-check kind 'aggregate-creation-paths-
+			restricted' (Phase 1+ promotion).
+			(d) enforcementLevel: advisory (system-wide
+			governance + ops discipline responsibility, NÃO
+			agent-enforceable Phase 0).
+
+			Risk classification: RISCO DE GOVERNANÇA SISTÊMICA
+			declarado canonicamente.
+
+			**MUDANÇAS APLICADAS NO AGENT-SPEC** (commit
+			consolidado R2 — 5 edits no agent-spec):
+			(E1) cst-gate-cancel-ordering verification YAML
+			refactored — sequence-based → state-based ordering
+			(R2-2 fix; aggregate-state-evaluation-time-check +
+			predecessor-state-existence + ordering-at-evaluation-
+			time + forbidden rely-on-event-arrival-order)
+			(E2) NEW constraint cst-system-boundary-acknowledged
+			(R2-1 + R2-4 — 2 system-level assumptions declarativas
+			folded em 1 ACK; advisory enforcement; honesty
+			arquitetural)
+			(E3) escalationCondition suspicious-input description
+			+ rationale extended (R2-3 sub-classifications
+			VERIFIED → HARD vs VERIFICATION-UNCERTAIN → SOFT)
+			(E4) Header comment updated (R2 review block declarado
+			above Phase 4 Part 1+2+3 base scope)
+			(E5) Bottom rationale section updated (R2 findings
+			folded em scope declaration)
+
+			Total constraints agora 14 (era 13 em Round 1). Total
+			actions/escalationConditions/signals/audit-fields
+			inalterados em count (mudanças foram qualitativas em
+			conteúdo per gates/escalations/rationale, NÃO
+			quantitativas em count).
+
+			**REMAINING RISKS POST-ROUND-2** — limites residuais:
+
+			(R2-residual-1) cst-system-boundary-acknowledged é
+			advisory enforcement. Phase 0 NÃO bloqueia bypass via
+			batch/migration/backfill. Mitigation depende de
+			governance + ops discipline + Phase 1+ promotion.
+
+			(R2-residual-2) state-based ordering em cst-gate-
+			cancel-ordering depende de aggregate canonical state
+			ser AUTHORITATIVE. Se aggregate state for derived from
+			event log (Phase 0 sem CQRS separation real), event
+			log ordering ainda é fundamental. Limite explicitado.
+
+			(R2-residual-3) verify-uncertain SOFT retry-eligibility
+			depende de envelope governance Phase 5 implementing
+			retry-policy + threshold-based promotion to HARD.
+			Phase 0 sem envelope = SOFT é declarativo.
+
+			**SCHEMA SATISFAÇÃO POS-R2** — tq-srr-XX verificado:
+			- tq-srr-01 (artifact identity inequívoca via
+			  artifactPath + artifactSchemaPath + artifactType) ✓
+			- tq-srr-02 (rounds-status consistency:
+			  roundsExecuted=2 == len(roundDetails); status=stable
+			  com zero fail) ✓
+			- tq-srr-03 (summary informativo: novo summary captura
+			  R2 review distinct de Round 1) — atualizado abaixo
+			- tq-srr-04 (severity findings respeita severity
+			  critério; findings vazio = N/A) ✓
+			- tq-srr-05 (substantive content, NÃO genérico:
+			  referencia 5 mudanças específicas E1-E5 + 4
+			  findings R2-1..R2-4 + risk classifications + agent-
+			  spec elements concretos como cst-gate-cancel-
+			  ordering, cst-system-boundary-acknowledged,
+			  suspicious-input escalation) ✓
+
+			**COMPARISON Round 1 vs Round 2**:
+
+			Round 1: 8 attacks (A1-A8) + 5 removals (R1-R5) + 3
+			interactions (I1-I3) + determinism proof (5 NO
+			patterns) + coverage matrix (6 categorias) + 4 riscos
+			residuais altos (schema openness + runtime-only +
+			clock authority + validation-time fantasma) +
+			critério final.
+
+			Round 2 deltas: +4 findings adversariais (R2-1
+			observation + R2-2 ordering inversion + R2-3 verify-
+			uncertain + R2-4 single entry point) → 5 mudanças
+			estruturais aplicadas no agent-spec; 3 remaining risks
+			declarados (R2-residual-1..3); coverage matrix
+			estendida implicitly (state-based ordering substitui
+			sequence-based; system-boundary ACK formaliza 2
+			assumptions implícitas; verify-uncertain
+			classification distinguished from HARD breach).
+
+			**INSIGHT DE NÍVEL — founder R2 quote**:
+
+			'Você saiu de "bem desenhado" para quase impossível de
+			quebrar sem violar contratos explícitos'. Round 1 +
+			Round 2 juntos elevam INV de 'agent robusto' para
+			'agent que não quebra sob sistema distribuído real'.
+
+			Honesty arquitetural mantida (sistema declara escopo
+			real Phase 0; runtime + observation + entry-point +
+			validation-time = system-level responsibilities
+			distinct from agent-level enforcement). Pattern
+			replicável para outros BCs após validação INV.
+
+			cue vet ./contexts/inv/... EXIT=0 (post-R2);
+			full repo cue vet ./... EXIT=0.
+			"""
 	}]
 
 	findings: {}
 
 	summary: """
 		Agent Spec INV (agt-inv-primary) materializado em 3 commits
-		Phase 4 (Part 1 issue 42497fd; Part 2 cancel 5c49f54; Part
-		3 reactive 78fbeb6) sobre Phase 1-3.5 artifacts. 5 actions
-		(issue + cancel + 3 reactive BLOCK/FILTER/ESCALATE) + 13
-		constraints (5 issue + 6 cancel + 2 reactive transversais)
-		+ 5 escalationConditions folded + 8 signals + 20 audit
-		fields fiscal-grade. Adversarial proof: 8 attacks (A1-A8)
-		+ 5 removals (R1-R5) + 3 interactions (I1-I3) + determinism
-		proof via 5 NO patterns + coverage matrix 6 categorias + 4
-		riscos residuais altos (schema openness + runtime-only
-		invariants + clock authority externa + validation-time
-		inexistente) declarados explicitamente. Asymmetry triádica
-		issue/cancel/reactive (ESTRUTURAL / ESTRUTURAL+TEMPORAL+
-		REGULATÓRIA / CLASSIFICATION-DISCIPLINED+DEFAULT-NO-ACTION).
-		11 traps endereçados estruturalmente (6 cancel T1-T6 + 5
-		reactive T-R1..T-R5). tq-ag-01..13 satisfeitos (tq-ag-09
-		Phase 5 forward-ref). cue vet ./... clean. ADR-081 schema
-		mod cristalização ready (3 usos reais kind:structural-gate
-		marker satisfeitos). Critério final: 'agente só executa
-		ações válidas OU bloqueia OU escala; nunca executa
-		parcialmente, corrige silenciosamente, decide fora do
-		domínio'.
-		"""
-
-	singleRoundRationale: """
-		Authoring section-by-section em 3 commits Phase 4 (Part 1/2/3)
-		com founder canonical block pre-write per phase + agent
-		schema reality compilation (kind:structural-gate marker
-		workaround + categories mapping reactive → validation/
-		escalation + autonomyLevel autonomous → execute-and-log).
-		Iterative founder review durante composição: 4 ajustes Part
-		1 incorporated (kind marker; enforcementLevel hard|advisory;
-		ESCALATION DEFERRED não NONE; ABORT_ACTION vs HALT_AGENT)
-		propagated transversalmente Part 2/3. Adversarial SRR
-		composto após agent-spec completo (5 actions consolidated)
-		seguindo founder canonical 8-section structure (tese +
-		8 attacks + 5 removals + 3 interactions + determinism +
-		coverage + 4 riscos + critério final). Pattern paralelo srr-
-		inv-structural-check adversarial proof discipline. Round
-		único suficiente — qualidade incorporada via founder pre-
-		write canonical blocks (Part 1 issue; Part 2 cancel + 6 traps;
-		Part 3 reactive + 5 traps; SRR adversarial 8-section
-		structure) + iterative review per phase. CI red intencional
-		durante Part 1/2/3 (artefato incompleto deve quebrar CI =
-		feature; founder rule '1 agent-spec → 1 SRR final'); SRR
-		landing turns CI green.
+		Phase 4 (Part 1 42497fd issue; Part 2 5c49f54 cancel; Part
+		3 78fbeb6 reactive) + Round 2 founder adversarial review
+		consolidated. 5 actions + 14 constraints (era 13; +1 cst-
+		system-boundary-acknowledged R2 ACK) + 5 escalationConditions
+		(suspicious-input com sub-classifications VERIFIED → HARD
+		vs VERIFICATION-UNCERTAIN → SOFT per R2-3) + 8 signals + 20
+		audit fields fiscal-grade. Round 1 adversarial proof: 8
+		attacks A1-A8 + 5 removals R1-R5 + 3 interactions I1-I3 +
+		determinism proof via 5 NO patterns + coverage matrix 6
+		categorias + 4 riscos residuais altos. Round 2 (founder
+		adversarial pass): +4 findings (R2-1 observation
+		consistency HIGH + R2-2 replay ordering inversion MED-HIGH
+		+ R2-3 verify-uncertain OPER + R2-4 single entry point GOV)
+		→ 5 mudanças estruturais agent-spec (cst-gate-cancel-ordering
+		state-based + cst-system-boundary-acknowledged NEW + suspicious-
+		input sub-classifications + header + rationale). Asymmetry
+		triádica issue/cancel/reactive preservada. 11 traps base
+		(6 cancel T1-T6 + 5 reactive T-R1..T-R5) + 4 R2 findings
+		endereçados estruturalmente OR declarados canonicamente.
+		Honesty arquitetural: 'sistema só falha de formas conhecidas,
+		explícitas e rastreáveis'. tq-ag-01..13 satisfeitos.
+		tq-srr-01..05 satisfeitos. cue vet ./... clean. Pattern
+		replicável para outros BCs após R2 validation INV.
 		"""
 }

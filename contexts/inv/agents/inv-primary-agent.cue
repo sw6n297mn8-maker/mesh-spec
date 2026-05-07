@@ -20,7 +20,25 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // triggered por gates determinísticos (GUARDS Layer 4 +
 // STRUCTURAL GATES Phase 3.5).
 //
-// Phase 4 Part 1 + Part 2 + Part 3 (este file):
+// Phase 4 Part 1 + Part 2 + Part 3 + R2 review (este file):
+// Founder R2 adversarial review post-Phase 4 — 4 findings applied:
+//   (R2-1) Observation consistency assumption (atomic emit ≠ atomic
+//     observation; consumers MUST treat InvoiceIssued + Receivable-
+//     Materialized como atomic semantic pair — declared via cst-
+//     system-boundary-acknowledged)
+//   (R2-2) Cancel state-based ordering (replay/reorder safe —
+//     cst-gate-cancel-ordering atualizado: aggregate-state-
+//     evaluation-time-check replaces sequence-based predecessor;
+//     ordering-at-evaluation-time NÃO event-arrival)
+//   (R2-3) Verify-uncertain SOFT vs structural-breach HARD distinction
+//     (suspicious-input escalation atualizado com sub-classifications
+//     VERIFIED → HARD vs VERIFICATION-UNCERTAIN → SOFT retry-
+//     eligible; previne falso negativo operacional)
+//   (R2-4) Single entry point assumption (all Invoice creation MUST
+//     pass through gate-enforced path — declared via cst-system-
+//     boundary-acknowledged)
+//
+// Phase 4 Part 1 + Part 2 + Part 3 base scope:
 //   Part 1 — act-issue-invoice + 5 constraints (2 cst-gate-issue-*
 //     + 3 cst-issue-* + 1 cst-schema-openness ACK)
 //   Part 2 — act-cancel-invoice + 6 constraints (3 cst-gate-cancel-*
@@ -691,14 +709,24 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			structuralCheckRef: sc-inv-04
 			invariantRef: inv-lifecycle-states
 			requiredChecks:
-			- type: event-ordering
-			  sequence: [InvoiceIssued, InvoiceCancelled]
-			  expected: strictly-ordered
-			  enforcementLevel: hard
-			- type: predecessor-event-existence
-			  target: evt-invoice-issued
+			- type: aggregate-state-evaluation-time-check
+			  target: agg-invoice
 			  scope: same-invoice-id
-			  expected: must-exist-before-cancel-emit
+			  expected: Invoice exists in aggregate canonical state with status=issued AT EVALUATION TIME
+			  rationale: founder R2 adversarial review fix — replay/reorder safe; cancel re-checks aggregate state AT evaluation time, NÃO event arrival sequence (distributed systems não garantem event ordering)
+			  forbidden: rely-on-event-arrival-order-OR-event-sequence-as-source-of-truth
+			  enforcementLevel: hard
+			- type: event-ordering-at-evaluation-time
+			  sequence: [InvoiceIssued, InvoiceCancelled]
+			  expected: strictly-ordered AT EVALUATION TIME (system state ordering verifiable via aggregate canonical state)
+			  rationale: ordering invariance per state, NÃO per event arrival
+			  forbidden: arrival-order-as-ordering-proof
+			  enforcementLevel: hard
+			- type: predecessor-state-existence
+			  target: agg-invoice
+			  scope: same-invoice-id
+			  expected: invoice-exists-in-aggregate-canonical-state-with-status-issued-at-evaluation-time
+			  rationale: state-based predecessor check (NÃO event sequence) — replay/reorder safe
 			  enforcementLevel: hard
 			- type: structural-check-ref
 			  target: sc-inv-04
@@ -707,7 +735,7 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			  enforcementLevel: hard
 			"""
 		onViolation: "block-and-escalate"
-		rationale: "Materializa BD lifecycle-ordering + sc-inv-04 como execution-phase structural gate. Ordering integrity é causal (predecessor InvoiceIssued obrigatório); separado de temporal (window). Trap related: previne emit-cancel-without-issue (cancel órfão) que destruiria audit trail history."
+		rationale: "Materializa BD lifecycle-ordering + sc-inv-04 + state-based ordering invariance (R2 founder adversarial review pre-Phase 5: cancel re-checks aggregate canonical state AT evaluation time, NÃO event arrival sequence — distributed system replay-safe + reorder-safe). Distinção 3 dimensões: cancellationWindow é temporal (janela permitida); ordering é causal (sequence preservada AT evaluation time per system state); state-evaluation é authoritative source (aggregate canonical, NÃO event sequence). Trap related: previne emit-cancel-without-issue (cancel órfão) + previne false-pass-via-reorder (cancel chega antes de issue em event log mas state já tem issue confirmed; replay/reorder não pode validar cancel se state não confirma)."
 	}, {
 		code: "cst-cancel-no-mutation"
 		name: "Cancel MUST NOT mutate Invoice fields (audit trail preservation)"
@@ -946,6 +974,77 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"""
 		onViolation: "block-and-escalate"
 		rationale: "Materializa Traps T-R4 + T-R5 estruturalmente. Classification discipline transversal — sem classification disciplinada, BD4 destruído (stale==missing) + comportamento não-determinístico. Cada reactive carrega sua classification dimension declarada; agent NÃO age sem classification completa. Pattern paralelo P10 (gates determinísticos validam) aplicado a reactive layer."
+	}, {
+		code: "cst-system-boundary-acknowledged"
+		name: "System-level boundary assumptions explicitly acknowledged (NOT structurally enforced by agent)"
+		description: """
+			[KIND: declarative-acknowledgment / category: system-boundary-assumption]
+
+			ACKNOWLEDGED LIMITS (founder R2 adversarial review post-
+			Phase 4 — 2 system-level assumptions implícitas tornadas
+			canônicas):
+
+			(A) OBSERVATION CONSISTENCY — atomic emit ≠ atomic
+			observation. Agent garante emission atomicity (sc-inv-01
+			via cst-gate-issue-atomic-feasibility-execution); CONSUMERS
+			+ INFRASTRUCTURE responsibility: tratar InvoiceIssued +
+			ReceivableMaterialized como atomic semantic pair em
+			observation/consumption side. Partial observation (e.g.,
+			projection updates antes de ambos eventos arrivers; reader
+			pega snapshot intermediário; downstream consume out-of-
+			order) é INVALID STATE — consumers MUST treat per
+			correlationId / event-grouping / same-txId boundary.
+			Agent declara expectation; NÃO enforce consumer side.
+
+			(B) SINGLE ENTRY POINT — all Invoice creation MUST pass
+			through act-issue-invoice (OR equivalent gate-enforced
+			path). Backfill scripts, migration scripts, batch imports,
+			manual corrections que bypassam agent gate path violam
+			boundary preservation transversal — invariantes podem ser
+			bypassed silently. Agent NÃO controla system-wide creation
+			paths Phase 0; sistema-wide governance + ops discipline
+			responsibility. Agent declara expectation; NÃO enforce
+			ops side.
+
+			Both são SYSTEM-LEVEL assumptions — agent declara
+			canonicamente per honesty arquitetural (sistema declara
+			escopo real de enforcement, NÃO finge cobertura completa).
+			Phase 1+ promotion para mecanismos estruturais
+			(correlationId/txId schema mod ADR; structural-check kind
+			'aggregate-creation-paths-restricted') deferred.
+			"""
+		verification: """
+			kind: declarative-acknowledgment
+			category: system-boundary-assumption
+			riskLevel: high (observation-consistency) | medium-high (single-entry-point)
+			impact: cross-system-correctness
+			acknowledgedAssumptions:
+			- id: observation-consistency
+			  type: atomic-pair-observation-required
+			  scope: consumers + infrastructure layer
+			  attack-vectors-residual: [partial-observation-via-projection-update-skew, snapshot-intermediate-read, out-of-order-downstream-consumption]
+			  ideal-mitigation: correlationId OR event-grouping OR same-txId boundary (Phase 1+)
+			- id: single-entry-point
+			  type: all-creation-via-gate-enforced-path
+			  scope: system-wide governance + ops discipline
+			  attack-vectors-residual: [backfill-script-bypass, migration-bypass, batch-import-bypass, manual-correction-bypass]
+			  ideal-mitigation: ADR-backfill-policy + structural-check kind aggregate-creation-paths-restricted (Phase 1+)
+			requiredChecks:
+			- type: declarative-acknowledgment
+			  target: observation-consistency
+			  expected: documented-in-rationale
+			  enforcementLevel: advisory
+			- type: declarative-acknowledgment
+			  target: single-entry-point
+			  expected: documented-in-rationale
+			  enforcementLevel: advisory
+			- type: srr-declared-residual-risk
+			  target: srr-inv-primary-agent
+			  expected: round-2-findings-explicitly-declared
+			  enforcementLevel: advisory
+			"""
+		onViolation: "log-only"
+		rationale: "Founder R2 adversarial review post-Phase 4 identificou 2 assumptions implícitas que NÃO eram declared canonicamente: observation consistency (R1 high — atomic emit ≠ atomic observation; consumer responsibility) + single entry point (R4 medium-high — backfill/migration/batch bypass possíveis). Honesty arquitetural: agent declara escopo real de enforcement (emission é guaranteed; observation + entry-point são system-level responsibility distintas). Phase 1+ promotion: correlationId/txId mechanism (R1 → ADR future) + structural-check kind 'aggregate-creation-paths-restricted' (R4 → Phase 1+). enforcementLevel: advisory porque é declarativo system-boundary ACK, NÃO agent-enforceable."
 	}]
 
 	escalationConditions: [{
@@ -1008,30 +1107,50 @@ agentSpec: artifact_schemas.#AgentSpec & {
 	}, {
 		category: "suspicious-input"
 		description: """
-			Folded scenarios (issue + cancel actions):
+			Folded scenarios (issue + cancel actions) com sub-
+			classification founder R2 review (verify-failed ≠
+			invariant-violated):
 
-			(A) ISSUE — STRUCTURAL GATE failure: cst-gate-issue-
-			atomic-feasibility-execution detecta transactional outbox
-			primitive failure pre-emit OR partial state observable
-			post-emit. INFRASTRUCTURE-BREACH classification.
+			(A) ISSUE — STRUCTURAL GATE failure (cst-gate-issue-
+			atomic-feasibility-execution):
+			Sub-classifications:
+			- INFRASTRUCTURE-BREACH (VERIFIED): outbox primitive
+			  CONFIRMED unavailable OR partial state CONFIRMED
+			  observable post-emit. Real structural breach.
+			- VERIFICATION-UNCERTAIN: agent NÃO consegue verificar
+			  gate (DB timeout durante state lookup; projection
+			  unavailable; leitura inconsistente). Verify failed
+			  mas violação NÃO confirmed.
 
-			(B) CANCEL — TEMPORAL/ORDERING inconsistency: clock
-			source inconsistente (multiple authoritative clocks) OR
-			ordering inversion detected (cst-gate-cancel-ordering
-			violation — InvoiceCancelled emit attempt sem
-			InvoiceIssued predecessor in event store). TEMPORAL-
-			INCONSISTENCY classification.
+			(B) CANCEL — TEMPORAL/ORDERING inconsistency:
+			Sub-classifications:
+			- TEMPORAL-INCONSISTENCY (VERIFIED): clock skew
+			  CONFIRMED via cross-source comparison OR ordering
+			  inversion CONFIRMED via aggregate state contradiction.
+			- VERIFICATION-UNCERTAIN: clockSource canonical
+			  unreachable durante check; aggregate state evaluation
+			  incomplete. Verify failed mas violação NÃO confirmed.
 
-			DECISION local: ABORT_ACTION immediately (no retry parcial;
-			no compensation step). Aplicável a ambos cenários.
-			ESCALATION systemic: HARD imediato — distintos por
-			classification:
-			- ISSUE: INFRASTRUCTURE-BREACH (outbox failure)
-			- CANCEL: TEMPORAL-INCONSISTENCY (clock OR ordering)
-			Freeze de fluxo escalado per canvas escalations se
-			pattern sistêmico.
+			Founder R2 distinction: verify-failed ≠ invariant-
+			violated. Agent NÃO trata 'não consegui verificar' como
+			'violação real' — previne falso negativo operacional +
+			escalation overhead + throughput loss.
+
+			DECISION local: ABORT_ACTION immediately (no retry
+			parcial in-flight; no compensation step). Aplicável a
+			TODOS cenários (verified OR uncertain).
+
+			ESCALATION systemic distinct per sub-classification:
+			- VERIFIED breach (INFRASTRUCTURE-BREACH OR TEMPORAL-
+			  INCONSISTENCY) → HARD imediato (real breach
+			  classification)
+			- VERIFICATION-UNCERTAIN → SOFT (audit-trail entry +
+			  retry-eligible classification + pattern-detection
+			  counter); HARD apenas em pattern sustained (envelope
+			  governance Phase 5 threshold) — distingue glitch
+			  ocasional de breach sustentado
 			"""
-		rationale: "BD7 + sc-inv-01 (issue) + cst-gate-cancel-ordering + clockSource canonical (cancel). Ambos cenários são estruturais — local ABORT_ACTION mandatory + systemic HARD ESCALATION imediata. Classification distinct (INFRASTRUCTURE vs TEMPORAL) preserva diagnostic clarity para forensics; agent detecta limite estrutural canônico em ambos."
+		rationale: "BD7 + sc-inv-01 (issue) + cst-gate-cancel-ordering + clockSource canonical (cancel). Founder R2 adversarial review distinction: VERIFIED breach (HARD imediato — real structural failure) vs VERIFY-UNCERTAIN (SOFT retry-eligible — verify failed mas violação NÃO confirmed). Distinção previne falso negativo operacional (DB timeout NÃO é INFRASTRUCTURE-BREACH; clockSource glitch NÃO é TEMPORAL-INCONSISTENCY). Local ABORT_ACTION mandatory em ambos (no retry in-flight); diferença é SEVERITY systemic + retry-eligibility downstream. Pattern preserva determinism (action-decision deterministic) + reduz escalation overhead operacional."
 	}, {
 		category: "conflicting-signals"
 		description: """
@@ -1297,16 +1416,32 @@ agentSpec: artifact_schemas.#AgentSpec & {
 		mitigations-future. Sistema declara escopo real de
 		enforcement, não finge cobertura completa.
 
-		**Phase 4 Part 1 + Part 2 + Part 3 scope** (este file): 5
-		actions (issue-invoice + cancel-invoice + 3 reactive) + 13
-		constraints (2 cst-gate-issue-* + 3 cst-issue-* + 1 cst-schema-
-		openness ACK + 3 cst-gate-cancel-* + 3 cst-cancel-* + 2 cst-
-		react-* transversal) + 5 escalationConditions (folded scenarios
-		via OR per category, padrão DLV precedent — insufficient-
-		context + out-of-scope + suspicious-input + conflicting-signals
-		+ unclassifiable-anomaly) + 8 observability signals (3 issue
-		+ 3 cancel + 2 reactive) + 20 audit fields (7 minimum + 8 INV
-		core + 3 cancel-specific + 2 reactive-specific).
+		**Phase 4 Part 1 + Part 2 + Part 3 + R2 review scope** (este
+		file): 5 actions (issue-invoice + cancel-invoice + 3 reactive)
+		+ 14 constraints (2 cst-gate-issue-* + 3 cst-issue-* + 1 cst-
+		schema-openness ACK + 3 cst-gate-cancel-* + 3 cst-cancel-* +
+		2 cst-react-* transversal + 1 cst-system-boundary-acknowledged
+		R2 ACK) + 5 escalationConditions (suspicious-input com sub-
+		classifications VERIFIED → HARD vs VERIFICATION-UNCERTAIN →
+		SOFT per founder R2 distinction; demais inalteradas) + 8
+		observability signals (3 issue + 3 cancel + 2 reactive) + 20
+		audit fields (7 minimum + 8 INV core + 3 cancel-specific + 2
+		reactive-specific).
+
+		**Founder R2 adversarial review (post-Phase 4) — 4 findings**:
+		- R2-1 (HIGH) Observation consistency: declared via cst-
+		  system-boundary-acknowledged (system-level assumption —
+		  atomic emit ≠ atomic observation; consumer responsibility)
+		- R2-2 (MED-HIGH) Cancel state-based ordering: cst-gate-
+		  cancel-ordering atualizado (aggregate-state-evaluation-time
+		  replaces sequence-based predecessor; replay/reorder safe)
+		- R2-3 (OPER) Verify-uncertain distinction: suspicious-input
+		  escalation atualizado (VERIFIED → HARD vs VERIFICATION-
+		  UNCERTAIN → SOFT retry-eligible; previne falso negativo
+		  operacional)
+		- R2-4 (GOV) Single entry point: declared via cst-system-
+		  boundary-acknowledged (system-level assumption — backfill/
+		  migration/batch bypass possíveis Phase 0)
 
 		**Cancel asymmetry com issue** (founder framing canônico):
 		- Issue cria realidade (consistência ESTRUTURAL apenas)
