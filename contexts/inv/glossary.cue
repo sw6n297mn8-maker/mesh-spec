@@ -58,13 +58,10 @@ glossary: artifact_schemas.#Glossary & {
 				term: "instrução de pagamento"
 				clarification: "Invoice é documento fiscal vinculado a entrega verificada; instrução de pagamento (when/how/to-whom-pay) é decisão FCE separada"
 			}, {
-				term: "obrigação financeira genérica"
-				clarification: "Invoice é especificamente obrigação de FATURAMENTO (registro fiscal). Obrigação de pagamento (FCE), contábil (ATO), de risco (REW) são domínios distintos"
-			}, {
 				term: "ativo financeiro negociável"
-				clarification: "Invoice estabelece obrigação; ativo financeiro transferível para antecipação é Receivable (term-receivable separate). SCF opera sobre Receivable, não diretamente sobre Invoice"
+				clarification: "Invoice estabelece obrigação fiscal; ativo financeiro transferível para antecipação é Receivable (term-receivable separate). SCF opera sobre Receivable, não diretamente sobre Invoice"
 			}]
-			relatedTerms: ["term-receivable", "term-issuance", "term-cancellation"]
+			relatedTerms: ["term-receivable", "term-invoice-issuance-process", "term-invoice-cancellation-process"]
 			rationale: "Termo canônico central INV. Identity (commitmentRef, evidenceRef) é declarada explicitamente para proteger contra duplicação semântica e variações de identidade (anti-pattern clássico: agente usar invoiceId como primário). Disambiguação anti-mini-FCE e anti-mini-SCF: invoice é registro fiscal, não instrução financeira nem instrumento negociável. Invariante operacional: invoice nasce ATOMIC com ReceivableMaterialized via primitive infra (BD7)."
 		},
 
@@ -85,18 +82,15 @@ glossary: artifact_schemas.#Glossary & {
 				term: "instrumento financeiro com pricing"
 				clarification: "Receivable em INV é lastro verificável; pricing/score/eligibility para antecipação é decisão SCF/REW. INV não atribui valor financeiro — atribui amount = invoice.amount"
 			}, {
-				term: "fatura emitida"
-				clarification: "Receivable é evento separado de InvoiceIssued (BD7 dual emission atomic) com contracts independentes — SCF liga em Receivable, ATO liga em Invoice"
-			}, {
 				term: "ativo de tesouraria"
 				clarification: "Receivable é direito creditório no momento de emit; gestão de tesouraria (TCM) projeta cashflow sobre Receivables, não os origina"
 			}]
-			relatedTerms: ["term-invoice", "term-issuance"]
+			relatedTerms: ["term-invoice", "term-invoice-issuance-process"]
 			rationale: "Materializa direito creditório como evento separado de Invoice para preservar contract independence: SCF consome ReceivableMaterialized sem acoplar-se a fiscalDocRef/regimeVersion (concerns INV/ATO). INV não determina transferibilidade nem condições de cessão; apenas materializa o direito creditório. SCF decide se, como e sob quais condições ocorre a transferência. Conservação amount via mesma fonte computacional impede divergência fatura↔recebível."
 		},
 
 		{
-			code:   "term-issuance"
+			code:   "term-invoice-issuance-process"
 			name:   "Emissão"
 			termEn: "Issuance"
 			category: "process"
@@ -109,12 +103,6 @@ glossary: artifact_schemas.#Glossary & {
 				Replay-safe via identity (commitmentRef, evidenceRef).
 				"""
 			antiTerms: [{
-				term: "envio"
-				clarification: "Issuance é o ato canônico de NASCIMENTO da invoice; envio físico/digital de documento é integration concern (Phase 1+ adapter SEFAZ)"
-			}, {
-				term: "criação de cobrança"
-				clarification: "Cobrança implica relação devedor-credor com followup; issuance é registro fiscal sem semântica de cobrança ativa"
-			}, {
 				term: "preparação de documento"
 				clarification: "Issuance é evento atômico (commit + publish AS-ONE), não preparação/draft. Estado draft NÃO existe no domínio (BD5)"
 			}, {
@@ -126,7 +114,7 @@ glossary: artifact_schemas.#Glossary & {
 		},
 
 		{
-			code:   "term-cancellation"
+			code:   "term-invoice-cancellation-process"
 			name:   "Cancelamento"
 			termEn: "Cancellation"
 			category: "process"
@@ -140,9 +128,6 @@ glossary: artifact_schemas.#Glossary & {
 			antiTerms: [{
 				term: "estorno"
 				clarification: "Estorno é operação contábil ATO posterior; cancellation INV é mutação fiscal dentro de janela regulada (não compensa contabilmente)"
-			}, {
-				term: "correção"
-				clarification: "Correção via amendment de fatura emitida NÃO existe (BD5); correção pós-janela é via DRC (disputa) ou ATO (ajuste), não cancellation INV"
 			}, {
 				term: "anulação retroativa"
 				clarification: "Cancellation INV opera apenas within-window; retroatividade fora janela é DRC scope. INV não muta invoices históricas (BD2 imutabilidade)"
@@ -170,11 +155,8 @@ glossary: artifact_schemas.#Glossary & {
 			}, {
 				term: "decisão de enquadramento tributário"
 				clarification: "Decisão de enquadramento (qual regime se aplica a este commitment) é resolved fora do INV (CTR ou external). INV consome regimeVersion já resolvido"
-			}, {
-				term: "regra de negócio"
-				clarification: "Regime é regulação externa imutável-by-INV; mudança via ADR + regimeVersion bump explícito, nunca silent mutation"
 			}]
-			relatedTerms: ["term-issuance"]
+			relatedTerms: ["term-invoice-issuance-process"]
 			rationale: "Boundary protector anti-mini-ATO. Regime fiscal é input declarativo externo, não lógica interna do BC — protege contra config-virando-lógica que transformaria INV em interpretador fiscal. Imutabilidade pós-emit per regimeVersion garante audit reproducibility indefinida."
 		},
 
@@ -198,36 +180,122 @@ glossary: artifact_schemas.#Glossary & {
 			}, {
 				term: "query síncrona ao CMT"
 				clarification: "INV NÃO faz sync query no caminho crítico (hasSyncSurface=false); projection é cache async via event-consumer. Sync coupling violaria replay independence"
-			}, {
-				term: "snapshot histórico"
-				clarification: "Projection é estado corrente do commitment (eventually-consistent com CMT canonical); audit trail histórico é responsabilidade do event log, não da projection"
 			}]
-			relatedTerms: ["term-issuance"]
+			relatedTerms: ["term-invoice-issuance-process"]
 			rationale: "Mecanismo canônico que viabiliza determinismo + replay independence sem sync coupling cross-BC. Eventual consistency é propriedade aceita do sistema (não negada); BD4 trata atraso como ausência (emit blocked) e staleness como inconsistência ativa (HARD escalation). Diferenciação operacional crítica missing-vs-stale: missing triggera retry-first (esc-projection-missing) vs stale triggera HARD escalation (esc-projection-stale)."
+		},
+
+		// ============================================================
+		// LAYER 2 — INTERFACE (3 events: contratos semânticos públicos
+		// da rede consumidos cross-BC)
+		// ============================================================
+
+		{
+			code:   "term-invoice-issued"
+			name:   "Fatura Emitida"
+			termEn: "InvoiceIssued"
+			category: "event"
+			definition: """
+				Evento canônico que declara o nascimento de uma Invoice
+				com identidade (commitmentRef, evidenceRef) e atributos
+				fiscais mínimos necessários para consumo downstream.
+				Estrutura exata do payload é definida em contracts/event
+				schemas (Phase 3 domain-model + AsyncAPI Phase 1+), não
+				neste glossary. Evento é APPEND-ONLY no event log;
+				INV não muta nem re-emite. Contrato semântico público da
+				rede consumido por FCE (settle) e ATO (book — pattern
+				conformist).
+				"""
+			antiTerms: [{
+				term: "comando de emissão"
+				clarification: "InvoiceIssued é fact-record passivo (passou); não é trigger ativo de comando para downstream. Consumers reagem ao fato per próprias políticas, não recebem ordem"
+			}, {
+				term: "instrução de pagamento"
+				clarification: "Event declara que fatura nasceu; quando/como/quanto-pagar é decisão FCE separada. InvoiceIssued NÃO carrega paymentMethod, paymentSchedule, accountRef"
+			}]
+			relatedTerms: ["term-invoice", "term-invoice-issuance-process", "term-receivable-materialized"]
+			rationale: "Contrato semântico público da rede Mesh — INV declara obrigação fiscal nascida; FCE/ATO consomem independentemente per próprias políticas. Glossary define SIGNIFICADO do evento (fact-record passivo, contrato fiscal); shape do payload é responsabilidade de schemas separados (separação de concerns: glossary = semantic contract; schemas = wire-level structure). Append-only é invariante operacional: cancellation gera evento separado (term-invoice-cancelled), nunca mutação retroativa."
+		},
+
+		{
+			code:   "term-receivable-materialized"
+			name:   "Recebível Materializado"
+			termEn: "ReceivableMaterialized"
+			category: "event"
+			definition: """
+				Evento canônico que declara o nascimento de um Receivable
+				atomicamente com InvoiceIssued (mesma transação, primitive
+				infra). Materialização ocorre SEMPRE que Invoice é emitida —
+				não depende de elegibilidade, scoring ou decisão financeira
+				externa. Identity (receivableId, invoiceId, commitmentRef)
+				com amount idêntico ao Invoice (BD7 conservation). Contrato
+				semântico público da rede consumido por SCF para originar
+				produtos financeiros sobre lastro verificado.
+				"""
+			antiTerms: [{
+				term: "ativo financeiro disponível para cessão"
+				clarification: "Event materializa o DIREITO creditório como fato; transferibilidade real, condições de cessão e pricing são decisões SCF/REW posteriores e independentes"
+			}, {
+				term: "garantia de antecipação"
+				clarification: "Event NÃO promete que antecipação acontecerá; SCF decide elegibilidade autonomamente per próprias políticas. INV emite SEMPRE que invoice é issued (sem filtro de elegibilidade)"
+			}]
+			relatedTerms: ["term-receivable", "term-invoice-issuance-process", "term-invoice-issued"]
+			rationale: "Contrato semântico público para SCF. Separação de InvoiceIssued (BD7 dual emission atomic) preserva contract independence — SCF liga em ReceivableMaterialized sem acoplar-se a fiscalDocRef/regimeVersion (concerns INV/ATO). Conservação amount via mesma fonte computacional impede divergência fatura↔recebível por construção. 'SEMPRE materializa' explícito na definição reforça anti-acoplamento com SCF/REW: filtragem por elegibilidade é decisão SCF posterior, nunca gate em INV."
+		},
+
+		{
+			code:   "term-invoice-cancelled"
+			name:   "Fatura Cancelada"
+			termEn: "InvoiceCancelled"
+			category: "event"
+			definition: """
+				Evento canônico explícito de cancellation INV-owned dentro
+				de janela fiscal regulada. Identity invoiceId +
+				fiscalCancellationRef + reasonCode + cancelledAt.
+				APPEND-ONLY no event log. Contrato semântico público da
+				rede; consumo downstream é contextual:
+				- FCE: pode ignorar pós-settle (correção é DRC scope)
+				- ATO: sempre relevante (estornar lançamento fiscal)
+				- Outros BCs: decidem conforme própria responsabilidade
+				"""
+			antiTerms: [{
+				term: "estorno contábil"
+				clarification: "Event é cancellation FISCAL (mutação documento dentro de janela regulada); estorno contábil é operação ATO posterior, triggered pelo consumo deste event mas executada autonomamente em ATO scope"
+			}, {
+				term: "soft delete da fatura"
+				clarification: "Event é fato explícito append-only no event log (G3); InvoiceIssued original PERMANECE no log com lineage completo apontando para InvoiceCancelled. Nada é apagado — tudo é fact-record"
+			}]
+			relatedTerms: ["term-invoice", "term-invoice-cancellation-process", "term-invoice-issued"]
+			rationale: "G3 cancellation explicit-event-only materializado como contrato semântico público. Downstream BCs reconstroem lifecycle completo via event log canônico (InvoiceIssued + InvoiceCancelled paired); sem inferência sobre estado interno INV. Consumo contextual reflete realidade operacional: FCE ignora pós-settle por design (correção é DRC), MAS ATO sempre processa (estorno fiscal independente de timing settlement). Event NÃO é 'irrelevante pós-settle' globalmente — é irrelevante apenas para FCE specific; outros BCs mantêm relevância."
 		},
 	]
 
 	rationale: """
-		Layer 1 (este commit) materializa 6 termos fundacionais do INV
-		— firewall semântico contra drift de agente, drift humano, e
-		drift cross-BC. Cada termo cobre uma boundary específica que
-		emergiu em BDs:
+		Glossary materializa 9 termos canônicos em 2 layers (Phase 2
+		incremental per founder orientation 'escreve + valida + escala').
+		Firewall semântico contra drift de agente, drift humano, e drift
+		cross-BC. Cada termo cobre boundary específica emergente em BDs.
 
-		**Identidade canônica** (term-invoice + term-receivable):
-		BD7 atomic dual emission + BD3 idempotency identity
-		(commitmentRef, evidenceRef). Identity declarada explicitamente
-		em term-invoice protege contra anti-pattern clássico de agente
-		(usar invoiceId como primário). Receivable como entity separate
-		de Invoice protege anti-mini-SCF (transferibilidade decidida
-		por SCF, não INV).
+		**Layer 1 — CORE (6 termos fundacionais)**:
 
-		**Processos canônicos** (term-issuance + term-cancellation):
-		BD2 deterministic-fiscal-projection + BD5 lifecycle 2 estados
-		+ BD10 anti-orchestrator + G3 cancellation explicit-event-only.
-		Anti-orchestrator antiTerm em term-issuance reflete BD10
-		semanticamente — protege contra coordenação implícita downstream.
+		*Identidade canônica* (term-invoice + term-receivable): BD7
+		atomic dual emission + BD3 idempotency identity (commitmentRef,
+		evidenceRef). Identity declarada explicitamente em term-invoice
+		protege contra anti-pattern clássico de agente (usar invoiceId
+		como primário). Receivable como entity separate de Invoice
+		protege anti-mini-SCF (transferibilidade decidida por SCF, não
+		INV).
 
-		**Inputs canônicos** (term-fiscal-regime + term-commitment-terms-
+		*Processos canônicos* (term-invoice-issuance-process +
+		term-invoice-cancellation-process): BD2 deterministic-fiscal-
+		projection + BD5 lifecycle 2 estados + BD10 anti-orchestrator +
+		G3 cancellation explicit-event-only. Naming explícito '-process'
+		distingue da Layer 2 events (term-invoice-issued /
+		term-invoice-cancelled) — process é operação INV-internal; event
+		é fact-record público pós-process. Anti-orchestrator antiTerm
+		em term-invoice-issuance-process reflete BD10 semanticamente.
+
+		*Inputs canônicos* (term-fiscal-regime + term-commitment-terms-
 		projection): BD2 apply-only fiscal projection + BD4 commitment-
 		projection availability+completeness+freshness. Boundary anti-
 		mini-ATO (regime ≠ lógica interpretativa) + anti-runtime-coupling
@@ -235,11 +303,36 @@ glossary: artifact_schemas.#Glossary & {
 		(NÃO 'cache exato') preserva determinismo operacional sem negar
 		eventual consistency real do sistema.
 
-		Phase 2 incremental: Layers 2 (events FLOW), 3 (governance), 4
-		(edge) em commits subsequentes per founder orientation 'escreve
-		+ valida + escala'. Glossário não evolui sem causa real per
-		founder orientation (over-refinement risk): próxima evolução
-		só acontece se surgir ambiguidade operacional, conflito semântico
-		cross-BC, OR termo impossível de usar operacionalmente.
+		**Layer 2 — INTERFACE (3 events: contratos semânticos públicos
+		da rede)**:
+
+		Per founder orientation 'INV está no centro do fluxo econômico
+		— eventos são linguagem pública da rede, não detalhe interno'.
+		3 events declarados como termos canônicos por serem consumidos
+		cross-BC (regra: se outro BC consome → glossary term):
+		term-invoice-issued (FCE+ATO), term-receivable-materialized
+		(SCF), term-invoice-cancelled (FCE+ATO contextual consumption).
+		Glossary define SIGNIFICADO do evento (fact-record passivo,
+		contrato semântico); shape do payload é responsabilidade de
+		schemas separados (Phase 3 domain-model + AsyncAPI Phase 1+) —
+		separação de concerns: glossary = semantic contract; schemas =
+		wire-level structure.
+
+		**Insight arquitetural**: INV tem 2 contratos paralelos:
+		(1) Fiscal contract — InvoiceIssued + InvoiceCancelled
+		consumidos por ATO; (2) Financial substrate contract —
+		ReceivableMaterialized consumido por SCF. Layer 2 explicita
+		ambos como contratos semânticos públicos distintos.
+
+		**Layers 3-4 (PENDENTES Phase 2 incremental)**: governance
+		mechanisms (atomic-dual-emission + idempotency-identity +
+		regime-version + fiscal-document-reference) + edge concepts.
+		Próximo commit aguardando founder validation Layer 2 antes
+		de Layer 3 propose.
+
+		Glossário não evolui sem causa real per founder orientation
+		(over-refinement risk): próxima evolução só acontece se surgir
+		ambiguidade operacional, conflito semântico cross-BC, OR termo
+		impossível de usar operacionalmente.
 		"""
 }
