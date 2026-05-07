@@ -456,6 +456,16 @@ config: artifact_schemas.#ReadmeConfig & {
 				]
 				rationale: "Separar classificação de subdomínio do BC que o realiza permite reavaliar core/supporting sem mexer na estrutura tática."
 			},
+			{
+				path:    "strategic/economic-model/"
+				purpose: "Layer -1 — Economic Reality Layer: invariâncias do ambiente econômico adversarial (ri-*) que todos BCs assumem como dadas (per adr-082)."
+				conventions: [
+					"Singleton instance: 1 arquivo por sistema (mesh-economic-assumptions.cue).",
+					"Prefix discipline: ri-* reality invariants (DISTINCT de inv-* domain invariants); cap-adv-* capabilities; imp-* implications.",
+					"Reality invariants são propriedades do mundo NÃO tensionáveis (sistema sobrevive apesar de) — distinct de domain invariants (sistema enforça) e ADRs (decisões reversíveis).",
+				]
+				rationale: "Layer -1 declarado canonicamente per adr-082: 'truths that constrain design but are not design decisions'. Realidade econômica adversarial (cross-BC composition, payoff asymmetry, collusion, latency arbitrage, specification gaming) declarada upstream de todos BCs."
+			},
 		]
 		rationale: "Tree cobre 33 diretórios governados — todos os top-level mais subdiretórios autorais com função distinta. Instance containers (self-reviews/, task-specs/, agents/, events/ etc.) herdam regra do diretório-pai e não ganham entry dedicada para evitar ruído."
 	}

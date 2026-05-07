@@ -45,7 +45,8 @@ package artifact_schemas
 	"deferred-decision" |
 	"work-governance" |
 	"policy" |
-	"validation-prompt"
+	"validation-prompt" |
+	"economic-assumption-model"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -62,7 +63,8 @@ package artifact_schemas
 // aa (adopted-artifacts), rc (readme-config),
 // def (deferred-decision), defg (deferred-decision-guide),
 // wg (work-governance),
-// pol (policy).
+// pol (policy),
+// eam (economic-assumption-model).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

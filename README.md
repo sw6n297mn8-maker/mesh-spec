@@ -50,6 +50,7 @@ mesh-spec é o repositório de especificação do sistema Mesh. Todo artefato qu
 | `strategic/` | Layer 1 da espec: design estratégico (subdomínios, context map, flywheel informacional, domain stories). | context-map.cue é SoT de relações entre BCs; manifestos em contexts/{bc}/context-dependencies.cue são derivados.<br>informational-flywheel.cue mapeia eventos que alimentam modelos cross-BC. |
 | `strategic/domain-stories/` | Fluxos de negócio narrados como sequências ator → ação → work item. | Um arquivo por story; nome no formato slug kebab-case.<br>Cada story referencia BCs e eventos envolvidos por ID. |
 | `strategic/subdomains/` | Classificação de subdomínios (Core/Supporting/Generic), complexidade, volatilidade, propósito. | Um arquivo por subdomínio; nome no formato subdomain-code.cue.<br>Classificação orienta alocação de esforço — Core recebe investimento maior. |
+| `strategic/economic-model/` | Layer -1 — Economic Reality Layer: invariâncias do ambiente econômico adversarial (ri-*) que todos BCs assumem como dadas (per adr-082). | Singleton instance: 1 arquivo por sistema (mesh-economic-assumptions.cue).<br>Prefix discipline: ri-* reality invariants (DISTINCT de inv-* domain invariants); cap-adv-* capabilities; imp-* implications.<br>Reality invariants são propriedades do mundo NÃO tensionáveis (sistema sobrevive apesar de) — distinct de domain invariants (sistema enforça) e ADRs (decisões reversíveis). |
 
 ## Rationale da Estrutura
 
