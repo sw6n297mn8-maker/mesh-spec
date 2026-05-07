@@ -20,12 +20,20 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // triggered por gates determinísticos (GUARDS Layer 4 +
 // STRUCTURAL GATES Phase 3.5).
 //
-// Phase 4 Part 1 (este commit): act-issue-invoice + 5 constraints
-// (2 cst-gate-* + 3 cst-issue-* + 1 cst-schema-openness ACK) +
-// 4 escalationConditions cobrindo failure modes per founder
-// canonical block. Part 2 estende com act-cancel-invoice +
+// Phase 4 Part 1 + Part 2 (este file):
+//   Part 1 — act-issue-invoice + 5 constraints (2 cst-gate-issue-*
+//     + 3 cst-issue-* + 1 cst-schema-openness ACK)
+//   Part 2 — act-cancel-invoice + 6 constraints (3 cst-gate-cancel-*
+//     + 3 cst-cancel-*) + 6 traps endereçados estruturalmente
+//     (T1 cancel-as-undo, T2 window ambiguity, T3 silent mutation,
+//     T4 post-finality, T5 event optional, T6 cancel-as-correction)
+// 4 escalationConditions (folded scenarios via OR per category,
+// padrão DLV precedent) + 6 signals (3 issue + 3 cancel) +
+// 18 audit fields (7 min + 8 INV + 3 cancel). Part 3 estende com
 // reactive actions (filter-non-terminal-dlv + block-emit-on-stale)
-// + supervisedDecision regime-anomaly + full INV agent-spec.
+// + supervisedDecision regime-anomaly. Cancel asymmetry: issue
+// exige consistência ESTRUTURAL; cancel exige ESTRUTURAL +
+// TEMPORAL + REGULATÓRIA.
 //
 // 4 ajustes founder pre-write incorporated (workaround pre-ADR-081):
 //   (1) kind: structural-gate marker em verification YAML +
@@ -137,6 +145,77 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"sc-inv-01 atomic-dual-emission maintained (cardinality 1:1; amount + currency conservation)",
 			"sc-inv-02 idempotent-issuance maintained (single Invoice per tuple)",
 			"sc-inv-06 fiscal-doc-ref-integrity maintained (fiscalDocRef non-empty + write-once)",
+		]
+	}, {
+		code: "act-cancel-invoice"
+		name: "Cancel Invoice (fiscal-boundary constrained)"
+		description: """
+			Cancelar Invoice existente dentro da janela fiscal permitida.
+			Execution type: constrained-mutation — operação IRREVERSÍVEL
+			no domínio INV, limitada por boundary temporal regulatório
+			externo (cancellationWindow(regimeVersion) — função pura
+			externa per domain-model).
+
+			Cancel NÃO é simétrico a issue:
+			- Issue cria realidade
+			- Cancel invalida realidade sob regras externas (regulatórias)
+
+			Cancel NÃO corrige:
+			- erro contábil → DRC
+			- pagamento → FCE
+			- crédito → SCF
+
+			Cancel apenas declara: 'este fato não é mais válido dentro
+			do regime fiscal permitido'. Cancel NÃO substitui invoice;
+			NÃO cria nova invoice; NÃO reemite; NÃO corrige.
+			Supersession é DLV/DRC pattern — NÃO INV.
+
+			LAYERED EXECUTION MODEL (idêntico a issue):
+			- preconditions = GUARDS (Layer 4 predicates; world state —
+			  invoice exists + status issued + NOT post-finality)
+			- structural gates (cst-gate-cancel-* with kind:structural-
+			  gate marker; ADR-081 future schema mod) = STRUCTURAL CHECKS
+			  as execution gates (system state — sc-inv-* per ADR-080)
+			- constraints = behavioral + immutability + supersession
+			  prohibition (cst-cancel-*)
+
+			Issue exige consistência ESTRUTURAL.
+			Cancel exige consistência ESTRUTURAL + TEMPORAL + REGULATÓRIA.
+
+			6 traps canônicos endereçados estruturalmente (NÃO via
+			comentário): (T1) cancel-as-undo via cst-cancel-no-supersession;
+			(T2) window ambiguity via clockSource:canonical em verification;
+			(T3) silent mutation via cst-cancel-no-mutation;
+			(T4) post-finality via cst-gate-cancel-finality-protection;
+			(T5) event optional via cst-cancel-event-required;
+			(T6) cancel-as-correction via description prohibition + glossary
+			antiTerms (anti-mini-DRC + anti-mini-FCE + anti-mini-SCF).
+			"""
+		category:        "mutation"
+		autonomyLevel:   "propose-and-wait"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"cmd-cancel-invoice",
+			"agg-invoice",
+			"evt-invoice-cancelled",
+			"inv-cancellation-boundary",
+			"inv-cancellation-event-required",
+			"inv-lifecycle-states",
+			"inv-regime-immutability",
+		]
+		preconditions: [
+			"GUARD (Layer 4): exists Invoice(invoiceId) in aggregate canonical state",
+			"GUARD (Layer 4): Invoice.status == issued",
+			"GUARD (Layer 4): NOT isPostFinalityBoundary(invoiceId) — finality boundary não cruzada",
+		]
+		postconditions: [
+			"InvoiceCancelled emitted explicitly (NÃO state-only mutation; sc-inv-07)",
+			"Invoice.status == cancelled (transição issued → cancelled per inv-lifecycle-states)",
+			"sc-inv-04 lifecycle-states maintained (transição válida + ordering [InvoiceIssued → InvoiceCancelled])",
+			"sc-inv-05 cancellation-boundary maintained (cancel ocorreu dentro de cancellationWindow)",
+			"sc-inv-07 cancellation-event-required maintained (event explícito emitido)",
+			"sc-inv-03 regime-immutability maintained (regimeVersion NÃO mutada por cancel)",
+			"sc-inv-06 fiscal-doc-ref-integrity maintained (fiscalDocRef NÃO mutado por cancel; write-once preservado)",
 		]
 	}]
 
@@ -333,55 +412,319 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"""
 		onViolation: "log-only"
 		rationale: "Honesty arquitetural: declara explicitamente schema openness gap como riskLevel: high (boundary-risk impact). enforcementLevel: advisory porque é declarativo (ACK), não block; Phase 1+ promotion para structural-check kind 'allowed-fields-closed' transformará advisory→hard."
+	}, {
+		code: "cst-gate-cancel-within-window"
+		name: "[KIND: structural-gate / phase: pre-execution] sc-inv-05 cancellation-boundary (temporal)"
+		description: """
+			[KIND: structural-gate / phase: pre-execution]
+
+			STRUCTURAL GATE temporal-boundary (NÃO precondition; NÃO
+			behavioral). Enforced PRE-EXECUTION per Phase 3.5 ADR-080
+			domain-invariant kind. Cancel attempt MUST satisfy sc-inv-05
+			antes de qualquer emit attempt — (now - issuedAt) ≤
+			cancellationWindow(regimeVersion).
+
+			cancellationWindow é função pura externa ao domínio
+			(declarado canonicamente em domain-model.cue) — agent NÃO
+			computa janela; agent CONSULTA via canonical clockSource.
+			Trap T2 (window ambiguity) endereçado via clockSource:
+			canonical explicit em verification.
+			"""
+		verification: """
+			kind: structural-gate
+			gatePhase: pre-execution
+			structuralCheckRef: sc-inv-05
+			invariantRef: inv-cancellation-boundary
+			requiredChecks:
+			- type: temporal-boundary-check
+			  target: Invoice
+			  condition: (now - issuedAt) ≤ cancellationWindow(regimeVersion)
+			  clockSource: canonical
+			  enforcementLevel: hard
+			- type: structural-check-ref
+			  target: sc-inv-05
+			  binding: pre-execution-gate
+			  expected: not-violated
+			  enforcementLevel: hard
+			- type: window-function-pure-external
+			  target: cancellationWindow
+			  expected: function-pure-external-to-domain
+			  forbidden-source: agent-computed-window
+			  enforcementLevel: hard
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa BD temporal-boundary + sc-inv-05 como structural gate pre-execution. clockSource:canonical evita Trap T2 (window ambiguity → sistema não-determinístico). cancellationWindow declarada externa preserva separação domain ↔ regulamentação fiscal (regime versioning vive em CMT, não INV)."
+	}, {
+		code: "cst-gate-cancel-finality-protection"
+		name: "[KIND: structural-gate / phase: pre-execution] post-finality cancellation forbidden"
+		description: """
+			[KIND: structural-gate / phase: pre-execution]
+
+			STRUCTURAL GATE finality-protection. Cancel attempt em invoice
+			cuja finality boundary já foi cruzada é regulatory violation
+			estrutural — NÃO retry-able + NÃO fallback. Trap T4 (cancel
+			pós-finality → violação domínio regulatório) endereçado.
+
+			Distinção crítica: finality-boundary é estado terminal
+			(receivable settled OR fiscal lock period expirado per regime
+			fiscal jurisdicional) — separado de cancellationWindow
+			(janela temporal pre-finality). Agent NÃO infere finality;
+			consulta projection canônica.
+			"""
+		verification: """
+			kind: structural-gate
+			gatePhase: pre-execution
+			invariantRef: inv-cancellation-boundary
+			requiredChecks:
+			- type: finality-boundary-check
+			  target: Invoice
+			  expected: not-crossed
+			  enforcementLevel: hard
+			- type: finality-source-discipline
+			  target: invoice-finality-state
+			  expected: query-from-canonical-projection
+			  forbidden-source: agent-inferred-finality
+			  enforcementLevel: hard
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa Trap T4 estruturalmente. Cancel pós-finality é regulatory-violation HARD — NÃO retry, NÃO fallback. Finality discovery via canonical projection (NÃO agent-inferred) preserva auditability + previne race-condition entre agent state e canonical state."
+	}, {
+		code: "cst-gate-cancel-ordering"
+		name: "[KIND: structural-gate / phase: execution] lifecycle ordering integrity"
+		description: """
+			[KIND: structural-gate / phase: execution]
+
+			STRUCTURAL GATE ordering integrity DURING execution. Sequence
+			[InvoiceIssued → InvoiceCancelled] strictly-ordered MUST
+			be preserved per inv-lifecycle-states + sc-inv-04. Gate
+			detecta tentativa de emit InvoiceCancelled sem InvoiceIssued
+			predecessor OR ordering inversion (timestamp inconsistency).
+
+			Distinção temporal vs ordering: cancellationWindow é
+			temporal (janela permitida); ordering é causal (sequence
+			InvoiceIssued antes de InvoiceCancelled). Ambos hard
+			constraints, dimensões diferentes.
+			"""
+		verification: """
+			kind: structural-gate
+			gatePhase: execution
+			structuralCheckRef: sc-inv-04
+			invariantRef: inv-lifecycle-states
+			requiredChecks:
+			- type: event-ordering
+			  sequence: [InvoiceIssued, InvoiceCancelled]
+			  expected: strictly-ordered
+			  enforcementLevel: hard
+			- type: predecessor-event-existence
+			  target: evt-invoice-issued
+			  scope: same-invoice-id
+			  expected: must-exist-before-cancel-emit
+			  enforcementLevel: hard
+			- type: structural-check-ref
+			  target: sc-inv-04
+			  binding: execution-ordering-constraint
+			  expected: not-violated
+			  enforcementLevel: hard
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa BD lifecycle-ordering + sc-inv-04 como execution-phase structural gate. Ordering integrity é causal (predecessor InvoiceIssued obrigatório); separado de temporal (window). Trap related: previne emit-cancel-without-issue (cancel órfão) que destruiria audit trail history."
+	}, {
+		code: "cst-cancel-no-mutation"
+		name: "Cancel MUST NOT mutate Invoice fields (audit trail preservation)"
+		description: """
+			[KIND: behavioral-constraint / category: immutability]
+
+			Cancel NÃO altera campos da Invoice — apenas transiciona
+			status (issued → cancelled) e emite InvoiceCancelled event.
+			Forbidden mutations: amount, currency, regimeVersion,
+			fiscalDocRef, commitmentRef, evidenceRef, issuedAt.
+
+			Trap T3 (mutation silenciosa → audit trail destruído)
+			endereçado estruturalmente. Reinforces sc-inv-03 (regime-
+			immutability) + sc-inv-06 (fiscalDocRef write-once) — cancel
+			operation MUST preserve all immutable fields verbatim.
+			"""
+		verification: """
+			kind: behavioral-constraint
+			category: immutability-preservation
+			requiredChecks:
+			- type: mutation-absence
+			  target: Invoice
+			  forbidden-fields: [amount, currency, regimeVersion, fiscalDocRef, commitmentRef, evidenceRef, issuedAt]
+			  expected: no-change-on-cancel
+			  enforcementLevel: hard
+			- type: structural-check-ref
+			  target: sc-inv-03
+			  expected: not-violated
+			  enforcementLevel: hard
+			- type: structural-check-ref
+			  target: sc-inv-06
+			  expected: not-violated
+			  enforcementLevel: hard
+			- type: state-transition-only
+			  target: Invoice.status
+			  allowed-transition: [issued → cancelled]
+			  expected: state-transition-isolated-to-status-field
+			  enforcementLevel: hard
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa Trap T3 estruturalmente + cc-04 audit trail regulatory-grade preservation. Cancel é state-transition-only (status field) + event-emission; qualquer mutation além disso destrói audit forensics (regulação tributária requer rastreabilidade ≥5 anos)."
+	}, {
+		code: "cst-cancel-event-required"
+		name: "Cancel MUST emit explicit InvoiceCancelled event"
+		description: """
+			[KIND: behavioral-constraint / category: event-emission-mandatory]
+
+			Cancel é state transition + event emission, NÃO state mutation
+			silenciosa. evt-invoice-cancelled MUST be emitted; absence
+			equivale a cancel inválido per inv-cancellation-event-required.
+
+			Trap T5 (event optional → história do sistema perdida)
+			endereçado estruturalmente. Reinforces sc-inv-07 — sistema
+			NÃO confia em state inspection retroativa para reconstruir
+			cancellation history; event-stream é canonical source.
+			"""
+		verification: """
+			kind: behavioral-constraint
+			category: event-emission-mandatory
+			invariantRef: inv-cancellation-event-required
+			requiredChecks:
+			- type: event-emission
+			  target: evt-invoice-cancelled
+			  expected: emitted
+			  enforcementLevel: hard
+			- type: structural-check-ref
+			  target: sc-inv-07
+			  expected: not-violated
+			  enforcementLevel: hard
+			- type: payload-completeness
+			  target: InvoiceCancelled
+			  required-fields: [invoiceId, cancelledAt, regimeVersionAtCancel]
+			  enforcementLevel: hard
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa Trap T5 estruturalmente + sc-inv-07 cancellation-event-required. Event-stream é canonical history source (não state snapshot); cancel sem event invisibiliza transição perante audit + downstream consumers (FCE/REW que reagem a cancellation)."
+	}, {
+		code: "cst-cancel-no-supersession"
+		name: "Cancel MUST NOT behave as supersession (anti-DLV/DRC pattern leak)"
+		description: """
+			[KIND: behavioral-constraint / category: anti-drift-pattern-leak]
+
+			Cancel NÃO substitui invoice; NÃO cria nova invoice; NÃO
+			reemite; NÃO corrige. Supersession é DLV (evidence supersession)
+			OR DRC (accounting reversal) pattern — explicitamente NÃO INV.
+
+			Trap T1 (cancel ≡ undo → supersession escondida) + Trap T6
+			(cancel-as-correction → erro sistêmico mascarado) endereçados
+			estruturalmente. Forbidden post-cancel emissions:
+			InvoiceIssued (mesma invoiceId), InvoiceIssued (commitmentRef
+			compartilhado novo invoiceId implícito-replace).
+			"""
+		verification: """
+			kind: behavioral-constraint
+			category: anti-drift-pattern-leak
+			requiredChecks:
+			- type: emission-absence
+			  forbidden-event: evt-invoice-issued
+			  context: post-cancel-same-invoice-id
+			  enforcementLevel: hard
+			- type: emission-absence
+			  forbidden-event: evt-invoice-issued
+			  context: post-cancel-same-commitmentRef-evidenceRef-tuple
+			  rationale: previne replace-by-reissue camuflado
+			  enforcementLevel: hard
+			- type: cancel-purpose-acknowledgment
+			  target: cancellation-reasonCode
+			  expected: regulatory-cancellation-only
+			  forbidden-purpose: [accounting-correction, payment-correction, credit-correction]
+			  enforcementLevel: hard
+			- type: glossary-antiTerm-coverage
+			  target: anti-mini-DRC + anti-mini-FCE + anti-mini-SCF
+			  expected: pattern-leak-prevented-via-glossary-discipline
+			  enforcementLevel: advisory
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa Traps T1 + T6 estruturalmente + boundary preservation transversal. Supersession leak from DLV/DRC into INV destroys regulatory-cancellation purity (cancel é declaração regulatória de invalidação, NÃO ferramenta correção contábil/pagamento/crédito). Glossary antiTerms (anti-mini-*) reforçam advisory layer."
 	}]
 
 	escalationConditions: [{
 		category: "insufficient-context"
 		description: """
-			GUARD failure (Layer 4 predicate canIssueInvoice):
-			projection unavailable/incomplete/stale (BD4) OR
-			verificationOutcome != approved.
+			Folded scenarios (issue + cancel actions):
+
+			(A) ISSUE — GUARD failure (Layer 4 predicate
+			canIssueInvoice): projection unavailable/incomplete/stale
+			(BD4) OR verificationOutcome != approved.
+
+			(B) CANCEL — GUARD failure: invoice not found in aggregate
+			canonical state OR Invoice.status != issued (already
+			cancelled OR transitional state).
 
 			DECISION local: ABORT_ACTION (action does not execute;
-			emit nothing).
+			emit nothing). Aplicável a ambos cenários.
 			ESCALATION systemic: DEFERRED — propose-and-wait com
 			structured failureReason classified (missing/incomplete/
-			stale/verification-failed). Threshold-based escalation
+			stale/verification-failed para issue; not-found/wrong-
+			status para cancel). Threshold-based escalation
 			per esc-projection-missing soft canvas escalation pode
 			disparar Phase 1+ se condition persists.
 			"""
-		rationale: "BD4 + BD1 RECTOR. Guard failure NÃO é decisão a escalar imediatamente — é estado a aguardar. Local ABORT_ACTION distinto de DEFERRED systemic ESCALATION (pode acontecer depois via threshold) — wait pattern preserva replay independence."
+		rationale: "BD4 + BD1 RECTOR. Guard failure NÃO é decisão a escalar imediatamente — é estado a aguardar. Local ABORT_ACTION distinto de DEFERRED systemic ESCALATION (pode acontecer depois via threshold) — wait pattern preserva replay independence. Cancel-not-found tipicamente reflete eventual consistency lag (DEFERRED válido); padrão DLV precedent (folded scenarios via OR per category)."
 	}, {
 		category: "out-of-scope"
 		description: """
-			STRUCTURAL GATE violation pre-emit: cst-gate-issue-
-			idempotency-pre-execution detecta tuple (commitmentRef,
-			evidenceRef) já existente em aggregate state.
+			Folded scenarios (issue + cancel actions):
 
-			DECISION local: ABORT_ACTION (no-op replay-safe; emit
-			nothing).
-			ESCALATION systemic: SOFT (audit-trail entry +
-			pattern-detection counter). Replay legítimo é normal;
-			pattern anômalo (high rate sustained) dispara HARD
-			escalation per esc-duplicate-issuance-attempt-detected
-			canvas escalation (Phase 1+ pattern threshold).
+			(A) ISSUE — STRUCTURAL GATE violation pre-emit:
+			cst-gate-issue-idempotency-pre-execution detecta tuple
+			(commitmentRef, evidenceRef) já existente em aggregate
+			state. Replay legítimo é normal; pattern anômalo dispara
+			SOFT/HARD threshold-based.
+
+			(B) CANCEL — STRUCTURAL GATE violation: tentativa de
+			cancel fora da janela fiscal (sc-inv-05 cancellation-
+			boundary cruzada) OR post-finality (cst-gate-cancel-
+			finality-protection violado). REGULATORY VIOLATION
+			structural — distintamente HARD (não soft replay).
+
+			DECISION local: ABORT_ACTION (no-op replay-safe para issue;
+			permanent block para cancel — boundary regulatório não-
+			retryable).
+			ESCALATION systemic:
+			- ISSUE: SOFT (audit-trail entry + pattern-detection
+			  counter); HARD apenas em pattern adversarial
+			- CANCEL: HARD imediato — REGULATORY VIOLATION
+			  (out-of-window OR post-finality é regulatory boundary
+			  breach, NÃO retryable).
 			"""
-		rationale: "BD3 + sc-inv-02 pre-execution gate. Local ABORT_ACTION distinto de SOFT systemic ESCALATION (audit + counter); HARD apenas em pattern adversarial."
+		rationale: "BD3 + sc-inv-02 (issue) + sc-inv-05 + finality-protection (cancel). Issue out-of-scope é tipicamente replay legítimo (SOFT), cancel out-of-scope é regulatory violation (HARD imediato — janela fiscal expirada NÃO se reabre). Distinção severity refletida no description; padrão DLV precedent (folded via OR)."
 	}, {
 		category: "suspicious-input"
 		description: """
-			STRUCTURAL GATE failure: cst-gate-issue-atomic-feasibility-
-			execution detecta transactional outbox primitive failure
-			pre-emit OR partial state observable post-emit.
+			Folded scenarios (issue + cancel actions):
+
+			(A) ISSUE — STRUCTURAL GATE failure: cst-gate-issue-
+			atomic-feasibility-execution detecta transactional outbox
+			primitive failure pre-emit OR partial state observable
+			post-emit. INFRASTRUCTURE-BREACH classification.
+
+			(B) CANCEL — TEMPORAL/ORDERING inconsistency: clock
+			source inconsistente (multiple authoritative clocks) OR
+			ordering inversion detected (cst-gate-cancel-ordering
+			violation — InvoiceCancelled emit attempt sem
+			InvoiceIssued predecessor in event store). TEMPORAL-
+			INCONSISTENCY classification.
 
 			DECISION local: ABORT_ACTION immediately (no retry parcial;
-			no compensation step).
-			ESCALATION systemic: HARD imediato — INFRASTRUCTURE-BREACH.
-			Freeze de fluxo escalado per esc-atomic-emit-primitive-
-			failure canvas escalation se pattern sistêmico (múltiplas
-			falhas em janela curta).
+			no compensation step). Aplicável a ambos cenários.
+			ESCALATION systemic: HARD imediato — distintos por
+			classification:
+			- ISSUE: INFRASTRUCTURE-BREACH (outbox failure)
+			- CANCEL: TEMPORAL-INCONSISTENCY (clock OR ordering)
+			Freeze de fluxo escalado per canvas escalations se
+			pattern sistêmico.
 			"""
-		rationale: "BD7 + sc-inv-01. Atomicidade falha é estrutural — local ABORT_ACTION mandatory + systemic HARD ESCALATION imediata. Agent detecta limite estrutural canônico (founder framing 'falha estrutural detectável, não bug')."
+		rationale: "BD7 + sc-inv-01 (issue) + cst-gate-cancel-ordering + clockSource canonical (cancel). Ambos cenários são estruturais — local ABORT_ACTION mandatory + systemic HARD ESCALATION imediata. Classification distinct (INFRASTRUCTURE vs TEMPORAL) preserva diagnostic clarity para forensics; agent detecta limite estrutural canônico em ambos."
 	}, {
 		category: "unclassifiable-anomaly"
 		description: """
@@ -465,6 +808,56 @@ agentSpec: artifact_schemas.#AgentSpec & {
 				"receivableId",
 				"auditTimestamp",
 			]
+		}, {
+			code:           "sig-invoice-cancelled-emitted"
+			name:           "Invoice cancelled (within fiscal window)"
+			description:    "Emitido após emit bem-sucedido de InvoiceCancelled dentro de cancellationWindow. Indica ciclo completo da action act-cancel-invoice (BD cancellation-boundary respeitada + sc-inv-04/05/07 mantidos)."
+			coversCategory: "mutation"
+			trigger:        "Post-emit success: evt-invoice-cancelled acked pelo broker; transição issued → cancelled persistida; ordering [InvoiceIssued → InvoiceCancelled] preservada."
+			level:          "info"
+			payloadFields: [
+				"timestamp",
+				"invoiceId",
+				"cancelledAt",
+				"regimeVersionAtCancel",
+				"cancellationReasonCode",
+				"issuedAt",
+				"windowAtCancel",
+			]
+		}, {
+			code:           "sig-cancel-structural-gate-blocked"
+			name:           "Cancel blocked by structural gate (pre-emit)"
+			description:    "Emitido quando cst-gate-cancel-within-window OU cst-gate-cancel-finality-protection OU cst-gate-cancel-ordering bloqueia emissão pre-emit. Distingue blocking dimension (temporal vs finality vs ordering) para diagnostic clarity."
+			coversCategory: "mutation"
+			trigger:        "Pre-emit: structural gate cancel-* detecta violação per Phase 3.5 ADR-080 (sc-inv-04 lifecycle-states OR sc-inv-05 cancellation-boundary OR finality-protection)."
+			level:          "warn"
+			payloadFields: [
+				"timestamp",
+				"gateRef",
+				"structuralCheckRef",
+				"blockedDimension",
+				"invoiceId",
+				"now",
+				"issuedAt",
+				"cancellationWindowSnapshot",
+			]
+		}, {
+			code:           "sig-cancel-regulatory-violation-attempt"
+			name:           "Cancel attempt violates regulatory boundary (HARD escalation)"
+			description:    "Emitido em escalation HARD por out-of-scope cancel: tentativa fora da janela fiscal (window expired) OU post-finality. Distinto de structural-gate-blocked (que cobre dimension diagnostic genérico) — este signal é regulatory-violation classification específica."
+			coversCategory: "mutation"
+			trigger:        "Pre-emit: cancel attempt cruza boundary regulatório (window expired OR finality crossed). HARD ESCALATION imediata per escalationCondition out-of-scope."
+			level:          "error"
+			payloadFields: [
+				"timestamp",
+				"invoiceId",
+				"violationType",
+				"regimeVersion",
+				"now",
+				"issuedAt",
+				"windowExpiredAt",
+				"finalityCrossedAt",
+			]
 		}]
 
 		auditTrail: {
@@ -477,7 +870,7 @@ agentSpec: artifact_schemas.#AgentSpec & {
 				"output-summary",
 				"decision-rationale",
 				"governance-version",
-				// INV-specific extensions (cc-04 fiscal audit trail)
+				// INV-specific extensions (cc-04 fiscal audit trail) — issue + cancel
 				"commitmentRef",
 				"evidenceRef",
 				"invoiceId",
@@ -486,9 +879,13 @@ agentSpec: artifact_schemas.#AgentSpec & {
 				"fiscalDocRef",
 				"executionResult",
 				"reasonCode",
+				// Cancel-specific extensions (Phase 4 Part 2 — temporal + regulatory traceability)
+				"cancellationTimestamp",
+				"cancellationReasonCode",
+				"windowAtCancel",
 			]
-			storageHint: "Fiscal-grade audit log (regulação tributária requer rastreabilidade documento + inputs + outputs + escalation events; retention legal ≥5 anos NF-e Brasil; equivalentes em outros regimes jurisdicionais Phase 1+). Detalhes de implementação vivem no Architecture Communication Canvas."
-			rationale:   "cc-04 audit trail regulatory-grade. Cada execution emit OR escalation registra cadeia completa para forensic + dispute resolution. _minimumAuditFields ⊆ requiredFields satisfeito (7 minimum + 8 INV-specific extensions = 15 fields total)."
+			storageHint: "Fiscal-grade audit log (regulação tributária requer rastreabilidade documento + inputs + outputs + escalation events; retention legal ≥5 anos NF-e Brasil; equivalentes em outros regimes jurisdicionais Phase 1+). Cancel events demandam trail simétrico — cancellationTimestamp + reasonCode + windowAtCancel preservam evidence forensics da decisão de invalidação dentro de boundary regulatório. Detalhes de implementação vivem no Architecture Communication Canvas."
+			rationale:   "cc-04 audit trail regulatory-grade simétrico para issue + cancel. _minimumAuditFields ⊆ requiredFields satisfeito (7 minimum + 8 INV core extensions + 3 cancel-specific = 18 fields total). Cancel-specific fields capturam temporal boundary (cancellationTimestamp + windowAtCancel) + regulatory classification (cancellationReasonCode) — forensics demanda janela snapshot in-flight (NÃO recomputed post-hoc) per Trap T2 (window ambiguity)."
 		}
 	}
 
@@ -534,14 +931,44 @@ agentSpec: artifact_schemas.#AgentSpec & {
 		mitigations-future. Sistema declara escopo real de
 		enforcement, não finge cobertura completa.
 
-		**Phase 4 Part 1 scope**: 1 action (issue-invoice) + 5
-		constraints (2 cst-gate-* + 3 cst-issue-* + 1 cst-schema-
-		openness ACK) + 4 escalationConditions cobrindo failure
-		modes founder canonical block. Part 2 estende com act-cancel-
-		invoice (irreversibilidade + boundary regulatório fiscal)
-		+ reactive actions (filter-non-terminal-dlv + block-emit-
-		on-stale-or-missing-projection) + supervisedDecision
-		emit-with-regime-anomaly.
+		**Phase 4 Part 1 + Part 2 scope** (este file): 2 actions
+		(issue-invoice + cancel-invoice) + 11 constraints (2 cst-gate-
+		issue-* + 3 cst-issue-* + 1 cst-schema-openness ACK + 3 cst-
+		gate-cancel-* + 3 cst-cancel-*) + 4 escalationConditions
+		(folded scenarios issue + cancel via OR per category, padrão
+		DLV precedent) + 6 observability signals (3 issue + 3 cancel)
+		+ 18 audit fields (7 minimum + 8 INV core + 3 cancel-specific).
+
+		**Cancel asymmetry com issue** (founder framing canônico):
+		- Issue cria realidade (consistência ESTRUTURAL apenas)
+		- Cancel invalida realidade sob regras externas (consistência
+		  ESTRUTURAL + TEMPORAL + REGULATÓRIA — três dimensões)
+
+		**6 traps cancel endereçados estruturalmente** (NÃO via
+		comentário): T1 cancel-as-undo via cst-cancel-no-supersession;
+		T2 window ambiguity via clockSource:canonical em verification;
+		T3 silent mutation via cst-cancel-no-mutation; T4 post-finality
+		via cst-gate-cancel-finality-protection; T5 event optional via
+		cst-cancel-event-required; T6 cancel-as-correction via
+		cst-cancel-no-supersession + glossary antiTerms anti-mini-DRC/
+		FCE/SCF.
+
+		**Severity asymmetry em escalationConditions folded**:
+		- Issue out-of-scope → SOFT (replay legítimo é normal)
+		- Cancel out-of-scope → HARD (regulatory boundary breach;
+		  janela fiscal expirada NÃO se reabre — não retryable)
+		- Issue suspicious-input → INFRASTRUCTURE-BREACH classification
+		- Cancel suspicious-input → TEMPORAL-INCONSISTENCY classification
+		Distinção severity preserva diagnostic clarity sem fragmentar
+		categories (DLV precedent: 1 entry per category, scenarios
+		folded via OR).
+
+		**Pendente Phase 4 Part 3** (próximo commit): reactive actions
+		(filter-non-terminal-dlv + block-emit-on-stale-or-missing-
+		projection) + supervisedDecision (emit-with-regime-anomaly).
+		ADR-081 schema mod (kind structural-gate first-class field +
+		failureHandling discriminated) cristalizará após Part 3
+		(3 usos reais: issue + cancel + reactive — founder rule).
 
 		**Forward-refs Phase 5**: governanceRef='inv-primary-agent'
 		aponta para envelope `contexts/inv/agents/inv-primary-agent.
