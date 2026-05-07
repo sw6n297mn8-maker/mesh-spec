@@ -229,8 +229,8 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "event-publisher"
 			trigger:     "Gate de aceite mútuo bilateral aprovado com sucesso."
 			event:       "CommitmentAccepted"
-			consumers:   ["bdg", "drc", "tcm"]
-			description: "Sinal canônico de entrada no commitment lifecycle. BDG inicia aprovação orçamentária; DRC registra contexto para disputas futuras; TCM projeta obrigação futura na posição de caixa."
+			consumers:   ["bdg", "drc", "tcm", "inv"]
+			description: "Sinal canônico de entrada no commitment lifecycle. BDG inicia aprovação orçamentária; DRC registra contexto para disputas futuras; TCM projeta obrigação futura na posição de caixa; INV materializa projection cache read-only de commitment terms para cômputo fiscal apply-only no momento de faturamento."
 		}, {
 			type:        "event-publisher"
 			trigger:     "Transição de estado do compromisso por sinal externo (risco, disputa) ou ação interna (suspensão, cancelamento, reativação)."

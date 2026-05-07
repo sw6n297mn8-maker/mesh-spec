@@ -209,4 +209,168 @@ canvas: artifact_schemas.#Canvas & {
 		hasSyncSurface:  false
 		hasAsyncSurface: true
 	}
+
+	communication: {
+		inbound: [{
+			type:          "event-consumer"
+			sourceContext: "dlv"
+			event:         "DeliveryVerified"
+			reaction: """
+				INV consome via ACL (dlv-to-inv operacional Phase 0)
+				e materializa Invoice aggregate per (commitmentRef,
+				evidenceRef) identity. ACL filtra payload categórico:
+				preserva (commitmentRef, evidenceRef, criteriaVersion,
+				status=approved); descarta reasonCode (interpretação),
+				retryPath (DLV-internal), verificationMetrics (BD10
+				anti-mini-NIM). INV consome APENAS DeliveryVerified
+				com status=approved e ignora explicitamente todos os
+				demais eventos DLV (DeliveryRejected, supersession
+				events, internal lifecycle events). Trigger:
+				status=approved ⇒ atomic emit InvoiceIssued +
+				ReceivableMaterialized; status≠approved ⇒ no-op.
+				"""
+			description: """
+				Ingestion path principal cross-BC. INV consome apenas
+				eventos DLV terminal-approved; naming 'Verified' indica
+				fato consumível pós-DLV-finality. INV NÃO consome
+				supersession events de DLV diretamente — supersession
+				reabre DLV; nova verificação aprovada gera nova invoice
+				via tupla (commitmentRef, evidenceRef-N+1) distinta.
+				Correção da invoice antiga: cancelamento INV dentro da
+				janela fiscal OU DRC/ATO fora dela.
+				"""
+		}, {
+			type:          "event-consumer"
+			sourceContext: "cmt"
+			event:         "CommitmentAccepted"
+			reaction: """
+				INV consome via ACL (cmt-to-inv operacional Phase 0)
+				e materializa projection cache local read-only de
+				commitment terms (commitmentRef, amount, currency,
+				dueDate, parties, taxRegimeRef) — input determinístico
+				para cômputo fiscal apply-only no momento subsequente
+				de InvoiceIssued. Cache é write-once per commitmentRef:
+				CommitmentAccepted carrega terms canônicos pós-aceite
+				bilateral; INV NÃO consome CommitmentStateChanged
+				(state changes pós-formalização — cancel, suspend —
+				não alteram terms originais; correção pós-issued é
+				DRC/ATO scope, não mutação INV).
+				"""
+			description: """
+				Read-side dependency estrutural para cômputo de amount.
+				INV depende de commitment terms para materializar
+				fatura: amount = f(commitmentTerms,
+				verificationOutcome=approved). Projection cache async
+				preserva replay determinístico e elimina sync coupling
+				com CMT. Paralelo cmt-to-tcm (TCM consome mesmo
+				CommitmentAccepted para projetar obrigação futura na
+				posição de caixa) — pattern read-side via projection.
+				"""
+		}]
+
+		outbound: [{
+			type: "event-publisher"
+			trigger: """
+				DeliveryVerified consumed (status=approved) +
+				commitment terms disponíveis no projection cache local
+				⇒ atomic emit Invoice aggregate state + InvoiceIssued
+				event publication AS-ONE via primitive de
+				infraestrutura que garante consistência entre estado e
+				publicação de eventos. Idempotência operacional:
+				identidade (commitmentRef, evidenceRef) garante no
+				máximo um InvoiceIssued por tupla (G1 guardrail).
+				Conservação de valor: amount derivado de
+				f(commitmentTerms, verificationOutcome=approved) —
+				função fechada e determinística.
+				"""
+			event: "InvoiceIssued"
+			consumers: ["fce", "ato"]
+			description: """
+				Hard binding cross-BC para 2 consumidores formalizados:
+				FCE (settle pagamento contra invoice + commitmentRef) e
+				ATO (registrar lançamento fiscal — pattern conformist
+				per context-map: ATO conforma com linguagem fiscal INV
+				sem tradução). Payload categórico: invoice identity +
+				commitment lineage + fiscal doc reference + amount +
+				currency + dueDate + taxBreakdown(informational) +
+				regimeVersion + issuedAt. NÃO inclui paymentMethod,
+				paymentSchedule, accountRef (FCE concerns); NÃO inclui
+				riskScore, eligibilityFlag (REW/SCF concerns); NÃO
+				inclui rationale fiscal interpretativo (ATO domain).
+				"""
+		}, {
+			type: "event-publisher"
+			trigger: """
+				InvoiceIssued emit ⇒ atomic emit ReceivableMaterialized
+				no MESMO commit transacional (G2 guardrail:
+				ReceivableMaterialized.amount == InvoiceIssued.amount
+				sempre, mesma fonte computacional). Trigger acoplado
+				estruturalmente — ReceivableMaterialized não pode emit
+				sem InvoiceIssued precedente válido.
+				"""
+			event: "ReceivableMaterialized"
+			consumers: ["scf"]
+			description: """
+				Hard binding cross-BC para SCF (originar produtos
+				financeiros sobre lastro de recebível verificado).
+				Evento separado de InvoiceIssued para preservar contract
+				independente: SCF liga em ReceivableMaterialized (ativo
+				financeiro transferível) sem acoplar-se em
+				fiscalDocRef/regimeVersion (concerns INV/ATO). Payload
+				categórico mínimo: receivableId + invoiceId +
+				commitmentRef + amount + currency + dueDate +
+				materializedAt. NÃO inclui eligibilityScore,
+				productCategory, anticipationRate (SCF concerns); NÃO
+				inclui riskAssessment (REW concern); INV emite SEMPRE
+				que invoice é issued — filtragem por elegibilidade é
+				decisão SCF/REW.
+				"""
+		}, {
+			type: "event-publisher"
+			trigger: """
+				Comando CancelInvoice processado dentro da janela fiscal
+				(janela definida por regime jurisdicional; e.g. SEFAZ
+				≤24h pós-emit no regime brasileiro). Gate categórico:
+				within-window sim/não (sem interpretação). G3 guardrail:
+				cancelamento sempre evento explícito — sem soft-delete,
+				sem overwrite, sem re-emissão silenciosa. Cancelamento
+				fora-da-janela é supervisedDecision separado
+				(escalation), NÃO mutação INV.
+				"""
+			event: "InvoiceCancelled"
+			consumers: ["fce", "ato"]
+			description: """
+				Cancelamento dentro da janela fiscal — único path
+				INV-owned de mutação pós-issued. Consumers downstream:
+				FCE (cancelar pending settlement se pre-settle; no-op
+				pós-settle — correção financeira é DRC) e ATO (estornar
+				lançamento fiscal). Payload categórico: invoiceId +
+				fiscalCancellationRef + reasonCode (categórico definido
+				no domain-model) + cancelledAt. NÃO inclui
+				replacementInvoiceId (orchestration); NÃO inclui
+				refundDetails ou restitutionPath (DRC/ATO concerns).
+				"""
+		}]
+
+		rationale: """
+			Communication minimalista por design: 2 inbound (dlv-to-inv
+			operacional + cmt-to-inv operacional, ambos formalizados em
+			context-map Phase 0) + 3 outbound (InvoiceIssued para
+			FCE/ATO, ReceivableMaterialized para SCF, InvoiceCancelled
+			para FCE/ATO — todos formalizados em context-map Phase 0).
+			hasSyncSurface=false ⇒ sem inbound query-surfaces; consumers
+			mantêm próprias projections via event consumption — preserva
+			replay independence e previne INV virar read-model central.
+			ACL inbound filtra rigorosamente payloads upstream: DLV
+			descarta reasonCode/retryPath/metrics; CMT consome apenas
+			CommitmentAccepted (terms canônicos), ignora
+			CommitmentStateChanged. Payload outbound mínimo categórico
+			— sem campos de pagamento (FCE), sem campos de
+			risco/elegibilidade (REW/SCF), sem rationale fiscal
+			interpretativo (ATO). Idempotência garantida pela identidade
+			(commitmentRef, evidenceRef); detalhes de dedup canonical
+			vs fallback são responsabilidade da infrastructure (atomic
+			emit primitive), não contract de comunicação.
+			"""
+	}
 }

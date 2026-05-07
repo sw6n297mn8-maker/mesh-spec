@@ -249,7 +249,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 
 	relationships: [
 
-		// --- A. Commitment Lifecycle (5) ---
+		// --- A. Commitment Lifecycle (6) ---
 		{
 			code:              "cmt-to-bdg"
 			source:            {kind: "bounded-context", context: "cmt"}
@@ -296,10 +296,23 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "INV publica InvoiceIssued; FCE consome para executar pagamento."
-			rationale:         "Spine do commitment lifecycle — fatura emitida precede liquidação financeira."
+			description:       "INV publica InvoiceIssued e InvoiceCancelled; FCE consome InvoiceIssued para executar pagamento e InvoiceCancelled para cancelar settlement pendente pré-liquidação."
+			rationale:         "Spine do commitment lifecycle — fatura emitida precede liquidação financeira; cancelamento dentro da janela fiscal precede potencial settlement, evitando pagamento de fatura cancelada. Pós-settle, cancelamento é correção financeira via DRC, não mutação INV."
 			communication: {type: "async"}
-			events: ["InvoiceIssued"]
+			events: ["InvoiceIssued", "InvoiceCancelled"]
+			flowRefs: ["commitment-lifecycle"]
+		},
+		{
+			code:              "cmt-to-inv"
+			source:            {kind: "bounded-context", context: "cmt"}
+			target:            {kind: "bounded-context", context: "inv"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "CMT publica CommitmentAccepted; INV consome via ACL para materializar projection cache local read-only de commitment terms (amount, currency, dueDate, parties, taxRegimeRef) — input determinístico para cômputo fiscal apply-only no momento de InvoiceIssued."
+			rationale:         "INV depende estruturalmente de commitment terms para materializar fatura (amount = f(commitmentTerms, verificationOutcome=approved)); declarar inbound async via projection cache preserva replay determinístico, elimina sync coupling e mantém INV sem query dependency. Paralelo cmt-to-tcm (TCM consome mesmo evento para projetar obrigação futura) e cmt-to-drc (DRC contextualiza disputa)."
+			communication: {type: "async"}
+			events: ["CommitmentAccepted"]
 			flowRefs: ["commitment-lifecycle"]
 		},
 		{
@@ -542,10 +555,10 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "conformist"
-			description:       "INV publica InvoiceIssued; ATO conforma para registrar lançamentos fiscais."
-			rationale:         "ATO conforma com eventos de INV sem tradução — linguagem fiscal é extensão direta da linguagem de faturamento."
+			description:       "INV publica InvoiceIssued e InvoiceCancelled; ATO conforma para registrar lançamentos fiscais e estornar lançamentos quando fatura é cancelada dentro da janela fiscal."
+			rationale:         "ATO conforma com eventos de INV sem tradução — linguagem fiscal é extensão direta da linguagem de faturamento; cancelamento dentro da janela exige estorno contábil correspondente. Cancelamento pós-janela é ajuste contábil ATO-owned, sem evento INV."
 			communication: {type: "async"}
-			events: ["InvoiceIssued"]
+			events: ["InvoiceIssued", "InvoiceCancelled"]
 		},
 		{
 			code:              "fce-to-ato"
