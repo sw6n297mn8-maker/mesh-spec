@@ -944,4 +944,137 @@ canvas: artifact_schemas.#Canvas & {
 			(SCF/REW), não dependência de policing manual.
 			"""
 	}
+
+	ownership: {
+		domainAgentSpec: "contexts/inv/agents/inv-primary-agent.cue"
+
+		governanceScope: {
+			autonomousDecisions: [{
+				id:          "emit-invoice-on-verified-and-projection-ready"
+				description: "Emit InvoiceIssued + ReceivableMaterialized atomic dado: (a) DeliveryVerified consumed com status=approved; (b) projection cache local de commitment terms presente, completo, fresh; (c) regime fiscal resolvido com regimeVersion canônico. Gate determinístico binário (sim/não) — sem julgamento. Caminho normal cc-03 24/7."
+				rationale:   "Aplicação determinística dos BD1+BD3+BD4+BD7 sobre signals estruturados é função, não julgamento. Pertence ao agente desde que todos inputs canônicos disponíveis."
+			}, {
+				id:          "cancel-invoice-within-fiscal-window"
+				description: "Emit InvoiceCancelled dado: (a) CancelInvoice command recebido; (b) within-window check categórico passa (timestamp atual − issuedAt ≤ janela fiscal regulada); (c) reasonCode categórico válido. Gate determinístico binário."
+				rationale:   "Cancelamento dentro da janela é função sobre dados estruturados (timestamps + reasonCode). Pertence ao agente. Fora-da-janela escalation per BD5."
+			}, {
+				id:          "block-emit-on-stale-or-missing-projection"
+				description: "Bloquear emit + ativar retry path quando BD4 falha: projection ausente, incompleta, OU stale relativo ao estado mais recente conhecido do commitmentRef. No-op observable; retry via event replay aguardando consistency. Caminhos diferenciados por natureza da falha (missing → retry; stale → escalation per criteria separados)."
+				rationale:   "Defensive gate é decisão autônoma — falha de input NÃO é decisão a escalar; é estado a aguardar (até threshold). Diferenciação missing-vs-stale preserva diagnóstico operacional."
+			}, {
+				id:          "filter-non-terminal-dlv-events"
+				description: "Filtrar via ACL todos os eventos DLV exceto DeliveryVerified status=approved (descartar DeliveryRejected, supersession events, lifecycle internos). No-op silencioso para eventos filtrados — sem ação INV, sem escalation."
+				rationale:   "Aplicação categórica do BD1 RECTOR; filter é função sobre eventType, não julgamento sobre conteúdo. Eventos não-aplicáveis NÃO são erros — são fora do scope INV."
+			}]
+
+			supervisedDecisions: [{
+				id:          "emit-invoice-with-regime-anomaly"
+				description: "Emit invoice quando regime fiscal referenciado em commitmentTerms NÃO tem tabela canônica disponível (regime novo, regimeVersion sem tabela publicada, regime jurisdicional não suportado em Phase 0). Operator decide: (a) bloquear emit + escalation founder; (b) emit sob regime fallback documentado com supervisedDecision flag."
+				rationale:   "Regime sem tabela é caso fora do envelope determinístico (BD2 deterministic-fiscal-projection viola); decisão exige human review para evitar emit com cômputo inválido OU bloqueio prolongado de fluxo. Phase 0 default: bloquear + escalation."
+			}]
+
+			escalationCriteria: [{
+				id:        "esc-projection-missing"
+				condition: "Projection cache de commitmentTerms para commitmentRef referenciado por DeliveryVerified consumed está AUSENTE (nunca recebido CommitmentAccepted para esse commitmentRef) ou INCOMPLETO (campos obrigatórios faltando). Cenário esperado: atraso normal upstream (CMT eventually consistent)."
+				action:    "Retry-first via event replay aguardando CommitmentAccepted (Phase 0: backoff exponencial); escalation soft após threshold operacional (Phase 0: TBD via observação empírica; Phase 1+ ADR fixa threshold). Escalation soft = alarm + log estruturado, NÃO block fluxo demais."
+				rationale: "Missing projection é caso esperado em cross-BC eventual consistency; tratamento agressivo gera falso positivo. Retry preserva eventual delivery sem ruído operacional."
+			}, {
+				id:        "esc-projection-stale"
+				condition: "Projection cache de commitmentTerms para commitmentRef PRESENTE mas STALE relativo ao estado mais recente conhecido do commitmentRef (e.g., CMT publicou CommitmentStateChanged que projection ainda não processou; eventLogOffset projection < eventLogOffset CMT mais recente). Cenário perigoso: inconsistência ativa, não atraso."
+				action:    "Escalation HARD imediata para sh-04 founder + sh-05 ops — staleness indica problema de processamento de eventos (consumer lag, projection bug, schema mismatch); diferente de delay normal. Block emit para o commitmentRef até root cause identificada + projection rebuilt OR confirmada consistente."
+				rationale: "Staleness é signal de problema estrutural (não atraso transiente); BD4 trata stale = ausência mas o caminho operacional é distinto: stale exige investigação, missing exige espera. Diferenciação reduz falso positivo + acelera diagnóstico."
+			}, {
+				id:        "esc-regime-fiscal-unresolvable"
+				condition: "regimeVersion ou regimeRef referenciado em commitmentTerms não resolve para tabela canônica disponível (e.g., regime novo sem publicação ainda, regimeVersion deprecated)."
+				action:    "Block emit + escalation para sh-04 founder + sh-05 fiscal advisor (Phase 1+); founder decide via supervisedDecision 'emit-invoice-with-regime-anomaly' OU instrui resolução upstream (CMT amendment para regime válido)."
+				rationale: "BD2 exige regime resolvido como input determinístico; ausência viola função pura — escalation explícita preserva BD2 sem auto-fallback heurístico."
+			}, {
+				id:        "esc-cancel-requested-outside-fiscal-window"
+				condition: "Comando CancelInvoice recebido para invoiceId cuja janela fiscal já expirou (timestamp atual − issuedAt > janela fiscal regulada)."
+				action:    "Block cancellation INV + escalation direcionada: (a) DRC se contexto é dispute; (b) ATO se contexto é ajuste contábil. Resposta ao requester com reasonCode=outside-fiscal-window-correction-via-{drc|ato}."
+				rationale: "BD5 + G3 guardrails; mutação fora janela viola regulação fiscal e G3 explícito-event-only. Routing para BC competente preserva separation of concerns."
+			}, {
+				id:        "esc-atomic-emit-primitive-failure"
+				condition: "Primitive de infraestrutura para atomic emit (transactional outbox) falha durante InvoiceIssued + ReceivableMaterialized; estado parcial detectado (um evento publicado sem o outro, OU aggregate state divergente de event publication). Pattern observável: falha isolada (single commitmentRef) OU sistêmica (múltiplas falhas curto intervalo)."
+				action:    "Block subsequent emits para o commitmentRef afetado + escalation imediata para sh-04 founder + sh-05 ops. Se padrão de falha for SISTÊMICO (threshold de múltiplas falhas em janela curta — Phase 1+ via observação): ativar FREEZE DE EMISSÃO para todo o fluxo INV até integridade do primitive restaurada (paralelo freeze model design pattern). Recovery requer operação manual sob audit (replay event reconstruction OR rollback parcial documentado)."
+				rationale: "BD7 atomic-dual-emission é invariante crítico; falha do primitive viola garantia estrutural fundamental. Escalation por identity (single commitmentRef) é insuficiente quando problema é sistêmico — freeze de fluxo previne cascata de inconsistência cross-BC (SCF + ATO + FCE)."
+			}, {
+				id:        "esc-duplicate-issuance-attempt-detected"
+				condition: "Atomic primitive detecta tentativa de emit InvoiceIssued para tupla (commitmentRef, evidenceRef) já existente no aggregate state (BD3 idempotency violation attempt)."
+				action:    "DEFAULT: no-op observable + log audit-trail entry com reasonCode=idempotent-replay; escalation soft (alarm, não block) — caminho esperado em replay/partição. PATTERN ESCALATION: hard escalation quando padrão indica tentativa sistemática de violação de idempotência (threshold Phase 1+ via observação) — signal potencial de comportamento adversarial OR bug recorrente upstream que merge investigação."
+				rationale: "Replay legítimo não é incidente; replay anômalo (taxa elevada/sustentada) é signal de problema infra OU adversarial. Soft default preserva BD3 funcionamento normal sem ruído; pattern detection escala para investigação quando frequência indica problema real."
+			}, {
+				id:        "esc-audit-trail-write-failure"
+				condition: "Write em audit trail falha durante emit (cc-04 + BD8 + G3 imutabilidade comprometida); evento de domínio não pode ser persistido com trail completo."
+				action:    "Block emit (no half-emission per BD7) + escalation imediata para sh-04 founder + sh-05 ops; alarm regulatório (Bacen reporting potencial). Recovery requer operação manual sob audit + análise root cause."
+				rationale: "Audit trail é constraint regulatório inviolável; falha de write compromete capacidade de fiscalização Bacen. Bloquear emit preserva integridade vs prosseguir sem trail."
+			}]
+		}
+
+		rationale: """
+			Governance scope INV reflete característica estrutural do BC:
+			**operação predominantemente autônoma sob envelope determinístico
+			estreito** (4 autonomousDecisions cobrindo emit + cancel +
+			defensive-block + filter), com uma única supervisedDecision
+			(regime anomaly fora do envelope determinístico) e 7
+			escalationCriteria cobrindo todos os modos de falha estrutural.
+
+			**Quem pode quebrar o INV** (vetores explícitos):
+			(a) sh-05 agente via shortcut heurístico — bloqueado por gates
+			BD1+BD3+BD4 + sh-05 incentive analysis;
+			(b) CMT publishing inconsistent state (projection drift) —
+			capturado por esc-projection-stale (HARD) vs esc-projection-
+			missing (retry-first) diferenciados por natureza da falha;
+			(c) Infrastructure atomic primitive failure isolada OR
+			sistêmica — capturado por esc-atomic-emit-primitive-failure
+			com freeze de fluxo escalado quando pattern sistêmico;
+			(d) Regime fiscal externo corrupto/incompleto — capturado por
+			esc-regime-fiscal-unresolvable;
+			(e) Audit trail infra falha — capturado por
+			esc-audit-trail-write-failure;
+			(f) DLV upstream publishing eventos com payload inválido —
+			bloqueado por ACL inbound filter (decisão autônoma
+			filter-non-terminal-dlv-events);
+			(g) Bug interno no domain logic INV (cômputo fiscal errado,
+			mapping de regimeVersion incorreto, bug de rounding em
+			taxBreakdown) — vetor mais perigoso porque vem de DENTRO,
+			não de inputs externos. Detecção via audit trail estrutural
+			+ replay determinístico (BD2 + cc-04): divergência sistemática
+			vs fontes externas (ATO reconciliação fiscal, regime authority
+			tables) torna bug detectável post-hoc. Correção exige ADR
+			explícita + correção da função f + versionamento (BD2 regime/
+			criteria version bump). Não há defesa estrutural que evite
+			bug interno — apenas detecção rápida + correção governada.
+
+			**Decisões irreversíveis** (blast radius real):
+			(a) InvoiceIssued + ReceivableMaterialized atomic — blast
+			radius cross-BC: SCF (recebível materializado consumido para
+			funding), ATO (lançamento contabilizado), FCE (settlement
+			preparado). Reversão SOMENTE via InvoiceCancelled dentro da
+			janela fiscal; pós-janela é DRC (disputa) ou ATO (ajuste
+			contábil) — não reversão INV.
+			(b) InvoiceCancelled — irreversível pós-emit. Cancellation
+			errônea (e.g., BD5 within-window check com bug) cancela
+			settlement legítimo no FCE; recovery via re-emit sob nova
+			evidenceRef OU correção DRC. Blast radius equivalente ao
+			InvoiceIssued.
+			(c) Audit trail entries — imutáveis pós-write per BD8 + G3 +
+			cc-04; correção via supersession entry separada (audit-trail
+			canonical pattern), nunca via mutação retroativa.
+
+			**Blast radius máximo de erro INV operacional** = cadeia
+			downstream completa (SCF + FCE + ATO) + audit Bacen
+			comprometido + recebível inválido na rede sh-03 funding =
+			Mesh-level systemic event. Justifica governance scope rigoroso
+			Phase 0 com supervisedDecision mínima e escalationCriteria
+			exaustivos (incluindo freeze de fluxo escalado para falha
+			sistêmica de atomic primitive).
+
+			domainAgentSpec é forward-ref Phase 4 (paralelo P2P/SSC/DLV
+			bootstrap pattern); governanceScope canvas é primeiro sketch
+			— elaboração completa em agent-governance envelope Phase 5
+			(autonomy overrides + escalation routing + freeze model + drift
+			detection metrics + calibration regression triggers).
+			"""
+	}
 }
