@@ -713,4 +713,235 @@ canvas: artifact_schemas.#Canvas & {
 				"""
 		},
 	]
+
+	stakeholders: [{
+		stakeholderRef: "sh-02"
+		roleInContext:  "Beneficiário direto da materialização do recebível"
+		impactDescription: """
+			Fornecedor é beneficiário canônico do INV: ReceivableMaterialized
+			emitido por INV é o ativo financeiro que SCF utiliza para
+			operação de antecipação. Sem materialização determinística pelo
+			INV, fornecedor permanece preso ao ciclo tradicional de
+			recebimento (60-120 dias). InvoiceIssued representa o crédito
+			fiscal que sh-02 detém perante sh-01.
+			"""
+		rationale: "sh-02 é quem mais sofre assimetria informacional — INV materializa o lastro que destrava antecipação. Sem INV operando deterministicamente, ce-06 (custo de alongamento do ciclo) não é eliminável."
+	}, {
+		stakeholderRef: "sh-01"
+		roleInContext:  "Devedor da obrigação de faturamento materializada"
+		impactDescription: """
+			Construtora é a parte que paga a fatura emitida (via FCE).
+			InvoiceIssued representa obrigação de pagamento sob commitment
+			bilateral previamente aceito. Construtora consome implicitamente
+			via FCE settlement; cancelamento dentro da janela fiscal
+			(InvoiceCancelled) protege contra obrigações faturadas
+			erroneamente.
+			"""
+		rationale: "sh-01 carrega impacto direto via fatura → settlement; previsibilidade de quando fatura nasce (DLV verified → INV issued) é precondição para sua gestão de fluxo de caixa."
+	}, {
+		stakeholderRef: "sh-03"
+		roleInContext:  "Consumidor do recebível materializado como lastro de funding"
+		impactDescription: """
+			IF parceira consome ReceivableMaterialized via SCF como lastro
+			para operação de antecipação. Verificabilidade programática do
+			lastro (commitmentRef + evidenceRef + fiscalDocRef ancorados em
+			audit trail INV cc-04) substitui due diligence manual sobre
+			recebíveis (ce-07). Determinismo do INV (BD2 fiscal projection)
+			é precondition para confiança no lastro.
+			"""
+		rationale: "sh-03 fornece funding apenas se lastro é verificável; INV é o BC que produz a cadeia auditável recebível → fatura → entrega → commitment."
+	}, {
+		stakeholderRef: "sh-04"
+		roleInContext:  "Regulador prudencial do operador SCD (Mesh)"
+		impactDescription: """
+			Bacen exige rastreabilidade completa da cadeia operacional da
+			SCD. INV materializa o documento fiscal canônico (NF-e) com
+			audit trail regulatory-grade (cc-04) — InvoiceIssued e
+			InvoiceCancelled imutáveis pós-emit, retenção legal ≥5 anos,
+			trace inputs/outputs fiscais sem interpretação. Compliance
+			prudencial é constraint inviolável (nível 1
+			conflictResolution).
+			"""
+		rationale: "Operação SCD sem audit trail fiscal regulatory-grade é ilegal; INV é o BC que produz esse trail no domínio fiscal."
+	}, {
+		stakeholderRef: "sh-05"
+		roleInContext:  "Operador autônomo da emissão fiscal determinística"
+		impactDescription: """
+			Agente IA Mesh executa autonomamente a emissão (cc-03 24/7) sob
+			os 10 BDs do INV — gates determinísticos (BD1
+			issuance-requires-verification, BD4 requires-local-commitment-
+			projection) bloqueiam ações fora do envelope. Falhas estruturais
+			(projection stale, regime ausente, race cross-BC) escalam como
+			supervisedDecision para sh-04 founder review, jamais
+			auto-resolvidas via heurística.
+			"""
+		rationale: "Sem sh-05 como stakeholder explícito, decisões de design tratam o agente como ferramenta — perdendo coerência com ax-01/ax-02; gates explícitos preservam clareza dos limites de autonomia (concern primária do agente)."
+	}]
+
+	costsEliminated: [{
+		costRef:      "ce-02"
+		contribution: "INV emite NF-e regulatória + audit trail completo de inputs/outputs fiscais (cc-04) substituindo compliance documental manual; trace categórico sem interpretação preserva auditabilidade sem invadir ATO."
+		rationale:    "Compliance documental fiscal é overhead substancial (procedimento manual de emissão + arquivamento + retenção 5 anos); INV automatiza via aplicação determinística de regras + audit trail estrutural."
+	}, {
+		costRef:      "ce-03"
+		contribution: "INV emite InvoiceIssued + ReceivableMaterialized atomicamente (BD7 atomic-dual-emission); ATO conforma sem tradução (pattern conformist context-map). Divergência estrutural fatura↔recebível é impossível dentro do INV (BD7 conservation amount); divergências externas (timing FCE, latência SCF, erros ATO) permanecem possíveis mas detectáveis sem reconciliação manual via audit trail cross-BC."
+		rationale:    "Atomic emit + conformist downstream = eliminação estrutural de uma classe específica de divergências (intra-INV); divergências cross-BC remanescentes têm custo de reconciliação reduzido por audit trail estrutural, não eliminado integralmente."
+	}, {
+		costRef:      "ce-06"
+		contribution: "INV materializa recebível (ReceivableMaterialized) imediatamente após DLV terminal=approved (atomic via BD7); SCF antecipa lastreado em recebível verificável, eliminando ciclo tradicional 60-120 dias do fornecedor."
+		rationale:    "ce-06 é eliminável apenas se recebível existe deterministicamente vinculado a evidência verificada — INV é o BC que produz essa materialização canônica."
+	}, {
+		costRef:      "ce-07"
+		contribution: "INV ancora ReceivableMaterialized em cadeia auditável commitmentRef → evidenceRef → fiscalDocRef → regimeVersion (cc-04 audit trail); IF parceira verifica lastro programaticamente sem due diligence manual sobre cada recebível individual."
+		rationale:    "ce-07 elimina-se via verificabilidade programática do lastro — INV produz a cadeia de referências canônicas que torna verificação programática viável."
+	}]
+
+	incentiveAnalysis: {
+		participants: [{
+			stakeholderRef:            "sh-02"
+			participantType:           "fornecedor (cedente do recebível)"
+			desiredBehavior:           "submeter evidência operacional legítima e aceitar fatura emitida sob commitmentTerms canônicos"
+			correctOperationIncentive: "Recebível materializado é antecipável via SCF imediatamente após DLV verified → INV issued (vs ciclo 60-120 dias tradicional); ce-06 eliminado direto."
+			manipulationVector: """
+				Tentar inflar valor faturado modificando commitmentTerms
+				via canal indireto (e.g., após CommitmentAccepted, sugerir
+				amendment terms favoráveis sob pretexto operacional).
+				"""
+			manipulationCost: """
+				Commitment é bilateral acordado em CMT (BD CMT
+				aceite-mútuo-bilateral); amendment exige nova
+				ConfirmCommitmentAcceptance bilateral. INV emite fatura
+				sob commitmentTerms read-only do projection cache
+				(BD2 deterministic-fiscal-projection + BD4
+				requires-local-commitment-projection); fatura sob terms
+				diferentes do commitment canônico viola função pura. Audit
+				trail cross-BC (CMT events + INV events) torna fraude
+				detectável programaticamente.
+				"""
+			vsBenefit: "Ganho temporário de overpayment é detectado em audit cross-BC + ATO reconciliação fiscal; risco regulatório alto (Bacen audit) + perda de credibilidade no funding sh-03 = inviável estruturalmente."
+			designResponse: "BD2 deterministic-fiscal-projection (função pura sobre commitmentTerms read-only) + BD4 requires-local-commitment-projection (projection cache canônica única source) + bilateralism CMT (amendment requer ConfirmCommitmentAcceptance bilateral) + audit trail cross-BC reproduzível (cc-04)."
+			rationale: "sh-02 é beneficiário direto do INV; vetor mais provável é tentar inflar valor — bloqueado por bilateralism CMT + função pura INV + audit cross-BC."
+		}, {
+			stakeholderRef:            "sh-01"
+			participantType:           "construtora (devedor da obrigação)"
+			desiredBehavior:           "honrar fatura emitida sob commitment bilateral aceito + DLV verified"
+			correctOperationIncentive: "Previsibilidade de quando fatura nasce (gate determinístico DLV verified → INV issued) viabiliza gestão de fluxo de caixa; cancelamento INV dentro da janela fiscal protege contra fatura emitida erroneamente."
+			manipulationVector: """
+				Tentar negar fatura legítima alegando 'verificação não
+				ocorreu' apesar de DLV ter emitido DeliveryVerified
+				canônico, ou tentar disputar fatura via canal informal
+				fora do path DRC.
+				"""
+			manipulationCost: """
+				DLV terminal events são imutáveis em event log canônico
+				com integridade criptográfica DSSE; INV emite invoice
+				ancorada em evidenceRef DSSE-anchored. Tentativa de
+				falsificar evento DLV requer comprometer event log =
+				vetor estruturalmente inviável. Disputa via canal informal
+				não bloqueia settlement (FCE consume InvoiceIssued
+				canônico); única correção legítima é DRC dispute
+				resolution com audit trail.
+				"""
+			vsBenefit: "Negar pagamento de fatura válida sem path DRC quebra trust com sh-03 funding partner (que vê padrão de defaults injustificados) = perda de acesso a crédito futuro Mesh; benefício de não pagar uma fatura única < custo de fechamento de pipeline de crédito."
+			designResponse: "Imutabilidade de DLV terminal events (event log canônico DSSE-anchored) + invoice ancorada em evidenceRef criptograficamente verificável + path DRC formalizado como única correção legítima pós-issued; settlement FCE não é gated por disputa informal."
+			rationale: "sh-01 é devedor; vetor é negação infundada — bloqueado pela imutabilidade DLV + canal DRC formalizado para disputas legítimas."
+		}, {
+			stakeholderRef:            "sh-03"
+			participantType:           "instituição financeira parceira (consumidor de lastro)"
+			desiredBehavior:           "consumir ReceivableMaterialized representativamente da rede; financiar operações lastreadas em verificação programática sem cherry-picking que degrade função sistêmica"
+			correctOperationIncentive: "ce-07 eliminado: due diligence sobre lastro substituída por verificação programática da cadeia INV→DLV→CMT; portfolio quality verificável continuously; participação balanceada na rede preserva deal flow futuro."
+			manipulationVector: """
+				Seleção adversa de recebíveis (cherry-picking): selecionar
+				apenas recebíveis mais seguros (commitments com sh-01
+				premium, evidências de baixa contestabilidade, regimes
+				fiscais simples) e rejeitar sistematicamente recebíveis
+				de maior risco, degradando a função de funding da rede e
+				externalizando risco para Mesh ou outros financiadores.
+				"""
+			manipulationCost: """
+				Comportamento de cherry-picking é detectável via padrão
+				de consumo observável (ratio consumed/available por
+				risk-tier ou commitment-profile); SCF/REW podem ajustar
+				pricing/eligibility ao consumidor com seleção adversa
+				comprovada. Mesh como rede antifrágil opera via
+				comportamento observável: padrões de seleção adversa
+				prolongados degradam acesso a deal flow futuro
+				(elegibilidade revogável). INV produz refs canônicas
+				suficientes para SCF/REW computarem indicadores de
+				seleção sem necessidade de auditoria manual sobre
+				sh-03.
+				"""
+			vsBenefit: "Ganho de curto prazo via seleção de menor risco < custo de longo prazo via perda de deal flow + degradação de relacionamento com a rede; comportamento observável + ajuste sistêmico pelos pares (SCF/REW) tornam vetor não-sustentável."
+			designResponse: "INV produz refs canônicas suficientes (commitmentRef, evidenceRef, fiscalDocRef, regimeVersion) para SCF/REW computarem indicadores de seleção observáveis; eligibility revogável pelos peers em resposta a padrão adversarial detectado; rede antifrágil via comportamento observável (não policing manual)."
+			rationale: "sh-03 é consumidor; vetor real é seleção adversa que degrada função sistêmica — bloqueado por observabilidade do padrão de consumo + capacidade de ajuste pelos peers REW/SCF; alinhamento estrutural com tese Mesh de rede antifrágil via comportamento observável."
+		}, {
+			stakeholderRef:            "sh-05"
+			participantType:           "agente IA Mesh (operador autônomo da emissão)"
+			desiredBehavior:           "emitir fatura apenas dentro do envelope BDs (BD1-BD10); escalar como supervisedDecision toda situação fora do envelope"
+			correctOperationIncentive: "Operação dentro de gates é audit-clean (cc-04); cada decisão tem trace reproduzível; agente não carrega responsabilidade por decisões fora do envelope (escalation transfere para sh-04 founder)."
+			manipulationVector: """
+				Vetores típicos de erro/drift do agente: (a) tentar emitir
+				fatura via path autônomo em situação que deveria escalar
+				(e.g., DeliveryVerified de versão DLV anterior à
+				canonization current); (b) uso de projection cache
+				desatualizada (stale) como se fosse válida — interpretar
+				dados antigos como consistentes para 'completar' a
+				operação sob pressão operacional; (c) tentar 'completar'
+				operações via heurística vs aguardar consistência
+				cross-BC.
+				"""
+			manipulationCost: """
+				BD1 RECTOR bloqueia emit sem DeliveryVerified canônico;
+				BD3 idempotency previne duplicação; BD4
+				requires-local-commitment-projection trata projection
+				stale como ausência → emit bloqueado (não há shortcut
+				heurístico legítimo para 'projection é provavelmente
+				ainda válida'). Agente operando fora de gates triggera
+				audit alarm estrutural (cc-04 audit trail registra
+				divergência); supervisedDecision separada com
+				human-in-loop + justificativa documentada é caminho
+				legítimo para situações fora do envelope.
+				"""
+			vsBenefit: "Bypass dos gates não habilita ganho — fatura sem lastro DLV não é consumida por FCE/SCF/ATO (cross-BC validation rejeita); audit trail expõe tentativa imediatamente; reputational cost para envelope Phase 1+ calibration."
+			designResponse: "Gates determinísticos hierárquicos BD1 (RECTOR verification required) + BD3 (idempotency) + BD4 (projection availability + completeness + freshness — stale tratado como ausência sem heurística de fallback) bloqueiam todos os shortcuts; cross-BC validation downstream (FCE/SCF/ATO) rejeita emit fora do envelope como segunda barreira; cc-04 audit trail expõe tentativa estruturalmente."
+			rationale: "sh-05 é operador; risco é shortcuts heurísticos sob pressão operacional (incluindo uso de cache stale como se fosse válido — vetor real Phase 1+) — bloqueado por gates determinísticos BD1+BD3+BD4 + cross-BC validation downstream + audit estrutural cc-04."
+		}, {
+			stakeholderRef:            "sh-04"
+			participantType:           "regulador (Bacen + autoridade fiscal)"
+			desiredBehavior:           "fiscalizar conformidade prudencial e fiscal via audit trail regulatory-grade"
+			correctOperationIncentive: "INV expõe audit trail estrutural cc-04 (immutable post-emit, retention legal ≥5 anos, trace categórico de inputs/outputs); fiscalização programática viável sem auditoria manual periódica."
+			manipulationVector: """
+				(Inverso — Bacen é stakeholder cuja 'manipulação' é
+				incompliance pelo operador Mesh, não pelo regulador.)
+				Mesh operando INV poderia tentar omitir dados do trail
+				ou modificar audit pós-emit para evitar fiscalização
+				adversa.
+				"""
+			manipulationCost: """
+				Imutabilidade pós-emit (BD2 + BD7 + cc-04) é invariante
+				estrutural inviolável do INV — soft-delete proibido
+				(G3); modificação pós-emit quebra constraint CUE schema
+				de audit trail. Tentativa de omissão = violação
+				regulatória direta + criminalização (sh-04 tem poder de
+				suspensão da SCD).
+				"""
+			vsBenefit: "Compliance prudencial é nível 1 conflictResolution (inviolável); custo de violação = perda da licença SCD = morte da Mesh; benefício de qualquer omissão é zero comparado."
+			designResponse: "Imutabilidade pós-emit invariante estrutural (BD2 + BD7 + cc-04 + G3 sem soft-delete) + audit trail constraint hard no schema CUE INV (não-modificável programaticamente) + retenção legal ≥5 anos garantida; impossibilidade técnica de modificação retroativa elimina superfície de tentação."
+			rationale: "Bacen é stakeholder cujo incentivo correto é estrutural (audit programática) e cuja 'manipulação' analisada é o operador tentando burlar fiscalização — bloqueado por imutabilidade + criminalização."
+		}]
+		rationale: """
+			5 vetores cobrem participantes principais do INV: 4 sh
+			econômicos (sh-01 devedor, sh-02 cedente, sh-03 funding,
+			sh-05 operador) + 1 sh regulatório (sh-04 Bacen, analisado
+			em sentido inverso — manipulação seria do operador contra
+			o regulador, não vice-versa). Defesa estrutural primária:
+			audit trail cross-BC (DLV+INV+CMT+ATO) torna manipulação
+			isolada inviável; necessidade de cooperação cross-BC para
+			manipulação efetiva eleva custo coordenacional adversarial
+			acima do benefício individual. Vetor sh-03 (cherry-picking)
+			adicionalmente alinha com tese Mesh de rede antifrágil via
+			comportamento observável + ajuste sistêmico pelos peers
+			(SCF/REW), não dependência de policing manual.
+			"""
+	}
 }
