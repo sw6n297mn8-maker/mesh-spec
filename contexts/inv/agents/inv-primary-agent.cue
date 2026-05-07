@@ -20,20 +20,36 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // triggered por gates determinísticos (GUARDS Layer 4 +
 // STRUCTURAL GATES Phase 3.5).
 //
-// Phase 4 Part 1 + Part 2 (este file):
+// Phase 4 Part 1 + Part 2 + Part 3 (este file):
 //   Part 1 — act-issue-invoice + 5 constraints (2 cst-gate-issue-*
 //     + 3 cst-issue-* + 1 cst-schema-openness ACK)
 //   Part 2 — act-cancel-invoice + 6 constraints (3 cst-gate-cancel-*
 //     + 3 cst-cancel-*) + 6 traps endereçados estruturalmente
 //     (T1 cancel-as-undo, T2 window ambiguity, T3 silent mutation,
 //     T4 post-finality, T5 event optional, T6 cancel-as-correction)
-// 4 escalationConditions (folded scenarios via OR per category,
-// padrão DLV precedent) + 6 signals (3 issue + 3 cancel) +
-// 18 audit fields (7 min + 8 INV + 3 cancel). Part 3 estende com
-// reactive actions (filter-non-terminal-dlv + block-emit-on-stale)
-// + supervisedDecision regime-anomaly. Cancel asymmetry: issue
-// exige consistência ESTRUTURAL; cancel exige ESTRUTURAL +
-// TEMPORAL + REGULATÓRIA.
+//   Part 3 — 3 reactive actions (act-block-emit-on-stale BLOCK +
+//     act-filter-non-terminal-dlv FILTER + act-escalate-regime-
+//     anomaly ESCALATE) + 2 transversal reactive constraints
+//     (cst-react-no-event-coupling + cst-react-classification-
+//     mandatory) + 5 traps reactive endereçados estruturalmente
+//     (T-R1 orchestrator, T-R2 retry, T-R3 event-as-command,
+//     T-R4 stale==missing, T-R5 act-without-classification)
+//
+// 5 escalationConditions (folded scenarios via OR per category,
+// padrão DLV precedent — insufficient-context + out-of-scope +
+// suspicious-input + conflicting-signals + unclassifiable-anomaly)
+// + 8 signals (3 issue + 3 cancel + 2 reactive new) + 20 audit
+// fields (7 min + 8 INV + 3 cancel + 2 reactive). Asymmetry:
+//   - Issue exige consistência ESTRUTURAL
+//   - Cancel exige ESTRUTURAL + TEMPORAL + REGULATÓRIA
+//   - Reactive exige CLASSIFICATION-DISCIPLINED + DEFAULT-NO-ACTION
+//
+// Conceito central founder framing Phase 4 reactive:
+// 'agent controla quando o mundo NÃO deve causar ação' —
+// transforma sistema em determinístico SOB eventos não-determinísticos.
+//
+// 3 usos reais cst-gate-* (issue + cancel + supervisedDecision/
+// reactive) → ADR-081 cristalização ready post-Part 3 SRR.
 //
 // 4 ajustes founder pre-write incorporated (workaround pre-ADR-081):
 //   (1) kind: structural-gate marker em verification YAML +
@@ -216,6 +232,170 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"sc-inv-07 cancellation-event-required maintained (event explícito emitido)",
 			"sc-inv-03 regime-immutability maintained (regimeVersion NÃO mutada por cancel)",
 			"sc-inv-06 fiscal-doc-ref-integrity maintained (fiscalDocRef NÃO mutado por cancel; write-once preservado)",
+		]
+	}, {
+		code: "act-block-emit-on-stale"
+		name: "Block invoice emission on stale projection (reactive BLOCK)"
+		description: """
+			REACTIVE BLOCK action — triggered por evt-delivery-verified
+			(DLV cross-BC; trusted-internal). Default = NO_ACTION.
+			Decisão de NÃO emitir invoice quando projection stale para
+			(commitmentRef) detected. NÃO é if-event-then-action;
+			NÃO é retry; NÃO é fallback sync query. Block é hard
+			permanent até state mudar (event-driven re-evaluation).
+
+			Conceito reactive (founder framing):
+			'agent controla quando o mundo NÃO deve causar ação' —
+			default reactive é NO_ACTION; action-decision é exception
+			structurally constrained, NÃO obrigação derivada de event.
+
+			LAYERED EXECUTION (reactive — pattern paralelo issue/cancel):
+			- preconditions = GUARDS (event signature + projection
+			  availability + staleness classification disciplinada)
+			- DECISION = ABORT_ACTION-FOR-ISSUE (block issue path
+			  for this tuple; emit nothing for issue)
+			- SIGNAL = sig-issue-structural-gate-blocked com
+			  staleness-type=stale (NÃO missing — Trap T-R4)
+			- ESCALATION = DEFERRED (until threshold breach via
+			  esc-projection-stale-sustained canvas escalation)
+
+			3 traps endereçados estruturalmente:
+			- T-R2 (retry automático) — postcondition declara block
+			  permanente até event-driven re-evaluation; NÃO retry loop
+			- T-R3 (event vira command) — default NO_ACTION; block
+			  decision é exception, não obrigação per evento
+			- T-R4 (stale ≡ missing) — staleness-type classification
+			  disciplinada {stale, missing, fresh-but-incomplete,
+			  fresh-and-complete} — agent NÃO confunde dimensions
+			"""
+		category:        "validation"
+		autonomyLevel:   "execute-and-log"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"agg-invoice",
+			"prj-invoice-by-identity",
+			"inv-atomic-dual-emission",
+			"inv-idempotent-issuance",
+		]
+		preconditions: [
+			"GUARD (Layer 4): trigger event = evt-delivery-verified (DLV cross-BC; trusted-internal)",
+			"GUARD (Layer 4): projection.available(commitmentRef) — projection reachable (NÃO confundido com missing)",
+			"GUARD (Layer 4): staleness classification == stale (NÃO missing; NÃO fresh-but-incomplete; NÃO fresh-and-complete)",
+		]
+		postconditions: [
+			"act-issue-invoice path BLOCKED for this (commitmentRef, evidenceRef) tuple",
+			"sig-issue-structural-gate-blocked emitted com payload {staleness-type: stale, blockedDimension: projection-staleness}",
+			"BD4 deterministic-fiscal-projection preserved (stale → no fiscal emission per BD4)",
+			"NO retry loop; block é permanent até event-driven state change (Trap T-R2 endereçado)",
+			"Escalation classification: DEFERRED — threshold-based via canvas esc-projection-stale-sustained Phase 1+",
+		]
+	}, {
+		code: "act-filter-non-terminal-dlv"
+		name: "Filter non-terminal delivery events (reactive FILTER)"
+		description: """
+			REACTIVE FILTER action — triggered por evt-delivery-verified.
+			Default = NO_ACTION (silent ignore). Classifica
+			event.terminality; non-terminal events são informational
+			(parcial OR superseded OR transitional), NÃO actionable.
+			INV emite invoice APENAS para deliveries terminais per
+			inv-idempotent-issuance (idempotency identity baseada em
+			tuple terminal).
+
+			Conceito reactive (founder framing):
+			'agent controla quando o mundo NÃO deve causar ação' —
+			este é o caso onde NÃO ação é a ação correta. Silent
+			ignore preserva determinismo + replay independence.
+
+			LAYERED EXECUTION (reactive):
+			- preconditions = GUARDS (event signature + terminality
+			  classification ANTES de qualquer decisão)
+			- DECISION = NO_ACTION (silent ignore; no emission attempt;
+			  no state change)
+			- SIGNAL = sig-dlv-filtered-non-terminal (info-level
+			  observability only — NÃO warn; NÃO escalation)
+			- ESCALATION = none (filter é normal classification, NÃO
+			  anomaly)
+
+			2 traps endereçados estruturalmente:
+			- T-R3 (event vira command) — filter ESTABELECE que nem
+			  todo event obriga ação; non-terminal = informational
+			- T-R5 (reagir sem classificar) — terminality classification
+			  obrigatória ANTES de filter decision; default NO_ACTION
+			  até classification completed
+			"""
+		category:        "validation"
+		autonomyLevel:   "execute-and-log"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"agg-invoice",
+			"inv-idempotent-issuance",
+		]
+		preconditions: [
+			"GUARD (Layer 4): trigger event = evt-delivery-verified",
+			"GUARD (Layer 4): terminality classification completed (NÃO act sem classification — Trap T-R5)",
+			"GUARD (Layer 4): event.terminal == false (parcial OR superseded OR transitional OR ambiguous)",
+		]
+		postconditions: [
+			"Event classified non-terminal; NO emission attempt para act-issue-invoice path",
+			"sig-dlv-filtered-non-terminal emitted (info-level — observability only)",
+			"NO escalation; NO state mutation; NO audit trail entry beyond filter signal",
+			"Idempotency identity preserved — non-terminal events NÃO consomem idempotency-tuple slot",
+		]
+	}, {
+		code: "act-escalate-regime-anomaly"
+		name: "Escalate regime version anomaly (reactive ESCALATE)"
+		description: """
+			REACTIVE ESCALATE action — triggered por evt-delivery-verified.
+			Default = NO_ACTION. Detecta regimeVersion inconsistency
+			(non-monotonic jump, expired-but-active, mismatch contra
+			expected pattern from CMT projection) → ABORT_ACTION-FOR-
+			ISSUE (block issue path) + HARD ESCALATION
+			(DOMAIN-INCONSISTENCY classification).
+
+			Conceito reactive crítico (founder framing):
+			agent NÃO chama CMT sync para 'corrigir' regime; agent
+			SINALIZA + ESCALA + AGUARDA. Anti-mini-ATO preservado:
+			ATO domain owns regime tax logic; INV NÃO computa regime
+			correction. Detection é INV responsibility (boundary
+			recognition); correction é ATO/CMT responsibility
+			(boundary respect).
+
+			LAYERED EXECUTION (reactive):
+			- preconditions = GUARDS (event signature + projection
+			  availability + regime classification anomalous)
+			- DECISION = ABORT_ACTION-FOR-ISSUE + DO_NOT_CORRECT
+			- SIGNAL = sig-regime-anomaly-detected (critical level)
+			- ESCALATION = HARD (DOMAIN-INCONSISTENCY; routed via
+			  envelope governance Phase 5 escalation-routing block)
+
+			2 traps endereçados estruturalmente:
+			- T-R1 (reactive virar orchestrator) — DO_NOT_CORRECT
+			  postcondition explícita; agent NÃO chama CMT sync;
+			  agent NÃO emit cross-BC commands em response
+			- T-R5 (reagir sem classificar) — regime classification
+			  required ANTES de anomaly determination; classification
+			  dimensions {monotonic-progression, anomalous-jump,
+			  expired-but-active, missing}
+			"""
+		category:        "escalation"
+		autonomyLevel:   "execute-and-log"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"agg-invoice",
+			"inv-regime-immutability",
+		]
+		preconditions: [
+			"GUARD (Layer 4): trigger event = evt-delivery-verified",
+			"GUARD (Layer 4): projection.available(commitmentRef)",
+			"GUARD (Layer 4): regime classification completed (Trap T-R5 endereçado)",
+			"GUARD (Layer 4): regime-classification ∈ {anomalous-jump, expired-but-active, missing} (NÃO monotonic-progression)",
+		]
+		postconditions: [
+			"act-issue-invoice path BLOCKED for this (commitmentRef, evidenceRef) tuple",
+			"sig-regime-anomaly-detected emitted (critical; DOMAIN-INCONSISTENCY classification)",
+			"HARD escalation routed via envelope governance Phase 5 escalation-routing",
+			"NO regime correction attempted (anti-mini-ATO; Trap T-R1 endereçado — agent NÃO orchestrates)",
+			"NO sync query CMT (boundary preservation; agent reage NÃO orquestra)",
 		]
 	}]
 
@@ -645,12 +825,133 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"""
 		onViolation: "block-and-escalate"
 		rationale: "Materializa Traps T1 + T6 estruturalmente + boundary preservation transversal. Supersession leak from DLV/DRC into INV destroys regulatory-cancellation purity (cancel é declaração regulatória de invalidação, NÃO ferramenta correção contábil/pagamento/crédito). Glossary antiTerms (anti-mini-*) reforçam advisory layer."
+	}, {
+		code: "cst-react-no-event-coupling"
+		name: "Reactive actions MUST NOT couple to events as commands (boundary preservation transversal)"
+		description: """
+			[KIND: behavioral-constraint / category: anti-drift-reactive]
+
+			Reactive actions (act-block-emit-on-stale + act-filter-
+			non-terminal-dlv + act-escalate-regime-anomaly) NÃO são
+			if-event-then-action. Default reactive = NO_ACTION.
+			Action-decision é exception structurally constrained,
+			NÃO obrigação derivada de event.
+
+			3 traps reactive endereçados transversalmente:
+			- T-R1 (orchestrator leak) — reactive NÃO emite cross-BC
+			  commands em response a event; agent reage NÃO orquestra
+			- T-R2 (retry automático) — failed gate/decision NÃO
+			  dispara retry loop; comportamento = event-driven re-
+			  evaluation OR no-action; NÃO automatic retry
+			- T-R3 (event vira command) — every-event-mandates-action
+			  destrói determinismo; default NO_ACTION até classification
+			  + structural permission satisfeitos
+
+			Conceito central founder framing Phase 4 reactive:
+			'agent controla quando o mundo NÃO deve causar ação' —
+			isso transforma sistema em determinístico SOB eventos
+			não determinísticos.
+			"""
+		verification: """
+			kind: behavioral-constraint
+			category: anti-drift-reactive
+			scope: reactive-actions
+			requiredChecks:
+			- type: cross-bc-command-emission-absent
+			  target: reactive-actions
+			  forbidden: cmd-* targeting non-INV bounded contexts
+			  expected: zero-cross-bc-command-emission
+			  enforcementLevel: hard
+			- type: retry-loop-absent
+			  target: reactive-actions
+			  forbidden: automatic-retry on failed gate OR decision
+			  expected: event-driven-re-evaluation OR no-action
+			  enforcementLevel: hard
+			- type: default-no-action-discipline
+			  target: reactive-actions
+			  expected: classification-required-before-decision
+			  forbidden: action-derived-mandatorily-from-event
+			  enforcementLevel: hard
+			- type: sync-query-absent-reactive-path
+			  target: reactive-critical-path
+			  forbidden-target: external-BC-sync-query-during-reactive
+			  expected: trusted-internal-projection-only OR no-action
+			  enforcementLevel: hard
+			- type: boundary-preservation-anti-mini-ATO
+			  target: act-escalate-regime-anomaly
+			  expected: detection-only-NOT-correction
+			  forbidden: regime-correction-attempted-by-agent
+			  enforcementLevel: hard
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa Traps T-R1 + T-R2 + T-R3 estruturalmente. Reactive boundary preservation transversal — agent reage NÃO orquestra; agent SINALIZA NÃO retry; agent CLASSIFICA NÃO obriga. BD10 anti-orchestrator + replay independence preservados. Founder framing: 'agent controla quando o mundo NÃO deve causar ação' transforma sistema em determinístico sob eventos não-determinísticos."
+	}, {
+		code: "cst-react-classification-mandatory"
+		name: "Reactive actions MUST classify before deciding (classification discipline)"
+		description: """
+			[KIND: behavioral-constraint / category: classification-discipline]
+
+			Reactive actions MUST classify event/state characteristics
+			BEFORE qualquer decisão de ação. Sem classification
+			disciplinada, BD4 (deterministic-fiscal-projection) é
+			destruído via stale==missing equivalence + comportamento
+			torna-se não-determinístico.
+
+			2 traps endereçados transversalmente:
+			- T-R4 (stale ≡ missing) — distintas dimensions, distintos
+			  handling: stale = block-and-defer (BD4 protected);
+			  missing = wait (eventual consistency);
+			  fresh-but-incomplete = wait (data integrity); fresh-
+			  and-complete = proceed
+			- T-R5 (reagir sem classificar) — classification step
+			  é precondition mandatory; default NO_ACTION até
+			  classification completed
+
+			Classification dimensions per reactive action:
+			- act-block-emit-on-stale: staleness-type ∈ {stale,
+			  missing, fresh-but-incomplete, fresh-and-complete}
+			- act-filter-non-terminal-dlv: terminality ∈ {terminal,
+			  non-terminal, superseded, transitional, ambiguous}
+			- act-escalate-regime-anomaly: regime-classification ∈
+			  {monotonic-progression, anomalous-jump, expired-but-
+			  active, missing}
+			"""
+		verification: """
+			kind: behavioral-constraint
+			category: classification-discipline
+			scope: reactive-actions
+			requiredChecks:
+			- type: classification-precedes-decision
+			  target: reactive-actions
+			  expected: classification-step-completed-before-action-decision
+			  forbidden: action-decision-without-classification-completed
+			  enforcementLevel: hard
+			- type: staleness-vs-missing-disjoint
+			  target: act-block-emit-on-stale
+			  expected: distinct-classifications [stale, missing, fresh-but-incomplete, fresh-and-complete]
+			  forbidden: stale-treated-as-missing OR missing-treated-as-stale
+			  enforcementLevel: hard
+			- type: terminality-classification-required
+			  target: act-filter-non-terminal-dlv
+			  expected: terminality-classified-before-filter-decision
+			  enforcementLevel: hard
+			- type: regime-classification-required
+			  target: act-escalate-regime-anomaly
+			  expected: regime-classification-before-anomaly-determination
+			  enforcementLevel: hard
+			- type: classification-dimension-completeness
+			  target: reactive-actions
+			  expected: every-reactive-declares-its-classification-dimension
+			  enforcementLevel: hard
+			"""
+		onViolation: "block-and-escalate"
+		rationale: "Materializa Traps T-R4 + T-R5 estruturalmente. Classification discipline transversal — sem classification disciplinada, BD4 destruído (stale==missing) + comportamento não-determinístico. Cada reactive carrega sua classification dimension declarada; agent NÃO age sem classification completa. Pattern paralelo P10 (gates determinísticos validam) aplicado a reactive layer."
 	}]
 
 	escalationConditions: [{
 		category: "insufficient-context"
 		description: """
-			Folded scenarios (issue + cancel actions):
+			Folded scenarios (issue + cancel + reactive actions):
 
 			(A) ISSUE — GUARD failure (Layer 4 predicate
 			canIssueInvoice): projection unavailable/incomplete/stale
@@ -660,16 +961,22 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			canonical state OR Invoice.status != issued (already
 			cancelled OR transitional state).
 
+			(C) REACTIVE BLOCK (act-block-emit-on-stale) — staleness
+			classification == stale detected on evt-delivery-verified
+			trigger; act-issue-invoice path BLOCKED for tuple. Stale
+			distinct from missing (Trap T-R4 endereçado).
+
 			DECISION local: ABORT_ACTION (action does not execute;
-			emit nothing). Aplicável a ambos cenários.
+			emit nothing). Aplicável a todos cenários.
 			ESCALATION systemic: DEFERRED — propose-and-wait com
 			structured failureReason classified (missing/incomplete/
 			stale/verification-failed para issue; not-found/wrong-
-			status para cancel). Threshold-based escalation
-			per esc-projection-missing soft canvas escalation pode
-			disparar Phase 1+ se condition persists.
+			status para cancel; staleness-type=stale para reactive).
+			Threshold-based escalation per esc-projection-missing OR
+			esc-projection-stale-sustained soft canvas escalation
+			pode disparar Phase 1+ se condition persists.
 			"""
-		rationale: "BD4 + BD1 RECTOR. Guard failure NÃO é decisão a escalar imediatamente — é estado a aguardar. Local ABORT_ACTION distinto de DEFERRED systemic ESCALATION (pode acontecer depois via threshold) — wait pattern preserva replay independence. Cancel-not-found tipicamente reflete eventual consistency lag (DEFERRED válido); padrão DLV precedent (folded scenarios via OR per category)."
+		rationale: "BD4 + BD1 RECTOR. Guard failure NÃO é decisão a escalar imediatamente — é estado a aguardar. Local ABORT_ACTION distinto de DEFERRED systemic ESCALATION (pode acontecer depois via threshold) — wait pattern preserva replay independence. Cancel-not-found tipicamente reflete eventual consistency lag (DEFERRED válido); reactive stale-block é classification disciplinada NÃO confundindo com missing (Trap T-R4); padrão DLV precedent (folded scenarios via OR per category)."
 	}, {
 		category: "out-of-scope"
 		description: """
@@ -725,6 +1032,30 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			pattern sistêmico.
 			"""
 		rationale: "BD7 + sc-inv-01 (issue) + cst-gate-cancel-ordering + clockSource canonical (cancel). Ambos cenários são estruturais — local ABORT_ACTION mandatory + systemic HARD ESCALATION imediata. Classification distinct (INFRASTRUCTURE vs TEMPORAL) preserva diagnostic clarity para forensics; agent detecta limite estrutural canônico em ambos."
+	}, {
+		category: "conflicting-signals"
+		description: """
+			REACTIVE ESCALATE scenario (act-escalate-regime-anomaly):
+			regimeVersion observed (via projection OR event payload)
+			conflita com expected pattern (CMT projection canonical
+			source). Classifications anomalous: anomalous-jump (non-
+			monotonic version progression); expired-but-active (regime
+			past validity but still tagged active); missing
+			(commitmentRef has no resolved regimeVersion).
+
+			DECISION local: ABORT_ACTION-FOR-ISSUE (block issue path
+			for affected tuple) + DO_NOT_CORRECT (anti-mini-ATO; ATO
+			domain owns regime correction logic).
+			ESCALATION systemic: HARD imediato — DOMAIN-INCONSISTENCY
+			classification; routed via envelope governance Phase 5
+			escalation-routing block.
+
+			Boundary preservation crítica: agent NÃO corrige regime
+			(Trap T-R1 reactive virar orchestrator). Detection é INV
+			responsibility (recognize boundary breach); correction é
+			ATO/CMT responsibility (respect boundary).
+			"""
+		rationale: "Conflicting-signals captura reactive ESCALATE pattern (regime classification anomalous vs expected from CMT projection — sinais contraditórios de fontes diferentes per #EscalationCategory definition). Distinto de unclassifiable-anomaly (post-emit corruption) — regime anomaly é PRE-emit detection que bloqueia issue path + escala detection. Anti-mini-ATO preservado: agent reage NÃO orquestra; agent SINALIZA NÃO corrige."
 	}, {
 		category: "unclassifiable-anomaly"
 		description: """
@@ -858,6 +1189,38 @@ agentSpec: artifact_schemas.#AgentSpec & {
 				"windowExpiredAt",
 				"finalityCrossedAt",
 			]
+		}, {
+			code:           "sig-dlv-filtered-non-terminal"
+			name:           "Delivery event filtered (non-terminal)"
+			description:    "Emitido por act-filter-non-terminal-dlv quando evt-delivery-verified é classificado non-terminal (parcial OR superseded OR transitional OR ambiguous). Info-level observability — NÃO escalation; NÃO state mutation. Captura proporção de events filtered vs actioned para drift detection (Phase 5 envelope drift-detection-metrics block)."
+			coversCategory: "validation"
+			trigger:        "Reactive trigger: evt-delivery-verified classified terminality=non-terminal. Default NO_ACTION pattern executed."
+			level:          "info"
+			payloadFields: [
+				"timestamp",
+				"triggerEventRef",
+				"commitmentRef",
+				"evidenceRef",
+				"terminalityClassification",
+				"filterDecision",
+			]
+		}, {
+			code:           "sig-regime-anomaly-detected"
+			name:           "Regime version anomaly detected (reactive ESCALATE)"
+			description:    "Emitido por act-escalate-regime-anomaly quando regimeVersion classification ∈ {anomalous-jump, expired-but-active, missing}. Critical-level — DOMAIN-INCONSISTENCY classification distinto de DOMAIN-CORRUPTION (post-emit). Pre-emit detection bloqueia issue path + HARD escalation; agent NÃO corrige (anti-mini-ATO; T-R1 endereçado)."
+			coversCategory: "escalation"
+			trigger:        "Reactive trigger: evt-delivery-verified com regime classification anomalous detected via projection comparison contra expected pattern."
+			level:          "critical"
+			payloadFields: [
+				"timestamp",
+				"triggerEventRef",
+				"commitmentRef",
+				"evidenceRef",
+				"regimeClassification",
+				"expectedRegimePattern",
+				"observedRegimeVersion",
+				"escalationClassification",
+			]
 		}]
 
 		auditTrail: {
@@ -883,9 +1246,12 @@ agentSpec: artifact_schemas.#AgentSpec & {
 				"cancellationTimestamp",
 				"cancellationReasonCode",
 				"windowAtCancel",
+				// Reactive-specific extensions (Phase 4 Part 3 — trigger event traceability + classification dimension)
+				"triggerEventRef",
+				"reactiveClassificationDimension",
 			]
-			storageHint: "Fiscal-grade audit log (regulação tributária requer rastreabilidade documento + inputs + outputs + escalation events; retention legal ≥5 anos NF-e Brasil; equivalentes em outros regimes jurisdicionais Phase 1+). Cancel events demandam trail simétrico — cancellationTimestamp + reasonCode + windowAtCancel preservam evidence forensics da decisão de invalidação dentro de boundary regulatório. Detalhes de implementação vivem no Architecture Communication Canvas."
-			rationale:   "cc-04 audit trail regulatory-grade simétrico para issue + cancel. _minimumAuditFields ⊆ requiredFields satisfeito (7 minimum + 8 INV core extensions + 3 cancel-specific = 18 fields total). Cancel-specific fields capturam temporal boundary (cancellationTimestamp + windowAtCancel) + regulatory classification (cancellationReasonCode) — forensics demanda janela snapshot in-flight (NÃO recomputed post-hoc) per Trap T2 (window ambiguity)."
+			storageHint: "Fiscal-grade audit log (regulação tributária requer rastreabilidade documento + inputs + outputs + escalation events; retention legal ≥5 anos NF-e Brasil; equivalentes em outros regimes jurisdicionais Phase 1+). Cancel events demandam trail simétrico — cancellationTimestamp + reasonCode + windowAtCancel preservam evidence forensics da decisão de invalidação dentro de boundary regulatório. Reactive actions registram triggerEventRef (evt-delivery-verified cross-BC traceability) + reactiveClassificationDimension (staleness-type | terminality | regime-classification) per Trap T-R5 (classification mandatory antes de decisão). Detalhes de implementação vivem no Architecture Communication Canvas."
+			rationale:   "cc-04 audit trail regulatory-grade simétrico para issue + cancel + reactive. _minimumAuditFields ⊆ requiredFields satisfeito (7 minimum + 8 INV core + 3 cancel-specific + 2 reactive-specific = 20 fields total). Reactive-specific fields capturam trigger event cross-BC + classification dimension declarada — forensics permite reconstruir reactive decision path (evento → classification → decision); previne classification opacity (Trap T-R5) via audit trail mandatory."
 		}
 	}
 
@@ -931,13 +1297,16 @@ agentSpec: artifact_schemas.#AgentSpec & {
 		mitigations-future. Sistema declara escopo real de
 		enforcement, não finge cobertura completa.
 
-		**Phase 4 Part 1 + Part 2 scope** (este file): 2 actions
-		(issue-invoice + cancel-invoice) + 11 constraints (2 cst-gate-
-		issue-* + 3 cst-issue-* + 1 cst-schema-openness ACK + 3 cst-
-		gate-cancel-* + 3 cst-cancel-*) + 4 escalationConditions
-		(folded scenarios issue + cancel via OR per category, padrão
-		DLV precedent) + 6 observability signals (3 issue + 3 cancel)
-		+ 18 audit fields (7 minimum + 8 INV core + 3 cancel-specific).
+		**Phase 4 Part 1 + Part 2 + Part 3 scope** (este file): 5
+		actions (issue-invoice + cancel-invoice + 3 reactive) + 13
+		constraints (2 cst-gate-issue-* + 3 cst-issue-* + 1 cst-schema-
+		openness ACK + 3 cst-gate-cancel-* + 3 cst-cancel-* + 2 cst-
+		react-* transversal) + 5 escalationConditions (folded scenarios
+		via OR per category, padrão DLV precedent — insufficient-
+		context + out-of-scope + suspicious-input + conflicting-signals
+		+ unclassifiable-anomaly) + 8 observability signals (3 issue
+		+ 3 cancel + 2 reactive) + 20 audit fields (7 minimum + 8 INV
+		core + 3 cancel-specific + 2 reactive-specific).
 
 		**Cancel asymmetry com issue** (founder framing canônico):
 		- Issue cria realidade (consistência ESTRUTURAL apenas)
@@ -963,12 +1332,42 @@ agentSpec: artifact_schemas.#AgentSpec & {
 		categories (DLV precedent: 1 entry per category, scenarios
 		folded via OR).
 
-		**Pendente Phase 4 Part 3** (próximo commit): reactive actions
-		(filter-non-terminal-dlv + block-emit-on-stale-or-missing-
-		projection) + supervisedDecision (emit-with-regime-anomaly).
-		ADR-081 schema mod (kind structural-gate first-class field +
-		failureHandling discriminated) cristalizará após Part 3
-		(3 usos reais: issue + cancel + reactive — founder rule).
+		**Reactive layer (Phase 4 Part 3)** — 3 reactive actions
+		BLOCK/FILTER/ESCALATE materializadas:
+		- act-block-emit-on-stale (BLOCK): stale projection → ABORT_
+		  ACTION + sig-issue-structural-gate-blocked + DEFERRED
+		- act-filter-non-terminal-dlv (FILTER): non-terminal event →
+		  NO_ACTION + sig-dlv-filtered-non-terminal + no escalation
+		- act-escalate-regime-anomaly (ESCALATE): regime anomalous →
+		  ABORT + DO_NOT_CORRECT + sig-regime-anomaly-detected + HARD
+
+		**5 reactive traps endereçados transversalmente** via 2
+		constraints: cst-react-no-event-coupling cobre T-R1
+		(orchestrator) + T-R2 (retry) + T-R3 (event-as-command);
+		cst-react-classification-mandatory cobre T-R4 (stale==
+		missing) + T-R5 (act-without-classification).
+
+		**Conceito central reactive (founder framing canonical)**:
+		'agent controla quando o mundo NÃO deve causar ação' →
+		default reactive = NO_ACTION; action-decision é exception
+		structurally constrained. Transforma sistema em
+		determinístico SOB eventos não-determinísticos.
+
+		**Asymmetry Issue/Cancel/Reactive**:
+		- Issue: consistência ESTRUTURAL
+		- Cancel: ESTRUTURAL + TEMPORAL + REGULATÓRIA (cancel é
+		  asymmetric — invalidação sob regras externas, não simétrico
+		  a issue creation)
+		- Reactive: CLASSIFICATION-DISCIPLINED + DEFAULT-NO-ACTION
+		  (default = não agir; agir é exception)
+
+		**Pendente próximo commit**: SRR consolidado Phase 4 (1 agent-
+		spec → 1 SRR final, padrão glossary/domain-model/structural-
+		checks). ADR-081 schema mod (kind structural-gate first-class
+		field + failureHandling discriminated + classificationDimension
+		field) cristalização ready: 3 usos reais agora satisfeitos
+		(cst-gate-issue-* + cst-gate-cancel-* + cst-react-* — founder
+		rule '3 usos reais → vira schema').
 
 		**Forward-refs Phase 5**: governanceRef='inv-primary-agent'
 		aponta para envelope `contexts/inv/agents/inv-primary-agent.
