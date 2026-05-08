@@ -631,5 +631,12 @@ workGraph: {
 		]
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-generic-bc-bootstrap"
+	}, #ExecutionDependency & {
+		taskId: "WI-070" // Economic Foundation Layers — emergent from WI-053
+		dependsOn: [
+			{taskId: "WI-053", version: 1},
+		]
+		phaseId: "p0-validate-and-bootstrap"
+		groupId: "g0-schemas"
 	}]
 }
