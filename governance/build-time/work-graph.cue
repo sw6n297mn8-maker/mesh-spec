@@ -638,5 +638,10 @@ workGraph: {
 		]
 		phaseId: "p0-validate-and-bootstrap"
 		groupId: "g0-schemas"
+	}, #ExecutionDependency & {
+		taskId:    "WI-071" // Rebuild projections script — drift detection robustness
+		dependsOn: []
+		phaseId:   "pg2-governance-robustness"
+		groupId:   "g5-governance-robustness"
 	}]
 }
