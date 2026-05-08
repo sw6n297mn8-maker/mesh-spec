@@ -10,18 +10,21 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 20 candidatos prontos para claim. 5 candidatos approved bloqueados por
-// deps inter-BC ainda em task-approved (não completed): WI-043, 044,
-// 051, 052, 059. WI-040 ainda em task-proposed (aguarda approval).
+// 19 candidatos prontos para claim (WI-053 INV bootstrap closed
+// 2026-05-08T17:04:10Z em commit 4c4b5be — Phase 5 governance envelope
+// + R5 SRR; removido da ready-queue). 5 candidatos approved bloqueados
+// por deps inter-BC ainda em task-approved (não completed): WI-043,
+// 044, 051, 052, 059. WI-040 ainda em task-proposed (aguarda approval).
 // WI-066/067/068/069 admission=defined (task-spec existe, sem work-event).
-// WI-034 task-cancelled (final state). 39 WIs em task-completed
-// (WI-060 SSC bootstrap closed 2026-05-05; WI-057 P2P bootstrap closed
-// 2026-05-06 com schema hardening adr-076 incluído; WI-042 DLV bootstrap
-// closed 2026-05-06 com 5 phases canvas+glossary+domain-model+agent-spec
-// +agent-governance + def-014).
+// WI-034 task-cancelled (final state). 40 WIs em task-completed
+// (WI-053 INV bootstrap incluído pós-2026-05-08; WI-060 SSC bootstrap
+// closed 2026-05-05; WI-057 P2P bootstrap closed 2026-05-06; WI-042
+// DLV bootstrap closed 2026-05-06).
+// WI-070 (Economic Foundation Layers — emergent from WI-053) NÃO está
+// em ready-queue: criada já com task-claimed (in-progress projection).
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-06T19:00:00Z"
+	rebuiltAt: "2026-05-08T17:59:20Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
@@ -80,12 +83,6 @@ readyQueueProjection: {
 		taskId:        "WI-050"
 		version:       1
 		title:         "Criar artefatos de domínio para Identity & Data Governance (IDC)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-053"
-		version:       1
-		title:         "Criar artefatos de domínio para Invoicing (INV)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
