@@ -77,5 +77,20 @@ stakeholderMap: {
 		]
 		interactsWith: ["sh-01", "sh-02", "sh-03"]
 		rationale:       "Sem o agente como stakeholder explícito, decisões de design tratam IA como ferramenta em vez de ator — e o sistema perde coerência com sua tese central (ax-01, ax-02)."
+	}, {
+		code:            "sh-06"
+		name:            "Adversário econômico"
+		type:            "actor-class"
+		description:     "Actor externo ou interno cuja função é extrair valor do sistema via exploração de incentivos econômicos. Não é fornecedor, comprador, banco ou operador legítimo — classe de actor cujos vetores R4+++ (delay attack, value concentration, probing distribuído, cancel-then-reissue laundering, coordenação cross-actor) representam intenção primária, não desvio comportamental."
+		role:            "Vetor adversarial canonical para modelagem defensiva cross-BC"
+		meshInteraction: "Tenta exploit econômico via vetores conhecidos. Sistema responde via detecção multi-camada (single-actor concentration + multi-actor distribution + temporal patterns + combined adversarial signals); isolado quando identificado; reputação cross-network degradada como custo cumulative."
+		influence:       "low"
+		concerns: [
+			"Capturar valor via exploração de gaps em incentivos econômicos",
+			"Evitar detecção via patterns adversariais sofisticados (R4+++ class)",
+			"Identificar boundaries que o sistema NÃO modela (unknown event safety vs system-level unknown)",
+		]
+		interactsWith: ["sh-01", "sh-02", "sh-05"]
+		rationale:       "Sem modelagem explícita de adversário canonical, sistemas implicitamente assumem que ele não existe — vetor estrutural de cego. R4+++ modelagem em INV Round 2 SRR demonstrou empiricamente que adversários compostos satisfazem mecanismos legítimos simultaneamente. Adversário como sh-06 canonical permite que BCs declarem manipulationVector + designResponse com identidade adversarial primária — não derivada de stakeholders legítimos. Introduzido em Phase 1 do REW canvas (WI-046); reusable cross-BC."
 	}]
 }
