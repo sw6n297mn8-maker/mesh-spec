@@ -3,30 +3,17 @@ package projections
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
 // Projeção derivada: ready-queue.
-// Reconstruída via readyQueueAlgorithm (work-governance.cue) a partir de
+// Reconstruída via scripts/ci/rebuild-projections.sh (per WI-071) a partir de
 // work-events/, work-graph.cue, task-specs/, task-governance.cue.
 // Deletável sem perda (P8). Não é source of truth.
 //
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 20 candidatos prontos para claim (WI-053 INV bootstrap closed
-// 2026-05-08T17:04:10Z em commit 4c4b5be — Phase 5 governance envelope
-// + R5 SRR; removido da ready-queue. WI-071 Rebuild Projections Script
-// adicionado 2026-05-08T18:00:30Z em commit subsequente — approved sem
-// claim, dependsOn vazio). 5 candidatos approved bloqueados por deps
-// inter-BC ainda em task-approved (não completed): WI-043, 044, 051,
-// 052, 059. WI-040 ainda em task-proposed (aguarda approval).
-// WI-066/067/068/069 admission=defined (task-spec existe, sem work-event).
-// WI-034 task-cancelled (final state). 40 WIs em task-completed
-// (WI-053 INV bootstrap incluído pós-2026-05-08; WI-060 SSC bootstrap
-// closed 2026-05-05; WI-057 P2P bootstrap closed 2026-05-06; WI-042
-// DLV bootstrap closed 2026-05-06).
-// WI-070 (Economic Foundation Layers — emergent from WI-053) NÃO está
-// em ready-queue: criada já com task-claimed (in-progress projection).
+// 19 candidato(s) prontos para claim.
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-08T18:00:30Z"
+	rebuiltAt: "2026-05-08T19:05:16Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
@@ -35,7 +22,7 @@ readyQueueProjection: {
 		criticality:   "medium"
 	}, {
 		taskId:        "WI-027"
-		version:       1
+		version:       2
 		title:         "Definir convenção OpenAPI/AsyncAPI por capability flags"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
@@ -139,12 +126,6 @@ readyQueueProjection: {
 		taskId:        "WI-065"
 		version:       1
 		title:         "Criar scripts/build/generate-claude-md.sh para regenerar CLAUDE.md a partir do CUE fonte"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-071"
-		version:       1
-		title:         "Criar script automático de rebuild para projections (in-progress + ready-queue + blocked-items)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}]
