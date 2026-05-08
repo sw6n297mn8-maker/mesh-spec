@@ -11,9 +11,9 @@ meshEconomicMechanisms: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
-	generatedAt:     "2026-05-07"
+	generatedAt:     "2026-05-08"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 
 	status: "stable"
@@ -197,45 +197,233 @@ meshEconomicMechanisms: build_time.#SelfReviewReport & {
 
 			cue vet ./... EXIT=0 (post-write); full repo clean.
 			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			R4+++ Composite Attack Canonical (founder canonical block
+			delivered 2026-05-07).
+
+			**Tese formal do ataque**:
+
+			∃ estratégia S tal que:
+			  payoff_privado(S) > 0
+			  AND ∀ mech-i ∈ {M1, M2, M3, M4}:
+			    signal(mech-i, S) ∈ [normal | ambiguous]
+			  AND impacto_sistêmico(S) < 0
+
+			Ou seja: nenhum mecanismo dispara claramente; todos os
+			sinais são 'plausivelmente legítimos'; o sistema não tem
+			base para bloquear.
+
+			**5 fases do ataque (founder canonical structure)**:
+
+			Fase 1 — Bootstrap legítimo (seed limpo):
+			Setup: 1 buyer real B0 + 3 fornecedores legítimos
+			S1, S2, S3 + 1 entidade atacante A1.
+			Ações: A1 transaciona com B0 — entregas válidas, pagamento
+			real, diversidade inicial.
+			Resultado: M1 OK (diversidade inicial); M2 OK (baixa
+			densidade); M3 OK (sem reuse); M4 OK (payoff alinhado).
+			Sistema confere legitimidade inicial.
+
+			Fase 2 — Expansão controlada (diversidade artificial):
+			Setup: A1 cria/controla A2, A3 (synthetic suppliers).
+			Ações: B0 transaciona com S1,S2,S3 (reais) + A2,A3
+			(sintéticos); volume pequeno em A2/A3.
+			Resultado: integration_score ↑; unique_counterparties ↑;
+			M1 ✅ excelente diversidade; M2 ✅ ainda diluído; M3 ✅
+			sem reuse; M4 ⚠️ ainda plausível.
+			Insight: 'diversidade vira cobertura para ataque futuro'.
+
+			Fase 3 — Cluster denso disfarçado:
+			Ações: A2, A3 começam a transacionar entre si; A1 entra
+			como intermediário ocasional; mantém conexões externas
+			com S1-S3.
+			Topologia: cluster denso A1↔A2↔A3 + external edges A1↔S1,
+			A2↔S2, A3↔S3.
+			Resultado: M2 ❌ NÃO dispara claramente (external_ratio
+			mantido artificialmente); M1 ✅ continua alto; M3 ainda
+			baixo; M4 não avalia.
+			Insight: 'cluster existe, mas parece legítimo'.
+
+			Fase 4 — Recycling com disfarce estrutural:
+			Ações: receivables criados em A2/A3 → transferidos para
+			A1 → misturados com receivables reais de S1-S3 →
+			reutilizados em múltiplas operações.
+			Resultado: M3 ⚠️ ambíguo (reuse_depth moderado + mistura
+			com reais); M1 ✅ continua forte; M2 ⚠️ ainda diluído;
+			M4 ❌ não detecta.
+			Insight: 'rastreabilidade ≠ limitação'.
+
+			Fase 5 — Extração de valor:
+			Ações: atacante usa receivables 'legitimados' → obtém
+			crédito/antecipação → recicla parcialmente → nunca quebra
+			regras formais.
+			Resultado final: payoff_privado > 0; impacto_sistêmico < 0;
+			nenhum mecanismo bloqueia diretamente.
+
+			**4 modos de falha de mecanismos (composição)**:
+
+			M1 (Cold Start / Diversidade):
+			  Exploit: diversidade artificial via atores controlados
+			  Falha: 'diversidade ≠ independência'
+
+			M2 (Anti-collusion):
+			  Exploit: external edges suficientes para mascarar cluster
+			  Falha: 'detecção depende de boundary não definido'
+
+			M3 (Recycling):
+			  Exploit: mistura de fluxos reais + sintéticos
+			  Falha: 'rastreabilidade ≠ limitação'
+
+			M4 (Payoff alignment):
+			  Exploit: sistema não sabe medir valor real
+			  Falha: 'função objetivo inexistente'
+
+			**Insight estrutural CRITICAL** (founder canonical):
+
+			'O atacante não quebra nenhum mecanismo. Ele faz algo
+			muito mais sofisticado: ele satisfaz todos
+			simultaneamente.'
+
+			Layer 1 (mechanisms) detecta padrões locais. O ataque
+			explora consistência global entre padrões.
+
+			Boundary descoberto:
+			'O sistema não tem como responder à pergunta: essa
+			sequência de ações gera valor real ou apenas recicla
+			valor?'
+
+			Isto NÃO é bug de M1, M2, M3 ou M4 isoladamente. É
+			problema composicional de incentivos.
+
+			**Conclusão formal**:
+
+			Layer 1 mechanisms é INSUFICIENTE POR CONSTRUÇÃO para
+			composite attacks que satisfaçam todos os mechanisms
+			simultaneamente. Nenhuma evolução de mechanisms
+			exclusivamente em Layer 1 é suficiente para fechar este
+			gap; resolução requer Layer 2 (NIM).
+
+			v3 mechanisms NÃO produced — o ataque vive em Layer 2
+			(NIM) territory, NÃO em Layer 1 fix territory. v2
+			mechanisms permanecem stable for their declared scope:
+			local pattern detection.
+
+			**Layer 2 NIM scope precisamente identificado** (4
+			componentes obrigatórios):
+
+			1. Função de valor: valor_real_gerado(S)
+			2. Constraint global: payoff_privado ≤ f(valor_real_gerado)
+			3. Avaliação composicional: sequência inteira, não evento
+			   isolado
+			4. Distinção estrutural: transferência de valor ≠ criação
+			   de valor
+
+			**Founder canonical R5++ capturado**:
+
+			'O sistema não falha porque não detecta padrões. Ele falha
+			porque não entende o significado dos padrões quando
+			combinados.'
+
+			Tradução estrutural: Mesh deixa de ser 'sistema de
+			tracking' e precisa virar 'sistema de economia
+			computável'.
+
+			**Compositional failure surface (gap schema-level
+			discovered)**:
+
+			tq-emm-03 honesty enforcement captura per-mechanism
+			failure surface (4 mechanisms × {falsePositiveRisks /
+			underspecifications / residualRisks}). NÃO captura
+			cross-mechanism compositional failure surface.
+			Schema enhancement future Phase 1+:
+			compositionalFailureSurface field at top-level
+			#EconomicMechanismModel (separate ADR; ver schema header
+			comment 'Compositional failure surface' para direction).
+
+			Boundary discovery declarado narrativamente neste round
+			summary, NÃO em findings.info. Razão honesty discipline:
+			founder approved info finding contra tq-emm-03 antes de
+			schema reality check; #QualityCriterionFinding via
+			tq-srr-04 enforces 'finding.severity == criterion.severity'
+			(tq-emm-03 severity é fail; declarar info silenciosamente
+			downgradearia — exatamente o que tq-srr-04 previne).
+			tq-emm-03 IS satisfied per-mechanism (4 mechanisms
+			declaram failure surface explicitly). O gap é meta-
+			arquitetural — categoria Layer 1 vs Layer 2 — NÃO
+			criterion violation. Path correto: documentar como
+			roundDetails narrative + future schema enhancement Phase
+			1+ com NEW criterion (tq-emm-05 'compositional honesty
+			discipline' severity info) ou compositionalFailureSurface
+			field at top-level #EconomicMechanismModel.
+
+			**Path forward declarado**:
+
+			1. valor_real_gerado(S) v0 (founder offered next): 3
+			   candidate functions (ingênua / estrutural fluxo-based /
+			   rede-based) tested against R4+++ composite attack.
+			   Qualquer definição simples vai quebrar — esperado e
+			   necessário pre-Layer 2 design.
+			2. ADR-084 NIM bootstrap (depois de v0 valor_real_gerado):
+			   Layer 2 declaração ancorada em primeira formalization
+			   real, NÃO placeholder conceitual.
+			3. Layer 1 v2 mechanisms permanecem em produção como
+			   local detection layer; NIM compõe acima sem replace.
+
+			**Discovery rare-pattern observação canonical**:
+
+			Round 2 SRR formaliza descoberta de limite de Layer
+			via SRR adversarial — pattern raro normalmente escondido
+			OR tratado como bug. Mesh transforma o limite em
+			artefato canônico explicit. Moat estrutural: sistema
+			declara onde NÃO consegue resolver, paralelo a R5+
+			canonical 'O problema não é o sistema ter falhas; é
+			não saber onde falha' aplicado recursivamente a Layer
+			composition.
+
+			cue vet ./... EXIT=0 (post-Round-2 update).
+			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		Economic Mechanism Model first instance (4 mechanisms v2
-		mech-01..04 + 4 residual risks rr-01..04) materializes Layer 1
-		per ADR-083. v2 derived from R4++ adversarial validation of
-		v1 mechanisms (broke em end-to-end attack; v2 corrige 4
-		breakpoints BP-1..4 + 4 upgrades U1-U4 mapped). 4 tensões
-		T-v2-1..4 explicitly declared per tq-emm-03 honesty enforcement
-		(NÃO ocultadas): T-v2-1 mech-01 cold-start false-positive;
-		T-v2-2 mech-02 cluster boundary undefined; T-v2-3 mech-03
-		legitimate factoring; T-v2-4 mech-04 valor_real_gerado
-		undecidable. Coverage: 6 das 9 ri-NN protected (gaps ri-02 +
-		ri-05 + ri-06 → NIM future). All cross-refs validated
-		(protectsAgainst → ri-NN existing; enforces → imp-NN existing;
-		interactionDependencies → mech-NN existing). Pattern
-		emergente: 'v1 observa fraude → v2 desincentiva fraude'.
-		tq-emm-01..04 satisfeitos. cue vet clean. Future Round 2
-		adversarial pass on v2 mechanisms deferred (founder offered).
-		"""
-
-	singleRoundRationale: """
-		Authoring via founder R4++ adversarial canonical block pre-
-		write (v2 mechanisms emerged from end-to-end attack validation
-		em mesh-economic-assumptions.self-review.cue Round 2; 4 tensões
-		T-v2-1..4 captured pre-encoding) + R5+ honesty enforcement
-		discipline (tq-emm-03 coverage-based; failsafe via
-		falsePositiveRisks/underspecifications/residualRisks fields
-		populated em todos 4 mechanisms). Schema-reality compilation
-		discipline (id regex constraints; protectsAgainst/enforces
-		non-empty list cardinality enforced via type system; refs
-		validated existential cross-artifact). Round único suficiente
-		— qualidade incorporada via founder R4++ + R5+ dialectic
-		pre-write iterativo + ADR-083 plannedOutputs discipline +
-		co-commit schema + ADR + 3 SRRs + #ArtifactType registration +
-		README regeneration. Pattern paralelo srr-mesh-economic-
-		assumptions Round 1 first instance discipline (R4+ pre-
-		encoding methodology applied recursively a Layer 1).
+		Economic Mechanism Model first instance + Round 2 R4+++
+		composite attack discovery. Round 1: 4 mechanisms v2
+		(mech-01..04) + 4 residual risks rr-01..04 materialize Layer 1
+		per ADR-083; v2 derived from R4++ adversarial validation; 4
+		tensões T-v2-1..4 explicit per tq-emm-03 honesty enforcement;
+		coverage 6/9 ri-NN; cross-refs validated; tq-emm-01..04
+		satisfeitos. Round 2: founder canonical R4+++ composite attack
+		canonical block delivered (5 phases bootstrap legítimo →
+		expansão controlada → cluster denso disfarçado → recycling com
+		disfarce → extração; 4 modos de falha por mechanism); insight
+		estrutural CRITICAL — atacante NÃO quebra mechanisms, satisfaz
+		TODOS simultaneamente; Layer 1 detecta padrões locais, ataque
+		explora consistência global; Layer 1 INSUFICIENTE POR
+		CONSTRUÇÃO para composite attacks; nenhuma evolução
+		exclusivamente em Layer 1 fecha este gap; resolução requer
+		Layer 2 (NIM); v3 mechanisms NÃO produced (ataque vive Layer 2
+		territory). Layer 2 NIM scope identificado: (1) valor_real_
+		gerado(S) + (2) constraint global payoff ≤ f(valor) + (3)
+		avaliação composicional + (4) transferência ≠ criação.
+		Compositional failure surface gap declarado narrativamente em
+		roundDetails Round 2 (NÃO em findings.info — tq-emm-03 is
+		satisfied per-mechanism; gap é meta-arquitetural categorial,
+		NÃO criterion violation; tq-srr-04 prevents silent severity
+		downgrade); future schema enhancement Phase 1+ com tq-emm-05
+		OR compositionalFailureSurface top-level field. Path forward:
+		valor_real_gerado(S)
+		v0 (founder offered next; 3 candidates ingênua/estrutural/rede)
+		→ ADR-084 NIM bootstrap. Status stable: v2 mechanisms stable
+		for declared scope (local detection); Round 2 outcome é Layer
+		boundary identification rare-pattern, NÃO v2 invalidation.
+		Founder canonical R5++ capturado: 'O sistema não falha porque
+		não detecta padrões. Ele falha porque não entende o significado
+		dos padrões quando combinados.'
 		"""
 }

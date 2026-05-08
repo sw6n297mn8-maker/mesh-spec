@@ -17,6 +17,35 @@ package artifact_schemas
 // pattern OR CI gate enforces 'at least one of falsePositiveRisks /
 // underspecifications / residualRisks non-empty' by construction).
 //
+// Phase 1+ structural enforcement direction (declared para evitar
+// loss of context; founder R5+ recommendation):
+//   Option A — hidden boolean guard:
+//     _hasHonestyDeclared: true
+//     unified com per-field presence checks
+//   Option B — external CI validator asserting:
+//     len(falsePositiveRisks) + len(underspecifications) +
+//     len(residualRisks) >= 1 per mechanism
+//     (smaller blast-radius; zero schema mod)
+//   Option C — normalize 3 fields into single
+//     declaredFailureModes: [#FailureMode]
+//     com #FailureMode discriminated union (preserva 3 categorias
+//     semânticas via type tag — classification / model / inevitable;
+//     aligns com founder R5+ NIM refinement note about distinct
+//     error types)
+// Decision: deferred a Phase 1+; Option C aligned best com semantic
+// distinction; Option B mais conservadora (zero schema risk).
+//
+// Compositional failure surface (gap discovered Round 2 SRR R4+++
+// composite attack): tq-emm-03 captures per-mechanism failure surface
+// mas NÃO captures cross-mechanism compositional failure surface.
+// Future schema enhancement Phase 1+ (separate ADR):
+// compositionalFailureSurface top-level field at #EconomicMechanismModel
+// — captures cross-mechanism failure modes onde attacker satisfies
+// all mechanisms simultaneously yet payoff_privado > 0 AND
+// impacto_sistêmico < 0. Gap é categorial Layer 1 → resolution requer
+// Layer 2 (NIM) com função de valor + global constraint + compositional
+// evaluation + transferência≠criação distinction.
+//
 // Mechanism design constraint canonical (founder R4++): "v1 sistema
 // observa fraude; v2 sistema desincentiva fraude". Mechanisms NÃO
 // eliminate exploits — REDUCE exploitability. Sistema deixa de ser
