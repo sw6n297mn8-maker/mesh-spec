@@ -47,12 +47,25 @@ deferredDecisions: "def-015-task-output-temporality-metadata": artifact_schemas.
 		"""
 
 	triggerCalibrationRationale: """
-		Threshold 2 ocorrências (não 3 da meta-rule '3 usos → schema')
-		porque pattern já existe em WI-070; segunda ocorrência prova
-		que NÃO é caso isolado e justifica revisita. Pattern grep:
-		'OUTPUTS STATUS (structured):' aparece em rationale de task-
-		spec — header line distintivo + pouco propenso a falsos positivos.
-		Scope file-content em governance/build-time/task-specs/.
+		Pattern usa character class [(] / [)] em vez de parens literais (que
+		git grep -E interpreta como group syntax). Verificado em teste pós-
+		commit (2026-05-08): regex 'OUTPUTS STATUS (structured):' com parens
+		literais NÃO matches texto contendo '(structured)' porque ERE trata
+		() como grouping. Character class [(] força match literal de '('.
+
+		Threshold 5 (NÃO 2 da intenção founder original 'quando ≥ 2 novas
+		WIs'): ajustado para absorver 3 self-references estruturais
+		inevitáveis no repo — def-015.cue (campo pattern), srr-def-015
+		(prose referenciando trigger), wi-070.cue (header de uso real).
+		#Trigger schema não suporta path-filter para scope file-content
+		(git grep busca em todo repo). Resolução: 3 self-matches +
+		2 NOVAS WIs emergent = threshold 5 honra intent founder.
+		Verificado pre-fix: git grep -l -E retorna exatamente 3 arquivos.
+
+		Pattern ainda distintivo: 'OUTPUTS STATUS [(]structured[)]:' como
+		header line é uso convencional — pouco propenso a aparecer
+		acidentalmente em outros artifacts além dos 3 self-references
+		conhecidos.
 		"""
 
 	originatingArtifacts: [
@@ -77,9 +90,9 @@ deferredDecisions: "def-015-task-output-temporality-metadata": artifact_schemas.
 
 	triggers: [{
 		kind:      "recurrence"
-		pattern:   "OUTPUTS STATUS (structured):"
+		pattern:   "OUTPUTS STATUS [(]structured[)]:"
 		scope:     "file-content"
-		threshold: 2
+		threshold: 5
 	}]
 
 	status: "open"
