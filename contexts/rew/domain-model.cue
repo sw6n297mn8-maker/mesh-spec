@@ -174,6 +174,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				{kind: "value-object-ref", name: "confidence", valueObjectRef:  "vo-confidence-interval"},
 				{kind: "value-object-ref", name: "context", valueObjectRef:     "vo-applicable-context"},
 				{kind: "primitive", name: "emittedAt", type:              "datetime"},
+				{kind: "primitive", name: "validUntilTimestamp", type:    "datetime", description: "= emittedAt + RiskPolicy.evaluationValidityWindowSeconds (inv-rew-evaluation-temporal-validity); consumer reading com now() > validUntilTimestamp = decisão EXPIRED"},
 				{kind: "primitive", name: "eventTimestamp", type:         "datetime"},
 			]
 		},
@@ -335,10 +336,46 @@ domainModel: artifact_schemas.#DomainModel & {
 				{kind: "primitive", name: "eventTimestamp", type:                         "datetime"},
 			]
 		},
+		{
+			code:        "evt-risk-evaluation-emit-failed"
+			name:        "Risk Evaluation Emit Failed (ABORT — não cria evaluation válida)"
+			description: "Emit failure após retry exhaustion (RiskPolicy.emitTimeoutSeconds default 30s). ABORT EXPLÍCITO — evaluation NÃO entra em projection, NÃO participa de active rule, NÃO pode ser target de cmd-supersede. Permanece em event log como FACT histórico (audit trail) mas NÃO é evaluation válida no domínio. Evaluation = emitted by definition; nem todo cálculo deve virar estado."
+			rationale:   "Retry sem dono = retry inexistente + nem todo cálculo deve virar estado (founder Phase 3 insights). emit-failed preserva audit trail sem inflar lifecycle states. errorClassEliminated: 'computed evaluation invisible OR becoming spurious lifecycle state post-crash-pre-emit'."
+			visibility:  "published"
+			fields: [
+				{kind: "primitive", name: "eventId", type:                              "string"},
+				{kind: "primitive", name: "causationId", type:                          "string", description: "evt-risk-evaluation-computed eventId precedente"},
+				{kind: "primitive", name: "correlationId", type:                        "string"},
+				{kind: "primitive", name: "evaluationId", type:                         "string", description: "Aborted evaluationId — historical fact only"},
+				{kind: "value-object-ref", name: "failureReason", valueObjectRef: "vo-decision-reason"},
+				{kind: "primitive", name: "retryAttempts", type:                        "integer"},
+				{kind: "primitive", name: "retryExhausted", type:                       "boolean"},
+				{kind: "primitive", name: "abortedAt", type:                            "datetime"},
+				{kind: "primitive", name: "eventTimestamp", type:                       "datetime"},
+			]
+		},
+		{
+			code:        "evt-signal-rejected"
+			name:        "Signal Rejected at ACL boundary (validation failed)"
+			description: "Signal incoming reprovado em ACL validation (per inv-rew-signal-validation-before-ingestion). NUNCA drop silent — ambiguity em boundary = bug futuro. originalSignalRef preserva ref para investigação upstream; rejectionReason articula categoria de falha. Rejected signal NUNCA entra no domínio: NÃO triggers staleness, alert, OR evaluation pipeline."
+			rationale:   "Boundary não declarado vira superfície de ataque + ambiguidade em boundary = bug futuro (founder Phase 3 insights). errorClassEliminated: 'malformed signal silently dropped causing missing audit trail + debugging blind spots'."
+			visibility:  "published"
+			fields: [
+				{kind: "primitive", name: "eventId", type:                                "string"},
+				{kind: "primitive", name: "causationKind", type:                          "string", description: "Enum (espelho de evt-signal-received causationKind)"},
+				{kind: "primitive", name: "causationRef", type:                           "string"},
+				{kind: "primitive", name: "correlationId", type:                          "string"},
+				{kind: "value-object-ref", name: "originalSignalRef", valueObjectRef: "vo-signal-ref"},
+				{kind: "value-object-ref", name: "rejectionReason", valueObjectRef:   "vo-decision-reason"},
+				{kind: "primitive", name: "validationCheckFailed", type:                  "string", description: "Enum: ^(signalType-invalid|sourceContext-invalid|signalType-source-mismatch|integrityProof-missing|payloadVoCode-invalid|payloadInstance-unavailable)$"},
+				{kind: "primitive", name: "rejectedAt", type:                             "datetime"},
+				{kind: "primitive", name: "eventTimestamp", type:                         "datetime"},
+			]
+		},
 	]
 
 	// =========================================================
-	// COMMANDS (9)
+	// COMMANDS (10)
 	// =========================================================
 	// Common pattern: commandId + correlationId + issuedBy (vo-external-ref)
 	//   + actorAuthority + issuedAt. cmd-mark-evaluation-stale é INTERNAL
@@ -348,15 +385,17 @@ domainModel: artifact_schemas.#DomainModel & {
 	commands: [
 		{
 			code:        "cmd-request-risk-evaluation"
-			name:        "Request Risk Evaluation (correlation root)"
-			description: "Consumer (CMT/FCE/SCF) solicita evaluation. Este command é o ROOT da correlation chain — correlationId nasce aqui e propaga via causation por toda a cascata (compute → emit → potential alert → potential staleness)."
-			rationale:   "correlationId root definition (founder Phase 3 insight): sem root, correlationId vira só UUID bonito. errorClassEliminated: 'correlation chain orphans preventing flow reconstruction'."
+			name:        "Request Risk Evaluation (correlation root + version freeze anchor)"
+			description: "Consumer (CMT/FCE/SCF) solicita evaluation. Command é DUPLO ANCHOR: (a) correlation chain root — correlationId nasce aqui; (b) version freeze anchor — modelVersion E policyVersion são SNAPSHOT IMUTÁVEIS aqui (per inv-rew-version-frozen-at-request). Toda compute/emit/replay subsequent usa esses snapshots; new model/policy activated mid-flow NÃO afeta in-flight evaluation."
+			rationale:   "errorClassEliminated: 'correlation chain orphans preventing flow reconstruction' + 'mid-flow model/policy swap causing comparability collapse + non-deterministic replay'."
 			fields: [
-				{kind: "primitive", name: "commandId", type:                  "string", description: "Idempotent anchor — retry com mesmo commandId é descartado (inv-rew-command-idempotency exige payload identity)"},
-				{kind: "primitive", name: "correlationId", type:              "string", description: "ROOT — nasce neste command; propagado por toda cadeia subsequent"},
+				{kind: "primitive", name: "commandId", type:                  "string", description: "Idempotent anchor — retry com mesmo commandId rejeitado se payload diverge (inv-rew-command-idempotency)"},
+				{kind: "primitive", name: "correlationId", type:              "string", description: "ROOT — nasce neste command; propagado por toda cadeia"},
 				{kind: "value-object-ref", name: "context", valueObjectRef:    "vo-applicable-context"},
+				{kind: "primitive", name: "requestedModelVersion", type:      "string", description: "Snapshot do RiskModel.version active em issuedAt — IMUTÁVEL durante evaluation chain"},
+				{kind: "primitive", name: "requestedPolicyVersion", type:     "string", description: "Snapshot do RiskPolicy.version active em issuedAt — IMUTÁVEL"},
 				{kind: "value-object-ref", name: "issuedBy", valueObjectRef:   "vo-external-ref"},
-				{kind: "primitive", name: "actorAuthority", type:             "string", description: "Enum: ^(system|automated-policy|analyst|supervisor|admin)$"},
+				{kind: "primitive", name: "actorAuthority", type:             "string"},
 				{kind: "primitive", name: "issuedAt", type:                   "datetime"},
 			]
 		},
@@ -479,10 +518,28 @@ domainModel: artifact_schemas.#DomainModel & {
 				{kind: "primitive", name: "issuedAt", type:                               "datetime"},
 			]
 		},
+		{
+			code:        "cmd-raise-risk-alert"
+			name:        "Raise Risk Alert (INTERNAL orchestration)"
+			description: "Internal orchestration command emitido APENAS por pol-emit-risk-alert-on-eligibility-denied (automated-policy issuer). NÃO exposto via canvas inbound. Idempotent at COMMAND level via composite key (evaluationId, alertCategory) per inv-rew-alert-command-idempotency — concurrent issuance da mesma composite key deduped no command level (não event level — dedupe depois da ação é tarde demais)."
+			rationale:   "errorClassEliminated: 'concurrent policy nodes producing duplicate alerts via race-condition pre-event-store'."
+			fields: [
+				{kind: "primitive", name: "commandId", type:                              "string"},
+				{kind: "primitive", name: "correlationId", type:                          "string"},
+				{kind: "primitive", name: "alertId", type:                                "string"},
+				{kind: "primitive", name: "evaluationId", type:                           "string", description: "IMUTÁVEL post-raise (inv-rew-alert-evaluation-binding-immutability)"},
+				{kind: "primitive", name: "alertCategory", type:                          "string"},
+				{kind: "primitive", name: "severity", type:                               "string"},
+				{kind: "value-object-ref", name: "triggeringContext", valueObjectRef: "vo-applicable-context"},
+				{kind: "value-object-ref", name: "issuedBy", valueObjectRef:          "vo-external-ref"},
+				{kind: "primitive", name: "actorAuthority", type:                         "string", description: "Sempre 'automated-policy'"},
+				{kind: "primitive", name: "issuedAt", type:                               "datetime"},
+			]
+		},
 	]
 
 	// =========================================================
-	// INVARIANTS (24)
+	// INVARIANTS (39)
 	// =========================================================
 	// 12 originais (S2 founder Phase 3): signal-traceability, contextual-
 	//   completeness, bounded-score, deterministic-replay, model-policy-
@@ -640,8 +697,101 @@ domainModel: artifact_schemas.#DomainModel & {
 		{
 			code: "inv-rew-event-emission-boundedness"
 			name: "Event emission bounded per (scope, time-window)"
-			rule: "Para mesmo (entityRef, productCode, scope, time-window): múltiplos signals relevantes → NO MÁXIMO 1 evt-risk-evaluation-marked-stale por evaluation por window; múltiplos triggers para mesma alertCategory dentro de window → deduplicados (consistente com inv-rew-alert-dedupe); policies NÃO podem emitir múltiplos eventos equivalentes dentro da mesma janela de consistência. Time-window default Phase 0: 60s; calibrável via RiskPolicy.eventEmissionWindowSeconds."
-			rationale: "Sem controle de emissão, sistema correto vira sistema inutilizável (founder Phase 3 insight). Event storm em escala (1000+ signals/min × N evaluations × M categories) causa observability collapse. Boundedness preserva signal-to-noise. Enforcement em sc-rew-event-emission-boundedness (S7) + runtime gate. errorClassEliminated: 'event storm at scale causing observability collapse + downstream consumer overload'."
+			rule: "Para mesmo (entityRef, productCode, scope, time-window): múltiplos signals relevantes → NO MÁXIMO 1 evt-risk-evaluation-marked-stale por evaluation por RiskPolicy.stalenessWindowSeconds; múltiplos triggers para mesma alertCategory dentro de RiskPolicy.alertEmissionWindowSeconds → deduplicados (consistente com inv-rew-alert-dedupe); policies NÃO podem emitir múltiplos eventos equivalentes dentro da mesma janela de consistência por type. 3 windows separados em RiskPolicy: stalenessWindowSeconds (default 60s) + alertEmissionWindowSeconds (default 60s) + emitTimeoutSeconds (default 30s) — anti-acoplamento (window compartilhada vira acoplamento oculto)."
+			rationale: "Sem controle de emissão, sistema correto vira sistema inutilizável (founder Phase 3 insight). 3 windows separados eliminam acoplamento oculto entre tipos de evento. errorClassEliminated: 'event storm at scale causing observability collapse + downstream consumer overload'."
+		},
+		// === S5 batch — 8 invariants (founder Phase 3 final pressure) ===
+		{
+			code: "inv-rew-alert-no-feedback-to-evaluation"
+			name: "Alert lifecycle MUST NOT alter evaluation state"
+			rule: "agg-risk-alert é DOWNSTREAM de agg-risk-evaluation. Alert lifecycle (raise/acknowledge/resolve) NÃO pode emitir commands que mutem evaluation state. Alert reage a evaluation; evaluation NUNCA reage a alert. Quebra dessa direção cria ciclo de feedback que destrói append-only semantics + auditability."
+			rationale: "Se alert influencia decisão, você criou ciclo (founder Phase 3 insight). BEHAVIORAL — disciplina + review + sc-rew-alert-no-feedback-cmds (S7) que valida policies triggeredByEvent ∈ alert events NÃO emitem commands em evaluation aggregate. errorClassEliminated: 'feedback cycle alert→evaluation causing decision history corruption'."
+		},
+		{
+			code: "inv-rew-version-frozen-at-request"
+			name: "Model AND Policy versions FROZEN at cmd-request-risk-evaluation"
+			rule: "cmd-request-risk-evaluation captura modelVersion E policyVersion ATIVOS em issuedAt como SNAPSHOT IMUTÁVEL. Toda computação subsequent (compute, emit, replay) usa esses snapshots mesmo se novo model/policy é activated mid-flow. Model e policy são INSEPARÁVEIS — congelar um sem o outro é bug. Nova request com cmd-request distinto pode usar new versions; evaluation existente NUNCA muda."
+			rationale: "Model e policy são inseparáveis — congelar um sem o outro é bug (founder Phase 3 insight). Freeze at command é stronger choice porque elimina race entre activation e compute. errorClassEliminated: 'mid-flow model OR policy swap causing comparability collapse'."
+		},
+		{
+			code: "inv-rew-policy-version-immutability-per-evaluation"
+			name: "Policy version IDENTICAL across compute and emit per evaluation"
+			rule: "policyVersion usada na fase compute (registrada em evt-risk-evaluation-computed) DEVE ser idêntica a policyVersion na fase emit (registrada em evt-risk-evaluation-emitted) para mesma evaluationId. Race entre compute e emit onde policy evolui mid-flow é REJEITADA (emit fails se policyVersion diverge). Policy é parte da VERDADE da decisão, não configuração externa."
+			rationale: "Policy é parte da verdade da decisão, não configuração externa (founder Phase 3 insight). errorClassEliminated: 'policy drift between compute and emit causing decision misattribution'."
+		},
+		{
+			code: "inv-rew-evaluation-lineage-acyclic"
+			name: "Evaluation lineage tree MUST be acyclic"
+			rule: "parentEvaluationId chain forma DIRECTED ACYCLIC GRAPH (DAG). Para qualquer evaluation E, traversal recursivo de parentEvaluationId → parent.parentEvaluationId → ... nunca retorna a E. Ciclos (E1 → E2 → E3 → E1) são PROIBIDOS por construção — destruem temporal ordering + replay determinism + supersede semantics. Adicionalmente: parentEvaluationId.emittedAt < evaluation.emittedAt (temporal ordering reforçado)."
+			rationale: "Grafo sem restrição vira ciclo — ciclo quebra história (founder Phase 3 insight). errorClassEliminated: 'lineage cycle destroying temporal ordering + supersede consistency'."
+		},
+		{
+			code: "inv-rew-supersede-after-emit-only"
+			name: "Supersession requires evaluation in emitted or stale state"
+			rule: "cmd-supersede-risk-evaluation só pode ser aceito quando target evaluation está em status ∈ {emitted, stale}. Supersede de evaluation em status pré-lifecycle (computed phase awaiting emit) é PROIBIDO — substituir something que não foi publicado é nonsense. Supersede de evaluation em status='superseded' (já terminal) é PROIBIDO — duplicate supersede."
+			rationale: "Race condition real: emit acontece em T1 + supersede chega em T0 (out-of-order). Sem essa rule, supersede pode ser aceito antes de emit completar — estado impossível. errorClassEliminated: 'pre-emit supersede causing impossible state (superseded never-emitted)'."
+		},
+		{
+			code: "inv-rew-compute-implies-emit"
+			name: "Every computed evaluation MUST be followed by emitted OR emit-failed"
+			rule: "Toda evt-risk-evaluation-computed DEVE ter event subsequent com mesmo evaluationId — OU evt-risk-evaluation-emitted (success) OU evt-risk-evaluation-emit-failed (abort). Computed sem follow-up event = orphan state inválido. Schema friction: lifecycle states não inclui 'computed' (computed é transient pre-lifecycle); compute → emit é AUTOMÁTICO via runtime (não command-driven)."
+			rationale: "Se não existe escolha, não é command — é transição (founder Phase 3 insight). compute→emit é transição automática; runtime garante OR emit OR fail. errorClassEliminated: 'orphan computed without follow-up causing replay history gap'."
+		},
+		{
+			code: "inv-rew-computed-idempotent-retry"
+			name: "Computed events are idempotent and retry-safe"
+			rule: "evt-risk-evaluation-computed com mesmo (evaluationId, replayHash) é IDEMPOTENTE — re-emission via retry produz NEW eventId mas SAME evaluationId + SAME replayHash. Consumer (downstream emission logic) dedupa via evaluationId. Failure de emission post-compute NÃO bloqueia evaluation — retry permitido até timeout policy-defined (default 3 retries com exponential backoff). Após timeout, evaluation marcada via evt-risk-evaluation-emit-failed."
+			rationale: "Todo estado precisa de estratégia de retry (founder Phase 3 insight). Idempotency via (evaluationId + replayHash) garante retry safe sem duplicate compute. errorClassEliminated: 'duplicate compute on retry causing event log pollution'."
+		},
+		{
+			code: "inv-rew-single-successor-per-evaluation"
+			name: "Lineage tree: at most ONE direct successor per evaluation"
+			rule: "Para qualquer evaluation E, existe NO MÁXIMO UMA evaluation E' tal que E'.parentEvaluationId == E.evaluationId. Branching no lineage tree é PROIBIDO — múltiplos sucessores de mesma E indicam erro lógico (concurrent supersede da mesma evaluation = race condition violando inv-rew-explicit-supersede-only). Resultado: lineage forma TREE (não DAG, não graph)."
+			rationale: "Árvore vs grafo não é detalhe — muda semântica do sistema (founder Phase 3 insight). Tree é correta para risk decision: chain linear de supersession por scope; 'active' = leaf node do scope. errorClassEliminated: 'lineage branching creating multiple current evaluations per scope'."
+		},
+		// === Production-safety batch — 4 invariants (Step B) ===
+		{
+			code: "inv-rew-computed-must-eventually-emit-or-fail"
+			name: "Computed evaluation MUST eventually emit OR fail explicitly (emit-failed = ABORT, not state)"
+			rule: "Toda evt-risk-evaluation-computed DEVE produzir UMA das duas consequências dentro de RiskPolicy.emitTimeoutSeconds (default Phase 0: 30s): (a) evt-risk-evaluation-emitted com mesmo evaluationId → evaluation entra em lifecycle (state='emitted'); (b) evt-risk-evaluation-emit-failed com mesmo evaluationId + failureReason + retryExhausted=true → ABORT do lifecycle. emit-failed é ABORT EXPLÍCITO. Evaluation com emit-failed NÃO entra em projection / active rule / supersede target. Permanece em event log como FACT histórico mas NÃO é evaluation válida no domínio. Evaluation = emitted by definition. nem todo cálculo deve virar estado. Retry ownership: runtime infra owns retries com exponential backoff até timeout."
+			rationale: "Retry sem dono = retry inexistente + nem todo cálculo deve virar estado (founder Phase 3 insights). errorClassEliminated: 'computed evaluation invisible OR becoming spurious lifecycle state'."
+		},
+		{
+			code: "inv-rew-alert-command-idempotency"
+			name: "Alert raise commands idempotent at COMMAND level (not just event level)"
+			rule: "cmd-raise-risk-alert é idempotent via composite key (evaluationId, alertCategory). Concurrent issuance da mesma composite key (e.g., dois nós de policy detectando mesmo evt-risk-evaluation-emitted) é deduped no COMMAND level — APENAS UM cmd succeeds; demais retornam idempotent-success com original alertId. Dedupe tardio (event-level via inv-rew-alert-dedupe) é INSUFICIENTE — comando duplicado causa side-effects duplicados antes de event reach storage."
+			rationale: "Dedupe depois da ação é tarde demais (founder Phase 3 insight). errorClassEliminated: 'concurrent policy nodes producing duplicate alerts via race-condition pre-event-store'."
+		},
+		{
+			code: "inv-rew-supersede-requires-current-active"
+			name: "Supersede only succeeds if target is CURRENTLY active (atomic check)"
+			rule: "cmd-supersede-risk-evaluation só pode ser aceito se target evaluation é a UNIQUE ACTIVE per inv-rew-active-evaluation-rule no momento do command processing (atomic check no aggregate via optimistic concurrency control / CAS on supersededBy field). Se evaluation já foi superseded por outro cmd concorrente, novo cmd-supersede falha com explicit error 'already-superseded'. Garantir TREE shape via inv-rew-single-successor-per-evaluation NÃO é suficiente — invariant detecta post-hoc; race condition acontece BEFORE detection."
+			rationale: "Garantir forma do grafo não resolve concorrência (founder Phase 3 insight). errorClassEliminated: 'concurrent supersedes producing lineage fork pre-detection'."
+		},
+		{
+			code: "inv-rew-signal-validation-before-ingestion"
+			name: "Signal validation MUST occur at ACL boundary; FAILED = evt-signal-rejected (NEVER silent drop)"
+			rule: "evt-signal-received SÓ pode existir após validação ACL passar (6 checks): (a) signalType válido (enum); (b) sourceContext válido (enum); (c) signalType ↔ sourceContext canonical mapping; (d) integrityProof presente + proofType válido; (e) payloadVoCode existe em VO catalog + matches signalType; (f) payload referenced via payloadInstance disponível em sourceContext BC. Validation FAILED = REW DEVE emitir evt-signal-rejected com rejectionReason + validationCheckFailed + originalSignalRef. NUNCA drop silent (ambiguity em boundary = bug futuro). Rejected signals NUNCA entram no domínio."
+			rationale: "Boundary não declarado vira superfície de ataque + ambiguidade em boundary = bug futuro (founder Phase 3 insights). errorClassEliminated: 'malformed signal silently dropped causing missing audit trail + debugging blind spots'."
+		},
+		// === Final pressure batch — 3 invariants (production-safe decision system) ===
+		{
+			code: "inv-rew-supersede-emit-failed-precedence"
+			name: "Mutual exclusion: supersede and emit-failed cannot both apply to same evaluation"
+			rule: "Para evaluation E em phase computed (awaiting emit OR fail), precedência DETERMINÍSTICA: (a) Se evt-risk-evaluation-emit-failed processed BEFORE cmd-supersede-risk-evaluation arrives at aggregate: cmd-supersede REJECTED com 'target-aborted-not-supersedable' — evaluation NUNCA entrou lifecycle; supersede de não-evaluation é nonsense. (b) Se evt-risk-evaluation-emitted processed BEFORE emit-timeout reached: emit succeeds; pending emit-failed timeout cancelled (runtime sentinel). Subsequent cmd-supersede aplicado normalmente sobre evaluation em status='emitted'. (c) Concurrent processing (race condition real): atomic ordering via event log timestamp + CAS no aggregate. FIRST-WINS deterministically; second outcome becomes idempotent-noop com explicit audit log entry 'precedence-resolved-against'. PRECEDÊNCIA SEMÂNTICA: supersede só pode operar sobre evaluation ∈ lifecycle (status ∈ {emitted, stale}); emit-failed pre-cedes lifecycle entry; logo supersede de aborted-evaluation é semanticamente nonsense — não apenas operacionalmente bloqueado."
+			rationale: "Bug pode parecer comportamento válido (founder Phase 3 insight). Sem precedência terminal SEMÂNTICA, dois outcomes mutuamente exclusivos coexistem semanticamente — auditor humano trava porque evaluation foi superseded OR aborted? Precedência semântica (supersede só em lifecycle) torna ambíguo SEMANTICAMENTE INVÁLIDO, não apenas operacionalmente. errorClassEliminated: 'ambiguous terminal state breaking audit explanation + downstream reasoning'."
+		},
+		{
+			code: "inv-rew-evaluation-temporal-validity"
+			name: "Evaluation has explicit temporal validity window (validUntilTimestamp)"
+			rule: "Toda RiskEvaluation emitted DEVE incluir validUntilTimestamp computed at emit time: validUntilTimestamp = emittedAt + RiskPolicy.evaluationValidityWindowSeconds. evaluationValidityWindowSeconds policy-defined per scope (default Phase 0 entity_level: 300s; asset_level: 120s; product-specific overrides via policy variants). Decisão temporal-validity: consumer reading evaluation com now() ≤ validUntilTimestamp = decisão TEMPORALMENTE VÁLIDA; consumer reading com now() > validUntilTimestamp = evaluation EXPIRED — consumer MUST request fresh OR explicitly accept stale-by-time risk via ADR override. Stale flag (signal-driven) é INDEPENDENTE de expired (time-driven): evaluation pode ser fresh-but-stale (relevant signal arrived) OR fresh-and-valid OR expired (regardless of stale flag)."
+			rationale: "Decisão tomada com base em realidade já inválida (founder Phase 3 insight — falha CRÍTICA). Modelar evaluation state sem temporal validity = consumer correto + protocolo seguido + decisão errada = inevitável em escala. validUntilTimestamp torna BOUNDARY explícito entre 'evaluation existe' e 'decisão pode ser tomada'. Sistema saiu de 'estado correto' para 'decisão correta no tempo'. errorClassEliminated: 'consumer decision based on temporally-invalid-but-state-valid evaluation causing systemic divergence'."
+		},
+		{
+			code: "inv-rew-replay-scope-completeness"
+			name: "Replay output declares completeness explicitly via replayConfidence enum"
+			rule: "Toda operação de replay (per replayScopeStrategy='by-entityRef') DEVE produzir output com replayConfidence enum: 'complete' (todos signals em signalSnapshot replicados; NENHUMA cross-entity dependency necessária — output trusted como authoritative), 'partial' (cross-entity dependency existe; replay usa inputs PARCIAIS apenas — flag alerta consumer que reconstruction é aproximação), 'degraded' (missing signals detected during replay OR replayHash recompute mismatch — output NÃO trusted; review humano obrigatório). Consumer of replay output MUST handle cada level appropriately: 'complete' → auditing/regulatory; 'partial' → debugging com awareness, NÃO auditing; 'degraded' → escalation only, NÃO usable."
+			rationale: "Replay pode mentir e você aceita (founder Phase 3 insight). Cross-entity replay limitation declarada em adr-084 NÃO era suficiente — falta CRITÉRIO DE COMPLETUDE. replayConfidence força declaração explícita de qualidade do replay; consumer adapta uso. Sistema saiu de 'reconstrução' para 'reconstrução com grau de verdade declarado'. errorClassEliminated: 'silent replay inaccuracy causing fabricated history accepted as truth'."
 		},
 	]
 
@@ -1014,6 +1164,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			{kind: "primitive", name: "emittedAt", type:              "datetime"},
 			{kind: "primitive", name: "supersededBy", type:           "string", description: "Optional newEvaluationId quando status=='superseded'"},
 			{kind: "primitive", name: "markedStaleAt", type:          "datetime", description: "Optional timestamp quando status transicionou para stale"},
+			{kind: "primitive", name: "validUntilTimestamp", type:    "datetime", description: "Computed at emit time = emittedAt + RiskPolicy.evaluationValidityWindowSeconds; consumer reading com now() > validUntilTimestamp = expired (inv-rew-evaluation-temporal-validity)"},
 		]
 
 		handlesCommands: [
@@ -1023,11 +1174,14 @@ domainModel: artifact_schemas.#DomainModel & {
 		]
 
 		emitsEvents: [
+			"evt-signal-received",
+			"evt-signal-rejected",
+			"evt-signal-corruption-detected",
 			"evt-risk-evaluation-computed",
 			"evt-risk-evaluation-emitted",
+			"evt-risk-evaluation-emit-failed",
 			"evt-risk-evaluation-superseded",
 			"evt-risk-evaluation-marked-stale",
-			"evt-signal-corruption-detected",
 		]
 
 		protectsInvariants: [
@@ -1051,6 +1205,19 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-rew-event-emission-boundedness",
 			"inv-rew-command-idempotency",
 			"inv-rew-signal-corruption-handling",
+			"inv-rew-version-frozen-at-request",
+			"inv-rew-policy-version-immutability-per-evaluation",
+			"inv-rew-evaluation-lineage-acyclic",
+			"inv-rew-supersede-after-emit-only",
+			"inv-rew-compute-implies-emit",
+			"inv-rew-computed-idempotent-retry",
+			"inv-rew-single-successor-per-evaluation",
+			"inv-rew-computed-must-eventually-emit-or-fail",
+			"inv-rew-supersede-requires-current-active",
+			"inv-rew-signal-validation-before-ingestion",
+			"inv-rew-supersede-emit-failed-precedence",
+			"inv-rew-evaluation-temporal-validity",
+			"inv-rew-replay-scope-completeness",
 		]
 
 		entities: [{
@@ -1139,6 +1306,39 @@ domainModel: artifact_schemas.#DomainModel & {
 			]
 		}
 
+		consistencyBoundary: {
+			guarantees: [
+				"evaluation lifecycle state transitions atomic dentro do aggregate",
+				"signal snapshot integrity (signalSnapshotIds immutable post-creation)",
+				"lineage integrity TREE (parentEvaluationId acyclic + temporal-ordered + single-successor enforced via CAS)",
+				"model+policy version frozen at cmd-request (immutable across compute→emit→supersede)",
+				"replay determinism (replayHash reproducible from canonical serialization)",
+				"active evaluation uniqueness per (entity, product, scope) tuple",
+				"supersede atomic (CAS on supersededBy field — concurrent supersedes resolved deterministically)",
+				"compute→emit OR compute→fail (no orphan computed via timeout enforcement)",
+				"validUntilTimestamp computed at emit (temporal validity boundary explícito)",
+			]
+			explicitlyDoesNotGuarantee: [
+				"alert emission post evaluation (downstream eventual via agg-risk-alert)",
+				"policy/model side-effect propagation cross-aggregate",
+				"cross-evaluation consistency",
+				"consumer immediate visibility (eventual via prj-active-risk-evaluations)",
+				"cross-entity replay correlation (limitation declared; replayConfidence enum signals partial)",
+			]
+			failureModes: [
+				"compute success + emit failure: evaluationId persisted as FACT historical; emit-failed event documents abort; NÃO entra em active rule",
+				"supersede pre-emit: rejected by inv-rew-supersede-after-emit-only + inv-rew-supersede-emit-failed-precedence (semantic precedence)",
+				"concurrent supersede mesma evaluation: CAS resolves first-wins; second cmd recebe explicit error 'already-superseded'",
+				"snapshot signal hash mismatch: incoming discarded; original preserved; corruption-detected emitted",
+				"replay drift detected (runtime hash recompute mismatch): replayConfidence='degraded'; flagged for review",
+				"ACL validation failure: evt-signal-rejected emitted; signal NÃO entra no domínio",
+				"lineage cycle attempted: detected by sc-rew-lineage-acyclic; supersede rejected",
+				"emit-failed + concurrent supersede: precedence resolution per inv-rew-supersede-emit-failed-precedence",
+				"evaluation expired (now() > validUntilTimestamp): consumer responsibility — request fresh OR ADR override",
+			]
+			rationale: "Aggregate central. Boundary preserva append-only fact log + replay determinism + lineage tree + version freeze + temporal validity. Cross-aggregate side-effects são event-driven eventual."
+		}
+
 		rationale: """
 			agg-risk-evaluation é consistency boundary central de REW.
 			Identity por evaluationId surrogate (não tupla composta) per
@@ -1148,24 +1348,324 @@ domainModel: artifact_schemas.#DomainModel & {
 
 			Lifecycle 3 estados (emitted, stale, superseded) cobre
 			operational lifetime da evaluation. Initial state 'emitted'
-			(compute é internal pre-state — cmd-request-risk-evaluation
-			cria evaluation já em emitted após compute atomic). Stale
-			NÃO é estado terminal — pode transitar para superseded via
+			(compute é internal transient pre-lifecycle; emit-failed é
+			ABORT pre-lifecycle — não entra como state). Stale NÃO é
+			estado terminal — pode transitar para superseded via
 			cmd-supersede explícito. Superseded É estado terminal
 			(append-only fact log; reabertura proibida).
 
-			Lineage via parentEvaluationId (não rootIdentity composto):
-			tree de evolução navegável; cada evaluation é fato imutável
-			com referência opcional ao predecessor.
+			Lineage via parentEvaluationId TREE (não DAG — single-
+			successor enforced; acyclic; temporal-ordered). Cada
+			evaluation é fato imutável com referência opcional ao
+			predecessor.
 
-			Scope: Part 1 contém este aggregate APENAS; Part 2 deferred
-			adiciona agg-risk-alert (lifecycle alert), agg-risk-model
-			(lifecycle model versions), agg-risk-policy (lifecycle
-			policy versions). 4 invariants Part 2 (alert-lifecycle,
-			alert-dedupe, alert-evaluation-binding-immutability, model-
-			policy-independence) são deferred — tq-dm-03 emitirá warn
-			até Part 2 alignment.
+			Part 2 production-safety hardening (founder pressure final):
+			- validUntilTimestamp field (inv-rew-evaluation-temporal-
+			  validity) — boundary explícito entre 'evaluation existe'
+			  e 'decisão pode ser tomada'
+			- emit-failed = ABORT (não state) — evaluation NÃO entra em
+			  lifecycle se compute→emit falha
+			- CAS atomic supersede (inv-rew-supersede-requires-current-
+			  active) — race conditions resolvidas deterministicamente
+			- precedência semântica supersede vs emit-failed (inv-rew-
+			  supersede-emit-failed-precedence) — supersede só opera em
+			  evaluation ∈ lifecycle
+			- replay confidence enum (inv-rew-replay-scope-completeness)
+			  — replay output declara completude
+
+			33 invariants protected (foi 20 em Part 1; +13 production-
+			safety em Part 2). 8 events emitted (foi 5; +signal-rejected
+			+emit-failed; +signal-received do ACL boundary).
 			"""
+	}, {
+		code:        "agg-risk-alert"
+		name:        "Risk Alert Aggregate"
+		description: "Aggregate de alert lifecycle — DOWNSTREAM de agg-risk-evaluation. Reage a evaluation events; NUNCA muta evaluation state (inv-rew-alert-no-feedback-to-evaluation). Identity por alertId; binding ao evaluationId é IMUTÁVEL post-raise."
+
+		rootIdentity: {
+			field: "alertId"
+			type: {
+				kind: "primitive"
+				type: "string"
+			}
+		}
+
+		fields: [
+			{kind: "primitive", name: "alertId", type:                    "string"},
+			{kind: "primitive", name: "evaluationId", type:               "string", description: "IMUTÁVEL post-raise (inv-rew-alert-evaluation-binding-immutability)"},
+			{kind: "primitive", name: "alertCategory", type:              "string"},
+			{kind: "primitive", name: "severity", type:                   "string"},
+			{kind: "primitive", name: "status", type:                     "string", description: "Enum: open|acknowledged|resolved"},
+			{kind: "value-object-ref", name: "triggeringContext", valueObjectRef: "vo-applicable-context"},
+			{kind: "primitive", name: "raisedAt", type:                   "datetime"},
+			{kind: "primitive", name: "acknowledgedAt", type:             "datetime"},
+			{kind: "primitive", name: "resolvedAt", type:                 "datetime"},
+			{kind: "value-object-ref", name: "performedBy", valueObjectRef: "vo-external-ref"},
+			{kind: "primitive", name: "actorAuthority", type:             "string"},
+			{kind: "value-object-ref", name: "resolutionReason", valueObjectRef: "vo-decision-reason"},
+		]
+
+		handlesCommands: [
+			"cmd-raise-risk-alert",
+			"cmd-acknowledge-risk-alert",
+			"cmd-resolve-risk-alert",
+		]
+
+		emitsEvents: [
+			"evt-risk-alert-raised",
+			"evt-risk-alert-acknowledged",
+			"evt-risk-alert-resolved",
+		]
+
+		protectsInvariants: [
+			"inv-rew-alert-lifecycle",
+			"inv-rew-alert-dedupe",
+			"inv-rew-alert-evaluation-binding-immutability",
+			"inv-rew-alert-no-feedback-to-evaluation",
+			"inv-rew-alert-command-idempotency",
+		]
+
+		usesValueObjects: [
+			"vo-external-ref",
+			"vo-applicable-context",
+			"vo-decision-reason",
+		]
+
+		lifecycle: {
+			initialState: "open"
+			states: ["open", "acknowledged", "resolved"]
+			transitions: [
+				{
+					from:               "open"
+					to:                 "acknowledged"
+					triggeredByCommand: "cmd-acknowledge-risk-alert"
+					emitsEvents: ["evt-risk-alert-acknowledged"]
+					guards: ["inv-rew-alert-lifecycle"]
+					description: "Authorized actor reconhece alert"
+				},
+				{
+					from:               "acknowledged"
+					to:                 "resolved"
+					triggeredByCommand: "cmd-resolve-risk-alert"
+					emitsEvents: ["evt-risk-alert-resolved"]
+					guards: ["inv-rew-alert-lifecycle"]
+					description: "Authorized actor resolve alert com reason"
+				},
+			]
+		}
+
+		consistencyBoundary: {
+			guarantees: [
+				"alert lifecycle state transitions atomic (open→acknowledged→resolved monotonic)",
+				"alert dedupe per (evaluationId, alertCategory) at COMMAND level (idempotent raise)",
+				"alert.evaluationId IMUTÁVEL post-raise",
+				"actorAuthority enforced per severity (sc-rew-alert-ack-authority-binding)",
+				"alert NUNCA emite cmd targeting evaluation aggregate (anti-feedback enforced)",
+			]
+			explicitlyDoesNotGuarantee: [
+				"evaluation state mutation (PROIBIDO por inv-rew-alert-no-feedback-to-evaluation)",
+				"cross-alert consistency",
+				"alert delivery to downstream consumers (eventual via event log)",
+				"alert raising synchronous com evaluation emission (eventual via pol-emit-risk-alert)",
+			]
+			failureModes: [
+				"alert raise para evaluationId inexistente: rejected (binding requires existing evaluation)",
+				"duplicate raise mesma (evaluationId, alertCategory): silently deduped at COMMAND level",
+				"ack/resolve por unauthorized actor: rejected",
+				"resolve sem resolutionReason: rejected",
+				"alert para evaluation que veio a ser superseded: alert continua valid (binding immutable; fact histórico)",
+				"alert raise concurrent de múltiplos policy nodes: CAS at command index resolves first-wins",
+			]
+			rationale: "Alert é OBSERVABILITY artifact downstream. Reage a evaluation; NUNCA muta evaluation. Append-only lifecycle (resolved é terminal — reabertura = novo alert)."
+		}
+
+		rationale: "Aggregate downstream agg-risk-evaluation. Anti-feedback rule fundamental: alert é reação, não causa."
+	}, {
+		code:        "agg-risk-model"
+		name:        "Risk Model Aggregate"
+		description: "Aggregate de model versioning. Independente de RiskPolicy (inv-rew-model-policy-independence)."
+
+		rootIdentity: {
+			field: "modelVersion"
+			type: {
+				kind: "primitive"
+				type: "string"
+			}
+		}
+
+		fields: [
+			{kind: "primitive", name: "modelVersion", type:               "string"},
+			{kind: "primitive", name: "status", type:                     "string", description: "Enum: draft|active|deprecated"},
+			{kind: "primitive", name: "calibrationProfile", type:         "string"},
+			{kind: "primitive", name: "activatedAt", type:                "datetime"},
+			{kind: "primitive", name: "deprecatedAt", type:               "datetime"},
+			{kind: "value-object-ref", name: "activatedBy", valueObjectRef:    "vo-external-ref"},
+			{kind: "value-object-ref", name: "deprecatedBy", valueObjectRef:   "vo-external-ref"},
+			{kind: "value-object-ref", name: "deprecationReason", valueObjectRef: "vo-decision-reason"},
+		]
+
+		handlesCommands: [
+			"cmd-activate-risk-model",
+			"cmd-deprecate-risk-model",
+		]
+
+		emitsEvents: [
+			"evt-risk-model-activated",
+			"evt-risk-model-deprecated",
+		]
+
+		protectsInvariants: [
+			"inv-rew-model-policy-independence",
+			"inv-rew-model-policy-separation",
+		]
+
+		usesValueObjects: [
+			"vo-external-ref",
+			"vo-decision-reason",
+		]
+
+		lifecycle: {
+			initialState: "draft"
+			states: ["draft", "active", "deprecated"]
+			transitions: [
+				{
+					from:               "draft"
+					to:                 "active"
+					triggeredByCommand: "cmd-activate-risk-model"
+					emitsEvents: ["evt-risk-model-activated"]
+					guards: ["inv-rew-model-policy-independence"]
+					description: "Model promovida a active (authority supervisor+)"
+				},
+				{
+					from:               "active"
+					to:                 "deprecated"
+					triggeredByCommand: "cmd-deprecate-risk-model"
+					emitsEvents: ["evt-risk-model-deprecated"]
+					guards: []
+					description: "Model marcada deprecated com reason"
+				},
+			]
+		}
+
+		consistencyBoundary: {
+			guarantees: [
+				"model version lifecycle transitions atomic (draft→active→deprecated monotonic)",
+				"model independence from policy (RiskModel NÃO referencia RiskPolicy)",
+				"deprecated models PRESERVED em event log (evaluations using deprecated model continuam valid via snapshot)",
+			]
+			explicitlyDoesNotGuarantee: [
+				"evaluations using this model are unaffected by model state change (snapshot frozen at cmd-request per inv-rew-version-frozen-at-request)",
+				"policy compatibility validation (separate concern in agg-risk-policy)",
+				"consumer immediate visibility of model state changes",
+			]
+			failureModes: [
+				"activate model already active: rejected (transition not in lifecycle)",
+				"deprecate non-active model: rejected (draft→deprecated não permitida)",
+				"model activation while evaluation in-flight: NÃO afeta evaluation (frozen)",
+				"concurrent activate de mesmo modelVersion: CAS resolves first-wins",
+			]
+			rationale: "Model versioning. Lifecycle monotonic; deprecation NÃO invalida history (snapshot)."
+		}
+
+		rationale: "Aggregate de governance de model versions. Independência arquitetural de policy."
+	}, {
+		code:        "agg-risk-policy"
+		name:        "Risk Policy Aggregate"
+		description: "Aggregate de policy versioning. Pode referenciar RiskModel (sentido permitido); inverse proibido. 4 windows separadas (anti-acoplamento)."
+
+		rootIdentity: {
+			field: "policyVersion"
+			type: {
+				kind: "primitive"
+				type: "string"
+			}
+		}
+
+		fields: [
+			{kind: "primitive", name: "policyVersion", type:                  "string"},
+			{kind: "primitive", name: "status", type:                         "string"},
+			{kind: "primitive", name: "modelVersionRef", type:                "string", description: "Reference ao RiskModel.modelVersion (sentido permitido)"},
+			{kind: "primitive", name: "stalenessTriggerCriteria", type:       "string", description: "JSON-encoded match criteria for staleness automation"},
+			{kind: "primitive", name: "stalenessWindowSeconds", type:         "integer", description: "Window para inv-rew-staleness-tracking; default 60s"},
+			{kind: "primitive", name: "alertEmissionWindowSeconds", type:     "integer", description: "Window para inv-rew-alert-dedupe + boundedness; default 60s"},
+			{kind: "primitive", name: "emitTimeoutSeconds", type:             "integer", description: "Timeout para inv-rew-computed-must-eventually-emit-or-fail; default 30s"},
+			{kind: "primitive", name: "evaluationValidityWindowSeconds", type: "integer", description: "Window para inv-rew-evaluation-temporal-validity; default 300s entity_level / 120s asset_level"},
+			{kind: "primitive", name: "maxEmissionRatePerSecond", type:       "integer", description: "Rate limit estrutural per scope (anti-flood); default 1000/s. errorClassEliminated: 'never drop vira vetor de ataque sob flood upstream'."},
+			{kind: "primitive", name: "entitySourceRestriction", type:        "string", description: "Optional comma-separated narrowing"},
+			{kind: "primitive", name: "activatedAt", type:                    "datetime"},
+			{kind: "primitive", name: "deprecatedAt", type:                   "datetime"},
+			{kind: "value-object-ref", name: "activatedBy", valueObjectRef:        "vo-external-ref"},
+			{kind: "value-object-ref", name: "deprecatedBy", valueObjectRef:       "vo-external-ref"},
+			{kind: "value-object-ref", name: "deprecationReason", valueObjectRef: "vo-decision-reason"},
+		]
+
+		handlesCommands: [
+			"cmd-activate-risk-policy",
+			"cmd-deprecate-risk-policy",
+		]
+
+		emitsEvents: [
+			"evt-risk-policy-activated",
+			"evt-risk-policy-deprecated",
+		]
+
+		protectsInvariants: [
+			"inv-rew-model-policy-separation",
+			"inv-rew-model-policy-independence",
+		]
+
+		usesValueObjects: [
+			"vo-external-ref",
+			"vo-decision-reason",
+		]
+
+		lifecycle: {
+			initialState: "draft"
+			states: ["draft", "active", "deprecated"]
+			transitions: [
+				{
+					from:               "draft"
+					to:                 "active"
+					triggeredByCommand: "cmd-activate-risk-policy"
+					emitsEvents: ["evt-risk-policy-activated"]
+					guards: ["inv-rew-model-policy-independence"]
+					description: "Policy promovida a active (authority supervisor+)"
+				},
+				{
+					from:               "active"
+					to:                 "deprecated"
+					triggeredByCommand: "cmd-deprecate-risk-policy"
+					emitsEvents: ["evt-risk-policy-deprecated"]
+					guards: []
+					description: "Policy marcada deprecated com reason"
+				},
+			]
+		}
+
+		consistencyBoundary: {
+			guarantees: [
+				"policy version lifecycle transitions atomic",
+				"policy→model reference integrity (modelVersionRef valid + active-at-time)",
+				"deprecated policies PRESERVED em event log",
+				"4 separate windows (staleness/alert/emit/evaluation-validity) — anti-acoplamento",
+				"maxEmissionRatePerSecond rate limit estrutural via runtime (anti-flood)",
+			]
+			explicitlyDoesNotGuarantee: [
+				"evaluations using this policy are unaffected by policy state change (frozen at cmd-request)",
+				"policy effective-at-time validation (runtime per evaluation)",
+				"consumer immediate visibility",
+			]
+			failureModes: [
+				"policy activation referencing inactive model: rejected (modelVersionRef must be active)",
+				"policy deprecate while evaluations in-flight: NÃO afeta in-flight (snapshot)",
+				"entitySourceRestriction NOT subset of canvas-declared: rejected",
+				"concurrent activate de mesmo policyVersion: CAS resolves first-wins",
+				"emission rate exceeded: backpressure runtime + alert (não silently drop)",
+			]
+			rationale: "Policy aggregate. Pode referenciar Model (sentido permitido); 4 windows separadas + rate limit (anti-acoplamento + anti-flood)."
+		}
+
+		rationale: "Policy aggregate. 4 windows + rate limit estabelecem operational guards explícitos."
 	}]
 
 	// =========================================================
@@ -1188,6 +1688,19 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-rew-event-emission-boundedness",
 		]
 		rationale: "Staleness automation única exception ao 'agentes recomendam, gates validam' (P10) porque staleness é SINAL, não DECISÃO — não decide ação, apenas torna freshness observable. cmd-mark-evaluation-stale é internal orchestration command (Opção 6 founder ratified) — NÃO exposto via canvas inbound. Pattern paralelo CQRS process manager → command → aggregate → event. errorClassEliminated: 'evaluation aging silently'."
+	}, {
+		code:             "pol-emit-risk-alert-on-eligibility-denied"
+		name:             "Auto-emit risk alert when evaluation has eligibility denied OR adversarial pattern detected"
+		description:      "Triggered por evt-risk-evaluation-emitted. Quando evaluation.eligibility.decision == 'ineligible' OR adversarial-pattern-detected presente em decision reasons, emite cmd-raise-risk-alert (internal orchestration; idempotent at command level via composite key per inv-rew-alert-command-idempotency). Boundedness enforced via RiskPolicy.alertEmissionWindowSeconds."
+		triggeredByEvent: "evt-risk-evaluation-emitted"
+		issuesCommand:    "cmd-raise-risk-alert"
+		guards: [
+			"inv-rew-alert-dedupe",
+			"inv-rew-alert-command-idempotency",
+			"inv-rew-alert-evaluation-binding-immutability",
+			"inv-rew-event-emission-boundedness",
+		]
+		rationale: "Alert raising automation — eligibility=ineligible OR adversarial-pattern-detected → alert para review humano. cmd-raise-risk-alert é internal orchestration (NÃO exposto canvas). errorClassEliminated: 'manual alert raising causing missed signals + audit trail gaps'."
 	}]
 
 	// =========================================================
@@ -1199,28 +1712,196 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	projections: [{
 		code:        "prj-active-risk-evaluations"
-		name:        "Active Risk Evaluations (with staleness flag)"
-		description: "Read model derivado para query de active evaluation por (entityRef, productCode, scope). Aplica regra inv-rew-active-evaluation-rule: active = unique latest emitted NOT superseded; stale flag exposto como derived state (não estado separado). Consumers obtêm decision determinística + freshness flag."
+		name:        "Active Risk Evaluations (with staleness + temporal validity flags)"
+		description: "Read model derivado para query de active evaluation por (entityRef, productCode, scope). Aplica regra inv-rew-active-evaluation-rule: active = unique latest emitted NOT superseded. Derived state expandida 5-states: {fresh-and-valid, fresh-but-stale-by-signal, stale-and-valid-by-time, expired-by-time, superseded}. Consumers obtêm decision determinística + freshness flag + temporal validity flag."
 		consumesEvents: [
 			"evt-risk-evaluation-emitted",
 			"evt-risk-evaluation-superseded",
 			"evt-risk-evaluation-marked-stale",
+			"evt-risk-evaluation-emit-failed",
 			"evt-signal-received",
 		]
 		queryCapabilities: [
 			{
 				code:        "qry-rew-active-evaluation-by-scope"
-				description: "Find active evaluation por (entityRef, productCode, evaluationScope, optional assetRef). Retorna evaluation OR not-found. Active definition per inv-rew-active-evaluation-rule (latest emitted NOT superseded; stale ainda active)."
-				rationale:   "Query principal — consumers (CMT, FCE, SCF) precisam decision para entity+product no contexto da decisão deles. Sem essa query, consumers fazem read inconsistente do event log diretamente."
+				description: "Find active evaluation por (entityRef, productCode, evaluationScope, optional assetRef). Retorna evaluation + status enum {fresh-and-valid, fresh-but-stale-by-signal, stale-and-valid-by-time, expired-by-time} OR not-found. Active definition per inv-rew-active-evaluation-rule."
+				rationale:   "Query principal — consumers (CMT, FCE, SCF) precisam decision para entity+product no contexto da decisão deles. Status expandido permite consumer decision sob authoritative + eventual consistency (per inv-rew-evaluation-temporal-validity)."
 			},
 			{
 				code:        "qry-rew-evaluation-staleness-status"
-				description: "Check staleness status de active evaluation (fresh | stale). Consumer decide se aceita stale OR requesta fresh evaluation via cmd-request-risk-evaluation."
-				rationale:   "Staleness sinaliza, não decide — consumer escolhe action policy. Sem essa query, freshness é opaca."
+				description: "Check staleness + temporal validity status de active evaluation. Consumer decide se aceita stale OR expired OR requesta fresh evaluation."
+				rationale:   "Staleness signal-driven + expired time-driven são INDEPENDENTES — consumer trata cada caso. Sem essa query, freshness e validity opacas."
 			},
 		]
-		rationale: "Projection OBRIGATÓRIA per inv-rew-active-evaluation-rule (founder Phase 3 directive). Append-only sem regra de leitura = sistema inutilizável. errorClassEliminated: 'consumer reads não-determinísticos do event log' + 'staleness opaca para consumers'."
+		rationale: "Projection OBRIGATÓRIA per inv-rew-active-evaluation-rule + inv-rew-evaluation-temporal-validity. Append-only sem regra de leitura = sistema inutilizável. errorClassEliminated: 'consumer reads não-determinísticos + decisão temporalmente inválida'."
+	}, {
+		code:        "prj-active-risk-alerts"
+		name:        "Active Risk Alerts (open + acknowledged)"
+		description: "Read model derivado para query de active alerts. Active = status ∈ {open, acknowledged}; resolved é terminal histórico (não active). Consumer (CMT) usa para visibility por evaluation."
+		consumesEvents: [
+			"evt-risk-alert-raised",
+			"evt-risk-alert-acknowledged",
+			"evt-risk-alert-resolved",
+		]
+		queryCapabilities: [
+			{
+				code:        "qry-rew-active-alerts-by-evaluation"
+				description: "Query active alerts por evaluationId. Retorna lista de alerts ativos vinculados à evaluation. Binding evaluationId é IMUTÁVEL (inv-rew-alert-evaluation-binding-immutability) — alerts NÃO migram para new evaluation."
+				rationale:   "Consumer (CMT) precisa visibility por evaluation para review humano + escalation. Sem essa query, consumers escaneiam event log diretamente."
+			},
+			{
+				code:        "qry-rew-active-alerts-by-severity"
+				description: "Query active alerts por severity threshold (e.g., critical+, high+, medium+). Operations dashboard prioritizes critical alerts."
+				rationale:   "Triagem de review humano — analisar critical antes de medium previne alert fatigue."
+			},
+		]
+		rationale: "Alert observability projection. Sem projection, consumers fazem read inconsistente do event log."
 	}]
+
+	// =========================================================
+	// MODULES (2)
+	// =========================================================
+	// mod-rew-acl removido — schema #Module.aggregateRefs requires ≥1;
+	// ACL boundary documentado via inv-rew-signal-validation-before-
+	// ingestion + agg-risk-evaluation handles ACL events directly.
+
+	modules: [{
+		code:        "mod-rew-evaluation"
+		name:        "Evaluation + Alert (decision + observability)"
+		description: "Module agrupando agg-risk-evaluation + agg-risk-alert. Decision emission + alert observability. Anti-feedback rule: alert reage; evaluation NÃO reage a alert."
+		aggregateRefs: ["agg-risk-evaluation", "agg-risk-alert"]
+		rationale: "Evaluation emite decisão; alert observa. Ambos compartilham subject (evaluationId binding) mas mantêm boundaries separados (anti-feedback per inv-rew-alert-no-feedback-to-evaluation)."
+	}, {
+		code:        "mod-rew-control"
+		name:        "Model + Policy (versioned control)"
+		description: "Module agrupando agg-risk-model + agg-risk-policy. Versioning canonical. Independência arquitetural model→policy."
+		aggregateRefs: ["agg-risk-model", "agg-risk-policy"]
+		rationale: "Model prevê (probabilístico); policy decide (categórico). Independência arquitetural enforced via inv-rew-model-policy-independence; policy pode referenciar model via modelVersionRef (não inverso)."
+	}]
+
+	// =========================================================
+	// INTERPRETATION CONTRACTS (per adr-081 + adr-084)
+	// =========================================================
+
+	systemConsistencyModel: {
+		type: "eventual"
+		intraAggregateGuarantees: [
+			"evaluation lifecycle atomic dentro de agg-risk-evaluation (CAS supersede + frozen versions + temporal validity)",
+			"alert lifecycle atomic dentro de agg-risk-alert (anti-feedback enforced; binding immutable)",
+			"model version lifecycle atomic dentro de agg-risk-model (independência policy)",
+			"policy version lifecycle atomic dentro de agg-risk-policy (4 windows separadas + rate limit)",
+		]
+		crossAggregateGuarantees: [
+			"evaluation correctness preserved cross-restart (replay determinístico via replayHash + signalSnapshotIds immutable)",
+			"causation chain reconstrutível cross-aggregate (correlationId root cmd-request + causationId chain)",
+			"lineage tree integrity (parentEvaluationId acyclic + temporal-ordered + single-successor enforced via CAS)",
+			"model+policy version frozen at cmd-request (immutable across compute→emit→supersede via inv-rew-version-frozen-at-request)",
+			"temporal validity boundary explícito (validUntilTimestamp por evaluation)",
+			"replay confidence declared (complete|partial|degraded) — cross-entity replay limitation tornada explícita",
+		]
+		explicitlyDoesNotGuarantee: [
+			"immediate alert visibility post evaluation emission (eventual via prj-active-risk-alerts)",
+			"cross-aggregate atomic transactions (saga pattern para multi-aggregate workflows)",
+			"model/policy activation visible imediatamente cross-aggregate (eventual via event log)",
+			"consumer dedupe automatic (consumer responsibility per evaluationId/alertId/causationId)",
+			"cross-entity replay reconstruction (limitation declarada; replayConfidence='partial' OR 'degraded')",
+			"cross-BC consumer compliance with consumerProtocol (governance, NÃO enforcement runtime — per def-016)",
+		]
+		conflictResolution: {
+			strategy: "explicit-command"
+			rationale: "Tudo via cmd-supersede + commands explícitos. NUNCA last-write-wins automático. Concorrência sem regra = comportamento não-determinístico. Founder Phase 3 directive ratified."
+		}
+		consumerProtocol: [
+			"Consumer MUST check evaluation.status flag (fresh|stale) before acting (sob authoritativeScope)",
+			"Consumer MUST check evaluation.validUntilTimestamp before acting; if now() > validUntilTimestamp, decisão EXPIRED (inv-rew-evaluation-temporal-validity)",
+			"Consumer MUST define tolerance window for staleness acceptance per use-case (CMT real-time payment: 30s; SCF originación: 5min)",
+			"Consumer MUST re-request evaluation via cmd-request-risk-evaluation if stale beyond tolerance OR expired beyond validUntilTimestamp",
+			"Consumer MUST dedupe by evaluationId at receive boundary (event retry produces same evaluationId)",
+			"Consumer MUST handle evt-risk-evaluation-superseded by invalidating cached active evaluation for scope",
+			"Consumer MUST handle evt-risk-evaluation-emit-failed by treating evaluationId as ABORTED (não cache; não use)",
+			"Consumer MUST NOT consume internal events (visibility='internal') — only published events constitute REW contract; evt-risk-evaluation-computed é INTERNAL exclusively",
+			"Consumer MUST handle replay output replayConfidence enum: 'complete' for auditing/regulatory; 'partial' for debugging com awareness; 'degraded' for escalation only (NÃO usable as authoritative)",
+		]
+		systemFailureModes: [
+			"evaluation emitted without alert raised (alert pipeline lag — consumer must tolerate temporary mismatch)",
+			"alert raised delayed relative to evaluation emission (eventual via event log replay)",
+			"projection lag causing stale reads (active evaluation rule from event log = source of truth; projection é optimization)",
+			"compute success + emit failure: handled by inv-rew-computed-must-eventually-emit-or-fail (timeout → emit-failed = ABORT)",
+			"supersede + concurrent staleness mark: order resolved by event log timestamp; no double-state",
+			"supersede + concurrent emit-failed: precedence resolved by inv-rew-supersede-emit-failed-precedence (semantic precedence — supersede só opera em lifecycle)",
+			"model/policy activation visible to some consumers but not others temporarily (eventual via event log)",
+			"consumer reading evaluation pre-emit-failed: subsequent emit-failed invalidates retroactively (consumer must handle invalidation)",
+			"cross-aggregate event ordering NOT guaranteed (consumer must reconstruct via causationId chain)",
+			"ACL validation failure during burst: evt-signal-rejected emitted; backpressure via runtime + maxEmissionRatePerSecond",
+			"consumer ignoring REW authoritative decision (cross-BC contract violation) — UNDETECTABLE at runtime in Phase 3; requires governance OR future attestation infrastructure (per def-016 deferred decision)",
+			"replay returning replayConfidence='partial' OR 'degraded': consumer responsibility — adapt usage per level; NÃO trust 'partial' as authoritative",
+			"evaluation expired (now() > validUntilTimestamp): consumer responsibility — request fresh OR ADR override (consumer correto + protocolo seguido + decisão expirada = consumer responsibility)",
+		]
+		replayScopeStrategy: "by-entityRef"
+		rationale: """
+			Eventual consistency é o modelo correto para sistema distribuído REW:
+			intra-aggregate (ACID); cross-aggregate (event-driven eventual).
+
+			consumerProtocol MANDATORY for consumers under decisionAuthorityModel.
+			authoritativeScope — enforcement EXTERNAL TO REW (validated via
+			structural-check against consuming BC declarations + ADR overrides).
+			Protocolo sem enforcement é documentação, não contrato. Cross-BC
+			technical enforcement (signature/blocking/attestation) deferred
+			via def-016 (Phase N+1 quando evidência empírica multi-BC justify
+			heavy infra).
+
+			replayScopeStrategy='by-entityRef' suporta per-entity replay
+			(escala — reconstruction de 1 entity NÃO requer global computation).
+			LIMITAÇÃO: cross-entity replay é SEPARATE concern; output usa
+			replayConfidence enum {complete, partial, degraded} per inv-rew-
+			replay-scope-completeness — replay pode mentir e consumer aceita
+			sem detection foi BLOQUEADO via declaração de completude.
+			REW MUST operate under by-entityRef strategy: cross-scope replay
+			requests rejected; future migration requires ADR + data migration plan.
+
+			Production-safety hardening final pressure:
+			- inv-rew-supersede-emit-failed-precedence (precedência semântica)
+			- inv-rew-evaluation-temporal-validity (validUntilTimestamp)
+			- inv-rew-replay-scope-completeness (replayConfidence enum)
+		"""
+	}
+
+	decisionAuthorityModel: {
+		type: "authoritative"
+		authoritativeScope: """
+			Risk assessment domain (signal interpretation, score computation,
+			eligibility decision, risk alert raising). Consumers (CMT, FCE,
+			SCF) DEVEM tratar evt-risk-evaluation-emitted como input
+			autoritativo para suas próprias decisões — NÃO podem ignorar
+			decision OR substituir score sem ADR documentando override
+			rationale. REW é source of truth para 'qual é o risco neste
+			contexto'; consumers retêm autoridade sobre 'que ação tomar
+			dado esse risco'.
+
+			LIMITATION ACKNOWLEDGED: enforcement runtime de cross-BC
+			compliance é GOVERNANÇA ORGANIZACIONAL (ADR review process),
+			NÃO garantia técnica. Consumer pode violar protocolo silently
+			no runtime — detectável apenas via post-hoc audit OR runtime
+			attestation infrastructure (per def-016 deferred decision —
+			Phase N+1 quando evidência empírica multi-BC justify).
+		"""
+		rationale: """
+			Sem decisionAuthorityModel declarado, integração com outros
+			BCs quebra silenciosamente (founder Phase 3 insight). REW
+			autoritativo no DOMÍNIO de risk assessment garante coerência
+			cross-BC: todos consumers usam mesma evaluation como input
+			canonical; divergência cross-BC indica bug (não preferência).
+			Authoritative ≠ dictator: consumers retêm decisão de AÇÃO;
+			REW garante consistência da AVALIAÇÃO. Override formal
+			(cross-BC) requer ADR explícito documentando trade-off.
+
+			LIMITATION declarada explicitly: governance organizacional
+			≠ garantia de sistema (founder Phase 3 final pressure
+			insight). Cross-BC technical enforcement é deferred
+			conscious decision (def-016 trigger automático em pattern
+			detection canvas-level).
+		"""
+	}
 
 	// =========================================================
 	// OUTER RATIONALE
