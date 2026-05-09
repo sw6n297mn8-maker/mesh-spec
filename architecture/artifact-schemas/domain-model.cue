@@ -234,8 +234,14 @@ package artifact_schemas
 			test:        "Para cada invariant com dependsOnAggregateState onde boundedContextRef está ausente: aggregateRef existe em aggregates[].code do mesmo domain-model. Quando accessVia.kind='projection', projectionRef existe em projections[].code. Refs cross-BC (boundedContextRef presente) delegadas a runner cross-file."
 			severity:    "fail"
 			rationale:   "Dependência intra-BC com ref quebrada é guard fantasma — invariant declara dependência de aggregate ou projection inexistente. Per adr-055."
+		}, {
+			id:          "tq-dm-18"
+			description: "systemConsistencyModel SHOULD define consumerProtocol + systemFailureModes + replayScopeStrategy (production-safety hardening)"
+			test:        "Se systemConsistencyModel está presente, consumerProtocol + systemFailureModes + replayScopeStrategy SHOULD ser non-empty cada. Severity warn — recomendação até evidência multi-BC justificar promoção a required (path evolução: warn → warn+tracking → fail quando ≥3 BCs declararem)."
+			severity:    "warn"
+			rationale:   "Per adr-084. Production-safety hardening: required cedo demais vira acoplamento prematuro; warn força awareness durante review sem bloquear bootstrap. consumerProtocol fecha gap authoritative+eventual; systemFailureModes documenta falha distribuída (não soma local); replayScopeStrategy declara compromisso operacional de escala."
 		}]
-		rationale: "Critérios cobrem integridade referencial interna (tq-dm-01 a tq-dm-10, tq-dm-13, tq-dm-14, tq-dm-17), alinhamento cross-artifact com canvas Mesh (tq-dm-11, tq-dm-12, tq-dm-15, tq-dm-16) e consistência de lifecycle com gates determinísticos (tq-dm-07, tq-dm-08)."
+		rationale: "Critérios cobrem integridade referencial interna (tq-dm-01 a tq-dm-10, tq-dm-13, tq-dm-14, tq-dm-17), alinhamento cross-artifact com canvas Mesh (tq-dm-11, tq-dm-12, tq-dm-15, tq-dm-16), consistência de lifecycle com gates determinísticos (tq-dm-07, tq-dm-08) e production-safety hardening recomendado (tq-dm-18)."
 	}
 }
 
@@ -727,6 +733,32 @@ _#DomainEventBase: {
 		rationale: string & !=""
 	}
 	rationale: string & !=""
+
+	// === Production-safety hardening (per adr-084) ===
+	// 3 fields OPTIONAL recomendados via tq-dm-18 (severity warn).
+	// Required cedo demais vira acoplamento prematuro — declarar
+	// quando systemConsistencyModel presente e BC tem evidência
+	// empírica (Phase 3+ + pressure test). Path evolução:
+	// 'warn → warn+tracking → fail' quando ≥3 BCs declararem.
+
+	// Consumer responsibilities sob authoritativeScope. MANDATORY
+	// for consumers em decisionAuthorityModel.authoritativeScope —
+	// enforcement EXTERNAL TO REW (validated via structural-check
+	// against consuming BC declarations + ADR overrides).
+	consumerProtocol?: [string & !="", ...string & !=""]
+
+	// Classes de FALHA DISTRIBUÍDA (não soma de failureModes per-
+	// aggregate). Falha distribuída ≠ local — declaração explícita
+	// previne over-promise por construção.
+	systemFailureModes?: [string & !="", ...string & !=""]
+
+	// Granularidade de replay. Sem strategy, escala mata o sistema
+	// (replay global de 10M+ events para 1 entity é inviável).
+	// COMPROMISSO OPERACIONAL: BC declarando MUST operate under
+	// declared strategy (não apenas metadata). Runtime guarantees
+	// (a) replay operations honor scope; (b) cross-scope rejected;
+	// (c) strategy migration requires ADR + data migration plan.
+	replayScopeStrategy?: "global" | "by-entityRef" | "by-correlationId" | "by-aggregateRef"
 }
 
 // Domain-level interpretation contract — declara papel do BC no
