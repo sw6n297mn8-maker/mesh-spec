@@ -372,6 +372,22 @@ domainModel: artifact_schemas.#DomainModel & {
 				{kind: "primitive", name: "eventTimestamp", type:                         "datetime"},
 			]
 		},
+		{
+			code:        "evt-risk-evaluation-emit-superseded-by-newer"
+			name:        "Emit Superseded by Newer Evaluation (NÃO failure — successor exists)"
+			description: "Emit handler detectou newer evaluation E_other para mesmo scope com emittedAt > THIS.computedAt. THIS NÃO entra em lifecycle — mas ≠ failure. successorEvaluationId reference permite consumer USAR E_other em vez de retry. Distinção semântica vs evt-risk-evaluation-emit-failed: failure = sistema não conseguiu computar; obsolescence = sistema computou mas newer reality já existe (FAILURE ≠ OBSOLESCENCE — founder War Game 2 insight). successor chain bounded por inv-rew-successor-chain-bounded (default N=3 hops consumer-side)."
+			rationale:   "Consumer originador recebe successorEvaluationId reference em vez de simples failure — pode adopt successor OR re-request com fresh inputs. Evita false negative semântico + consumer retry loop indefinido. errorClassEliminated: 'consumer retry loop on obsolescence misclassified as failure'."
+			visibility:  "published"
+			fields: [
+				{kind: "primitive", name: "eventId", type:                "string"},
+				{kind: "primitive", name: "causationId", type:            "string", description: "evt-risk-evaluation-computed eventId precedente"},
+				{kind: "primitive", name: "correlationId", type:          "string"},
+				{kind: "primitive", name: "evaluationId", type:           "string", description: "THIS evaluation — obsolete, NÃO entra em lifecycle"},
+				{kind: "primitive", name: "successorEvaluationId", type:  "string", description: "E_other reference — newer evaluation already emitted; consumer pode adopt"},
+				{kind: "primitive", name: "supersededAt", type:           "datetime"},
+				{kind: "primitive", name: "eventTimestamp", type:         "datetime"},
+			]
+		},
 	]
 
 	// =========================================================
@@ -793,6 +809,43 @@ domainModel: artifact_schemas.#DomainModel & {
 			rule: "Toda operação de replay (per replayScopeStrategy='by-entityRef') DEVE produzir output com replayConfidence enum: 'complete' (todos signals em signalSnapshot replicados; NENHUMA cross-entity dependency necessária — output trusted como authoritative), 'partial' (cross-entity dependency existe; replay usa inputs PARCIAIS apenas — flag alerta consumer que reconstruction é aproximação), 'degraded' (missing signals detected during replay OR replayHash recompute mismatch — output NÃO trusted; review humano obrigatório). Consumer of replay output MUST handle cada level appropriately: 'complete' → auditing/regulatory; 'partial' → debugging com awareness, NÃO auditing; 'degraded' → escalation only, NÃO usable."
 			rationale: "Replay pode mentir e você aceita (founder Phase 3 insight). Cross-entity replay limitation declarada em adr-084 NÃO era suficiente — falta CRITÉRIO DE COMPLETUDE. replayConfidence força declaração explícita de qualidade do replay; consumer adapta uso. Sistema saiu de 'reconstrução' para 'reconstrução com grau de verdade declarado'. errorClassEliminated: 'silent replay inaccuracy causing fabricated history accepted as truth'."
 		},
+		// === War Game Round 2 batch — 7 invariants (boundary commit) ===
+		{
+			code: "inv-rew-acl-validation-cost-bounded"
+			name: "ACL validation cost bounded per-signal AND per-window"
+			rule: "ACL validation tem 2 budgets distintos enforced runtime: (a) aclValidationCostBudgetPerSignalMs (default 50ms) — single signal validation cost; signal exceeding budget rejeitado com validationCheckFailed='cost-exceeded'. (b) aclValidationCostBudgetPerSecondMs (default 50000ms = 50s compute per 1s wall — assume ~50 concurrent validation slots) — cumulative cost per window; window exhausted → ACL throttle ativated; subsequent signals enqueued OR backpressured upstream. Sem dois budgets: ataque distribuído passa invisível (signals individualmente baratos mas caros em agregação)."
+			rationale: "Protege output mas não protege processamento (founder War Game 2 insight). Distinção per-signal vs per-window crítica: per-signal previne spike attack; per-window previne distributed-cheap attack. Enforcement runtime via sc-rew-acl-cost-bounded (architecture/structural-checks/rew-domain-model.cue) — schema declara presença dos budgets; runtime enforces. errorClassEliminated: 'distributed validation cost attack saturating system silently'."
+		},
+		{
+			code: "inv-rew-obsolete-evaluation-must-link-successor"
+			name: "Late emit blocked by newer evaluation MUST link successor (NOT failure)"
+			rule: "Quando emit handler detecta newer evaluation E_other para mesmo scope com emittedAt > THIS.computedAt, THIS NÃO é tratada como FAILURE (evt-risk-evaluation-emit-failed) mas como OBSOLESCENCE — emite evt-risk-evaluation-emit-superseded-by-newer com successorEvaluationId=E_other.evaluationId. Distinção semântica: failure = sistema não conseguiu computar; obsolescence = sistema computou mas newer reality já existe; consumer pode USAR successor em vez de retry. Sem essa distinção: false negative semântico → consumer retry → loop indefinido."
+			rationale: "FAILURE ≠ OBSOLESCENCE (founder War Game 2 insight). Consumer originador recebe successorEvaluationId reference — pode adopt successor OR re-request com fresh inputs (decisão consumer). errorClassEliminated: 'consumer retry loop on obsolescence misclassified as failure'."
+		},
+		{
+			code: "inv-rew-successor-chain-bounded"
+			name: "Successor chain MUST be bounded (consumer max-hops; default 3)"
+			rule: "Quando consumer segue successorEvaluationId chain (E1 → E2 → E3 → ...), MUST NOT seguir além de N hops (default Phase 0: 3 hops; configurable per consumer policy). Após N hops sem chegar a evaluation 'fresh-and-valid', consumer DEVE: (a) emitir cmd-request-risk-evaluation novo com fresh request OR (b) escalate via ADR override OR (c) abort decisão. Sem bound: chain pode loop indefinitely (E_n superseded por E_{n+1} ad infinitum em high-throughput scenarios) gerando consumer-side infinite resolution loop."
+			rationale: "Loop de resolução indireto (founder War Game 2 insight). chain-bounded é GUARDRAIL para consumer behavior (não REW behavior — REW emite chain naturally). Enforcement consumer-side via consumerProtocol entry. errorClassEliminated: 'infinite successor chain following causing consumer livelock'."
+		},
+		{
+			code: "inv-rew-replay-confidence-propagation"
+			name: "Replay confidence MUST propagate to all downstream usage (training, analytics, derived signals)"
+			rule: "Outputs de replay com replayConfidence != 'complete' DEVEM propagar confidence metadata para qualquer downstream usage chain: training pipelines, analytics aggregations, derived signals (signal generation from replay), audit reports. Downstream usage MUST attach confidenceProvenance metadata: {originalReplayConfidence, propagationDepth, derivedFromReplayId}. Sem propagação: erro parcial vira verdade futura (replay 'partial' alimenta training; trained model retorna a REW; sistema 'aprende errado' silently)."
+			rationale: "Erro parcial vira verdade futura (founder War Game 2 insight). Protege uso INDIRETO além do uso direto (consumerProtocol replay entry já cobre uso direto). Enforcement runtime via data lineage tracking infra (BEHAVIORAL — runtime concern); structural-check valida que derived artifacts declaram provenance. errorClassEliminated: 'partial replay confidence leaking into authoritative chain via training pipeline'."
+		},
+		{
+			code: "inv-rew-decision-binding-to-evaluation-version"
+			name: "Downstream actions MUST bind to evaluationId + check supersede before commit (TOCTOU defense)"
+			rule: "Toda ação downstream (CMT pagamento, FCE bloqueio, SCF crédito) que use REW evaluation DEVE: (a) referenciar evaluationId usado em ação metadata; (b) RECHECK evaluation status no aggregate (não projection) ANTES de commit final da ação; (c) se evaluation foi superseded entre leitura e commit → ação DEVE FALHAR com 'evaluation-superseded-during-execution' OR REVALIDATE com new evaluation. Time-of-check ≠ time-of-use (TOCTOU): protege intervalo entre consumer.read e consumer.commit."
+			rationale: "TOCTOU: protege leitura, não intervalo entre leitura e ação (founder War Game 2 insight). Enforcement consumer-side via consumerProtocol entry — consumers (CMT/FCE/SCF) responsabilidade. REW provê evaluationId binding + supersede check API (qry-rew-evaluation-current-status). errorClassEliminated: 'consumer action committed against superseded evaluation due to read-action time gap'."
+		},
+		{
+			code: "inv-rew-undetectable-pattern-risk-declared"
+			name: "Systemic risks beyond REW detection scope MUST be declared in systemFailureModes (honesty invariant)"
+			rule: "Riscos sistêmicos que REW NÃO consegue detectar (cross-entity adversarial patterns abaixo de threshold; distributed fraud; covariância multi-entity) DEVEM ser DECLARADOS explicitly em systemConsistencyModel.systemFailureModes. Este invariant é HONESTY invariant — força VISIBILIDADE, NÃO COMPORTAMENTO. NÃO bloqueia nada; NÃO valida nada; NÃO interfere em fluxo; NÃO entra em aggregate.protectsInvariants enforcement; NÃO entra em policy.guards. Apenas EXIGE que systemFailureModes contenha entry para cada risk class identificado as undetectable."
+			rationale: "Falha sistêmica invisível → risco explícito auditável (founder War Game 2 insight). Honesty invariant transforma silent gap em declared limitation. Verificação via sc-rew-pattern-risk-declared (declarative kind) — confirms systemFailureModes contém entries para distributed-fraud-below-threshold + cross-entity-correlation-undetected. Pattern paralelo a invariants existentes 'declarar limitação ≠ resolver' (replayScopeStrategy limitation; cross-BC enforcement def-016). errorClassEliminated: 'systemic blind spot hidden as implicit limitation; auditor cannot identify what system DOES NOT cover'."
+		},
 	]
 
 	// =========================================================
@@ -1180,6 +1233,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-risk-evaluation-computed",
 			"evt-risk-evaluation-emitted",
 			"evt-risk-evaluation-emit-failed",
+			"evt-risk-evaluation-emit-superseded-by-newer",
 			"evt-risk-evaluation-superseded",
 			"evt-risk-evaluation-marked-stale",
 		]
@@ -1218,6 +1272,12 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-rew-supersede-emit-failed-precedence",
 			"inv-rew-evaluation-temporal-validity",
 			"inv-rew-replay-scope-completeness",
+			"inv-rew-acl-validation-cost-bounded",
+			"inv-rew-obsolete-evaluation-must-link-successor",
+			"inv-rew-successor-chain-bounded",
+			"inv-rew-replay-confidence-propagation",
+			"inv-rew-decision-binding-to-evaluation-version",
+			"inv-rew-undetectable-pattern-risk-declared",
 		]
 
 		entities: [{
@@ -1591,6 +1651,9 @@ domainModel: artifact_schemas.#DomainModel & {
 			{kind: "primitive", name: "emitTimeoutSeconds", type:             "integer", description: "Timeout para inv-rew-computed-must-eventually-emit-or-fail; default 30s"},
 			{kind: "primitive", name: "evaluationValidityWindowSeconds", type: "integer", description: "Window para inv-rew-evaluation-temporal-validity; default 300s entity_level / 120s asset_level"},
 			{kind: "primitive", name: "maxEmissionRatePerSecond", type:       "integer", description: "Rate limit estrutural per scope (anti-flood); default 1000/s. errorClassEliminated: 'never drop vira vetor de ataque sob flood upstream'."},
+			{kind: "primitive", name: "aclIngressRatePerSecond", type:        "integer", description: "ACL boundary ingress rate limit (separado de maxEmissionRatePerSecond domain budget); default 5000/s. Sob flood: backpressure upstream + rejection batching. errorClassEliminated: 'rejection events draining domain emission budget'."},
+			{kind: "primitive", name: "aclValidationCostBudgetPerSignalMs", type: "integer", description: "Per-signal validation cost ceiling (inv-rew-acl-validation-cost-bounded); default 50ms. Signal exceeding → rejected com 'cost-exceeded'."},
+			{kind: "primitive", name: "aclValidationCostBudgetPerSecondMs", type: "integer", description: "Per-window cumulative validation cost ceiling; default 50000ms = 50 cores @ 1s wall. Window exhausted → ACL throttle + backpressure. errorClassEliminated: 'distributed cheap-but-many cost attack passing under per-signal budget'."},
 			{kind: "primitive", name: "entitySourceRestriction", type:        "string", description: "Optional comma-separated narrowing"},
 			{kind: "primitive", name: "activatedAt", type:                    "datetime"},
 			{kind: "primitive", name: "deprecatedAt", type:                   "datetime"},
@@ -1832,10 +1895,15 @@ domainModel: artifact_schemas.#DomainModel & {
 			"model/policy activation visible to some consumers but not others temporarily (eventual via event log)",
 			"consumer reading evaluation pre-emit-failed: subsequent emit-failed invalidates retroactively (consumer must handle invalidation)",
 			"cross-aggregate event ordering NOT guaranteed (consumer must reconstruct via causationId chain)",
-			"ACL validation failure during burst: evt-signal-rejected emitted; backpressure via runtime + maxEmissionRatePerSecond",
+			"ACL validation failure during burst: evt-signal-rejected emitted (1:1) OR aggregated batch sob flood; backpressure via runtime + aclIngressRatePerSecond + maxEmissionRatePerSecond domain budget protected",
 			"consumer ignoring REW authoritative decision (cross-BC contract violation) — UNDETECTABLE at runtime in Phase 3; requires governance OR future attestation infrastructure (per def-016 deferred decision)",
 			"replay returning replayConfidence='partial' OR 'degraded': consumer responsibility — adapt usage per level; NÃO trust 'partial' as authoritative",
 			"evaluation expired (now() > validUntilTimestamp): consumer responsibility — request fresh OR ADR override (consumer correto + protocolo seguido + decisão expirada = consumer responsibility)",
+			"distributed cheap-but-many ACL validation cost attack: per-signal budget passes; per-window cumulative budget triggers throttle (inv-rew-acl-validation-cost-bounded — protege output AND processamento)",
+			"compute race: late emit blocked by newer evaluation NÃO é failure — emit-superseded-by-newer event emitted com successorEvaluationId; consumer pode adopt successor (inv-rew-obsolete-evaluation-must-link-successor) — FAILURE ≠ OBSOLESCENCE",
+			"replay confidence leakage: 'partial' replay output feeding training/analytics/derived signals → erro parcial vira verdade futura. inv-rew-replay-confidence-propagation força propagação metadata downstream (BEHAVIORAL — runtime concern + data lineage tracking)",
+			"TOCTOU consumer side: evaluation read at T1; action commit at T2; supersede entre T1-T2 → ação stale. inv-rew-decision-binding-to-evaluation-version força consumer recheck status pre-commit (consumer responsibility)",
+			"distributed fraud below per-entity threshold: cross-entity adversarial pattern undetectable em REW (replayScopeStrategy='by-entityRef'); systemic blind spot DECLARED via inv-rew-undetectable-pattern-risk-declared (honesty invariant — força visibilidade não comportamento). Detection requires upstream BC correlation OR future cross-entity correlation infrastructure (separate concern)",
 		]
 		replayScopeStrategy: "by-entityRef"
 		rationale: """
@@ -1884,6 +1952,19 @@ domainModel: artifact_schemas.#DomainModel & {
 			no runtime — detectável apenas via post-hoc audit OR runtime
 			attestation infrastructure (per def-016 deferred decision —
 			Phase N+1 quando evidência empírica multi-BC justify).
+
+			CONFLICT RESOLUTION PRIORITY (Phase 3 default — não congelado;
+			cross-BC governance level; REW participates, NÃO enforces):
+			fraud-detection > payment-authorization > credit-origination.
+			Quando consumers divergem em decisão para mesma scope/entity
+			(timeline differences sob eventual consistency), priority
+			declarada governs reversal/compensation flow downstream
+			(saga pattern responsibility cross-BC). Phase 3 default
+			capturado em prose; future ADR pode formalizar como
+			structured field se ≥3 cross-BC scenarios emergirem com
+			conflicting priority needs. Ajuste anti-frozen-semantics:
+			'current default Phase 3' phrasing preserva opção de revisita
+			quando outros BCs/produtos entrarem (anti-acidental commitment).
 		"""
 		rationale: """
 			Sem decisionAuthorityModel declarado, integração com outros
