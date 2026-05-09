@@ -24,6 +24,18 @@ streams: {
 			timestamp:      "2026-05-08T19:35:19Z"
 			actor:          "spec-writer"
 			claimExpiresAt: "2026-05-09T03:35:19Z"
+		}, {
+			eventType:   "task-completed"
+			taskId:      "WI-046"
+			taskVersion: 1
+			commandId:   "WI-046-complete-bc-bootstrap"
+			timestamp:   "2026-05-09T15:00:00Z"
+			actor:       "spec-writer"
+			completionValidation: {
+				validationRunId:      "WI-046-completion-20260509"
+				artifactSnapshotHash: "6e11f31"
+				gatesPassed:          ["cue-vet", "self-review-enforcement"]
+			}
 		}]
 	}
 }

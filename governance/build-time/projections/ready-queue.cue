@@ -10,7 +10,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 19 candidato(s) prontos para claim.
+// 18 candidato(s) prontos para claim.
 
 readyQueueProjection: {
 	rebuiltAt: "2026-05-08T19:05:16Z"
@@ -48,12 +48,6 @@ readyQueueProjection: {
 		taskId:        "WI-045"
 		version:       1
 		title:         "Criar artefatos de domínio para Network Intelligence & Mechanism Design (NIM)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-046"
-		version:       1
-		title:         "Criar artefatos de domínio para Risk Engine & Risk Observability (REW)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
