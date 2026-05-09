@@ -105,6 +105,19 @@ package artifact_schemas
 	// Read models derivados de events para consulta.
 	projections?: [...#Projection]
 
+	// =============================================
+	// INTERPRETATION CONTRACTS (optional, per adr-081)
+	// =============================================
+
+	// Declara modelo global de consistência do sistema. Sem declaração,
+	// consumers assumem consistência mais forte possível por construção.
+	systemConsistencyModel?: #SystemConsistencyModel
+
+	// Declara papel do BC no ecosystem cross-BC (authoritative /
+	// advisory / hybrid). Sem declaração, integração cross-BC quebra
+	// silenciosamente.
+	decisionAuthorityModel?: #DecisionAuthorityModel
+
 	rationale: string & !=""
 
 	_schema: {
@@ -503,6 +516,14 @@ _#DomainEventBase: {
 	// State machine do aggregate.
 	lifecycle?: #Lifecycle
 
+	// === INTERPRETATION CONTRACT (optional, per adr-081) ===
+
+	// Declara contrato de consistência transacional do aggregate.
+	// Distingue garantias intra-aggregate (atomic/ACID) de side-effects
+	// cross-aggregate (eventual via events). Optional — ausência implica
+	// default eventual via systemConsistencyModel do parent #DomainModel.
+	consistencyBoundary?: #ConsistencyBoundary
+
 	// Por que este é um consistency boundary separado.
 	rationale: string & !=""
 }
@@ -654,6 +675,94 @@ _#DomainEventBase: {
 	code:        string & =~"^qry-[a-z][a-z0-9-]*$"
 	description: string & !=""
 
+	rationale: string & !=""
+}
+
+// ==============================
+// INTERPRETATION CONTRACTS (per adr-081)
+// ==============================
+// Marca semântica via #InterpretationContractMarker embedding: estes
+// types declaram CONTRATOS DE INTERPRETAÇÃO do domínio (consistência,
+// autoridade, failure handling). NÃO são dados operacionais — são
+// metadata governando como consumers + integradores devem interpretar
+// comportamento sob concorrência + integração cross-BC + falhas.
+// Marker via embedding (não inline _meta literal) preserva single
+// source of truth do _meta value + aproveita CUE hidden field
+// semantics (`_*` não exportado em cue export).
+
+// Marker reusable embebido em todos interpretation contract types.
+// Single source of truth para _meta value; previne drift cross-type.
+#InterpretationContractMarker: {
+	_meta: "interpretation-contract"
+}
+
+// Aggregate-level interpretation contract — declara contrato de
+// consistência transacional do aggregate. Distingue garantias intra-
+// aggregate (atomic/ACID) de side-effects cross-aggregate (eventual).
+// Listas non-empty: contrato vazio é pior que ausência de contrato.
+// failureModes declara classes de falha esperadas + handling — sem
+// isso, consistência é promessa falsa.
+#ConsistencyBoundary: {
+	#InterpretationContractMarker
+	guarantees: [string & !="", ...string & !=""]
+	explicitlyDoesNotGuarantee: [string & !="", ...string & !=""]
+	failureModes: [string & !="", ...string & !=""]
+	rationale: string & !=""
+}
+
+// Domain-level interpretation contract — declara modelo global de
+// consistência do sistema composto por todos os aggregates. Sem
+// declaração explícita, consumers assumem consistência mais forte
+// possível por construção (over-promise). conflictResolution declara
+// estratégia canonical de resolução para casos de divergência —
+// 'eventual consistency sem estratégia = comportamento indefinido'.
+#SystemConsistencyModel: {
+	#InterpretationContractMarker
+	type: "eventual" | "strong" | "causal"
+	intraAggregateGuarantees: [string & !="", ...string & !=""]
+	crossAggregateGuarantees: [string & !="", ...string & !=""]
+	explicitlyDoesNotGuarantee: [string & !="", ...string & !=""]
+	conflictResolution: {
+		strategy: "last-write-wins" | "explicit-command" | "causal-ordering"
+		rationale: string & !=""
+	}
+	rationale: string & !=""
+}
+
+// Domain-level interpretation contract — declara papel do BC no
+// ecosystem cross-BC. Sem declaração explícita, integração cross-BC
+// quebra silenciosamente (consumers não sabem se devem obedecer ou
+// podem ignorar resultados do BC). Discriminated union por type
+// paralelo a #DomainEvent pattern — cada branch obriga scope field
+// correspondente E PROÍBE scopes não-aplicáveis via _|_ (bottom).
+// Estado misto (advisory com authoritativeScope) é IRREPRESENTÁVEL
+// por construção.
+#DecisionAuthorityModel:
+	#AuthoritativeAuthority |
+	#AdvisoryAuthority |
+	#HybridAuthority
+
+#AuthoritativeAuthority: {
+	#InterpretationContractMarker
+	type: "authoritative"
+	authoritativeScope: string & !=""
+	advisoryScope?: _|_
+	rationale: string & !=""
+}
+
+#AdvisoryAuthority: {
+	#InterpretationContractMarker
+	type: "advisory"
+	authoritativeScope?: _|_
+	advisoryScope: string & !=""
+	rationale: string & !=""
+}
+
+#HybridAuthority: {
+	#InterpretationContractMarker
+	type: "hybrid"
+	authoritativeScope: string & !=""
+	advisoryScope: string & !=""
 	rationale: string & !=""
 }
 
