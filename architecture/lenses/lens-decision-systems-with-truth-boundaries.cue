@@ -2,6 +2,81 @@ package lenses
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
+// ============================================================
+// PRELIMINARY VALIDATION HYPOTHESES (2026-05-09) — UNCONFIRMED
+// ============================================================
+// Origin: CMT thought experiment (founder-guided stress testing
+// during WI-046 closure pre-fase). NOT empirically validated —
+// serves as hypothesis set for next BC application (CMT Phase 3).
+// Simulation finds logic errors; reality finds systemic errors —
+// pattern refinement WAITS for CMT real Phase 3.
+//
+// Hypotheses (NOT confirmed):
+//
+// H1 — There exists a CORE set of invariants required whenever
+// decisions can become invalid without explicit state mutation:
+//   - temporal validity (validUntilTimestamp)
+//   - explicit failure (emit-failed = ABORT, distinct from obsolescence)
+//   - deterministic precedence (explicit-supersede-only + atomic CAS)
+//   - decision-version binding (TOCTOU defense pre-commit recheck)
+//   - ACL boundary (validation + rejection events; never drop)
+//   - interpretation contracts (consistencyBoundary + system
+//     ConsistencyModel + decisionAuthorityModel per adr-081/084)
+//   - honesty invariants (declarar limitações como structural facts)
+//
+// H2 — Some elements depend on system DYNAMICS (not domain — insight
+// arquitetural avançado: pattern depende da dinâmica do sistema, não
+// do conteúdo do domínio):
+//   - concurrent compute → requires successor logic (emit-superseded-
+//     by-newer + successor-chain-bounded)
+//   - bilateral consent → naturally serializes mutations → may NOT
+//     require successor logic (CMT mental simulation revealed this
+//     specifically — REW pattern WAS overfit to concurrent compute
+//     race semantics)
+//
+// H3 — Some elements are DOMAIN-SPECIFIC (REW-specific) and should
+// NOT be generalized into pattern:
+//   - risk score semantics (calibrationProfile; scale enum)
+//   - eligibility decision structure
+//   - alert lifecycle specifics
+//   - adversarial signal taxonomy (kyc/device/behavioral/fiscal)
+//   - 5-layer ontological structure (Reality/Epistemic/Decision/
+//     Control/Actor)
+//
+// H4 — The TRUE underlying pattern is NOT risk-based:
+//   "decision systems that can become wrong without state change"
+//   Real criterion: 'consciência estrutural de incerteza'.
+//   V1 (current): "sei quando estou certo" (truth boundaries)
+//   V2 (emergent): "sei quando posso estar errado sem saber"
+//   (truth boundaries + truth incompleteness awareness)
+//
+// H5 — Current pattern is INCOMPLETE — does NOT fully address
+// 'truth incompleteness' cases where:
+//   - world changes externally
+//   - NO upstream signal is emitted
+//   - system remains internally consistent but externally wrong
+//   Example (CMT mental scenario): commitment válido → fornecedor
+//   perde licença regulatória externamente → ninguém manda signal
+//   → CMT continua "correto" → FCE paga sob commitment authority
+//   já invalidada em mundo real.
+//
+// Implication of H5: pattern must EVOLVE para incluir 'truth
+// incompleteness acknowledgment', POTENTIALLY via:
+//   - revalidation policies (periodic re-checks against external
+//     authoritative sources)
+//   - external attestations (signed snapshots from upstream BCs)
+//   - explicit uncertainty acknowledgement (extension of honesty
+//     invariants beyond known systemic risks)
+// NOT proposing solutions yet — extension hypothesis only.
+//
+// Status: UNCONFIRMED — requires empirical validation via CMT
+// Phase 3 actual application. Founder ratified position:
+// 'simulação encontra erros lógicos; realidade encontra erros
+// sistêmicos'. Premature pattern freezing creates false confidence;
+// document remains hypothesis until second BC validation.
+//
+// ============================================================
+
 decisionSystemsWithTruthBoundaries: artifact_schemas.#AnalyticalLens & {
 	id:     "lens-decision-systems-with-truth-boundaries"
 	name:   "Decision Systems with Truth Boundaries"
@@ -28,9 +103,10 @@ decisionSystemsWithTruthBoundaries: artifact_schemas.#AnalyticalLens & {
 			"production-safe decision",
 		]
 		excludeWhen: [
+			"BINARY ACTIVATION GATE (regra de ouro da Mesh — precede todos os outros critérios): If answer to 'Can decisions become invalid WITHOUT explicit state mutation?' is NO → lens MUST NOT BE APPLIED. Overengineering risk certain. Decisões que invalidam APENAS via mutation events (cmd-mutate; explicit invalidation) NÃO precisam do pattern. Decisões que invalidam via passagem de tempo OR external signal arrival OR world change sem signal → pattern é necessário.",
 			"BC é apenas state machine sem decisão temporal — usar generic DDD aggregates",
 			"BC é puramente internal sem cross-BC consumers — não há need para interpretation contracts",
-			"applicabilityTest: If removing validUntilTimestamp from the design does NOT break correctness, this lens should NOT be applied. Lens é overkill quando decisions têm validity intrínseca ao state (sem invalidation por passagem de tempo OR signal arrival sem mutation event)",
+			"applicabilityTest (refinamento do BINARY GATE acima): If removing validUntilTimestamp from the design does NOT break correctness, this lens should NOT be applied. Lens é overkill quando decisions têm validity intrínseca ao state (sem invalidation por passagem de tempo OR signal arrival sem mutation event)",
 			"BC é orchestration/saga (coordenador de múltiplos aggregates) — usar lens-saga-orchestration (future, when emerges)",
 			"BC é pure read model / projection layer — não produz decisions, só agrega",
 		]
@@ -168,6 +244,11 @@ decisionSystemsWithTruthBoundaries: artifact_schemas.#AnalyticalLens & {
 			description: "Operational calibration parameters ('taxa de juros do sistema') são NOT enforced by lens — Phase 3 declara field presence; runtime enforces. Calibração mal feita = sistema trava (curto demais) OR risco invisível (longo demais). Aplicável a: validityWindowSeconds + emitTimeoutSeconds + maxEmissionRatePerSecond + aclIngressRatePerSecond + aclValidationCostBudgetPerSignal/PerSecondMs (5+ parameters em REW reference)."
 			alternative: "BCs aplicando lens calibram defaults Phase 0 em policy fields; Phase 1+ telemetry-driven calibration via policy version updates. Calibration revisits when production telemetry available. Future framework de calibration cross-BC (parameter sharing? cross-BC defaults?) emerges com multi-BC pattern application."
 			rationale:   "Calibration é runtime concern, não pattern concern. Lens declara structural pattern; calibration é per-BC operational decision."
+		},
+		{
+			description: "TRUTH INCOMPLETENESS — pattern current scope is INCOMPLETE para casos onde decision becomes wrong via EXTERNAL world change without ANY upstream signal emission. Example (CMT mental scenario via founder pre-CMT thought experiment): commitment válido → counterparty perde licença regulatória externamente → nenhum BC observa OR publica invalidating signal → CMT continua 'active commitment' internally consistent → FCE paga based on CMT state já invalidada em mundo real. Sistema é internally correct mas externally wrong. Honesty invariants (inv-rew-undetectable-pattern-risk-declared) cobrem RISCOS SISTÊMICOS conhecidos; NÃO cobrem world changes sem upstream signal emission."
+			alternative: "Pattern requires EXTENSION 'truth incompleteness acknowledgment' element (potentially V2 evolution) — POTENTIAL mechanisms (NÃO solutions yet — proposing requires empirical validation): (a) revalidation policies (periodic re-checks against external authoritative sources — regulatory bodies, KYC re-verification, sanctions list updates); (b) external attestation infrastructure (signed snapshots from upstream BCs OR third-party attestors); (c) explicit uncertainty acknowledgement extending honesty invariants beyond known systemic risks. EXTENSION é hypothesis (H5) UNCONFIRMED until CMT real Phase 3 reveals systemic patterns."
+			rationale:   "Founder Phase 3 closure thought experiment (2026-05-09 CMT mental simulation) revealed missing test dimension: 'decisão correta → mundo muda → decisão vira errada → ninguém percebe' (NO event, NO replay gap, NO invalidation signal). Pattern foundation 'consciência estrutural de incerteza' é mais profunda que current 7 core elements. V2 emergente: 'sei quando posso estar errado sem saber' vs V1 current 'sei quando estou certo'. Real validation of extension requires CMT actual Phase 3 to surface systemic error patterns simulation can't reach. Não proposing extension AS SOLUTION até evidência empírica justify."
 		},
 	]
 
