@@ -1,6 +1,6 @@
 package build_time
 
-// work-graph.cue — Topologia de execução da W001-foundation.
+// work-graph.cue — Topologia de execução W001-W005.
 //
 // Define fases (barreiras de execução), grupos (agrupamento lógico)
 // e dependências versionadas por tarefa. Fonte de verdade para
@@ -18,7 +18,7 @@ package build_time
 // Mover este arquivo para outro package exige import explícito.
 
 workGraph: {
-	rationale: "Topologia de execução W001. 4 fases de domínio progressivas por order, 2 fases de governança com dependsOnPhases explícito, 1 fase de correção ontológica independente, 13 grupos por natureza de artefato. Fase tática (p3) subdivide em 5 grupos: first-bc, validation-prompts, tactical-schemas, tactical-instances, tactical-integration — separando tipo, instância e wiring."
+	rationale: "Topologia de execução W001-W005. W001 (foundation): 4 fases de domínio progressivas por order, 2 fases de governança com dependsOnPhases explícito, 1 fase de correção ontológica independente, 1 fase de BC bootstrap. W002 (DDD strategic & meta): p6 independente. W003 (cross-context flows): p7 depende de p5. W004 (C4): p8 depende de p5+p9. W005 (stack): p9 depende de p6 (Conway informa stack)."
 
 	phases: [#Phase & {
 		id:        "p0-validate-and-bootstrap"
@@ -56,6 +56,26 @@ workGraph: {
 		order:           7
 		dependsOnPhases: []
 		rationale:       "Bootstrap de artefatos de domínio para 23 BCs restantes. Independente de phases de governança. Dependências reais são por WI (schemas + golden examples + inter-BC), não por phase barrier — permite início assim que padrões CMT/CTR estejam estabelecidos."
+	}, #Phase & {
+		id:              "p6-strategic-completion"
+		order:           8
+		dependsOnPhases: []
+		rationale:       "W002 — DDD strategic & meta completion. Independente de outras phases; pode avançar paralelo a p5 bootstrap. Output (Conway/Team Topology) informa p9 stack definition."
+	}, #Phase & {
+		id:              "p9-stack-definition"
+		order:           9
+		dependsOnPhases: ["p6-strategic-completion"]
+		rationale:       "W005 — Stack definition. Depende de p6 porque Conway alignment (WI-074) informa stack choices: team topology constrains architecture choice (Skelton/Pais). Stack ADRs decidem codegen, compute, persistence, eventing, boundaries, operability, frontend."
+	}, #Phase & {
+		id:              "p7-cross-context-workflows-expansion"
+		order:           10
+		dependsOnPhases: ["p5-bc-domain-bootstrap"]
+		rationale:       "W003 — Cross-context-workflows expansion. Depende de p5 BC bootstrap porque flows referenciam aggregates + integration events dos BCs envolvidos. Sem BCs instanciados, flows seriam place-holders não-verificáveis."
+	}, #Phase & {
+		id:              "p8-c4-architecture"
+		order:           11
+		dependsOnPhases: ["p5-bc-domain-bootstrap", "p9-stack-definition"]
+		rationale:       "W004 — C4 architecture. Depende de p5 (L3 per BC refere domain-model dos BCs) + p9 (L2 reflete container topology que depende de stack choices). L1 sozinho seria stack-agnóstico, mas wave está unificada para coherência."
 	}]
 
 	groups: [#Group & {
@@ -122,6 +142,42 @@ workGraph: {
 		id:        "g7-generic-bc-bootstrap"
 		phaseId:   "p5-bc-domain-bootstrap"
 		rationale: "BCs generic: capabilities transversais. 3 BCs: BKR, NTF, STR. Menor prioridade — shape mais estável, menor risco de redesign."
+	}, #Group & {
+		id:        "g8-discovery-and-method"
+		phaseId:   "p6-strategic-completion"
+		rationale: "W002 — BC discovery method, volatility analysis, splits/merges governance, event storming canonical schema + golden example."
+	}, #Group & {
+		id:        "g8-tier-and-ownership"
+		phaseId:   "p6-strategic-completion"
+		rationale: "W002 — Strategic ADR tier classification, Domain Expert canonical per BC, Team Topology/Conway alignment ADR + lens."
+	}, #Group & {
+		id:        "g8-stability-and-evolution"
+		phaseId:   "p6-strategic-completion"
+		rationale: "W002 — Aggregate identity stability ADR, UL drift detection check, Strategic refactoring discipline ADR."
+	}, #Group & {
+		id:        "g9-flows-inventory"
+		phaseId:   "p7-cross-context-workflows-expansion"
+		rationale: "W003 — ADR de inventário formal + roadmap de cross-context-flows candidatos."
+	}, #Group & {
+		id:        "g9-flows-instances"
+		phaseId:   "p7-cross-context-workflows-expansion"
+		rationale: "W003 — 6 cross-context-flow instances (settlement, refund-and-reward, dispute-resolution, onboarding-and-credit, tax-and-accounting, insurance-coverage)."
+	}, #Group & {
+		id:        "g10-c4-foundation"
+		phaseId:   "p8-c4-architecture"
+		rationale: "W004 — ADR generation strategy, schemas C4 (Workspace/View/Element/Relationship), ADR container topology."
+	}, #Group & {
+		id:        "g10-c4-instances"
+		phaseId:   "p8-c4-architecture"
+		rationale: "W004 — Instâncias C4: L1 (system context), L2 (containers), L3 per BC (10 instâncias para BCs existentes)."
+	}, #Group & {
+		id:        "g10-c4-tooling"
+		phaseId:   "p8-c4-architecture"
+		rationale: "W004 — Codegen script (CUE → Structurizr DSL) + CI drift detection."
+	}, #Group & {
+		id:        "g11-stack-adrs"
+		phaseId:   "p9-stack-definition"
+		rationale: "W005 — 7 ADRs cobrindo dimensões de stack (codegen toolchain, compute, persistence, eventing, boundaries, operability, frontend) + quality criteria família tq-stack-NN."
 	}]
 
 	dependencies: [#ExecutionDependency & {
@@ -332,15 +388,6 @@ workGraph: {
 	// ============================================================
 	// Phase p5: BC domain bootstrap (WI-042 a WI-064)
 	// ============================================================
-	// 23 BCs restantes: 5 core, 15 supporting, 3 generic.
-	// Dependências comuns: schemas e golden examples (WI-009, WI-011,
-	// WI-020, WI-021, WI-022, WI-028). Dependências assimétricas
-	// inter-BC capturam acoplamento semântico real.
-	// 18 de 23 podem iniciar em paralelo do ponto de vista das
-	// dependências inter-BC — disponibilidade de capacidade, lease
-	// e fila de aprovação governam a execução real.
-
-	// --- Core BCs ---
 	#ExecutionDependency & {
 		taskId: "WI-042" // DLV
 		dependsOn: [
@@ -354,7 +401,7 @@ workGraph: {
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-core-bc-bootstrap"
 	}, #ExecutionDependency & {
-		taskId: "WI-043" // FCE — converge REW + INV + BKR
+		taskId: "WI-043" // FCE
 		dependsOn: [
 			{taskId: "WI-009", version: 1},
 			{taskId: "WI-011", version: 1},
@@ -369,7 +416,7 @@ workGraph: {
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-core-bc-bootstrap"
 	}, #ExecutionDependency & {
-		taskId: "WI-044" // NGR — depende de NIM
+		taskId: "WI-044" // NGR
 		dependsOn: [
 			{taskId: "WI-009", version: 1},
 			{taskId: "WI-011", version: 1},
@@ -405,10 +452,7 @@ workGraph: {
 		]
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-core-bc-bootstrap"
-	},
-
-	// --- Supporting BCs ---
-	#ExecutionDependency & {
+	}, #ExecutionDependency & {
 		taskId: "WI-047" // ATO
 		dependsOn: [
 			{taskId: "WI-009", version: 1},
@@ -457,7 +501,7 @@ workGraph: {
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-supporting-bc-bootstrap"
 	}, #ExecutionDependency & {
-		taskId: "WI-051" // INS — depende de REW + SCF
+		taskId: "WI-051" // INS
 		dependsOn: [
 			{taskId: "WI-009", version: 1},
 			{taskId: "WI-011", version: 1},
@@ -471,7 +515,7 @@ workGraph: {
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-supporting-bc-bootstrap"
 	}, #ExecutionDependency & {
-		taskId: "WI-052" // ITC — depende de ATO
+		taskId: "WI-052" // ITC
 		dependsOn: [
 			{taskId: "WI-009", version: 1},
 			{taskId: "WI-011", version: 1},
@@ -556,7 +600,7 @@ workGraph: {
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-supporting-bc-bootstrap"
 	}, #ExecutionDependency & {
-		taskId: "WI-059" // SCF — depende de REW
+		taskId: "WI-059" // SCF
 		dependsOn: [
 			{taskId: "WI-009", version: 1},
 			{taskId: "WI-011", version: 1},
@@ -592,10 +636,7 @@ workGraph: {
 		]
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-supporting-bc-bootstrap"
-	},
-
-	// --- Generic BCs ---
-	#ExecutionDependency & {
+	}, #ExecutionDependency & {
 		taskId: "WI-062" // BKR
 		dependsOn: [
 			{taskId: "WI-009", version: 1},
@@ -632,16 +673,261 @@ workGraph: {
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-generic-bc-bootstrap"
 	}, #ExecutionDependency & {
-		taskId: "WI-070" // Economic Foundation Layers — emergent from WI-053
+		taskId: "WI-070" // Economic Foundation Layers
 		dependsOn: [
 			{taskId: "WI-053", version: 1},
 		]
 		phaseId: "p0-validate-and-bootstrap"
 		groupId: "g0-schemas"
 	}, #ExecutionDependency & {
-		taskId:    "WI-071" // Rebuild projections script — drift detection robustness
+		taskId:    "WI-071" // Rebuild projections script
 		dependsOn: []
 		phaseId:   "pg2-governance-robustness"
 		groupId:   "g5-governance-robustness"
+	},
+
+	// ============================================================
+	// Phase p6: W002 strategic completion (WI-066..069, 072..077)
+	// ============================================================
+	#ExecutionDependency & {
+		taskId:    "WI-066"
+		dependsOn: []
+		phaseId:   "p6-strategic-completion"
+		groupId:   "g8-discovery-and-method"
+	}, #ExecutionDependency & {
+		taskId: "WI-067"
+		dependsOn: [{taskId: "WI-066", version: 1}]
+		phaseId: "p6-strategic-completion"
+		groupId: "g8-discovery-and-method"
+	}, #ExecutionDependency & {
+		taskId: "WI-068"
+		dependsOn: [{taskId: "WI-067", version: 1}]
+		phaseId: "p6-strategic-completion"
+		groupId: "g8-discovery-and-method"
+	}, #ExecutionDependency & {
+		taskId: "WI-069"
+		dependsOn: [{taskId: "WI-066", version: 1}]
+		phaseId: "p6-strategic-completion"
+		groupId: "g8-discovery-and-method"
+	}, #ExecutionDependency & {
+		taskId:    "WI-072"
+		dependsOn: []
+		phaseId:   "p6-strategic-completion"
+		groupId:   "g8-tier-and-ownership"
+	}, #ExecutionDependency & {
+		taskId:    "WI-073"
+		dependsOn: []
+		phaseId:   "p6-strategic-completion"
+		groupId:   "g8-tier-and-ownership"
+	}, #ExecutionDependency & {
+		taskId: "WI-074"
+		dependsOn: [{taskId: "WI-073", version: 1}]
+		phaseId: "p6-strategic-completion"
+		groupId: "g8-tier-and-ownership"
+	}, #ExecutionDependency & {
+		taskId: "WI-075"
+		dependsOn: [{taskId: "WI-068", version: 1}]
+		phaseId: "p6-strategic-completion"
+		groupId: "g8-stability-and-evolution"
+	}, #ExecutionDependency & {
+		taskId:    "WI-076"
+		dependsOn: []
+		phaseId:   "p6-strategic-completion"
+		groupId:   "g8-stability-and-evolution"
+	}, #ExecutionDependency & {
+		taskId: "WI-077"
+		dependsOn: [{taskId: "WI-072", version: 1}]
+		phaseId: "p6-strategic-completion"
+		groupId: "g8-stability-and-evolution"
+	},
+
+	// ============================================================
+	// Phase p7: W003 cross-context-workflows (WI-078..084)
+	// ============================================================
+	#ExecutionDependency & {
+		taskId:    "WI-078"
+		dependsOn: []
+		phaseId:   "p7-cross-context-workflows-expansion"
+		groupId:   "g9-flows-inventory"
+	}, #ExecutionDependency & {
+		taskId: "WI-079"
+		dependsOn: [{taskId: "WI-078", version: 1}]
+		phaseId: "p7-cross-context-workflows-expansion"
+		groupId: "g9-flows-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-080"
+		dependsOn: [{taskId: "WI-078", version: 1}]
+		phaseId: "p7-cross-context-workflows-expansion"
+		groupId: "g9-flows-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-081"
+		dependsOn: [{taskId: "WI-078", version: 1}]
+		phaseId: "p7-cross-context-workflows-expansion"
+		groupId: "g9-flows-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-082"
+		dependsOn: [{taskId: "WI-078", version: 1}]
+		phaseId: "p7-cross-context-workflows-expansion"
+		groupId: "g9-flows-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-083"
+		dependsOn: [{taskId: "WI-078", version: 1}]
+		phaseId: "p7-cross-context-workflows-expansion"
+		groupId: "g9-flows-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-084"
+		dependsOn: [{taskId: "WI-078", version: 1}]
+		phaseId: "p7-cross-context-workflows-expansion"
+		groupId: "g9-flows-instances"
+	},
+
+	// ============================================================
+	// Phase p8: W004 C4 architecture (WI-085..101)
+	// ============================================================
+	#ExecutionDependency & {
+		taskId:    "WI-085"
+		dependsOn: []
+		phaseId:   "p8-c4-architecture"
+		groupId:   "g10-c4-foundation"
+	}, #ExecutionDependency & {
+		taskId: "WI-086"
+		dependsOn: [{taskId: "WI-085", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-foundation"
+	}, #ExecutionDependency & {
+		taskId: "WI-087"
+		dependsOn: [
+			{taskId: "WI-085", version: 1},
+			{taskId: "WI-102", version: 1},
+			{taskId: "WI-103", version: 1},
+		]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-foundation"
+	}, #ExecutionDependency & {
+		taskId: "WI-088"
+		dependsOn: [{taskId: "WI-086", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-089"
+		dependsOn: [
+			{taskId: "WI-087", version: 1},
+			{taskId: "WI-088", version: 1},
+		]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-090" // BDG
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-091" // CMT
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-092" // CTR
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-093" // DLV
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-094" // IDC
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-095" // INV
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-096" // NPM
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-097" // P2P
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-098" // REW
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-099" // SSC
+		dependsOn: [{taskId: "WI-089", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-instances"
+	}, #ExecutionDependency & {
+		taskId: "WI-100"
+		dependsOn: [{taskId: "WI-086", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-tooling"
+	}, #ExecutionDependency & {
+		taskId: "WI-101"
+		dependsOn: [{taskId: "WI-100", version: 1}]
+		phaseId: "p8-c4-architecture"
+		groupId: "g10-c4-tooling"
+	},
+
+	// ============================================================
+	// Phase p9: W005 stack definition (WI-102..109)
+	// ============================================================
+	#ExecutionDependency & {
+		taskId:    "WI-102"
+		dependsOn: []
+		phaseId:   "p9-stack-definition"
+		groupId:   "g11-stack-adrs"
+	}, #ExecutionDependency & {
+		taskId: "WI-103"
+		dependsOn: [{taskId: "WI-102", version: 1}]
+		phaseId: "p9-stack-definition"
+		groupId: "g11-stack-adrs"
+	}, #ExecutionDependency & {
+		taskId: "WI-104"
+		dependsOn: [{taskId: "WI-103", version: 1}]
+		phaseId: "p9-stack-definition"
+		groupId: "g11-stack-adrs"
+	}, #ExecutionDependency & {
+		taskId: "WI-105"
+		dependsOn: [{taskId: "WI-103", version: 1}]
+		phaseId: "p9-stack-definition"
+		groupId: "g11-stack-adrs"
+	}, #ExecutionDependency & {
+		taskId: "WI-106"
+		dependsOn: [{taskId: "WI-103", version: 1}]
+		phaseId: "p9-stack-definition"
+		groupId: "g11-stack-adrs"
+	}, #ExecutionDependency & {
+		taskId: "WI-107"
+		dependsOn: [{taskId: "WI-103", version: 1}]
+		phaseId: "p9-stack-definition"
+		groupId: "g11-stack-adrs"
+	}, #ExecutionDependency & {
+		taskId: "WI-108"
+		dependsOn: [{taskId: "WI-103", version: 1}]
+		phaseId: "p9-stack-definition"
+		groupId: "g11-stack-adrs"
+	}, #ExecutionDependency & {
+		taskId: "WI-109"
+		dependsOn: [
+			{taskId: "WI-102", version: 1},
+			{taskId: "WI-103", version: 1},
+			{taskId: "WI-104", version: 1},
+			{taskId: "WI-105", version: 1},
+			{taskId: "WI-106", version: 1},
+			{taskId: "WI-107", version: 1},
+			{taskId: "WI-108", version: 1},
+		]
+		phaseId: "p9-stack-definition"
+		groupId: "g11-stack-adrs"
 	}]
 }
