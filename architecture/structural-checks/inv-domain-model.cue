@@ -26,12 +26,42 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // per founder lint pre-write: forbidden é proibição de ESTADO ou
 // PROPRIEDADE, não de ação procedural; previne reintrodução de
 // orchestration implícita).
+//
+// DISCAP RETROACTIVE PATCH (WI-077; per adr-086 + PG patch WI-076):
+// Adicionado layer declarations + war-game evidence em 8 rules
+// (pre-DISCAP authoring — INV antecedeu meta-template level-2
+// emergent em REW Phase 3.5a). Cada rule declara applicable layers
+// + non-applicable rationale compacto + RE-VAL flag + war-game
+// pre-production failure mode articulado.
+//
+// Behavioral non-applicability discipline (per adr-086 D6):
+// INV domain-model 8 invariants são TODAS structurally enforceable
+// (com runtime gaps declarados onde aplicável); NENHUMA é behavioral
+// pura (architectural review OR anti-corruption discipline). Contraste
+// arquitetural com REW (semanticamente contextual/adversarial-heavy
+// com 2 behavioral invariants explicit non-applicable): INV é quase
+// totalmente structural-local — demonstra que progressive ladder per
+// adr-086 D2 é genuinamente seletivo, não checklist rígido.
 
 structuralChecks: "sc-inv-01": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-01"
 	title:        "Atomic Dual Emission domain invariant"
 	artifactType: "domain-model"
-	description:  "Invoice e Receivable devem coexistir como par 1:1 com referência integral (Receivable.invoiceId aponta para Invoice válida) + amount + currency coincidentes (BD7). Violação seria Invoice sem Receivable correspondente, Receivable órfã, múltiplos Receivables paired ao mesmo Invoice, OR amount/currency divergentes."
+	description: """
+		Invoice e Receivable devem coexistir como par 1:1 com referência integral (Receivable.invoiceId aponta para Invoice válida) + amount + currency coincidentes (BD7). Violação seria Invoice sem Receivable correspondente, Receivable órfã, múltiplos Receivables paired ao mesmo Invoice, OR amount/currency divergentes.
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: Invoice + Receivable both materialized
+		- L2 CROSS-FIELD: cardinality 1:1 + amount/currency coincidence
+
+		Layers non-applicable: L2.5, L3, L4, L5, L6, L7
+		Non-applicability rationale: invariant é structural-local cardinality + value coincidence; sem semantic adoption binding, sem contract resolution requirement, sem version dependency, sem temporal aging, sem interpretation step, sem decision context scaling.
+
+		RE-VAL: N/A (atomic invariant timeless; não evolui ao longo do tempo).
+
+		War-game evidence (per adr-086 D5):
+		Outbox bypass — direct DB write to Invoice sem paired Receivable insert via maintenance script OR DBA convenience; transactional outbox guarantee bypassed; consumer SCF vê Invoice referenced com receivable=null causando antecipation fail mid-pipeline + audit trail divergence cross-BC.
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-atomic-dual-emission"
@@ -74,7 +104,22 @@ structuralChecks: "sc-inv-02": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-02"
 	title:        "Idempotent Issuance domain invariant"
 	artifactType: "domain-model"
-	description:  "Tupla (commitmentRef, evidenceRef) define unicidade canônica do fato no domínio. Identity NÃO inclui criteriaVersion nem regimeVersion — versions são attributes, não componentes de unicidade (BD3). Violação seria duas Invoices distintas sob mesma tupla."
+	description: """
+		Tupla (commitmentRef, evidenceRef) define unicidade canônica do fato no domínio. Identity NÃO inclui criteriaVersion nem regimeVersion — versions são attributes, não componentes de unicidade (BD3). Violação seria duas Invoices distintas sob mesma tupla.
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: commitmentRef + evidenceRef present
+		- L2 CROSS-FIELD: unicity constraint per tuple
+		- L3 RESOLVABLE CONTRACT: tuple AS canonical identity (não technical key UUID)
+
+		Layers non-applicable: L2.5, L4, L5, L6, L7
+		Non-applicability rationale: invariant é identity-unicity discipline; versions são attributes (não identity components per design); sem adoption proof, freshness drift, interpretation step, decision context scaling.
+
+		RE-VAL: N/A (unicity discipline timeless; não evolui).
+
+		War-game evidence (per adr-086 D5):
+		Replay attack — mesmo evidence document submetido via diferentes intake paths (ex.: API + email gateway + manual ingestion); sem tuple-based unicity enforcement em ponto de persistência, múltiplas Invoices materializadas + Receivables duplicados + audit trail polluído + downstream SCF antecipation duplicate.
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-idempotent-issuance"
@@ -110,7 +155,21 @@ structuralChecks: "sc-inv-03": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-03"
 	title:        "Regime Immutability domain invariant"
 	artifactType: "domain-model"
-	description:  "regimeVersion + amount + currency são write-once por Invoice (BD2). Bump de version aplica-se a invoices futuras, NUNCA a invoices históricas."
+	description: """
+		regimeVersion + amount + currency são write-once por Invoice (BD2). Bump de version aplica-se a invoices futuras, NUNCA a invoices históricas.
+
+		Layers ativos (per adr-086 D2):
+		- L4 VERSIONED: regimeVersion frozen post-creation; bump aplica apenas a Invoices futuras
+		- L7 DECISION CONTEXT: qual versão regulatória governou a decisão fiscal histórica DEVE permanecer reconstruível (decision context preservation per founder ajuste)
+
+		Layers non-applicable: L1, L2, L2.5, L3, L5, L6
+		Non-applicability rationale: presence + cross-field cobertos em sc-inv-01/02; sem adoption proof binding, contract resolution discipline, freshness drift (immutability é timeless), interpretation step.
+
+		RE-VAL: Yes — periodic audit re-evaluates regimeVersion immutability em snapshots históricos detectando retroactive regime modification.
+
+		War-game evidence (per adr-086 D5):
+		Regulatory change — new regimeVersion activated por compliance update; sem immutability discipline, Invoices históricas auto-updated to new regime via 'helpful' migration script; NF-e ≥5yr retention audit fails porque historical regime context perdido; defesa regulatória em fiscalização impossível.
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-regime-immutability"
@@ -144,7 +203,22 @@ structuralChecks: "sc-inv-04": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-04"
 	title:        "Lifecycle States domain invariant"
 	artifactType: "domain-model"
-	description:  "Invoice.status pertence ao enum {issued, cancelled} apenas (BD5). Sem transição para qualquer outro estado."
+	description: """
+		Invoice.status pertence ao enum {issued, cancelled} apenas (BD5). Sem transição para qualquer outro estado.
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: status field populated
+		- L2 CROSS-FIELD: enum membership constraint
+		- L6 DECISION↔INTERPRETATION COHERENCE: lifecycle semantics não admitem interpretação divergente entre consumers (app A trata 'pending' como aceito; app B ignora; app C converte para issued — coherence breaks downstream decisioning)
+
+		Layers non-applicable: L2.5, L3, L4, L5, L7
+		Non-applicability rationale: invariant é structural-local enum + interpretation coherence; sem adoption proof binding, contract resolution discipline, version dependency (enum é timeless), freshness drift, decision context scaling.
+
+		RE-VAL: N/A (state machine fechada; enum é constante).
+
+		War-game evidence (per adr-086 D5):
+		State introduction — application code adiciona estado intermediário ('pending', 'draft', 'amended') silently para handling de edge case operacional; consumer SCF vê Invoice com status desconhecido + behavior divergente (treat as issued / treat as cancelled / skip); cascade integration breaks; reconciliation diverge silently entre CMT/SCF/REW.
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-lifecycle-states"
@@ -172,7 +246,23 @@ structuralChecks: "sc-inv-05": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-05"
 	title:        "Cancellation Boundary domain invariant"
 	artifactType: "domain-model"
-	description:  "Cancellation INV-owned APENAS dentro de janela fiscal regulada via cancellationWindow(regimeVersion). Pós-cancel, Invoice fields são imutáveis (BD5 + G3)."
+	description: """
+		Cancellation INV-owned APENAS dentro de janela fiscal regulada via cancellationWindow(regimeVersion). Pós-cancel, Invoice fields são imutáveis (BD5 + G3).
+
+		Layers ativos (per adr-086 D2):
+		- L3 RESOLVABLE CONTRACT: cancellationWindow lookup by regimeVersion depende de authoritative versioned regime registry external (ATO/CMT BC owns regime definition; INV resolves at decision time)
+		- L4 VERSIONED: cancellationWindow é função de regimeVersion frozen at Invoice creation
+		- L5 FRESHNESS HEURISTIC: within-window temporal check ((cancelledAt - issuedAt) ≤ window)
+		- L7 DECISION CONTEXT: cancellation decision scope (per-Invoice; respect to regime-defined window) + magnitude (regulatory boundary breach is HARD)
+
+		Layers non-applicable: L1, L2, L2.5, L6
+		Non-applicability rationale: presence + cardinality cobertos em sc-inv-01/04; sem adoption proof binding; sem interpretation coherence step (cancellation é declarative state transition not interpretive).
+
+		RE-VAL: Yes — replay engine + periodic audit catches out-of-window cancellation patterns post-hoc; cross-BC sync com ATO regime updates valida cancellationWindow resolution remains consistent.
+
+		War-game evidence (per adr-086 D5):
+		Mini-ATO stealth — developer convenience adicionando cancellationWindow calculation inline dentro de INV (ao invés de chamada à regime/policy authority externa); regime updates exigem coordinating com ATO BC; mini-ATO inline fragments authoritative regime regulation + INV BC absorve responsabilidade que pertence ao ATO domain; future regime updates desincronizadas + audit trail divergence.
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-cancellation-boundary"
@@ -209,7 +299,21 @@ structuralChecks: "sc-inv-06": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-06"
 	title:        "Fiscal Document Reference Integrity domain invariant"
 	artifactType: "domain-model"
-	description:  "Toda Invoice tem fiscalDocRef non-empty + write-once post-creation (cc-04 audit trail regulatory-grade)."
+	description: """
+		Toda Invoice tem fiscalDocRef non-empty + write-once post-creation (cc-04 audit trail regulatory-grade).
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: fiscalDocRef non-empty
+		- L4 VERSIONED: write-once post-creation (no mutation allowed)
+
+		Layers non-applicable: L2, L2.5, L3, L5, L6, L7
+		Non-applicability rationale: invariant é structural presence + write-once discipline; sem cross-field coherence (referência standalone); sem adoption proof binding, contract resolution, freshness drift, interpretation step, decision context scaling.
+
+		RE-VAL: N/A (write-once é immutability discipline; não evolui).
+
+		War-game evidence (per adr-086 D5):
+		Replacement scenario — operational mistake fixing typo no fiscalDocRef via UPDATE direto OR script de migration; NF-e audit trail broken (≥5yr retention requires immutable reference); fiscalização Bacen/Receita identifica gap; compliance exposure + sanção regulatória.
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-fiscal-doc-ref-integrity"
@@ -242,7 +346,22 @@ structuralChecks: "sc-inv-07": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-07"
 	title:        "Cancellation Event Required domain invariant"
 	artifactType: "domain-model"
-	description:  "Invoice.status==cancelled implica existência de InvoiceCancelled event correspondente (G3 explicit-event-only — sem soft-delete)."
+	description: """
+		Invoice.status==cancelled implica existência de InvoiceCancelled event correspondente (G3 explicit-event-only — sem soft-delete).
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: InvoiceCancelled event existe no event log para invoiceId cancelled
+		- L2 CROSS-FIELD: status→event consistency (status=cancelled ⇒ event existe)
+		- L3 RESOLVABLE CONTRACT: event log reference resolution (cancellation reconstrutível via event audit)
+
+		Layers non-applicable: L2.5, L4, L5, L6, L7
+		Non-applicability rationale: invariant é state-event consistency + event log resolution; events são immutable records (não versioned); sem adoption proof binding, freshness drift, interpretation step, decision context scaling.
+
+		RE-VAL: Yes — periodic audit catches state-event mismatches via cross-instance lint comparing Invoice.status com event log entries.
+
+		War-game evidence (per adr-086 D5):
+		Soft-delete — DBA convenience flips Invoice.status=cancelled directly em DB para handling 'duplicada' (no UI ticket request) skipping event emission; consumers downstream (SCF/REW) não veem InvoiceCancelled event; SCF continua antecipando receivable invalida; reconciliation diverge silently entre INV state + event log + downstream BCs.
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-cancellation-event-required"
@@ -276,7 +395,22 @@ structuralChecks: "sc-inv-08": artifact_schemas.#StructuralCheck & {
 	id:           "sc-inv-08"
 	title:        "Receivable Referential Integrity domain invariant"
 	artifactType: "domain-model"
-	description:  "Toda Receivable referencia Invoice válida via invoiceId (não há Receivable órfã)."
+	description: """
+		Toda Receivable referencia Invoice válida via invoiceId (não há Receivable órfã).
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: Receivable + Invoice both exist
+		- L2 CROSS-FIELD: Receivable.invoiceId resolves to existing Invoice
+		- L3 RESOLVABLE CONTRACT: referential integrity (FK-style discipline)
+
+		Layers non-applicable: L2.5, L4, L5, L6, L7
+		Non-applicability rationale: invariant é structural referential integrity; sem adoption proof binding, version dependency, freshness drift, interpretation step, decision context scaling.
+
+		RE-VAL: N/A (referential integrity timeless; não evolui).
+
+		War-game evidence (per adr-086 D5):
+		Orphan Receivable — Invoice deletada (hard delete via DBA operação OR migration script) ao invés de soft-cancelled per sc-inv-07; Receivable still references non-existent invoiceId; SCF tenta antecipate receivable órfã; integration breaks + financial loss exposure (antecipação sobre invoice inexistente).
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-receivable-referential-integrity"
