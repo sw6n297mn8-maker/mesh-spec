@@ -40,12 +40,43 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // Forbidden patterns são state/property prohibitions (não actions —
 // per founder lint pattern: forbidden é proibição de ESTADO ou
 // PROPRIEDADE, não de ação procedural).
+//
+// DISCAP RETROACTIVE PATCH (WI-078; per adr-086 + PG patch WI-076):
+// Adicionado layer declarations em sc-rew-01..05 (war-game derived
+// pre-meta-template; layer ladder emergiu em Phase 3.5a sc-rew-06..15).
+// War-game evidence permanece em rationale existente (Founder War
+// Game Round 2 attribution forte suficiente per adr-086 D5).
+// Behavioral non-applicability já declared no header existente
+// (inv-rew-undetectable-pattern-risk-declared como HONESTY INVARIANT;
+// inv-rew-model-policy-independence + inv-rew-payload-opacity como
+// BEHAVIORAL deferred).
+//
+// Contraste arquitetural empirically validates DISCAP progressive
+// ladder (per founder observation): INV usa majoritariamente L1/L2/L4
+// (estrutural-local; structural-checks pattern paralelo); REW força
+// L5/L6/L7 (temporais/semânticos/contextuais). Ladder captura
+// complexidade epistemológica crescente, não apenas mais campos.
 
 structuralChecks: "sc-rew-01": artifact_schemas.#StructuralCheck & {
 	id:           "sc-rew-01"
 	title:        "ACL validation cost bounded (per-signal AND per-window)"
 	artifactType: "domain-model"
-	description:  "ACL validation enforces 2 cost budgets distintos: (a) per-signal cost ≤ aclValidationCostBudgetPerSignalMs (default 50ms); single signal exceeding rejeita com 'cost-exceeded'. (b) cumulative cost per second ≤ aclValidationCostBudgetPerSecondMs (default 50000ms = 50 cores @ 1s wall); window exhausted → ACL throttle + backpressure upstream. Ataque distribuído (signals individualmente baratos mas caros em agregação) precisa AMBOS budgets para ser detectado — per-signal só protege spike attack."
+	description: """
+		ACL validation enforces 2 cost budgets distintos: (a) per-signal cost ≤ aclValidationCostBudgetPerSignalMs (default 50ms); single signal exceeding rejeita com 'cost-exceeded'. (b) cumulative cost per second ≤ aclValidationCostBudgetPerSecondMs (default 50000ms = 50 cores @ 1s wall); window exhausted → ACL throttle + backpressure upstream. Ataque distribuído (signals individualmente baratos mas caros em agregação) precisa AMBOS budgets para ser detectado — per-signal só protege spike attack.
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: aclValidationCostBudgetPerSignalMs + aclValidationCostBudgetPerSecondMs fields presentes em RiskPolicy
+		- L2 CROSS-FIELD: signal cost ≤ budget enforcement (per-signal + per-window cumulative)
+		- L4 VERSIONED: budget é function da RiskPolicy active version (versioned authority)
+		- L5 FRESHNESS HEURISTIC: per-second window aggregator (temporal scope)
+
+		Layers non-applicable: L2.5, L3, L6, L7
+		Non-applicability rationale: invariant é cost enforcement structural + temporal window; sem semantic adoption binding (cost é numérico, não meaning), sem contract resolution discipline cross-BC, sem interpretation coherence step, sem decision scope/magnitude scaling.
+
+		RE-VAL: Yes — periodic audit of cost budget compliance via actual measurement vs declared budget (drift detection over time).
+
+		War-game evidence (per adr-086 D5): Founder War Game Round 2 Quebra 1 — distributed cheap-but-many cost attack (presente em rationale existente).
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-rew-acl-validation-cost-bounded"
@@ -84,7 +115,21 @@ structuralChecks: "sc-rew-02": artifact_schemas.#StructuralCheck & {
 	id:           "sc-rew-02"
 	title:        "Late emit blocked by newer evaluation MUST link successor"
 	artifactType: "domain-model"
-	description:  "Quando emit handler detecta newer evaluation E_other para mesmo scope com emittedAt > THIS.computedAt, THIS DEVE emitir evt-risk-evaluation-emit-superseded-by-newer (NÃO evt-risk-evaluation-emit-failed). Distinção semântica: failure = sistema não conseguiu computar; obsolescence = sistema computou mas newer reality já existe. Successor reference (successorEvaluationId) permite consumer ADOPT em vez de RETRY → previne consumer retry loop."
+	description: """
+		Quando emit handler detecta newer evaluation E_other para mesmo scope com emittedAt > THIS.computedAt, THIS DEVE emitir evt-risk-evaluation-emit-superseded-by-newer (NÃO evt-risk-evaluation-emit-failed). Distinção semântica: failure = sistema não conseguiu computar; obsolescence = sistema computou mas newer reality já existe. Successor reference (successorEvaluationId) permite consumer ADOPT em vez de RETRY → previne consumer retry loop.
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: event log entry exists (computed → emit-superseded-by-newer paired)
+		- L2 CROSS-FIELD: status→event consistency (computed status MUST be followed by emit | fail | superseded-by-newer)
+		- L3 RESOLVABLE CONTRACT: successorEvaluationId reference resolves to existing emitted evaluation
+
+		Layers non-applicable: L2.5, L4, L5, L6, L7
+		Non-applicability rationale: invariant é state-event consistency + reference resolution discipline; sem semantic adoption binding (obsolescence é estructural não semântico), sem version dependency (event log é immutable record), sem temporal aging (event ordering é monotonic), sem interpretation step, sem decision context scaling.
+
+		RE-VAL: Yes — replay engine validates absence of orphan computed events; periodic auditor cross-references successorEvaluationId reachability.
+
+		War-game evidence (per adr-086 D5): Founder War Game Round 2 Quebra 2 — false negative semântico (failure ≠ obsolescence; presente em rationale existente).
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-rew-obsolete-evaluation-must-link-successor"
@@ -127,7 +172,21 @@ structuralChecks: "sc-rew-03": artifact_schemas.#StructuralCheck & {
 	id:           "sc-rew-03"
 	title:        "Successor chain bounded (consumer max-hops; default N=3)"
 	artifactType: "domain-model"
-	description:  "Consumer seguindo successorEvaluationId chain (E1→E2→E3→...) NÃO pode seguir além de N hops (default 3; configurable per consumer policy). Após N hops sem chegar a evaluation 'fresh-and-valid', consumer DEVE: (a) emitir cmd-request-risk-evaluation novo OR (b) escalate via ADR override OR (c) abort decisão. Sem bound: consumer-side livelock em high-throughput scenarios."
+	description: """
+		Consumer seguindo successorEvaluationId chain (E1→E2→E3→...) NÃO pode seguir além de N hops (default 3; configurable per consumer policy). Após N hops sem chegar a evaluation 'fresh-and-valid', consumer DEVE: (a) emitir cmd-request-risk-evaluation novo OR (b) escalate via ADR override OR (c) abort decisão. Sem bound: consumer-side livelock em high-throughput scenarios.
+
+		Layers ativos (per adr-086 D2):
+		- L2 CROSS-FIELD: chain length tracking (hop counter cross-references between consecutive evaluations)
+		- L3 RESOLVABLE CONTRACT: lineage references resolvable per-hop (each successorEvaluationId resolves to existing evaluation; chain é navigable auditable lineage, não contador local)
+		- L7 DECISION CONTEXT: consumer policy max-hops decision scope + magnitude (per-consumer; ADR override path quando bound atingido recurrentemente)
+
+		Layers non-applicable: L1, L2.5, L4, L5, L6
+		Non-applicability rationale: invariant é consumer-side bound discipline; chain materializes naturally via L2/L3 (não exige presence specific check), sem adoption proof binding, sem version dependency (chain é runtime lineage), sem temporal freshness drift, sem interpretation coherence step (chain bound é mecânico não interpretativo).
+
+		RE-VAL: No (chain bound é deterministic numeric limit declarado em consumer policy; não evolui ao longo do tempo).
+
+		War-game evidence (per adr-086 D5): Founder War Game Round 2 Ajuste Extra 2 — loop de resolução indireto (consumer livelock em high-throughput scenarios; presente em rationale existente).
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-rew-successor-chain-bounded"
@@ -166,7 +225,21 @@ structuralChecks: "sc-rew-04": artifact_schemas.#StructuralCheck & {
 	id:           "sc-rew-04"
 	title:        "Replay confidence propagation through downstream usage chain"
 	artifactType: "domain-model"
-	description:  "Outputs de replay com replayConfidence != 'complete' DEVEM propagar confidence metadata para qualquer downstream usage chain: training pipelines, analytics aggregations, derived signal generation, audit reports. Downstream usage MUST attach confidenceProvenance: {originalReplayConfidence, propagationDepth, derivedFromReplayId}. Sem propagação: erro parcial vira verdade futura via training contamination."
+	description: """
+		Outputs de replay com replayConfidence != 'complete' DEVEM propagar confidence metadata para qualquer downstream usage chain: training pipelines, analytics aggregations, derived signal generation, audit reports. Downstream usage MUST attach confidenceProvenance: {originalReplayConfidence, propagationDepth, derivedFromReplayId}. Sem propagação: erro parcial vira verdade futura via training contamination.
+
+		Layers ativos (per adr-086 D2):
+		- L1 PRESENCE: confidenceProvenance metadata attached em downstream artifacts
+		- L2 CROSS-FIELD: chain propagation (originalReplayConfidence + propagationDepth + derivedFromReplayId coerentes through chain)
+		- L3 RESOLVABLE CONTRACT: lineage references resolve (derivedFromReplayId aponta para replay output existente)
+
+		Layers non-applicable: L2.5, L4, L5, L6, L7
+		Non-applicability rationale: invariant é provenance discipline + chain propagation; sem adoption proof binding (provenance é metadata transparency, não semantic adoption), sem version dependency (replay output is immutable record), sem temporal aging (confidence tag persists indefinitely), sem interpretation coherence step, sem decision context scaling.
+
+		RE-VAL: Yes — data lineage audit + training pipeline gates rejeitando un-provenanced inputs (periodic verification).
+
+		War-game evidence (per adr-086 D5): Founder War Game Round 2 Quebra 4 — erro parcial vira verdade futura via uso indireto (training contamination chain; presente em rationale existente).
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-rew-replay-confidence-propagation"
@@ -207,7 +280,23 @@ structuralChecks: "sc-rew-05": artifact_schemas.#StructuralCheck & {
 	id:           "sc-rew-05"
 	title:        "Decision binding to evaluation version (TOCTOU defense)"
 	artifactType: "domain-model"
-	description:  "Toda ação downstream usando REW evaluation DEVE: (a) referenciar evaluationId em ação metadata; (b) RECHECK evaluation status no aggregate (não projection) ANTES de commit final da ação; (c) se evaluation foi superseded entre leitura e commit → ação DEVE FALHAR com 'evaluation-superseded-during-execution' OR REVALIDATE com new evaluation. Defesa contra TOCTOU (time-of-check vs time-of-use) gap."
+	description: """
+		Toda ação downstream usando REW evaluation DEVE: (a) referenciar evaluationId em ação metadata; (b) RECHECK evaluation status no aggregate (não projection) ANTES de commit final da ação; (c) se evaluation foi superseded entre leitura e commit → ação DEVE FALHAR com 'evaluation-superseded-during-execution' OR REVALIDATE com new evaluation. Defesa contra TOCTOU (time-of-check vs time-of-use) gap.
+
+		Layers ativos (per adr-086 D2):
+		- L2 CROSS-FIELD: read-vs-commit consistency (evaluationStatus_at_read == current_status_now)
+		- L4 VERSIONED: evaluation version frozen at read time (evaluationId binding em action metadata)
+		- L5 FRESHNESS HEURISTIC: recheck timestamp freshness (pre-commit query antes de commit final)
+		- L6 DECISION↔INTERPRETATION COHERENCE: commit action DEVE refletir interpretação do snapshot lido, não estado semanticamente diferente obtido depois (per founder ajuste — TOCTOU defense é definição direta de L6)
+		- L7 DECISION CONTEXT: consumer pre-commit recheck decision scope + magnitude (cross-BC contract enforcement runtime)
+
+		Layers non-applicable: L1, L2.5, L3
+		Non-applicability rationale: invariant é cross-time semantic consistency discipline; presence step covered indirectly via L4 binding metadata, sem adoption proof binding (TOCTOU defense é runtime consumer pattern não semantic adoption), sem contract resolution discipline cross-BC structural (consumer SDK responsibility runtime).
+
+		RE-VAL: Yes — cross-BC audit verifica ação metadata contém evaluationId + recheck timestamp; future attestation infrastructure per def-016.
+
+		War-game evidence (per adr-086 D5): Founder War Game Round 2 Quebra 5 — TOCTOU defense (intervalo entre leitura e ação; presente em rationale existente).
+		"""
 	kind:         "domain-invariant"
 	rule: {
 		invariantId: "inv-rew-decision-binding-to-evaluation-version"
