@@ -464,7 +464,7 @@ structuralChecks: "sc-bdg-07": artifact_schemas.#StructuralCheck & {
 		"""
 	kind: "domain-invariant"
 	rule: {
-		invariantId: "inv-commitment-id-uniqueness-per-cost-center"
+		invariantId: "inv-commitment-id-global-uniqueness-active"
 		assertion: """
 			∀ CommitmentId C (issued by CMT):
 			  count(BudgetCommitment bc where
@@ -496,6 +496,6 @@ structuralChecks: "sc-bdg-07": artifact_schemas.#StructuralCheck & {
 			"per-CostCenter uniqueness check treating semantics as local (semantic regression — uniqueness é global)",
 		]
 	}
-	errorMessage: "domain-invariant inv-commitment-id-uniqueness-per-cost-center: 2+ BudgetCommitments ativos para mesmo CommitmentId em BDG state (global) OR re-approval sem liberação prévia OR per-CostCenter semantics regression. Uniqueness é GLOBAL (CommitmentId é CMT-issued canonical id; unicidade econômica transversal). Verifique aggregate guard global uniqueness check + persistence atomic operation + RE-VAL periodic global cardinality audit."
-	rationale:    "Idempotência de aprovação ao nível de compromisso (paralelo CTR sc-ctr-01 single-active-version pattern). Title atualizado para refletir GLOBAL semantics (per founder ajuste Section 2 #5 Opção A): CommitmentId é CMT-issued canonical id; representa unicidade econômica transversal; um compromisso bilateral só pode ter UMA reserva orçamentária ativa simultaneamente em toda a rede BDG. **Note grandfathered name**: rule.invariantId referencia domain-model code 'inv-commitment-id-uniqueness-per-cost-center' (grandfathered name carries 'per-cost-center' suffix). Rule body do domain-model já diz 'em BDG' (global semantic correct). Domain-model rename para alinhar code com global semantics é WI-085 separado (semantic change requires ADR per CLAUDE.md). L5 confirmadamente FORA per founder ajuste Section 1 #5 — 'active' depends only on status, NOT temporal expiry. RE-VAL essential — drift patterns detectable apenas via periodic global cardinality audit."
+	errorMessage: "domain-invariant inv-commitment-id-global-uniqueness-active: 2+ BudgetCommitments ativos para mesmo CommitmentId em BDG state (global) OR re-approval sem liberação prévia OR per-CostCenter semantics regression. Uniqueness é GLOBAL (CommitmentId é CMT-issued canonical id; unicidade econômica transversal). Verifique aggregate guard global uniqueness check + persistence atomic operation + RE-VAL periodic global cardinality audit."
+	rationale:    "Idempotência de aprovação ao nível de compromisso (paralelo CTR sc-ctr-01 single-active-version pattern). Title + invariantId refletem GLOBAL semantics: CommitmentId é CMT-issued canonical id; representa unicidade econômica transversal; um compromisso bilateral só pode ter UMA reserva orçamentária ativa simultaneamente em toda a rede BDG. **Semantic correction adopted per ADR-087** (WI-085): rename atomic do invariant code de 'inv-commitment-id-uniqueness-per-cost-center' → 'inv-commitment-id-global-uniqueness-active' across domain-model + agent-spec + governance + structural-check — **semantic correction, NOT cosmetic refactor**: uniqueness é global sobre CommitmentId/CMT economic identity, NOT scoped per costCenter. L5 confirmadamente FORA per founder ajuste WI-084 Section 1 #5 — 'active' depends only on status, NOT temporal expiry. RE-VAL essential — drift patterns detectable apenas via periodic global cardinality audit."
 }

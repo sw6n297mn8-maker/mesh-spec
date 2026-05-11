@@ -68,7 +68,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-commitment-not-payment",
 			"inv-allocation-not-treasury",
 			"inv-released-amount-matches-commitment",
-			"inv-commitment-id-uniqueness-per-cost-center",
+			"inv-commitment-id-global-uniqueness-active",
 		]
 		projections: [
 			"prj-budget-approval-status",
@@ -115,14 +115,14 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-coverage-gate-deterministic",
 			"inv-cost-center-required",
 			"inv-alcada-respected",
-			"inv-commitment-id-uniqueness-per-cost-center",
+			"inv-commitment-id-global-uniqueness-active",
 			"prj-cost-center-availability",
 		]
 		preconditions: [
 			"Centro de Custo identificado por act-identify-cost-center",
 			"prj-cost-center-availability disponível com latência aceitável",
 			"Tabela de Alçadas vigente acessível como configuração externa",
-			"CommitmentId NÃO tem Comprometimento Orçamentário ATIVO em agg-cost-center (per inv-commitment-id-uniqueness-per-cost-center; histórico de liberados não bloqueia)",
+			"CommitmentId NÃO tem Comprometimento Orçamentário ATIVO em agg-cost-center (per inv-commitment-id-global-uniqueness-active; histórico de liberados não bloqueia)",
 		]
 		postconditions: [
 			"Outcome approved: Comprometimento Orçamentário registrado contra Centro de Custo + evt-budget-approved emitido + Saldo Disponível decrementado",
@@ -275,7 +275,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 		description:  "act-execute-coverage-gate NUNCA registra novo Comprometimento Orçamentário ATIVO para CommitmentId que já tem Comprometimento ATIVO em agg-cost-center. Re-aprovação requer liberação prévia."
 		verification: "Runner verifica que handler de cmd-approve-budget consulta agg-cost-center por CommitmentId ANTES de registrar; se Comprometimento ATIVO existe, command é rejeitado. Histórico de Comprometimentos liberados (status=released) NÃO bloqueia (BudgetCommitmentIds distintos preservados)."
 		onViolation:  "block-and-escalate"
-		rationale:    "derivedFromInvariant: inv-commitment-id-uniqueness-per-cost-center. enforcementLevel: domain (lookup atômico no agg-cost-center antes de registrar — handler do command é o gate). Idempotência ao nível de compromisso previne double-booking que inflaria comprometimento agregado contra o Centro de Custo. Sustenta cálculo correto de Saldo Disponível."
+		rationale:    "derivedFromInvariant: inv-commitment-id-global-uniqueness-active. enforcementLevel: domain (lookup atômico no agg-cost-center antes de registrar — handler do command é o gate). Idempotência ao nível de compromisso previne double-booking que inflaria comprometimento agregado contra o Centro de Custo. Sustenta cálculo correto de Saldo Disponível."
 	}, {
 		code:         "cst-release-and-out-of-alcada-require-supervision"
 		name:         "Release and Out-of-Alcada Require Supervision"
@@ -490,7 +490,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 		- 4 ficam totalmente protegidas por outros enforcers (inv-
 		  released-amount-matches-commitment via handler do agg-
 		  cost-center que deriva releasedAmount do estado persistido;
-		  inv-commitment-id-uniqueness-per-cost-center via lookup
+		  inv-commitment-id-global-uniqueness-active via lookup
 		  atômico no aggregate; inv-commitment-not-payment via
 		  schema-level guard — operationalScope sem TCM/FCE; inv-
 		  allocation-not-treasury via schema-level guard — sem
