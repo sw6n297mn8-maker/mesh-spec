@@ -52,8 +52,38 @@ structuralCheckGuide: artifact_schemas.#ProductionGuide & {
 			test:        "gapPolicy declara explicitamente que kind aproximado NÃO é instanciado — extension via ADR (precedente adr-049) é o caminho. Heuristics da rule-composition repete a regra. ifGap da rule-composition redireciona para extension. Verificado por inspeção do guide."
 			severity:    "warn"
 			rationale:   "Schema #StructuralCheck é v1 minimal (adr-041) com extensão deliberada quando caso concreto justifica (adr-049 estabeleceu o pattern). Contorcer kind existente para forçar fit é tq-sc-02 fail no schema; guide reforça via warn (caminho de extension é parte da discipline, não bloqueio absoluto — autor pode legitimamente postergar caso até ADR ser autorada)."
+		}, {
+			id:          "tq-scg-04"
+			description: "Guide enforça layer applicability declaration per domain-invariant rule (Domain-Invariant Structural Check Authoring Protocol per adr-086)"
+			test:        "Process da section rule-composition (sub-block kind=domain-invariant) exige: para cada rule com kind=domain-invariant, declarar applicable layers do progressive ladder de 7 layers (L1 PRESENCE / L2 CROSS-FIELD / L2.5 ADOPTION PROOF / L3 RESOLVABLE CONTRACT / L4 VERSIONED / L5 FRESHNESS / L6 DECISION-INTERPRETATION COHERENCE / L7 DECISION CONTEXT). RE-VALIDATION REQUIREMENT (RE-VAL) é flag SEPARADA dos 7 layers, declarada adicionalmente quando invariant tem evolução temporal/contextual. Para cada layer non-applicable, rationale explícito requerido. Silent omission proibida. Cobre adr-086 D2 progressive applicability ladder per-rule obligation."
+			severity:    "fail"
+			rationale:   "Layer declaration é base do Domain-Invariant Structural Check Authoring Protocol. Sem declaration + non-applicability rationale, rule volta a ser prose plausível — fail per adr-086 D2 base discipline."
+		}, {
+			id:          "tq-scg-05"
+			description: "Guide enforça coverage flags declaration per domain-invariant rule"
+			test:        "Process da section rule-composition exige: cada rule com kind=domain-invariant declara coverage struct {buildTime, validationTime, runtimeRequired} per schema #DomainInvariantRule.coverage (per adr-080). At least one flag MUST be true. Cobre adr-086 D3 coverage flags discipline."
+			severity:    "fail"
+			rationale:   "Coverage flags declaram explicit o que rule cobre por dimensão (build-time / validation-time / runtime). Sem flags ou todos false, rule fica sem dimensão de enforcement declarada — gap silencioso fail per adr-086 D3."
+		}, {
+			id:          "tq-scg-06"
+			description: "Guide enforça runtimeGap mandatory quando coverage.runtimeRequired=true"
+			test:        "Process da section rule-composition exige: quando coverage.runtimeRequired=true, runtimeGap struct MANDATORY com description (o que não é build-time-enforceable) + enforcedBy (onde runtime enforcement vive — aggregate lifecycle / runtime governance layer / external system). Cobre adr-086 D4 runtimeGap declaration protocol."
+			severity:    "fail"
+			rationale:   "runtimeGap separa coverage flag (o que rule cobre) de honesty declaration (o que rule admite não cobrir build-time). Sem runtimeGap, runtimeRequired=true vira reconhecimento abstrato sem articulação — fail per adr-086 D4 + paralelo cst-system-boundary-acknowledged pattern."
+		}, {
+			id:          "tq-scg-07"
+			description: "Guide enforça war-game derivation evidence per domain-invariant rule"
+			test:        "Process da section rule-composition exige: rationale de cada rule kind=domain-invariant referencia (a) concrete production-break case observado, OR (b) credible pre-production failure mode com cenário articulado explícito. REGRA FINAL V2 ('esse erro continuaria válido ao longo do tempo?') + TESTE EPISTEMOLÓGICO V2 ('novo BC consegue interpretar + provar uso correto + detectar drift sem contexto adicional?') considerados (TESTE verifica WHETHER L3, L2.5, L5 apply; non-applicable com rationale OK per progressive ladder). Cobre adr-086 D5 founder dialectic war-game pattern."
+			severity:    "warn"
+			rationale:   "War-game derivation é discipline anti-template-copy per adr-086 D5. warn porque rationale pode ser forte mas formatado imperfeitamente; endurecer post-empirical observation (n=3+ BCs aplicando o protocolo)."
+		}, {
+			id:          "tq-scg-08"
+			description: "Guide enforça behavioral non-applicability declaration"
+			test:        "Process da section rule-composition exige: invariants behavioral puras (architectural review; anti-corruption discipline) que NÃO são structurally enforceable declaradas explicit como non-applicable estruturalmente em domain-invariant rule comment OR rationale. Cobre adr-086 D6 behavioral non-applicability declaration."
+			severity:    "warn"
+			rationale:   "Behavioral non-applicability discipline previne aspirational rules per adr-086 D6. warn porque classification exige maturidade pós INV/REW retro-audit; endurecer quando n=3+ BCs aplicaram o protocolo."
 		}]
-		rationale: "3 critérios cobrem disciplinas centrais para autoria de structural-check: derivação 1:1 rule↔caso concreto (tq-scg-01), acionabilidade de errorMessage como vetor primário do gate (tq-scg-02 hardening), preservação da disciplina de extension-via-ADR vs contorção de kind (tq-scg-03). tq-sc-01/02/03 do schema cobrem o lado de instância autorada; estes critérios cobrem o lado de PROCESSO de autoria — separação consistente com meta-guide (tq-mg-XX) vs schema (#ProductionGuide tq-pg-XX). Hardening tq-sc-01 → tq-scg-02 (ambos fail) reitera disciplina sem elevar severity (é reforço de guide-level)."
+		rationale: "8 critérios cobrem disciplinas para autoria de structural-check: (1) 3 critérios base aplicáveis a TODOS kinds — derivação 1:1 rule↔caso concreto (tq-scg-01), acionabilidade de errorMessage como vetor primário do gate (tq-scg-02 hardening), preservação da disciplina de extension-via-ADR vs contorção de kind (tq-scg-03). (2) 5 critérios específicos para kind=domain-invariant (adr-080 + Domain-Invariant Structural Check Authoring Protocol per adr-086): layer applicability declaration (tq-scg-04 fail), coverage flags declaration (tq-scg-05 fail), runtimeGap mandatory quando runtimeRequired (tq-scg-06 fail), war-game derivation evidence (tq-scg-07 warn), behavioral non-applicability declaration (tq-scg-08 warn). tq-sc-01/02/03 do schema cobrem lado de INSTÂNCIA; estes critérios cobrem lado de PROCESSO de autoria. Severidades fail para tq-scg-04..06 refletem base discipline do protocolo per adr-086; warn para tq-scg-07/08 reflete maturidade incremental (war-game evidence pode ter formatting variation; behavioral classification exige n=3+ BCs aplicando para hardening)."
 	}
 
 	prerequisites: {
@@ -64,7 +94,7 @@ structuralCheckGuide: artifact_schemas.#ProductionGuide & {
 			"Para cada caso: artefato envolvido, qual gap de validação CUE-level a rule fecha (CUE valida shape isolado; structural-check valida coerência cross-block ou cross-file que CUE não alcança)",
 			"Naming abbreviation canônica do artifactType (ex.: 'cv' para canvas, 'gl' para glossary) usada em sc-{abbrev}-NN — id regex do schema é '^sc-[a-z0-9-]+-[0-9]{2}$' mas convenção interna favorece abreviação curta",
 		]
-		gapPolicy: "Se schema do artifactType alvo não existir em architecture/artifact-schemas/, postergue autoria do guide até schema existir. Se schema existe mas nenhum caso concreto de inconsistência foi observado em instâncias, NÃO crie structural-check instance/rule especulativa — PG pode existir como casca documentada; rules surgem quando casos surgem. NÃO infira rules por simetria com structural-checks de outros artifactTypes — cada rule fecha um gap específico do tipo alvo. Se um caso concreto não cabe nos 4 kinds existentes (required-block, reference-exists, same-artifact-consistency, conditional-file-presence), NÃO contorça rule shape para forçar fit — propor extensão do schema #StructuralCheck via ADR (precedente: adr-049 adicionou conditional-file-presence) ANTES de instanciar a rule. Se errorMessage ficar genérico ('regra falhou', 'check falhou'), reescrever ou OMITIR — tq-sc-01 fail. Se founder não souber articular caso concreto com artefato + gap específico, OMITIR rule — rule sem caso é ruído sobre o gate determinístico. Quando dúvida persistir, pergunta direta ao founder; nunca preencher por inferência heurística."
+		gapPolicy: "Se schema do artifactType alvo não existir em architecture/artifact-schemas/, postergue autoria do guide até schema existir. Se schema existe mas nenhum caso concreto de inconsistência foi observado em instâncias, NÃO crie structural-check instance/rule especulativa — PG pode existir como casca documentada; rules surgem quando casos surgem. NÃO infira rules por simetria com structural-checks de outros artifactTypes — cada rule fecha um gap específico do tipo alvo. Se um caso concreto não cabe nos 5 kinds operacionais (4 originais — required-block, reference-exists, same-artifact-consistency, conditional-file-presence; + domain-invariant per adr-080 + Domain-Invariant Structural Check Authoring Protocol per adr-086), NÃO contorça rule shape para forçar fit — propor extensão do schema #StructuralCheck via ADR (precedente: adr-049 adicionou conditional-file-presence; adr-080 adicionou domain-invariant) ANTES de instanciar a rule. Para kind=domain-invariant: rules DEVEM emergir de concrete production-break case OR credible pre-production failure mode com cenário articulado (war-game derivation per adr-086 D5); template-copy de INV/REW structural-checks é anti-pattern explícito proibido. Se errorMessage ficar genérico ('regra falhou', 'check falhou'), reescrever ou OMITIR — tq-sc-01 fail. Se founder não souber articular caso concreto com artefato + gap específico, OMITIR rule — rule sem caso é ruído sobre o gate determinístico. Quando dúvida persistir, pergunta direta ao founder; nunca preencher por inferência heurística."
 		validatorNote: "Em Phase 0, validação é (a) cue vet do arquivo de structural-check para shape e união discriminada, (b) founder review semântico do casamento rule↔caso (rule realmente fecha o gap declarado?). Execução real das rules como gate depende de runner (mecanismo de build-time que carrega structural-checks e executa contra artefatos). Runner é work-item separado — schema + instances podem existir antes do runner; rules ficam latentes até runner ativá-las. Per CLAUDE.md L83-89 e adr-040, structural-check é o ÚNICO mecanismo pós-commit que pode bloquear; existência das rules (mesmo latentes) é parte da governança declarativa que o runner futuro consumirá."
 		outputNote: "Output é arquivo único architecture/structural-checks/<artifactType>.cue agregando todas rules para o tipo (cardinality 'collection' no schema). Tamanho típico: 30-100 linhas para 1-5 rules. Padrão dos arquivos existentes (architecture/structural-checks/canvas.cue): package structural_checks, import de artifact_schemas, declaração 'structuralChecks: \"<id>\": artifact_schemas.#StructuralCheck & {...}', uma entrada por rule. Múltiplos artifactTypes geram múltiplos arquivos (canvas.cue, glossary.cue, production-guide.cue, etc.); convenção operacional: não misturar artifactTypes no mesmo arquivo (basename ≈ artifactType ou abreviação derivada por convenção)."
 	}
@@ -107,8 +137,12 @@ structuralCheckGuide: artifact_schemas.#ProductionGuide & {
 				"CUE shape validation cobre tipos, regex, enums, cardinality, presence requerida — structural-check NÃO duplica essas verificações.",
 				"structural-check cobre coerência cross-block intra-artefato (kinds required-block, reference-exists, same-artifact-consistency) ou cross-file (kind conditional-file-presence).",
 				"Cada rule fecha UM gap; rule que fecha múltiplos gaps sugere split em 2 rules.",
-				"Os 4 kinds atuais cobrem o pattern v1; novo pattern → propor extension via ADR (precedente adr-049), NÃO contorcer kind existente.",
+				"Os 5 kinds operacionais (4 originais — required-block, reference-exists, same-artifact-consistency, conditional-file-presence; + domain-invariant per adr-080 + Domain-Invariant Structural Check Authoring Protocol per adr-086) cobrem patterns atuais; novo pattern → propor extension via ADR (precedente adr-049/adr-080), NÃO contorcer kind existente.",
 				"Casos para validation-prompt advisory (interpretativos, não-determinísticos) NÃO entram aqui — adr-040 separação é categórica.",
+				"Para kind=domain-invariant authoring (per Domain-Invariant Structural Check Authoring Protocol, adr-086): ler domain-model do BC alvo + identificar invariants candidate para structural enforcement. NÃO bulk-copy de INV/REW; cada invariant deriva via war-game derivation (D5).",
+				"War-game admissibility per adr-086 D5: cada candidate rule deve emergir de (a) concrete production-break case observado, OR (b) credible pre-production failure mode com cenário articulado explícito (NÃO especulação genérica). Apply REGRA FINAL V2 + TESTE EPISTEMOLÓGICO V2 como check questions.",
+				"Anti-pattern explícito proibido para kind=domain-invariant: template-copy de structural-checks de outros BCs. Cada BC tem invariants distintas; layer applicability + coverage flags são per-invariant per-BC.",
+				"Behavioral non-applicability identification: durante context-and-rule-identification, identificar invariants do domain-model que são behavioral puras (architectural review; anti-corruption discipline) — essas DEVEM ser declared non-applicable estruturalmente per adr-086 D6 (não força rule estrutural sobre invariant behavioral).",
 			]
 			doneCriteria: "artifactType alvo confirmado; schema target lido; instâncias existentes (se houver) lidas; abreviação canônica determinada; SE houver autoria de rules nesta sessão: casos concretos confirmados com founder (cada um com artefato + gap específico declarados). Sem casos: autoria de rules é diferida; PG pode existir sem instâncias especulativas (per gapPolicy)."
 			ifGap:        "Se artifactType alvo sem instâncias autoradas, postergar autoria das rules — sem instâncias não há observação de inconsistência. Se nenhum caso concreto emergiu, postergar autoria das rules — convenção operacional desta autoria: PG existe; rules surgem quando casos surgem."
@@ -133,13 +167,36 @@ structuralCheckGuide: artifact_schemas.#ProductionGuide & {
 				action: "Compor rationale referenciando caso ou princípio"
 				detail: "rationale referencia (a) caso observado (e.g., 'cobre vc-cv-03 sobre presença de communication') OU (b) princípio específico do schema do artifactType validado. Tautologia ('verifica X porque X é obrigatório') = tq-sc-03 warn — reescrever."
 			}, {
+				action: "Para kind=domain-invariant: aplicar Domain-Invariant Structural Check Authoring Protocol (adr-086)"
+				detail: """
+					Per ADR-086 Domain-Invariant Structural Check Authoring Protocol — 5 disciplinas obrigatórias além de 8 campos base:
+
+					(1) Progressive applicability ladder (D2): declarar applicable layers do 7-LAYERS ladder (L1 PRESENCE / L2 CROSS-FIELD / L2.5 ADOPTION PROOF / L3 RESOLVABLE CONTRACT / L4 VERSIONED / L5 FRESHNESS / L6 DECISION-INTERPRETATION COHERENCE / L7 DECISION CONTEXT). RE-VALIDATION REQUIREMENT (RE-VAL) é flag SEPARADA dos 7 layers, declarada adicionalmente quando invariant tem evolução temporal/contextual. Layers são INDEPENDENTLY APPLICABLE — invariants invocam subset conforme natureza. NÃO obrigação rígida que toda rule invoque todos 7. OBRIGAÇÃO per-rule: declarar applicable layers explicit; para cada non-applicable layer, rationale explícito (NÃO silent omission).
+
+					(2) Coverage flags discipline (D3): declarar coverage struct {buildTime, validationTime, runtimeRequired} per schema #DomainInvariantRule.coverage. buildTime=true (enforceable em commit por build-time validation tooling); validationTime=true (enforceable em instance validation step advisory); runtimeRequired=true (requer runtime context). At least one flag MUST be true.
+
+					(3) runtimeGap declaration (D4): quando coverage.runtimeRequired=true, runtimeGap MANDATORY com description (o que NÃO é build-time-enforceable) + enforcedBy (onde runtime enforcement vive — aggregate lifecycle / runtime governance layer / external system).
+
+					(4) War-game derivation (D5): rationale referencia (a) concrete production-break case observado, OR (b) credible pre-production failure mode com cenário articulado (NÃO especulação). REGRA FINAL V2 + TESTE EPISTEMOLÓGICO V2 considerados (TESTE verifica WHETHER L3, L2.5, L5 apply — non-applicable com rationale OK per progressive ladder).
+
+					(5) Behavioral non-applicability declaration (D6): invariants behavioral puras (architectural review; anti-corruption discipline) declaradas explicit como non-applicable estruturalmente — NÃO force structural rule sobre behavioral invariant.
+
+					Empirical references canônicas:
+					- architecture/structural-checks/inv-domain-model.cue (primeira instância domain-invariant; pre-DISCAP; referência histórica, não exemplar completo — pode ter gaps de declaration por authoring pre-meta-template)
+					- architecture/structural-checks/rew-domain-model.cue (Phase 3.5a; genesis do Domain-Invariant Structural Check Authoring Protocol via meta-template level-2 founder dialectic; referência canônica forte; matriz de layers per sc-rule — sc-rew-08 full ladder com RE-VAL; sc-rew-15 L2+L5 com RE-VAL apenas)
+					"""
+			}, {
 				action: "Verificar coerência semântica rule↔gap"
-				detail: "Releitura: a rule, executada por runner, captura o gap declarado em Section 1? rule mais ampla = falsos positivos esperados; rule mais estreita = gap não fecha. Ajustar até 1:1."
+				detail: "Releitura: a rule, executada por build-time validation tooling, captura o gap declarado em Section 1? rule mais ampla = falsos positivos esperados; rule mais estreita = gap não fecha. Ajustar até 1:1."
 			}]
 			sources: [
-				"architecture/artifact-schemas/structural-check.cue (4 rule sub-types: #RequiredBlockRule, #ReferenceExistsRule, #SameArtifactConsistencyRule, #ConditionalFilePresenceRule)",
+				"architecture/artifact-schemas/structural-check.cue (5 rule sub-types: #RequiredBlockRule, #ReferenceExistsRule, #SameArtifactConsistencyRule, #ConditionalFilePresenceRule, #DomainInvariantRule per adr-080)",
 				"architecture/structural-checks/canvas.cue (3 exemplos: sc-cv-01 referente, sc-cv-02/03 condicional bicondicional)",
+				"architecture/structural-checks/inv-domain-model.cue (primeira instância domain-invariant; pre-DISCAP; referência histórica, não exemplar completo)",
+				"architecture/structural-checks/rew-domain-model.cue (Phase 3.5a; genesis do Domain-Invariant Structural Check Authoring Protocol; referência canônica forte; sc-rew-08 full ladder; sc-rew-15 L2+L5+RE-VAL apenas)",
 				"architecture/artifact-schemas/structural-check.cue _qualityCriteria (tq-sc-01 acionabilidade, tq-sc-02 união discriminada, tq-sc-03 rastreabilidade)",
+				"architecture/adrs/adr-080-extend-structural-check-domain-invariants.cue (kind domain-invariant extension)",
+				"architecture/adrs/adr-086-domain-invariant-authoring-protocol.cue (Domain-Invariant Structural Check Authoring Protocol)",
 			]
 			heuristics: [
 				"id usa abreviação consistente do artifactType (cv=canvas, gl=glossary); NN começa em 01.",
@@ -148,7 +205,12 @@ structuralCheckGuide: artifact_schemas.#ProductionGuide & {
 				"rule shape conforma estritamente ao sub-schema do kind — campos estrangeiros falham união discriminada (enforced por CUE).",
 				"errorMessage tem 3 partes (o que / por quê / como corrigir); falta de qualquer parte degrada acionabilidade.",
 				"rationale referencia caso observado OU princípio do schema; tautologia ('verifica X porque X é obrigatório') é tq-sc-03 warn — reescrever.",
-				"Se candidate rule não cabe nos 4 kinds, parar e propor extension via ADR (precedente adr-049); contorcer sub-schema é tq-sc-02 fail.",
+				"Se candidate rule não cabe nos 5 kinds operacionais (4 originais + domain-invariant per adr-080), parar e propor extension via ADR (precedente adr-049/adr-080); contorcer sub-schema é tq-sc-02 fail.",
+				"kind=domain-invariant: Progressive applicability ladder per adr-086 D2 — 7 layers L1..L7 applicable SELECTIVELY; RE-VAL flag declarada separately quando applicable. Obrigação per-rule é declaração + non-applicability rationale, NÃO invocação rígida.",
+				"kind=domain-invariant: Coverage flags per adr-086 D3 — {buildTime, validationTime, runtimeRequired} com at least one true. Sem flags ou todos false = fail (tq-scg-05).",
+				"kind=domain-invariant: runtimeGap MANDATORY quando runtimeRequired=true per adr-086 D4 — description + enforcedBy preenchidos (aggregate lifecycle / runtime governance layer / external system). Sem isso = fail (tq-scg-06).",
+				"kind=domain-invariant: War-game derivation per adr-086 D5 — rationale referencia production-break OR credible pre-production failure mode com cenário; template-copy é anti-pattern proibido.",
+				"kind=domain-invariant: Behavioral non-applicability per adr-086 D6 — invariants behavioral declaradas explicit non-applicable estruturalmente (NÃO força rule sobre behavioral).",
 			]
 			doneCriteria: "Cada rule tem 8 campos obrigatórios preenchidos (id, title, artifactType, description, kind, rule, errorMessage, rationale); rule shape conforma ao sub-schema do kind sem campos estrangeiros; errorMessage tem 3 partes acionáveis; rationale referencia caso concreto ou princípio (não-tautológico); coerência rule↔gap verificada por releitura."
 			ifGap:        "Se kind atual não cobre o gap concreto, NÃO instanciar com kind aproximado — propor extension de schema #StructuralCheck via ADR (precedente adr-049) ANTES de continuar. Se errorMessage continua genérico após reescritas, reconsiderar se rule está realmente fechando gap concreto OU se é validation-prompt advisory disfarçada de structural-check."
@@ -196,7 +258,12 @@ structuralCheckGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar tq-sc-02: para cada rule, rule shape conforma sub-schema do kind escolhido (required-block: blockName; reference-exists: sourcePath+refNamespace; same-artifact-consistency: referencingBlock+definingBlock+relation; conditional-file-presence: sourcePattern+conditionField+targetPattern+biconditional). Campos estrangeiros falham união discriminada (CUE catch).",
 			"Verificar tq-sc-03 / tq-scg-01: para cada rule, rationale referencia caso concreto observado OU princípio específico do schema do artifactType validado. Tautologia ('verifica X porque X é obrigatório') rejeita.",
 			"Verificar 1:1 rule↔caso (tq-scg-01 hardened fail): cada rule autorada via este guide corresponde a UM caso concreto declarado em context-and-rule-identification. Rule sem caso = ruído.",
-			"Verificar enforcement owner (tq-mg-05 warn): rationale do conjunto OU rationale individual da rule reconhece runner como único enforcer determinístico — instâncias permanecem latentes pré-runner conforme validatorNote do guide.",
+			"Verificar tq-scg-04 (layer-applicability-declared, fail): para kind=domain-invariant rules, applicable layers do progressive ladder (L1..L7) declarados explicit + para cada non-applicable layer, rationale explícito; RE-VAL flag declarada separately quando applicable. Silent omission é fail per adr-086 D2.",
+			"Verificar tq-scg-05 (coverage-flags-declared, fail): para kind=domain-invariant rules, coverage struct {buildTime, validationTime, runtimeRequired} declarado com at least one flag true.",
+			"Verificar tq-scg-06 (runtimegap-mandatory, fail): para kind=domain-invariant rules, quando coverage.runtimeRequired=true, runtimeGap struct com description + enforcedBy (aggregate lifecycle / runtime governance layer / external system) preenchido.",
+			"Verificar tq-scg-07 (war-game-derivation-evidenced, warn): para kind=domain-invariant rules, rationale referencia concrete production-break case OR credible pre-production failure mode com cenário articulado explícito.",
+			"Verificar tq-scg-08 (behavioral-non-applicability-explicit, warn): invariants behavioral puras do domain-model do BC alvo declaradas explicit como non-applicable estruturalmente em rule comment OR rationale; NÃO forçadas em structural rule (aspirational).",
+			"Verificar enforcement owner (tq-mg-05 warn): rationale do conjunto OU rationale individual da rule reconhece build-time validation tooling (e runner futuro, quando ativado per WI-068) como único enforcer determinístico — instâncias permanecem latentes pré-tooling conforme validatorNote do guide.",
 			"Verificar canonical removal (tq-mg-10 warn): se rules forem removidas, gaps cross-block/cross-file ficam sem enforcement determinístico; isso confirma que structural-check é o enforcer canônico desses gaps, não um artefato decorativo.",
 			"Submeter ao founder para aprovação antes de commit.",
 		]
