@@ -13,7 +13,7 @@ rewPrimaryAgentGovernance: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-11"
 
-	roundsExecuted: 3
+	roundsExecuted: 4
 	maxRounds:      4
 
 	status: "stable"
@@ -211,14 +211,119 @@ rewPrimaryAgentGovernance: build_time.#SelfReviewReport & {
 			- Artifact escrito ÚNICO commit (com SRR + WI-074) após
 			  approval completo + ten-012 committed standalone prior.
 			"""
+	}, {
+		round:     4
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Phase 5.1 BC ISOLATION CORRECTION — round post-commit
+			triggered por founder review crítico após autoavaliação
+			honesta da qualidade do envelope. Founder pergunta direta:
+			'REW realmente deveria ter essas partes Cross-BC?'
+
+			DIAGNÓSTICO arquitetural: 3 vazaments do pattern INV
+			inadvertidamente aplicados ao envelope REW, violando BC
+			isolation + envelope-is-control-plane (tq-gvg-09) + spec
+			discipline ACL (cst-14):
+
+			(1) dm-cross-bc-evaluation-utilization-drift métrica observava
+			    'consumer pattern downstream CMT-credit' — downstream
+			    behavior é jurisdição CMT/SCF, NÃO REW control plane;
+			    métrica viola anti-mini-CMT (glossary REW) + envelope-is-
+			    control-plane + REW BC scope (termina em
+			    evt-risk-evaluation-emitted);
+
+			(2) realization tracking em promotionCriteria 2 metric
+			    requisitava 'evaluations com decisões REJECT no CMT-credit
+			    downstream validadas via real outcome (default observado
+			    ≤ 3%)' — REW agent NÃO observa defaults downstream
+			    (mecanismo de observação não existe + observar viola
+			    BC isolation); conceito anti-Goodhart correto MAS
+			    mecanismo colocado errado (no agent control plane);
+
+			(3) failureHandling onTimeout retry policy declarava 'Cross-BC
+			    signal source query (CMT/SSC/DLV ACL): max 1 retry curto
+			    1-2s' — inconsistente com spec.cst-14 acl-boundary-
+			    acknowledged que declara signals push-based pre-ingestion
+			    via ACL; REW agent NÃO query cross-BC sync durante
+			    evaluation (vazamento INV pattern).
+
+			ORIGEM DOS VAZAMENTOS: pattern INV tem cross-BC sync queries
+			legítimas (INV → CMT regime resolution) + cross-BC observation
+			legítima (receivable realization é mesmo BC INV). Padrão
+			INV aplicado a REW sem verificar consistência com spec REW
+			discipline ACL push-based + cascade boundary downstream.
+
+			CORREÇÕES APLICADAS (Opção A approved por founder):
+
+			(a) Removida dm-cross-bc-evaluation-utilization-drift da
+			    métrica list (driftDetection.metrics agora 8 metrics:
+			    2 OPERATIONAL + 3 HYBRID + 3 ADVERSARIAL). Rationale
+			    consolidado atualizado.
+
+			(b) Reframada realization tracking em promotionCriteria 2:
+			    removida do metric block (REW agent não observa
+			    defaults); reframada em rationale como EXTERNAL AUDIT
+			    GATE executado por processo independente fora do REW
+			    control plane que consome CMT/SCF default events +
+			    correlaciona com REW evaluations REJECT downstream +
+			    alimenta promotion validation→operational gate via
+			    human review. Anti-Goodhart concept preserved; channel
+			    separated from agent control plane.
+
+			(c) Removido cross-BC retry em failureHandling.onTimeout —
+			    retry agora APENAS intra-BC projection (1 retry
+			    exponential) + audit logic ZERO retry. Cross-BC signal
+			    absence durante evaluation = insufficient-context route
+			    direto (sem retry cross-BC). Anti-bypass discipline
+			    reforçada.
+
+			(d) Atualizado regression trigger 8 (combined adversarial
+			    signal) — removidas combos contendo cross-bc-drift;
+			    4 combos restantes todos com observations intra-BC apenas
+			    (replay-divergence + gate-block; supersede-rate +
+			    gate-block; governance-change + replay-divergence;
+			    supersede-rate + governance-change).
+
+			(e) Atualizada rationale outer — 4 seções editadas
+			    (DRIFT DETECTION; ANTI-GOODHART via EXTERNAL AUDIT
+			    CHANNEL; REGRESSION TRIGGERS combos; FAILURE HANDLING;
+			    CROSS-ARTIFACT DEPENDENCIES). Phase 5.1 CORRECTION
+			    markers explicit em cada bloco modificado.
+
+			(f) Adicionado header comment documentando Phase 5.1
+			    correction + origens dos vazaments + correções
+			    aplicadas (transparency obrigatória).
+
+			VEREDITO ARQUITETURAL CORRIGIDO: envelope agora respeita
+			BC isolation + envelope-is-control-plane + spec discipline
+			ACL push-based. Anti-Goodhart guardrail preservado mas
+			channel-separated (audit externo, NÃO agent metric).
+			Estrutura: 940 → ~930 linhas (líquido: -10 linhas após
+			adições de header + correção markers compensando remoções).
+
+			cue vet ./... EXIT=0 sustentado após correções.
+
+			LESSON LEARNED REGISTRADA: padrões cross-BC do INV são
+			NÃO-transferíveis para outros BCs sem verificação caso-a-
+			caso. INV tem cross-BC sync queries (CMT regime) +
+			cross-BC observation (receivable realization mesmo BC).
+			Outros BCs podem ter ACL push-based + BC scope diferente.
+			Verificação obrigatória: cada vazamento INV → outro BC
+			DEVE ser checado contra spec.cst-acl-boundary-acknowledged
+			equivalent do BC alvo.
+			"""
 	}]
 
 	findings: {}
 
 	summary: """
 		REW Primary Agent Governance Envelope (rewPrimaryAgentGovernance)
-		materializado em commit Phase 5 sobre Phase 4 agent-spec
-		(rew-primary-agent.cue). Control plane supervisório:
+		materializado em Phase 5 sobre Phase 4 agent-spec
+		(rew-primary-agent.cue) + Phase 5.1 BC isolation correction
+		(round 4) após founder review post-commit identificou 3
+		vazaments do pattern INV. Control plane supervisório:
 		routing + caps + drift + calibration + failureHandling.
 
 		Identity: agentRef='agt-rew-primary'; governanceGlobalVersion='0.1'
@@ -264,13 +369,22 @@ rewPrimaryAgentGovernance: build_time.#SelfReviewReport & {
 		+ envelope reframa CONTEÚDO em linguagem de governança. Schema
 		rename deferred to dedicated ADR + 9-envelope migration.
 
-		3 rounds executados (Section 1 + 2 + 3); 6 founder ajustes
-		pre-write incorporados + ten-012 standalone commit + envelope
-		write/cue vet/commit. Pattern paralelo INV/DLV/CTR primary
-		agent envelope discipline; REW é segundo envelope consumindo
-		structural-checks Phase 3.5 sc-rew-* per ADR-080; primeira
-		instância completa do pattern decision-systems-with-truth-
-		boundaries per adr-085 + lens-truth-boundaries (post-INV
-		extraction).
+		4 rounds executados (Section 1 + 2 + 3 + Phase 5.1 BC isolation
+		correction post-commit); 6 founder ajustes pre-write
+		incorporados + ten-012 standalone commit + envelope
+		write/cue vet/commit + 3 vazaments cross-BC corrigidos via
+		round 4. Pattern paralelo INV/DLV/CTR primary agent envelope
+		discipline com ressalva crítica registrada: cross-BC patterns
+		de INV NÃO são auto-transferíveis (INV tem sync queries
+		legítimas + same-BC observation; outros BCs podem ter
+		ACL push-based + BC scope diferente).
+
+		REW é segundo envelope consumindo structural-checks Phase 3.5
+		sc-rew-* per ADR-080; primeira instância completa do pattern
+		decision-systems-with-truth-boundaries per adr-085 +
+		lens-truth-boundaries (post-INV extraction). Phase 5.1
+		correction estrengthens pattern por evidência empírica que
+		cross-BC observation NÃO é generalizável do INV (transferência
+		direta produz BC isolation violation).
 		"""
 }

@@ -37,18 +37,36 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //   Bacen scrutiny + cross-BC explainability via replay determinístico.
 //
 // Authoring manual Phase 0 per manualAuthoringProtocol section-gates (3 sections
-// + ten-012 tension-entry registered):
+// + ten-012 tension-entry registered + Phase 5.1 BC isolation correction):
 // - Section 1 (routing-and-blast-radius): 5 escalationRouting (1:1 com spec) +
 //   blastRadiusCaps 2/30 mid-band conservador + routing precedence canonical
 //   5-tier + multi-match resolution rule + scope elevation rule + unknown event
 //   safety rule (narrowed to governance surface per founder ajuste) + HALT_AGENT
 //   recovery protocol 4-condition.
-// - Section 2 (drift-and-calibration): 9 drift metrics (2 OP + 3 HYBRID + 4 ADV)
+// - Section 2 (drift-and-calibration): 8 drift metrics (2 OP + 3 HYBRID + 3 ADV)
 //   + 3 drift→action bindings + 2 promotionCriteria com anti-gaming embedded +
-//   realization tracking GUARDRAIL EPISTEMOLÓGICO anti-Goodhart + 8
+//   realization tracking via EXTERNAL audit gate anti-Goodhart + 8
 //   regressionTriggers + failureHandling 3 events anti-bypass discipline.
 // - Section 3 (bidirectional-validation): tq-gv/tq-gvg checks all PASSING;
 //   rationale outer cobertura completa de 19 disciplinas.
+//
+// Phase 5.1 CORRECTION (post-commit founder review): BC isolation violations
+// detected — 3 cross-BC vazaments do pattern INV inadvertidamente aplicados
+// ao REW. Corrigidos:
+// (1) Removida métrica dm-cross-bc-evaluation-utilization-drift (downstream
+//     observation viola envelope-is-control-plane tq-gvg-09; anti-mini-CMT;
+//     REW BC ends em evt-risk-evaluation-emitted).
+// (2) Reframada realization tracking em promotionCriteria 2: tirada do
+//     metric (REW agent NÃO observa defaults downstream); declarada como
+//     EXTERNAL audit gate executado por processo independente consumindo
+//     CMT/SCF default events. Anti-Goodhart preservado; observation channel
+//     separated from REW agent.
+// (3) Removido cross-BC retry em failureHandling.onTimeout — ACL é push-based
+//     per cst-14; REW agent NÃO query cross-BC durante evaluation; signal
+//     absence = insufficient-context route (sem retry cross-BC).
+// Vazaments originaram de pattern INV (INV faz cross-BC sync queries para
+// CMT regime). REW spec.cst-14 acl-boundary-acknowledged declara push-based
+// signals — inconsistência detectada e corrigida.
 //
 // Founder ajustes pre-write incorporados:
 //   Section 1: governance-critical-activation discipline materializada via
@@ -346,10 +364,12 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 	}
 
 	// =============================================
-	// DRIFT DETECTION (9 metrics — 2 OPERATIONAL + 3 HYBRID + 4 ADVERSARIAL)
+	// DRIFT DETECTION (8 metrics — 2 OPERATIONAL + 3 HYBRID + 3 ADVERSARIAL)
 	// 3 drift→action bindings declarados (replay-divergence; gate-block;
 	// governance-version-change). Multi-camada per founder anti-gaming
-	// (paralelo INV pattern).
+	// (paralelo INV pattern). Phase 5.1: removida métrica
+	// dm-cross-bc-evaluation-utilization-drift por violar BC isolation
+	// (downstream observation NÃO é REW control plane; anti-mini-CMT).
 	//
 	// SCHEMA INTERPRETATION NOTE: schema field 'evaluationCadence' refere-se
 	// a drift metric computation cadence (quando runtime governance layer
@@ -421,27 +441,28 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 			baseline:    "≤ 1 model activation + 1 policy activation per month (governance discipline baseline)"
 			threshold:   "> 3 activations OR deprecations em janela mensal (instability OR adversarial baseline shift pattern)"
 			rationale:   "[CLASS: ADVERSARIAL] Mais que 3 mudanças/mês em baseline sistêmico é signal de OR instability (model/policy iterating sem stabilization) OR adversarial pattern (alguém forçando frequent baseline shifts para mascarar drift OR para evade detection). REW: baseline shift afeta ALL subsequent evaluations — cascade REW → CMT-credit decisions amplifica. Statistical signal discipline tq-gvg-11: window = monthly (governance versioning operates monthly cadence); scope = global (governance affects all evaluations); threshold sustained 1 breach evaluation."
-		}, {
-			code:        "dm-cross-bc-evaluation-utilization-drift"
-			name:        "Cross-BC Utilization Drift (CMT-credit consumer pattern)"
-			description: "Mudança em padrão de consumption de evt-risk-evaluation-emitted pelo CMT-credit downstream (volume per assetIdentifier cluster, distribution per boundedScore range, time-to-credit-decision). Mensurado mensalmente via cross-BC observation."
-			baseline:    "Distribuição estável CMT-credit consumer pattern (baseline observed in stable operational period)"
-			threshold:   "Mudança > 30% em consumer pattern janela mensal (downstream gaming / model exploitation indicator)"
-			rationale:   "[CLASS: ADVERSARIAL] Cross-BC utilization drift detecta padrões emergentes downstream que indicam OR consumer gaming (CMT-credit consumer adapting requests para extrair pattern) OR model exploitation (downstream descobre como provocar specific score ranges). REW NÃO controla downstream behavior — mas drift signal é actionable via governance review + potencial model recalibration. Statistical signal discipline tq-gvg-11: confidence threshold = 30% pattern shift; window = monthly; scope = cluster-affected default, global-elevável se cross-cluster pattern sustained."
 		}]
 		rationale: """
-			9 drift metrics organizadas em 3 classes:
+			8 drift metrics organizadas em 3 classes:
 			- OPERATIONAL pure (2): dm-evaluation-cycle-time + dm-emit-
 			  failure-rate — latência + emit infrastructure health.
 			- HYBRID op/adv (3): dm-supersede-rate + dm-alert-resolution-
 			  completeness + dm-structural-gate-block-rate — operacional
 			  baseline mas com camada adversarial detection (gaming
 			  patterns).
-			- ADVERSARIAL fundamental (4): dm-replay-divergence-detected
+			- ADVERSARIAL fundamental (3): dm-replay-divergence-detected
 			  (binary contract integrity) + dm-governance-version-change-
-			  frequency (baseline manipulation) + dm-cross-bc-evaluation-
-			  utilization-drift (downstream gaming) + (combined via
-			  regression trigger 8 'weak + weak = strong').
+			  frequency (baseline manipulation) + (combined via regression
+			  trigger 8 'weak + weak = strong').
+
+			Phase 5.1 CORRECTION: dm-cross-bc-evaluation-utilization-drift
+			removida (versão inicial inadvertidamente incluía downstream
+			observation que viola envelope-is-control-plane tq-gvg-09 +
+			anti-mini-CMT + REW BC isolation que termina em evt-risk-
+			evaluation-emitted). Downstream consumer behavior é jurisdição
+			CMT/SCF, NÃO REW agent — métrica vazada do pattern INV
+			(que tem cross-BC observation legítima de receivable
+			realization) sem verificação de consistência com REW BC scope.
 
 			DRIFT→ACTION BINDINGS (3 automatic enforcement per tq-gvg-06)
 			— bindings materializados via #RegressionTrigger.immediateAction
@@ -521,7 +542,6 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 				AND supervisor-override-rate ≤ 5% sustentado por 8 semanas
 				AND COVERAGE: ≥ 10 model versions × ≥ 5 policy versions; ≥ 8 distinct asset clusters
 				AND audit trail reconstrução bem-sucedida amostra 10 evaluations (semanticHash + signalSnapshotIds + version freeze verificáveis)
-				AND realization tracking: evaluations com decisões REJECT no CMT-credit downstream validadas via real outcome (default observado ≤ 3%) sustained 8 weeks
 				"""
 			minimumObservationPeriod: "90 days"
 			rationale: """
@@ -533,21 +553,25 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 				completa; gating promotion em reconstrução real previne
 				'parecer auditável' sem ser.
 
-				GUARDRAIL EPISTEMOLÓGICO (NÃO reward function) — founder
-				ajuste crítico anti-Goodhart: realization tracking via
-				downstream CMT default observation é usado EXCLUSIVAMENTE
-				como calibration guardrail validando que decisões calibram
-				contra realidade observável. NÃO é target operacional de
-				otimização — agent NÃO deve otimizar 'default rate' como
-				métrica de performance (anti-pattern: optimizing for low
-				default rate produz over-conservative decisions which harm
-				credit access; over-rejection = miscalibration tipo).
-				Founder framing canonical: 'epistemic validation ≠ reward
-				shaping'; 'guardrail epistemológico, NÃO reward function'.
-				Realization informa promotion gate, NÃO runtime decision-
-				making — agent computa via signal + version frozen;
-				realization é post-hoc validation completamente desacoplada
-				do runtime decision path.
+				EXTERNAL AUDIT GATE (Phase 5.1 corrected — anti-Goodhart
+				preservado via channel separation): promoção
+				validation→operational adicionalmente requer audit gate
+				externo executado FORA do REW agent control plane —
+				processo de audit independente consome CMT/SCF default
+				events + correlaciona com REW evaluations REJECT
+				downstream + valida que decisões calibraram contra
+				realidade observável. REW agent NÃO observa defaults
+				(downstream observation viola BC isolation + anti-mini-
+				CMT); audit gate é HUMAN-DRIVEN review com evidence
+				externa, executado a cada promotion attempt. Founder
+				framing canonical preserved: 'epistemic validation ≠
+				reward shaping'; 'guardrail epistemológico, NÃO reward
+				function'. CORREÇÃO Phase 5.1: versão inicial colocou
+				realization tracking como metric do agent — incorreto,
+				agent não observa defaults. Realization tracking
+				rebatizada como external audit channel separada do
+				runtime decision path (agent computa via signal + version
+				frozen; audit observa fora-de-banda).
 				"""
 		}]
 		regressionTriggers: [{
@@ -594,7 +618,7 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 			rationale:       "Sustained high supersede rate indica OR signal source drift (eventual consistency lag amplificada) OR adversarial supersede gaming (forçar chain growth para bypass invariants OR para mascarar pattern). reduce-autonomy 1 level por 2 weeks enquanto causa investigada."
 		}, {
 			description:     "Combined adversarial signal (founder 'weak + weak = strong')"
-			metric:          "≥ 2 métricas classificadas adversarial OR hybrid simultâneas violadas em janela mensal: dm-replay-divergence-detected (any) OR dm-structural-gate-block-rate (concentration OR distributed) OR dm-supersede-rate breach OR dm-governance-version-change-frequency breach OR dm-cross-bc-evaluation-utilization-drift breach"
+			metric:          "≥ 2 métricas classificadas adversarial OR hybrid simultâneas violadas em janela mensal: dm-replay-divergence-detected (any) OR dm-structural-gate-block-rate (concentration OR distributed) OR dm-supersede-rate breach OR dm-governance-version-change-frequency breach"
 			threshold:       "1 breach in monthly evaluation window"
 			immediateAction: "suspend-and-escalate"
 			rationale: """
@@ -604,14 +628,18 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 				suspend (não reduce-autonomy) reconhece que 2 sinais
 				adversariais simultâneos é evidência de pattern coordenado,
 				NÃO ruído operacional independente.
-				Cobertura combos REW:
+				Cobertura combos REW (4 métricas observáveis pelo agent):
 				- replay-divergence + gate-block (probing pré-bypass);
-				- supersede-rate + cross-bc-drift (downstream gaming +
-				  chain inflation);
+				- supersede-rate + gate-block (chain inflation + probing);
 				- governance-change + replay-divergence (model manipulation
 				  para forçar baseline shift covering divergence);
-				- gate-block distributed + cross-bc-drift (coordinated
-				  exploitation cross-BC).
+				- supersede-rate + governance-change (recalibration timing
+				  abuse).
+				Phase 5.1 CORRECTION: removidas combos com
+				dm-cross-bc-evaluation-utilization-drift (métrica removida
+				per BC isolation). Cross-BC downstream gaming detection é
+				responsabilidade de processo de audit externo, NÃO REW
+				agent control plane.
 				"""
 		}]
 		rationale: """
@@ -660,16 +688,19 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 				    / prj-active-risk-alerts): max 1 retry com exponential
 				    backoff (initial 2s) — projection eventual consistency
 				    tolerável;
-				(2) Cross-BC signal source query (CMT/SSC/DLV ACL):
-				    max 1 retry curto 1-2s — diferencia infra failure
-				    (rede / latency spike / ACL momentary unavailability)
-				    vs domain inconsistency. Se 2º retry falha cross-BC
-				    → suspend imediato via insufficient-context routing;
-				(3) sc-rew-* audit timeout (post-emit invariant check):
+				(2) sc-rew-* audit timeout (post-emit invariant check):
 				    SEM RETRY — bug determinístico em audit logic; suspend
 				    imediato.
+
+				Phase 5.1 CORRECTION: removido cross-BC signal source retry
+				(versão inicial herdou pattern INV que tem sync queries
+				cross-BC para CMT regime). REW agent NÃO query cross-BC
+				durante evaluation — signals chegam push-based via ACL
+				pre-ingestion (spec.cst-14 acl-boundary-acknowledged).
+				Signal absence durante evaluation = insufficient-context
+				route (sem retry cross-BC), per discipline ACL push-based.
 				"""
-			description: "Timeout split per founder discipline. Intra-BC projection: 1 retry exponential (transient lag tolerável). Cross-BC ACL signal source: 1 retry curto 1-2s (rede/ACL momentary unavailability ≠ domain inconsistency); 2º falha = estrutural confirmado → suspend insufficient-context. Audit logic timeout: ZERO retry — não diferenciar entre bug e flakiness em gate evaluation; suspend imediato. ANTI-BYPASS CRITICAL: retry NUNCA contorna gates — gate failure é gate failure independente de retry; retry é APENAS para query infrastructure flakiness OR cross-BC infra differentiation, JAMAIS para gate evaluation OR invariant check."
+			description: "Timeout split per founder discipline. Intra-BC projection: 1 retry exponential (transient lag tolerável). Audit logic timeout: ZERO retry — não diferenciar entre bug e flakiness em gate evaluation; suspend imediato. ANTI-BYPASS CRITICAL: retry NUNCA contorna gates — gate failure é gate failure independente de retry; retry é APENAS para query infrastructure flakiness intra-BC, JAMAIS para gate evaluation OR invariant check OR cross-BC operations (ACL push-based; signal absence vira insufficient-context route, não retry)."
 		}
 		onRepeatedFailure: {
 			action:      "suspend-and-escalate"
@@ -683,17 +714,22 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 			scrutiny + cross-BC explainability + cascade CMT-credit):
 			- suspend-and-escalate em todos 3 events Phase 0 default
 			- retry conservador em onTimeout APENAS queries projection
-			  intra-BC (não cross-BC sem 1 retry curto; NUNCA gate
-			  evaluation OR invariant check)
+			  intra-BC (NUNCA cross-BC; NUNCA gate evaluation OR invariant
+			  check; signal absence cross-BC = insufficient-context route)
 			- 3/24h threshold paralelo INV/SSC/BDG tier alto
 
 			ANTI-BYPASS DISCIPLINE per founder canonical: failureHandling
 			NUNCA contorna gates — retry é APENAS para query infrastructure
-			flakiness OR cross-BC infra differentiation, JAMAIS para gate
-			evaluation OR invariant check OR cross-BC critical resolution.
-			Gate failure suspende; retry não 'salva' gate. P10 preserved:
-			gates determinísticos validam sem ser bypassáveis via retry/
-			timeout fallback.
+			flakiness intra-BC, JAMAIS para gate evaluation OR invariant
+			check OR cross-BC operations. Gate failure suspende; retry
+			não 'salva' gate. P10 preserved: gates determinísticos validam
+			sem ser bypassáveis via retry/timeout fallback.
+
+			Phase 5.1 CORRECTION: removido cross-BC retry policy (versão
+			inicial herdou de INV pattern sync queries cross-BC). REW
+			discipline ACL push-based per spec.cst-14 — agent NÃO query
+			cross-BC durante evaluation; cross-BC signal absence =
+			insufficient-context route imediato (sem retry).
 			"""
 	}
 
@@ -794,20 +830,27 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 		30 daily ≥ 2 concurrent ✓; lifecycleStage×caps monotonicidade
 		tq-gvg-07 ✓. Pattern paralelo INV (2/30).
 
-		**DRIFT DETECTION**: 9 metrics com classification op/hybrid/adv
-		(2 OPERATIONAL pure / 3 HYBRID / 4 ADVERSARIAL). Detecção multi-
-		camada paralelo INV pattern:
+		**DRIFT DETECTION**: 8 metrics com classification op/hybrid/adv
+		(2 OPERATIONAL pure / 3 HYBRID / 3 ADVERSARIAL). Detecção multi-
+		camada paralelo INV pattern (escopo intra-BC apenas — REW
+		observa próprios emit + lifecycle + governance versioning;
+		downstream consumer behavior é jurisdição CMT/SCF):
 		- Replay divergence (dm-replay-divergence-detected — binary breach
 		  detector, NÃO statistical rate; tolerance ZERO; LGPD Art. 20
 		  contract integrity);
 		- Gate-block multi-camada (single-actor concentration + multi-
 		  actor distributed probing);
 		- Governance version churn frequency (anti-instability +
-		  anti-adversarial-baseline-shift);
-		- Cross-BC utilization drift (downstream gaming detection).
+		  anti-adversarial-baseline-shift).
 		Drift compute cadence weekly (SCHEMA INTERPRETATION NOTE inline
 		no driftDetection block clarifica vs governance review cadence
 		vs human review cadence).
+
+		Phase 5.1 CORRECTION: removida dm-cross-bc-evaluation-utilization-
+		drift (versão inicial herdou observation downstream do INV
+		pattern, viola REW BC isolation + anti-mini-CMT + envelope-is-
+		control-plane). Downstream gaming detection é responsabilidade
+		de processo de audit externo, NÃO REW agent.
 
 		**3 DRIFT→ACTION BINDINGS** (automatic enforcement per tq-gvg-06,
 		materializadas via #RegressionTrigger.immediateAction schema field
@@ -828,24 +871,38 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 		  suspicious-input VERIFIED route.
 
 		**CALIBRATION**: 20/60 onboarding→validation + 60/90 validation→
-		operational com 4 anti-gaming criteria embedded (coverage multi-
+		operational com anti-gaming criteria embedded (coverage multi-
 		version; ZERO replay divergence binary; ZERO unclassifiable;
-		audit trail reconstrução real; realization tracking via downstream
-		CMT real outcome).
+		audit trail reconstrução real). Validation→operational
+		adicionalmente requer EXTERNAL audit gate (Phase 5.1 corrected
+		— processo independente fora do REW control plane consome
+		CMT/SCF default events + correlaciona com REW evaluations
+		REJECT downstream).
 
-		**REALIZATION TRACKING GUARDRAIL EPISTEMOLÓGICO** (founder ajuste
-		crítico — anti-Goodhart): realization tracking via downstream CMT
-		default observation é usado EXCLUSIVAMENTE como calibration
-		guardrail validando que decisões calibram contra realidade
-		observável. NÃO é target operacional de otimização — agent NÃO
-		deve otimizar 'default rate' como métrica de performance (anti-
-		pattern: optimizing for low default rate produz over-conservative
-		decisions which harm credit access; over-rejection = miscalibration
-		tipo). Founder framing canonical: 'epistemic validation ≠ reward
-		shaping'; 'guardrail epistemológico, NÃO reward function'.
-		Realization informa promotion gate, NÃO runtime decision-making —
-		agent computa via signal + version frozen; realization é post-hoc
-		validation completamente desacoplada do runtime decision path.
+		**ANTI-GOODHART via EXTERNAL AUDIT CHANNEL** (Phase 5.1 corrected
+		— founder ajuste crítico preservado): realization tracking via
+		downstream CMT default observation existe como GUARDRAIL
+		EPISTEMOLÓGICO validando que decisões calibram contra realidade
+		observável — MAS observation channel está fora do REW agent
+		(audit externo, NÃO drift metric do envelope). NÃO é target
+		operacional de otimização — agent NÃO deve otimizar 'default
+		rate' como métrica de performance (anti-pattern: optimizing
+		for low default rate produz over-conservative decisions which
+		harm credit access; over-rejection = miscalibration tipo).
+		Founder framing canonical preserved: 'epistemic validation ≠
+		reward shaping'; 'guardrail epistemológico, NÃO reward function'.
+		Realization informa external audit gate em promotion
+		validation→operational, NÃO runtime decision-making, NÃO drift
+		metric do envelope — agent computa via signal + version frozen;
+		realization é post-hoc validation completamente desacoplada do
+		runtime decision path AND do envelope control plane.
+
+		CORREÇÃO Phase 5.1 (relativo à versão inicial): realization
+		tracking estava como metric em promotionCriteria 2 (incorreto
+		— REW agent NÃO observa defaults downstream; viola BC
+		isolation). Reframado como external audit gate executado por
+		processo independente. Conceito anti-Goodhart preservado;
+		observation channel separated from REW agent control plane.
 
 		**REGRESSION TRIGGERS** (8 incluindo combined adversarial signal):
 		P10 boundary tolerance-zero (suspend); replay divergence HARD 1
@@ -855,19 +912,26 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 		breach (reduce); governance-critical activation rate breach
 		(suspend); sustained supersede pattern (reduce); COMBINED
 		ADVERSARIAL SIGNAL 'weak + weak = strong' (suspend) — combos
-		cobertura: replay-divergence + gate-block (probing pré-bypass);
-		supersede-rate + cross-bc-drift (downstream gaming); governance-
-		change + replay-divergence (model manipulation).
+		cobertura (Phase 5.1 corrected, intra-BC observations apenas):
+		replay-divergence + gate-block (probing pré-bypass); supersede-
+		rate + gate-block (chain inflation + probing); governance-change
+		+ replay-divergence (model manipulation); supersede-rate +
+		governance-change (recalibration timing abuse).
 
 		**FAILURE HANDLING** (adr-058 first-class): suspend-and-escalate
 		em 3 events. Retry diferenciado: intra-BC projection 1 retry
-		exponential; cross-BC ACL signal source 1 retry curto 1-2s
-		(infra vs domain differentiation); audit logic ZERO retry.
-		ANTI-BYPASS DISCIPLINE per founder canonical: retry NUNCA contorna
-		gates — gate failure suspende, retry NÃO 'salva' gate. P10
-		preserved unconditionally; retry é APENAS para query infrastructure
-		flakiness OR cross-BC infra differentiation, JAMAIS para gate
-		evaluation OR invariant check.
+		exponential; audit logic ZERO retry. ANTI-BYPASS DISCIPLINE per
+		founder canonical: retry NUNCA contorna gates — gate failure
+		suspende, retry NÃO 'salva' gate. P10 preserved unconditionally;
+		retry é APENAS para query infrastructure flakiness intra-BC,
+		JAMAIS para gate evaluation OR invariant check OR cross-BC
+		operations (ACL push-based per cst-14 — signal absence vira
+		insufficient-context route, NÃO retry cross-BC).
+
+		Phase 5.1 CORRECTION: removido cross-BC retry policy (versão
+		inicial herdou de INV pattern sync queries cross-BC); REW
+		discipline ACL push-based per spec.cst-14 acl-boundary-
+		acknowledged.
 
 		**AUTONOMY OVERRIDES**: empty Phase 0. Promotion via calibration
 		crossing thresholds — tq-gv-14 forbid execute-and-log override
@@ -916,9 +980,17 @@ rewPrimaryAgentGovernance: artifact_schemas.#AgentGovernanceEnvelope & {
 		  layer replay-audit + sc-rew-08 bounded-score audit consumed por
 		  dm-replay-divergence-detected + dm-structural-gate-block-rate
 		  triggers).
-		- Cross-BC signal sources (CMT/SSC/DLV) via ACL (envelope declares
-		  retry discipline diferenciada cross-BC vs intra-BC; ACL boundary
-		  ownership declarado em spec cst-14).
+		- ACL boundary (CMT/SSC/DLV signals push-based pre-ingestion):
+		  signal sources identificados em spec cst-14 acl-boundary-
+		  acknowledged; envelope NÃO declara retry cross-BC (Phase 5.1
+		  corrected — ACL é push, não pull; signal absence vira
+		  insufficient-context route).
+		- External audit channel (Phase 5.1 added): processo independente
+		  fora do REW control plane consome CMT/SCF default events +
+		  correlaciona com REW evaluations REJECT downstream + alimenta
+		  promotion validation→operational gate via human review. REW
+		  agent NÃO observa downstream behavior — audit channel é
+		  separated by design.
 
 		**FORWARD-REFS Phase N+1 deferrals**:
 		- governanceGlobalVersion '0.1' forward-ref canônico (Phase 0;
