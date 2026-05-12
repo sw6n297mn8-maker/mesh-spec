@@ -401,6 +401,33 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"architecture/artifact-schemas/architecture-communication-canvas.cue",
 				]
 				rationale: "Tipos utilitários compartilhados (#NonEmptyString, #ChannelCode, refs canônicos) estão espalhados nos arquivos que os introduziram. Centralizar em shared-types.cue elimina dependências conceituais implícitas e facilita descoberta. Migração: mover definições dos arquivos originais, que passam a consumir do shared-types. Candidatos de rollout subsequente: agent-governance.cue, glossary.cue, domain-model.cue, stakeholder-map.cue."
+			}, {
+				id:         "WI-034"
+				title:      "Adicionar vetor de colusão e operador plataforma à incentive analysis do CMT canvas"
+				tshirtSize: "M"
+				dependsOn: ["WI-009"]
+				outputs: [{
+					artifact: "contexts/cmt/canvas.cue"
+					type:     "update"
+				}]
+				affects: [
+					"contexts/cmt/canvas.cue",
+				]
+				rationale: "Validação semântica vc-cv-02 detectou dois gaps: (1) colusão entre proponente e contraparte para criar compromissos fictícios que alimentam SCF — bypassa gate bilateral por design; (2) operador plataforma (sh-05, agente IA) não analisado como participante com poder assimétrico. Ambos são vetores materiais para um sistema onde CommitmentAccepted origina recebíveis financeiros."
+			}, {
+				id:         "WI-035"
+				title:      "Criar agent-governance envelope para CMT primary agent"
+				tshirtSize: "M"
+				dependsOn: ["WI-024", "WI-028"]
+				outputs: [{
+					artifact: "contexts/cmt/agents/cmt-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/cmt/canvas.cue",
+					"contexts/cmt/agents/cmt-primary-agent.cue",
+				]
+				rationale: "Agent spec referencia governanceRef 'cmt-primary-agent' mas envelope não existe (tq-ag-09 falharia). Canvas governance scope não referencia envelope explicitamente (vc-cv-05 warn). Envelope define thresholds, blast radius caps e calibração operacional do agente."
 			}]
 		}
 
@@ -451,6 +478,949 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"governance/claude/output.cue",
 				]
 				rationale: "CLAUDE.md é artefato derivado de governance/claude/config.cue + governance/claude/output.cue, mas hoje é regenerado manualmente. Drift entre source CUE e derivado é risco operacional — o agente opera a partir do renderizado. Escopo mínimo: regenerar via cue export sobre o package claude, checar idempotência empírica (byte-a-byte), falhar explicitamente quando geração não reproduz conteúdo esperado. Fora de escopo (WIs futuras desta sub-wave): integração com pre-commit hook, drift detection, enforcement no CI."
+			}]
+		}
+
+		// ════════════════════════════════════════════════════════════
+		// W001 backfill — phases pg1, pg2, p4, p5, p0 emergent
+		// (sync com work-graph.cue post-hoc — drift cleanup)
+		// ════════════════════════════════════════════════════════════
+
+		"W001-governance-ci": {
+			id:    "W001-governance-ci"
+			title: "Governance CI — event-validation + projeções complementares"
+			rationale: "CI validation de work-events (state machines, command authority, idempotency) + projeções complementares à ready-queue (blocked-items, in-progress). Phase pg1 do work-graph; independente de phases de domínio."
+
+			tasks: [{
+				id:         "WI-015"
+				title:      "Criar CI validation de work-events"
+				tshirtSize: "S"
+				dependsOn: []
+				outputs: [{
+					artifact: "governance/build-time/event-validation.cue"
+					type:     "create"
+				}]
+				affects: [
+					"governance/build-time/work-events/*.cue",
+				]
+				rationale: "Sem CI validation, regras de state machine, autoridade e idempotência existem apenas como especificação — enforcement é manual e falível. Bootstrap exception: eventos deste WI não são validados pelo CI que ele próprio cria."
+			}, {
+				id:         "WI-016"
+				title:      "Criar projeções blocked-items e in-progress"
+				tshirtSize: "S"
+				dependsOn: []
+				outputs: [{
+					artifact: "governance/build-time/projections/blocked-items.cue"
+					type:     "create"
+				}, {
+					artifact: "governance/build-time/projections/in-progress.cue"
+					type:     "create"
+				}]
+				rationale: "Projeções complementares à ready-queue completam visibilidade do estado do sistema. Sem elas, itens bloqueados e em progresso requerem inspeção manual de event streams."
+			}]
+		}
+
+		"W001-governance-robustness": {
+			id:    "W001-governance-robustness"
+			title: "Governance Robustness — claim expiration, completion gates, drift detection, rebuild scripts"
+			rationale: "Extensões de robustez sobre infraestrutura CI criada em W001-governance-ci. Phase pg2 do work-graph; depende de pg1."
+
+			tasks: [{
+				id:         "WI-017"
+				title:      "Implementar validação CI de claim expiration"
+				tshirtSize: "S"
+				dependsOn: ["WI-015"]
+				outputs: [{
+					artifact: "governance/build-time/claim-expiration-validation.cue"
+					type:     "create"
+				}]
+				affects: [
+					"governance/build-time/event-validation.cue",
+				]
+				rationale: "Validação de task-claim-expired como extensão do CI. Garante que eventos de expiração são válidos (commandId determinístico, referência a claim original) sem depender de scheduling central."
+			}, {
+				id:         "WI-018"
+				title:      "Criar completion-gates e enforcement CI"
+				tshirtSize: "S"
+				dependsOn: ["WI-015"]
+				outputs: [{
+					artifact: "governance/build-time/completion-gates.cue"
+					type:     "create"
+				}]
+				affects: [
+					"governance/build-time/event-validation.cue",
+				]
+				rationale: "Define gates obrigatórios por tipo de artefato e estende CI para validar gatesPassed em task-completed. Sem definição formal, completionValidation aceita qualquer lista — sem enforcement real."
+			}, {
+				id:         "WI-019"
+				title:      "Drift detection de projeções"
+				tshirtSize: "S"
+				dependsOn: ["WI-016"]
+				outputs: [{
+					artifact: "governance/build-time/projection-drift.cue"
+					type:     "create"
+				}]
+				affects: [
+					"governance/build-time/projections/*.cue",
+				]
+				rationale: "CI detecta divergência entre projeções commitadas e estado computado das fontes de verdade. Falha se drift > 0 — agente/humano atualiza. Alternativa rejeitada: auto-rebuild com commit automático, que viola o modelo proposta-antes-de-implementar."
+			}, {
+				id:         "WI-071"
+				title:      "Criar script automático de rebuild para projections (in-progress + ready-queue + blocked-items)"
+				tshirtSize: "S"
+				dependsOn: []
+				outputs: [{
+					artifact: "scripts/ci/rebuild-projections.sh"
+					type:     "create"
+				}]
+				affects: [
+					"governance/build-time/projections/in-progress.cue",
+					"governance/build-time/projections/ready-queue.cue",
+					"governance/build-time/projections/blocked-items.cue",
+				]
+				rationale: """
+					Gap identificado: projections (in-progress.cue + ready-queue.cue + blocked-items.cue)
+					são reconstruídas MANUALMENTE via scan visual de work-events/. Manual rebuild custoso +
+					error-prone + escala mal conforme repo cresce.
+
+					Script proposto: input work-events + task-specs + work-graph; algorithm replay events
+					per stream + compute admission/execution state + readyQueueAlgorithm; output substitui
+					projections (overwrite determinístico). Idempotent + determinístico (P10).
+
+					Criticality medium — automatiza P8 derivation; NÃO modifica source-of-truth (work-events
+					permanecem canonical); reversível.
+					"""
+			}]
+		}
+
+		"W001-ontology-correction": {
+			id:    "W001-ontology-correction"
+			title: "Ontology Correction — domain-definition, subdomains expandidos, context-map v2, canvas revisões, Policy Registry ADR"
+			rationale: """
+				Cadeia linear de correção de ontologia raiz (WI-036→037→038→039) +
+				avaliação de necessidade de Policy Registry (WI-040 derivada de WI-037).
+				Phase p4 do work-graph; independente de phases de governança — correção
+				de domínio pode avançar em paralelo.
+				"""
+
+			tasks: [{
+				id:         "WI-036"
+				title:      "Corrigir domain-definition.cue — ontologia raiz incompleta"
+				tshirtSize: "L"
+				dependsOn: []
+				outputs: [{
+					artifact: "domain/domain-definition.cue"
+					type:     "update"
+				}]
+				affects: [
+					"strategic/subdomains/",
+					"strategic/context-map.cue",
+					"contexts/cmt/canvas.cue",
+					"contexts/ctr/canvas.cue",
+					"domain/stakeholder-map.cue",
+				]
+				rationale: """
+					domain-definition.cue ensina o sistema a pensar o domínio. O artefato atual
+					exclui de outOfScope atividades que são in-scope (P2P, SSC, logística como
+					atividade fim, ITC, TCM, INS, IDC) e posiciona a Mesh como 'infraestrutura
+					financeira' quando a definição correta é 'sistema operacional do ciclo de
+					compromissos econômicos'. Erro de ontologia raiz: tudo que deriva deste
+					artefato herda o viés de escopo. Sem esta correção, expansão de subdomínios
+					e reconstrução do context map operam sobre premissa estratégica incorreta.
+					"""
+			}, {
+				id:         "WI-037"
+				title:      "Expandir catálogo estratégico de subdomínios — novos BCs e revisão dos existentes"
+				tshirtSize: "L"
+				dependsOn: ["WI-036"]
+				outputs: [{
+					artifact: "strategic/subdomains/p2p.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/subdomains/ssc.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/subdomains/itc.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/subdomains/tcm.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/subdomains/ins.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/subdomains/idc.cue"
+					type:     "create"
+				}]
+				affects: [
+					"strategic/subdomains/npm.cue",
+					"strategic/subdomains/scf.cue",
+					"strategic/subdomains/nim.cue",
+					"strategic/subdomains/log.cue",
+					"strategic/subdomains/ato.cue",
+					"strategic/subdomains/fce.cue",
+					"strategic/subdomains/ctr.cue",
+					"strategic/subdomains/cmt.cue",
+					"strategic/subdomains/bdg.cue",
+					"strategic/subdomains/plt.cue",
+					"strategic/subdomains/str.cue",
+					"strategic/context-map.cue",
+				]
+				rationale: """
+					Ontologia expandida (WI-036) desloca o início do ciclo econômico para antes
+					do compromisso — demanda interna, sourcing, qualificação — e adiciona
+					camadas de proteção, tesouraria e comércio exterior ausentes. Sem esses
+					subdomínios, o context map não pode representar o macrofluxo real
+					(P2P→SSC→NPM→CTR→CMT→...→ATO/TCM). Subdomínios existentes precisam
+					revisão de escopo para refletir a definição expandida. Lista de novos BCs é
+					candidata — decisões de fusão (IDN+DGV→IDC é nome candidato), renomeação e
+					reagrupamento serão tomadas durante a execução com aprovação do founder.
+					"""
+			}, {
+				id:         "WI-038"
+				title:      "Reconstruir context-map v2 sobre ontologia expandida"
+				tshirtSize: "L"
+				dependsOn: ["WI-037"]
+				outputs: [{
+					artifact: "strategic/context-map.cue"
+					type:     "update"
+				}]
+				affects: [
+					"contexts/cmt/canvas.cue",
+					"contexts/ctr/canvas.cue",
+				]
+				rationale: """
+					Patch incremental do context map v1 não é viável porque a expansão ontológica
+					desloca onde o ciclo econômico começa e quem é upstream de quem. O spine
+					atual (CMT→BDG→DLV→INV→FCE) começa no meio do filme — o macrofluxo real
+					inicia em P2P→SSC. Reclassificação core/supporting/generic, novos padrões
+					de integração (P2P↔SSC, SSC↔NPM, INS↔CMT/SCF, TCM↔FCE) e documentação do
+					macrofluxo canônico completo exigem reconstrução estruturada, não adição de
+					nós a topologia existente. O context map v1 será base — não descartado.
+					"""
+			}, {
+				id:         "WI-039"
+				title:      "Revisar canvas e domain models existentes pós-expansão ontológica"
+				tshirtSize: "L"
+				dependsOn: ["WI-038"]
+				outputs: [{
+					artifact: "contexts/cmt/canvas.cue"
+					type:     "update"
+				}, {
+					artifact: "contexts/ctr/canvas.cue"
+					type:     "update"
+				}]
+				affects: [
+					"contexts/cmt/domain-model.cue",
+					"contexts/cmt/glossary.cue",
+				]
+				rationale: """
+					Canvas CMT e CTR foram modelados com a Mesh posicionada como infraestrutura
+					financeira. Com a ontologia expandida, CTR deixa de ser entrada do sistema e
+					vira estágio pós-sourcing; CMT recebe novos upstream dependencies (P2P, SSC
+					via CTR). Ambos precisam revisão de posicionamento no macrofluxo,
+					upstream/downstream dependencies, stakeholders e commands de entrada. Domain
+					model e glossary do CMT podem precisar ajustes derivados. O conteúdo
+					existente é preservável — a revisão é de posicionamento e fronteiras, não
+					de reescrita.
+					"""
+			}, {
+				id:         "WI-040"
+				title:      "Avaliar necessidade de Policy Registry como subdomínio supporting"
+				tshirtSize: "L"
+				dependsOn: ["WI-037"]
+				outputs: [{
+					artifact: "architecture/adrs/adr-policy-registry-decision.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/artifact-schemas/domain-model.cue",
+					"architecture/artifact-schemas/agent-governance.cue",
+					"architecture/artifact-schemas/cross-context-flow.cue",
+					"strategic/subdomains/",
+				]
+				rationale: """
+					Problema: arquitetura atual distribui políticas em 4 camadas desconectadas —
+					#Policy no domain model (por BC), #AgentGovernanceEnvelope (por agente),
+					policyRefs em cross-context-flows e quality gates no build-time — sem
+					mecanismo formalizado de registro, versionamento e avaliação cross-BC.
+
+					Gaps críticos: (1) avaliação cross-BC sem ponto definido; (2) enforcement
+					regulatório (Bacen/LGPD/KYC/AML) sem garantia consistente; (3) sem
+					versionamento unificado; (4) consistência de dados sob eventual consistency.
+
+					Trade-off central: centralização (PLR) melhora consistência/auditabilidade
+					mas introduz acoplamento sistêmico; distribuição (atual) preserva autonomia
+					mas aumenta drift/inconsistência.
+
+					Decisão: (a) criar subdomínio PLR como supporting; (b) extensões dos
+					mecanismos existentes; ou (c) aceitar gaps como risco gerenciável. Output é
+					ADR documentando decisão.
+					"""
+			}]
+		}
+
+		"W001-bc-bootstrap-core": {
+			id:    "W001-bc-bootstrap-core"
+			title: "BC bootstrap — 5 core BCs (DLV, FCE, NGR, NIM, REW)"
+			rationale: "Bootstrap completo de artefatos de domínio (canvas + glossary + domain-model + agent-spec + agent-governance) para 5 BCs core: DLV (verificação), FCE (liquidação financeira), NGR (network growth), NIM (mechanism design), REW (risk engine). Phase p5 do work-graph; dependências comuns de schemas + golden examples WI-009/011/020/021/022/028."
+
+			tasks: [{
+				id:         "WI-042"
+				title:      "Criar artefatos de domínio para Delivery & Verification (DLV)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/dlv/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/dlv/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/dlv/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/dlv/agents/dlv-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/dlv/agents/dlv-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: """
+					Bootstrap completo do BC core DLV. Ordem de produção:
+					canvas → glossary → domain-model → agent-spec → governance.
+
+					Core domain — verifica execução de compromissos contra critérios acordados.
+					Consome evidência operacional de LOG com integridade garantida por IDC;
+					publica verificação para INV (faturamento), REW (risco), NIM (mecanismos)
+					e DRC (disputas). Ponto de convergência entre evidência física e
+					compromisso econômico.
+
+					Criticality medium (default template) — não controla decisão sobre dinheiro
+					nem boundary regulatório direto. Verificação é gate operacional, não
+					financeiro.
+					"""
+			}, {
+				id:         "WI-043"
+				title:      "Criar artefatos de domínio para Financial Commitment Execution (FCE)"
+				tshirtSize: "L"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028", "WI-046", "WI-053", "WI-062"]
+				outputs: [{
+					artifact: "contexts/fce/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/fce/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/fce/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/fce/agents/fce-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/fce/agents/fce-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: """
+					Bootstrap completo do BC core FCE. Ordem de produção:
+					canvas → glossary → domain-model → agent-spec → governance.
+
+					Core domain — executa liquidação financeira condicionada a gates de risco
+					(REW) e fatura válida (INV), com disponibilidade informada por TCM e
+					settlement físico via BKR. Publica sinais de pagamento para REW, ATO e TCM.
+					Ponto de convergência financeira: onde decisões de compromisso se tornam
+					movimentos de dinheiro.
+
+					Criticality high — controla decisão e movimento de dinheiro. Liquidação
+					financeira regulada por Bacen/SCD. Especificação incorreta de gates ou
+					condições de settlement pode gerar pagamento indevido ou bloqueio de
+					operação legítima.
+					"""
+			}, {
+				id:         "WI-044"
+				title:      "Criar artefatos de domínio para Network Growth & Reach (NGR)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028", "WI-045"]
+				outputs: [{
+					artifact: "contexts/ngr/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ngr/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ngr/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ngr/agents/ngr-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ngr/agents/ngr-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: """
+					Bootstrap completo do BC core NGR. Core domain — direciona crescimento da
+					rede usando insights de NIM (inteligência de rede) e opera em parceria com
+					NPM (gestão de participantes) para onboarding. Wardley evolution genesis
+					— linguagem e mecanismos ainda em formação.
+
+					Criticality medium (default template) — não controla decisão sobre dinheiro
+					nem boundary regulatório. Estratégia de growth é operacional.
+					"""
+			}, {
+				id:         "WI-045"
+				title:      "Criar artefatos de domínio para Network Intelligence & Mechanism Design (NIM)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/nim/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/nim/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/nim/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/nim/agents/nim-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/nim/agents/nim-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: """
+					Bootstrap completo do BC core NIM. Core domain — modela topologia e
+					comportamento de rede para calibrar mecanismos de incentivo. Consome dados
+					de NPM e DLV; publica ontologia de mecanismos para REW (risco) e insights
+					para NGR (growth). Wardley evolution genesis — domínio experimental de
+					mechanism design.
+
+					Criticality medium (default template) — mecanismos de incentivo têm impacto
+					econômico indireto via REW, mas NIM não controla decisão sobre dinheiro
+					diretamente.
+					"""
+			}, {
+				id:         "WI-046"
+				title:      "Criar artefatos de domínio para Risk Engine & Risk Observability (REW)"
+				tshirtSize: "L"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/rew/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/rew/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/rew/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/rew/agents/rew-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/rew/agents/rew-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: """
+					Bootstrap completo do BC core REW. Core domain — hub de risco da rede.
+					Avalia risco contínuo de participantes e operações; publica scores e
+					elegibilidade consumidos por CMT (gates de compromisso), FCE (liquidação),
+					SCF (antecipação) e DLV (verificação). Recebe sinais de múltiplos BCs —
+					posição topológica de convergência.
+
+					Criticality high — controla decisão sobre dinheiro. Scoring incorreto pode
+					liberar liquidação para operação inelegível ou bloquear operação legítima.
+					Decisões de elegibilidade condicionam diretamente FCE e SCF.
+					"""
+			}]
+		}
+
+		"W001-bc-bootstrap-supporting": {
+			id:    "W001-bc-bootstrap-supporting"
+			title: "BC bootstrap — 15 supporting BCs"
+			rationale: "Bootstrap completo de artefatos de domínio (canvas + glossary + domain-model + agent-spec + agent-governance) para 15 BCs supporting: ATO, BDG, DRC, IDC, INS, ITC, INV, LOG, NPM, OBS, P2P, PLT, SCF, SSC, TCM. Phase p5 do work-graph; executáveis em paralelo após schemas disponíveis."
+
+			tasks: [{
+				id:         "WI-047"
+				title:      "Criar artefatos de domínio para Accounting & Tax Operations (ATO)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/ato/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ato/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ato/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ato/agents/ato-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ato/agents/ato-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — registra lançamentos fiscais e contábeis derivados de INV, FCE, SCF e ITC. Conformist em relação a todos os upstream. Criticality high — boundary regulatório e obrigação acessória. Regulação tributária brasileira impõe constraints invioláveis. ATO materializa obrigações legais derivadas das decisões financeiras."
+			}, {
+				id:         "WI-048"
+				title:      "Criar artefatos de domínio para Budget & Approval (BDG)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/bdg/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bdg/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bdg/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bdg/agents/bdg-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bdg/agents/bdg-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — aprova ou rejeita cobertura orçamentária para compromissos. Consome CommitmentAccepted de CMT; publica BudgetApproved para DLV. Gate orçamentário entre compromisso e execução. Criticality medium — gate operacional interno, sem boundary regulatório direto."
+			}, {
+				id:         "WI-049"
+				title:      "Criar artefatos de domínio para Disputes, Reversals & Corrections (DRC)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/drc/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/drc/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/drc/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/drc/agents/drc-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/drc/agents/drc-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — avalia e resolve disputas referenciando compromissos (CMT), evidência (DLV) e termos (CTR). Publica decisões de resolução para FCE (reversão financeira) e CMT (ajuste). Criticality medium — processo de resolução é operacional; impacto financeiro indireto via FCE."
+			}, {
+				id:         "WI-050"
+				title:      "Criar artefatos de domínio para Identity & Data Governance (IDC)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/idc/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/idc/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/idc/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/idc/agents/idc-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/idc/agents/idc-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — gestão de identidade, autenticação, autorização, governança de dados e integridade criptográfica (CAS, DSSE, Merkle proofs). Unifica identidade e primitivas de verificação sob único owner. Criticality high — LGPD e KYC/AML impõem constraints invioláveis. Identidade incorreta compromete cadeia de custódia e autorização de operações financeiras."
+			}, {
+				id:         "WI-051"
+				title:      "Criar artefatos de domínio para Insurance & Risk Transfer (INS)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028", "WI-046", "WI-059"]
+				outputs: [{
+					artifact: "contexts/ins/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ins/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ins/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ins/agents/ins-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ins/agents/ins-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — governa instrumentos de proteção e transferência de risco: seguro garantia, seguro de carga, performance bonds. INS intermedia — não subscreve. Consome precificação de REW e termos de CTR; publica estado de cobertura para SCF. Criticality high — regime SUSEP/IRB impõe constraints de compliance securitário."
+			}, {
+				id:         "WI-052"
+				title:      "Criar artefatos de domínio para International Trade & Customs (ITC)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028", "WI-047"]
+				outputs: [{
+					artifact: "contexts/itc/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/itc/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/itc/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/itc/agents/itc-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/itc/agents/itc-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — governa operações de comércio exterior: freight forwarding, desembaraço aduaneiro, documentação comex e compliance aduaneiro. Consome de LOG e CTR; publica para ATO (obrigações fiscais aduaneiras). Criticality high — Siscomex, câmbio e legislação aduaneira impõem constraints."
+			}, {
+				id:         "WI-053"
+				title:      "Criar artefatos de domínio para Invoicing (INV)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/inv/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/inv/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/inv/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/inv/agents/inv-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/inv/agents/inv-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — emite faturas vinculadas a entrega verificada (DLV); publica InvoiceIssued consumido por FCE (liquidação), SCF (antecipação de recebíveis) e ATO (obrigações fiscais). Ponto de materialização de recebíveis na cadeia operacional. Criticality medium — regras de NF-e são invariantes no domain-model."
+			}, {
+				id:         "WI-054"
+				title:      "Criar artefatos de domínio para Logistics & Operational Evidence (LOG)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/log/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/log/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/log/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/log/agents/log-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/log/agents/log-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — captura, registro e gestão de evidência operacional: rastreamento de carga, inspeção de qualidade, medição de obra, atividades de campo. Produz cadeia de custódia que DLV consome para verificação. Consome integridade criptográfica de IDC. Criticality medium — evidência operacional é input para verificação, não decisão financeira direta."
+			}, {
+				id:         "WI-055"
+				title:      "Criar artefatos de domínio para Network Participant Management (NPM)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/npm/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/npm/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/npm/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/npm/agents/npm-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/npm/agents/npm-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — gerencia ciclo de vida de participantes da rede: onboarding, qualificação, suspensão. Publica eventos para REW (risco), NIM (inteligência), CTR (contratos) e SSC (sourcing). Opera em parceria com NGR (growth). Criticality medium — KYC/AML é responsabilidade de IDC, não de NPM."
+			}, {
+				id:         "WI-056"
+				title:      "Criar artefatos de domínio para Observability & Operational Intelligence (OBS)"
+				tshirtSize: "S"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/obs/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/obs/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/obs/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/obs/agents/obs-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/obs/agents/obs-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — fornece observabilidade e inteligência operacional. Capability transversal consumida por todos os BCs de domínio. Wardley evolution commodity. Criticality medium — infraestrutura de observabilidade, sem decisão financeira ou regulatória."
+			}, {
+				id:         "WI-057"
+				title:      "Criar artefatos de domínio para Procure-to-Pay (P2P)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/p2p/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/p2p/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/p2p/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/p2p/agents/p2p-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/p2p/agents/p2p-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — governa ciclo interno de demanda-compra: requisição, aprovação, emissão de pedido de compra. Publica pedidos para CMT (compromisso econômico); consome decisões de SSC (sourcing estratégico). Criticality medium — procurement operacional."
+			}, {
+				id:         "WI-058"
+				title:      "Criar artefatos de domínio para Platform & Infrastructure Services (PLT)"
+				tshirtSize: "S"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/plt/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/plt/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/plt/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/plt/agents/plt-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/plt/agents/plt-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — fornece serviços de plataforma e infraestrutura. Capability transversal consumida por todos os BCs de domínio. Wardley evolution commodity. Criticality medium — infraestrutura de plataforma, sem decisão financeira ou regulatória."
+			}, {
+				id:         "WI-059"
+				title:      "Criar artefatos de domínio para Supply Chain Finance (SCF)"
+				tshirtSize: "L"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028", "WI-046"]
+				outputs: [{
+					artifact: "contexts/scf/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/scf/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/scf/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/scf/agents/scf-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/scf/agents/scf-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — estrutura e oferta de produtos financeiros sobre recebíveis operacionais: antecipação, reverse factoring, dynamic discounting, preparação de portfólios de securitização. Opera como SCD. Consome recebíveis de INV, compromissos de CMT, elegibilidade de REW, termos de CTR e cobertura de INS. Criticality high — cessão de recebíveis, operação de FIDC e regras de SCD exigem precisão regulatória."
+			}, {
+				id:         "WI-060"
+				title:      "Criar artefatos de domínio para Strategic Sourcing & Category (SSC)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/ssc/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ssc/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ssc/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ssc/agents/ssc-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ssc/agents/ssc-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — governa seleção estratégica de fornecedores e gestão de categorias: cotação, equalização TCO, spend analysis. Publica decisões para P2P (procurement) e CTR (contratos); consome qualificação de NPM. Criticality medium — sourcing estratégico é operacional."
+			}, {
+				id:         "WI-061"
+				title:      "Criar artefatos de domínio para Treasury & Cash Management (TCM)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/tcm/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/tcm/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/tcm/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/tcm/agents/tcm-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/tcm/agents/tcm-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Supporting domain — governa visão de tesouraria corporativa: posição de caixa, projeção de fluxo, estratégia de liquidez e exposição cambial. Consome sinais de FCE e CMT; informa disponibilidade de caixa para FCE. Criticality medium — tesouraria informa decisões mas não controla movimento de dinheiro (FCE controla)."
+			}]
+		}
+
+		"W001-bc-bootstrap-generic": {
+			id:    "W001-bc-bootstrap-generic"
+			title: "BC bootstrap — 3 generic BCs (BKR, NTF, STR)"
+			rationale: "Bootstrap completo de artefatos de domínio (canvas + glossary + domain-model + agent-spec + agent-governance) para 3 BCs generic: BKR (banking rails), NTF (notifications), STR (storage). Capabilities transversais consumidas por todos os BCs. Phase p5 do work-graph; menor prioridade — shape mais estável."
+
+			tasks: [{
+				id:         "WI-062"
+				title:      "Criar artefatos de domínio para Banking Rails & Settlement (BKR)"
+				tshirtSize: "M"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/bkr/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bkr/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bkr/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bkr/agents/bkr-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/bkr/agents/bkr-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Generic domain — capability transversal de integração com rails bancários e sistemas de liquidação externos (SPB, PIX, câmaras de liquidação). Define boundary entre Mesh e sistema financeiro regulado. Consumido por FCE para execução física de settlement. Criticality high — controla movimento de dinheiro na camada de execução física."
+			}, {
+				id:         "WI-063"
+				title:      "Criar artefatos de domínio para Notifications & Communications (NTF)"
+				tshirtSize: "S"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/ntf/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ntf/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ntf/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ntf/agents/ntf-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/ntf/agents/ntf-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Generic domain — fornece notificações e comunicações. Capability transversal consumida por todos os BCs de domínio. Wardley evolution commodity. Criticality medium — infraestrutura de comunicação, sem decisão financeira ou regulatória."
+			}, {
+				id:         "WI-064"
+				title:      "Criar artefatos de domínio para Storage & Document Management (STR)"
+				tshirtSize: "S"
+				dependsOn: ["WI-009", "WI-011", "WI-020", "WI-021", "WI-022", "WI-028"]
+				outputs: [{
+					artifact: "contexts/str/canvas.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/str/glossary.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/str/domain-model.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/str/agents/str-primary-agent.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/str/agents/str-primary-agent.governance.cue"
+					type:     "create"
+				}]
+				rationale: "Generic domain — fornece armazenamento e gestão documental. Capability transversal consumida por todos os BCs de domínio. Wardley evolution commodity. Criticality medium — infraestrutura de storage, sem decisão financeira ou regulatória."
+			}]
+		}
+
+		"W001-economic-foundation": {
+			id:    "W001-economic-foundation"
+			title: "Economic Foundation Layers — emergent from WI-053"
+			rationale: """
+				Layer -1 (Economic Reality) + Layer 1 (Economic Mechanisms) + Layer 2
+				(NIM bootstrap value function) — emergent durante WI-053 INV Phase 4 R3
+				cross-BC adversarial review (5 system-level gaps X1-X5 não resolúveis em
+				INV isoladamente). 3 layers ontológicos canonical materializam ADRs 082,
+				083, 084. Phase p0 emergent; depende de WI-053.
+				"""
+
+			tasks: [{
+				id:         "WI-070"
+				title:      "Bootstrap Economic Foundation Layers (Layer -1 / Layer 1 / Layer 2 NIM)"
+				tshirtSize: "L"
+				dependsOn: ["WI-053"]
+				outputs: [{
+					artifact: "architecture/artifact-schemas/economic-assumption-model.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/economic-model/mesh-economic-assumptions.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/adrs/adr-082-economic-assumption-model-layer.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/artifact-schemas/economic-mechanism-model.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/economic-model/mesh-economic-mechanisms.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/adrs/adr-083-economic-mechanism-model-layer.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/artifact-schemas/value-function-model.cue"
+					type:     "create"
+				}, {
+					artifact: "strategic/nim/mesh-value-function-v0.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/adrs/adr-084-nim-bootstrap-layer-2.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/artifact-schemas/quality-criteria.cue",
+					"governance/readme/config.cue",
+				]
+				rationale: """
+					TAREFA EMERGENT-FROM-WI-053 (regra canônica founder estabelecida 2026-05-08):
+					'Se trabalho novo surge durante uma WI: NÃO estenda a WI original; NÃO ignore;
+					CRIE nova WI conectada.'
+
+					Surgiu durante WI-053 Phase 4 R3 cross-BC adversarial review: 5 system-level
+					gaps X1-X5 identificados — não resolúveis em INV isoladamente; necessitam
+					camada arquitetural superior (cross-BC composition + reality layer + mechanism
+					design).
+
+					3 layers ontológicos canonical:
+					- Layer -1 (Economic Reality, ri-* — ADR-082): realidades adversariais do
+					  ambiente que sistema sobrevive APESAR de.
+					- Layer 1 (Economic Mechanisms, mech-* — ADR-083): mecanismos que REDUZEM
+					  exploitability; NÃO eliminate, NÃO solve.
+					- Layer 2 (NIM bootstrap, vfm-* — ADR-084): sistema de medição de valor real;
+					  trajectory-based v0; revela 3 NIM subproblemas (separação fluxos / identidade
+					  econômica / trajetória).
+
+					Status outputs (delivered/pending tracked em def-015 como tensão estrutural
+					captured): 6/9 delivered (Layers -1 e 1); 3/9 pending (Layer 2 NIM). Overall
+					progress 67%.
+
+					FRASE CANONICAL FOUNDER R5++: 'Governança não é só organizar trabalho; é
+					preservar a verdade sobre o que aconteceu.' Esta WI registra a emergência
+					retroativamente — não como dívida invisível, mas como trabalho rastreável +
+					auditável + conectado a WI-053 origem.
+					"""
 			}]
 		}
 

@@ -359,6 +359,16 @@ workGraph: {
 		phaseId: "pg2-governance-robustness"
 		groupId: "g5-governance-robustness"
 	}, #ExecutionDependency & {
+		taskId:    "WI-033"
+		dependsOn: []
+		phaseId:   "p3-tactical-and-validation"
+		groupId:   "g3-tactical-integration"
+	}, #ExecutionDependency & {
+		taskId:    "WI-065"
+		dependsOn: []
+		phaseId:   "pg2-governance-robustness"
+		groupId:   "g5-governance-robustness"
+	}, #ExecutionDependency & {
 		taskId:    "WI-036"
 		dependsOn: []
 		phaseId:   "p4-ontology-correction"
