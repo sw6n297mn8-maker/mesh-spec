@@ -245,7 +245,7 @@ canvas: artifact_schemas.#Canvas & {
 				upstream FCE; attemptId per tentativa BKR;
 				railReferenceId externo — endToEndId Pix, ISPB+
 				identifiers TED, Nosso Número boleto), e emitir
-				SettlementCompleted / SettlementFailed como evento
+				SettlementFinalized / SettlementFailed como evento
 				canônico Mesh consumido por FCE/TCM/ATO. Estado
 				interno explícito: dispatched-awaiting-confirmation /
 				reconciled-completed / reconciled-failed /
@@ -442,15 +442,15 @@ canvas: artifact_schemas.#Canvas & {
 			type:            "command-handler"
 			interactionMode: "sync"
 			trigger:         "FCE emite PaymentInstruction com authorization proof (cryptographic signature canonical + nonce + issued-at + validity window + claim chain — per bd-settlement-authorization-upstream). BKR valida proof estruturalmente antes de qualquer dispatch."
-			command:         "DispatchPayment"
-			resultingEvents: ["SettlementCompleted", "SettlementFailed", "SettlementIndeterminate", "DispatchClassification"]
+			command:         "DispatchPaymentInstruction"
+			resultingEvents: ["SettlementFinalized", "SettlementFailed", "SettlementIndeterminate", "FailureClassified", "InstructionRejected"]
 			description:     "Primary BKR command. FCE como autoridade econômica delega execução técnica a BKR sob authorization proof verificável. instructionId carregado em PaymentInstruction; BKR atribui attemptId per tentativa; railReferenceId emerge do rail post-dispatch."
 		}, {
 			type:            "command-handler"
 			interactionMode: "sync"
 			trigger:         "FCE solicita cancellation de instructionId+attemptId ainda em estado dispatched-awaiting-confirmation (pre-finality). Solicitação é NON-GUARANTEED — alguns rails aceitam cancel request (e.g., pacs.057 em SPI), outros best-effort, outros já entraram em clearing irreversível mesmo sem confirmation local."
 			command:         "RequestSettlementCancellation"
-			resultingEvents: ["DispatchCancellationAcknowledged", "DispatchCancellationRejected", "SettlementCompleted", "SettlementFailed"]
+			resultingEvents: ["DispatchCancellationAcknowledged", "DispatchCancellationRejected", "SettlementFinalized", "SettlementFailed"]
 			description:     "BKR may request cancellation before settlement finality, but settlement finality remains determined by the underlying rail. Rejeitado se attemptId já em estado reconciled-* (post-finality cancel exige reverse settlement upstream — fora de Phase 0). Race condition: cancel + confirmation podem colidir; idempotency (capability 4) resolve via attemptId state machine."
 		}, {
 			type:          "event-consumer"
@@ -471,15 +471,15 @@ canvas: artifact_schemas.#Canvas & {
 			description: "Read model from event log canonical. Consultável por instructionId (business correlation) | attemptId (execution lineage) | railReferenceId (external reference). Retorna estado canônico ∈ {dispatched-awaiting-confirmation, reconciled-completed, reconciled-failed, indeterminate, cancellation-requested, cancellation-acknowledged}. Não emite outcome canonical sob estados não-finais — consumers downstream observam estado, não decidem por ele."
 		}, {
 			type:        "query-surface"
-			query:       "QueryDispatchClassification"
-			returnType:  "DispatchClassificationView"
+			query:       "QueryFailureClassification"
+			returnType:  "FailureClassificationView"
 			description: "Failure classification detail consultável por instructionId | attemptId. Side-channel-aware: payload detalhado retornado apenas para callers identificáveis como upstream authorizer (FCE); demais consumers (audit, downstream observers) recebem categoria genérica + outcome sem detail que vaze compliance info (e.g., 'rail-rejected' sem revelar sanctions hit specifically). Per Phase 1.2 cap 6 side-channel mitigation."
 		}]
 
 		outbound: [{
 			type:    "event-publisher"
 			trigger: "Reconciliação determinística com confirmação rail (capability 3) atinge estado reconciled-completed."
-			event:   "SettlementCompleted"
+			event:   "SettlementFinalized"
 			consumers: ["fce", "tcm", "ato"]
 			description: "Outcome canonical — único evento de sucesso. Payload carrega instructionId + attemptId + railReferenceId + settlement timestamp final + rail discriminator. FCE consome para confirmation closure; TCM consome para cash position commit; ATO consome para repercussão fiscal/contábil. Não emitido sob estado intermediário ou indeterminate."
 		}, {
@@ -497,9 +497,15 @@ canvas: artifact_schemas.#Canvas & {
 		}, {
 			type:    "event-publisher"
 			trigger: "Failure classification (capability 6) categoriza falha por ownership causal (structural BKR-authoritative | technical BKR-authoritative | regulatory+economic pass-through)."
-			event:   "DispatchClassification"
+			event:   "FailureClassified"
 			consumers: ["fce"]
 			description: "Routing de failure handoff per Phase 1.2 cap 6. Detail completo enviado a fce (upstream authorizer com need-to-know); audit aggregate emitido em separado (não aqui) para outros consumers, sanitizado contra side-channel leak. Categorias canônicas: structural-instruction-invalid, technical-transient, provider-unavailable, rail-rate-limited, rail-out-of-hours, rail-rejected, regulatory-block, economic-instruction-invalid."
+		}, {
+			type:    "event-publisher"
+			trigger: "Pre-dispatch rejection — instrução falha estruturalmente (structural-invalid OR business-invalid OR upstream-policy-reject OR authorization-proof-invalid) at BKR boundary; SettlementAttempt transiciona requested → rejected (T2)."
+			event:   "InstructionRejected"
+			consumers: ["fce"]
+			description: "Outcome canonical de pre-dispatch rejection. Distinto de SettlementFailed (post-dispatch reconciliation outcome) — rejection nunca atingiu o rail. Per Phase 3.A.4 ajuste 3 + inv-authorization-proof-verification-gate amplification: instruction rejected pre-dispatch is terminal; new attempt requires new authorized PaymentInstruction (new InstructionId + new AuthorizationProof). FCE consome para reissuance/correction decision."
 		}, {
 			type:            "command-invocation"
 			interactionMode: "sync"
@@ -833,7 +839,7 @@ canvas: artifact_schemas.#Canvas & {
 	}, {
 		id: "bd-settlement-state-post-reconciliation"
 		decision: """
-			Settlement state (SettlementCompleted, SettlementFailed,
+			Settlement state (SettlementFinalized, SettlementFailed,
 			SettlementPending) é canonical apenas após reconciliation
 			com confirmação de rail (capability 3). Estado intermediário
 			(dispatched-awaiting-confirmation, retry-in-progress) é
@@ -843,7 +849,7 @@ canvas: artifact_schemas.#Canvas & {
 			Rails têm semânticas de latência distintas — Pix instantâneo,
 			TED com janelas D+0/D+1, boleto D+1/D+2 com refeitura, SWIFT
 			multi-hop com confirmações em cascata. Emitir
-			SettlementCompleted otimisticamente (e.g., após dispatch
+			SettlementFinalized otimisticamente (e.g., após dispatch
 			successful sem aguardar confirmação rail) criaria estado
 			incorreto downstream caso provider rejeite asynchronously ou
 			reverta. Apenas reconciliation com confirmação rail fecha o
@@ -1074,7 +1080,7 @@ canvas: artifact_schemas.#Canvas & {
 			stakeholderRef:  "sh-02"
 			participantType: "Downstream settlement consumer (beneficiário aguardando crédito real via rail)"
 			desiredBehavior: """
-				Aguardar SettlementCompleted canonical event (post-
+				Aguardar SettlementFinalized canonical event (post-
 				reconciliation) antes de atuar sobre crédito esperado.
 				Não inferir completion a partir de absence-of-failure
 				ou estado intermediário observável.
@@ -1108,7 +1114,7 @@ canvas: artifact_schemas.#Canvas & {
 				operacional mínima.
 				"""
 			designResponse: """
-				SettlementCompleted/Failed/Indeterminate emitidos APENAS
+				SettlementFinalized/Failed/Indeterminate emitidos APENAS
 				post-reconciliation (capability 3); estado intermediário
 				dispatched-awaiting-confirmation não emitido externamente;
 				QuerySettlementStatus query-surface expõe estado canonical
@@ -1356,7 +1362,7 @@ canvas: artifact_schemas.#Canvas & {
 				rationale:   "Indeterminate is operationally non-final — override exige human judgment porque destrói distinção epistêmica preservada por design (Phase 1.4 SettlementIndeterminate evento separado). Auto-override invalidaria replay safety + reconciliation semantics + audit trail confiável."
 			}, {
 				id:          "sd-force-completion-failure-without-deterministic-rail-proof"
-				description: "Emitir SettlementCompleted ou SettlementFailed canonical sem confirmação rail explícita (e.g., manual após audit forensics, judicial order, batch gap recovery). Operação substitui mecanismo determinístico por decisão human-authoritative."
+				description: "Emitir SettlementFinalized ou SettlementFailed canonical sem confirmação rail explícita (e.g., manual após audit forensics, judicial order, batch gap recovery). Operação substitui mecanismo determinístico por decisão human-authoritative."
 				rationale:   "BKR perde determinismo se autoriza outcome canonical sem proof rail; quebra audit trail cc-04. Decisão exige human judgment + justificativa registrada."
 			}, {
 				id:          "sd-cross-rail-failover-not-pre-authorized"
@@ -1377,7 +1383,7 @@ canvas: artifact_schemas.#Canvas & {
 			}]
 			escalationCriteria: [{
 				id:        "ec-double-settlement-detected"
-				condition: "idempotencyKey hit + provider confirms second dispatch despite no-op response from BKR; OR reconciled-completed event emitted twice for same attemptId; OR rail emits second SettlementCompleted for same instructionId+attemptId across separate dispatch paths."
+				condition: "idempotencyKey hit + provider confirms second dispatch despite no-op response from BKR; OR reconciled-completed event emitted twice for same attemptId; OR rail emits second SettlementFinalized for same instructionId+attemptId across separate dispatch paths."
 				action:    "Halt all dispatch for affected instructionId; emit DuplicateSettlementAnomaly event para fce + audit; sh-05 escala human-in-the-loop para diagnóstico (race bug interno OR idempotency failure OR provider behavior OR tampering — análise determina cause)."
 				rationale: "Double-settlement é falha em economia real (dinheiro movido duas vezes). Detection via idempotency violation OR audit log duplication. DuplicateSettlementAnomaly como categoria diagnóstica genérica — ProviderTamperingSuspected only triggered se evidência específica."
 			}, {
@@ -1387,7 +1393,7 @@ canvas: artifact_schemas.#Canvas & {
 				rationale: "Per bd-settlement-authorization-upstream. Authorization proof failure é structural rejection (BKR autoritativo sobre schema do proof) — não tentar dispatch. Detection é primeira linha de defesa contra forged authorization vector."
 			}, {
 				id:        "ec-rail-finality-irreversibility-conflict"
-				condition: "Rail confirma SettlementCompleted mas BKR internal state inconsistent (e.g., cancellation acknowledged + completion confirmed for same attemptId; OR reconciled-failed previamente registrado para mesma attemptId que agora rail confirma como completed)."
+				condition: "Rail confirma SettlementFinalized mas BKR internal state inconsistent (e.g., cancellation acknowledged + completion confirmed for same attemptId; OR reconciled-failed previamente registrado para mesma attemptId que agora rail confirma como completed)."
 				action:    "Halt subsequent dispatch para affected accounts; emit RailFinalityConflict event para fce + audit; trigger sd-manual-provider-reconciliation; security + audit review com forensics completo."
 				rationale: "Rail finality é authoritative (fora do BKR control); BKR state local conflitando com rail authoritative state é sinal de race/bug/tampering. Conservar safety > continuar dispatch."
 			}, {
@@ -1402,7 +1408,7 @@ canvas: artifact_schemas.#Canvas & {
 				rationale: "Indeterminate além do operational window não pode permanecer estado interno indefinido. Escalation operacional preserva separação BCs — fce decide próximo passo econômico; BKR apenas reporta epistemic state."
 			}, {
 				id:        "ec-classification-side-channel-leak-detected"
-				condition: "DispatchClassification event ou QueryDispatchClassification response carregando compliance-sensitive detail (regulatory-block category, sanctions list inference, AML trigger specifics) para consumer NÃO identificado como upstream authorizer (e.g., regulatory-block detail emitido para audit aggregate consumer OR retornado em query para sh-02)."
+				condition: "FailureClassified event ou QueryFailureClassification response carregando compliance-sensitive detail (regulatory-block category, sanctions list inference, AML trigger specifics) para consumer NÃO identificado como upstream authorizer (e.g., regulatory-block detail emitido para audit aggregate consumer OR retornado em query para sh-02)."
 				action:    "Halt classification event emission para consumer não-FCE; audit emission history para affected events; review side-channel policy enforcement; trigger security review sobre como leak ocorreu (agent drift OR policy misconfig OR routing bug)."
 				rationale: "Meta-escalation sobre próprio BKR vazar info sensível. Side-channel mitigation Phase 1.2 cap 6 + Phase 1.4 communication depende de detection mechanism funcionar. Compliance info leak é vector de risk amplification (informa attacker sobre sanctions/AML target state)."
 			}, {
@@ -1666,7 +1672,7 @@ canvas: artifact_schemas.#Canvas & {
 		id: "oq-bkr-provider-lying-1"
 		question: """
 			OQ-B Trust hardening. Provider lying about settlement
-			— provider retorna SettlementCompleted falsamente,
+			— provider retorna SettlementFinalized falsamente,
 			reverte via batch ou audit posterior. BKR Phase 0
 			confia no provider; cross-rail reconciliation (e.g.,
 			STR balance check pós-Pix completion) defer. Quando
@@ -1777,7 +1783,7 @@ canvas: artifact_schemas.#Canvas & {
 
 	verificationMetrics: [{
 		id:     "vm-bkr-01-duplicate-settlement-rate"
-		metric: "Rate of duplicated settlements detected — % de attemptIds com mais de um SettlementCompleted/Failed event canonical OR % de instructionIds com settlement em rails distintos sem fallbackRails pre-authorization."
+		metric: "Rate of duplicated settlements detected — % de attemptIds com mais de um SettlementFinalized/Failed event canonical OR % de instructionIds com settlement em rails distintos sem fallbackRails pre-authorization."
 		target: "0.00% — zero tolerance (RECTOR operacional)."
 		onBreach: {
 			escalationRef: "ec-double-settlement-detected"
@@ -1809,7 +1815,7 @@ canvas: artifact_schemas.#Canvas & {
 		rationale: "Mede preservação do anti-decision boundary. 'Prevented' é success metric (BKR bloqueou); count + categoria identifica vector predominante. Sem onBreach direto porque é signal agregado — exige avaliação contextual human-in-the-loop sobre qual escalation/decision específica é apropriada (cada subcategoria já tem escalation própria em governanceScope)."
 	}, {
 		id:     "vm-bkr-05-reconciliation-consistency-rate"
-		metric: "% de SettlementCompleted/Failed events emitidos com rail proof determinístico (reconciliation message verificável: pacs.002 Pix, STR confirmation, SILOC retorno, SWIFT confirmation chain) vs eventos emitidos via supervised override (sd-force-completion-failure-without-deterministic-rail-proof)."
+		metric: "% de SettlementFinalized/Failed events emitidos com rail proof determinístico (reconciliation message verificável: pacs.002 Pix, STR confirmation, SILOC retorno, SWIFT confirmation chain) vs eventos emitidos via supervised override (sd-force-completion-failure-without-deterministic-rail-proof)."
 		target: ">= 99.9% determinístico em condições normais; degradação significa reconciliation mechanism deteriorando."
 		onBreach: {
 			escalationRef: "ec-rail-finality-irreversibility-conflict"
@@ -1882,7 +1888,7 @@ canvas: artifact_schemas.#Canvas & {
 		verificável — pacs.002 para Pix via SPI; STR
 		confirmation para TED; retorno SILOC (file ou API
 		push) para boleto; SWIFT confirmation chain
-		multi-hop. SettlementCompleted/Failed canonical events
+		multi-hop. SettlementFinalized/Failed canonical events
 		NÃO são emitidos sob estado intermediário, indeterminate
 		ou override sem proof. Atomic state machine sobre
 		cada attempt (requested → in-flight → confirmed |
