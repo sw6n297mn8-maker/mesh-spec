@@ -1009,22 +1009,317 @@ canvas: artifact_schemas.#Canvas & {
 	// Articulação completa em outer rationale Phase 1.6.
 
 	// =============================================
-	// INCENTIVE ANALYSIS — placeholder; conteúdo em commit 1.5
+	// INCENTIVE ANALYSIS — Phase 1.5 WI-062
 	// =============================================
 
 	incentiveAnalysis: {
 		participants: [{
-			stakeholderRef:            "sh-01"
-			participantType:           "Placeholder — preenchido em commit 1.5."
-			desiredBehavior:           "Placeholder."
-			correctOperationIncentive: "Placeholder."
-			manipulationVector:        "Placeholder."
-			manipulationCost:          "Placeholder."
-			vsBenefit:                 "Placeholder."
-			designResponse:            "Placeholder."
-			rationale:                 "Skeleton; vetores adversariais substantivos (esperados: rail provider downtime/SLA breach; replay de settlement; misrouting between rails; provider opacity para verificação de confirmação) em commit 1.5."
+			stakeholderRef:  "sh-01"
+			participantType: "Upstream economic intent issuer (originadora autorizando PaymentInstruction via FCE)"
+			desiredBehavior: """
+				Emitir PaymentInstruction com authorization proof válida
+				(cryptographic signature canonical + nonce + issued-at +
+				validity window upstream-declared + claim chain). Usar
+				RequestSettlementCancellation apenas para attempts ainda
+				em estado dispatched-awaiting-confirmation, ciente que
+				é NON-GUARANTEED (rail determina finality).
+				"""
+			correctOperationIncentive: """
+				Settlement determinístico = ciclo de caixa previsível +
+				SCF antecipação habilitada por settlements limpos + audit
+				trail confiável para auditorias internas/externas + boa
+				reputação na rede Mesh (sh-01 não quer settlement
+				ambíguo nem reversal traumático em sua relação com
+				fornecedores).
+				"""
+			manipulationVector: """
+				Forged authorization proof OR premature cancellation
+				request during non-final settlement window.
+				"""
+			manipulationCost: """
+				Cryptographic gates rejeitam proof inválida (signature
+				não verifica contra key registrada, TTL expirada, claim
+				chain quebrada). Forgery em escala requer comprometimento
+				de FCE-publisher key (custo material — cross-BC trust
+				anchor protegido por agent governance envelope Phase 5).
+				Premature cancel não causa damage real (rail decide
+				finality; cancel request honored apenas se rail aceita
+				cancel pré-finality).
+				"""
+			vsBenefit: """
+				Custo de forgery (key compromise + detection via signature
+				verification failure + audit trail forensics) >> benefício
+				potencial (single fraudulent settlement detectable via
+				downstream FCE/audit reconciliation). Premature cancel
+				não rende benefício porque cancel não muda finalidade
+				se rail já clearou.
+				"""
+			designResponse: """
+				bd-settlement-authorization-upstream + Phase 5 agent-
+				governance cross-BC trust anchor + 4-way ID separation
+				(instructionId vs attemptId vs railReferenceId vs
+				idempotencyKey) + cancellation NON-GUARANTEED semantics
+				per Phase 1.4 communication + escalation
+				ec-authorization-proof-verification-failure.
+				"""
+			rationale: """
+				sh-01 é raiz econômica do macrofluxo Mesh. Suas
+				PaymentInstructions originam settlements BKR. Vetores
+				focam authorization integrity (proof gates) e
+				cancellation window discipline (não confundir
+				cancel-request pré-finality com reverse settlement
+				pós-finality que vive em DRC/FCE).
+				"""
+		}, {
+			stakeholderRef:  "sh-02"
+			participantType: "Downstream settlement consumer (beneficiário aguardando crédito real via rail)"
+			desiredBehavior: """
+				Aguardar SettlementCompleted canonical event (post-
+				reconciliation) antes de atuar sobre crédito esperado.
+				Não inferir completion a partir de absence-of-failure
+				ou estado intermediário observável.
+				"""
+			correctOperationIncentive: """
+				Settlement confirmação canonical = decisão operacional
+				confiável (atualização de status interno, kickoff de
+				próxima etapa, baixa de obrigação contra sh-01).
+				Acting on canonical events evita follow-ups manuais
+				custosos quando settlement reverte ou era indeterminate.
+				"""
+			manipulationVector: """
+				Acting on inferred settlement completion before canonical
+				event — assumir Pix instant pelo dispatch sem aguardar
+				pacs.002 reconciliation, OR observar absence de
+				SettlementFailed e concluir success.
+				"""
+			manipulationCost: """
+				Custo operacional concreto: sh-02 ageu sobre crédito
+				inferido (e.g., libera mercadoria, dispara próxima
+				etapa); BKR depois emite SettlementFailed OR
+				SettlementIndeterminate; sh-02 carrega custo de reverter
+				ação operacional + perda de confiança no parceiro.
+				Rail-level (Pix) ambiguidade pré-pacs.002 é janela
+				curta mas existe.
+				"""
+			vsBenefit: """
+				Velocidade de ação inferida (minutos) vs custo de reversão
+				operacional + reputational damage + descalce contábil.
+				Custo >> benefício para qualquer fornecedor com folga
+				operacional mínima.
+				"""
+			designResponse: """
+				SettlementCompleted/Failed/Indeterminate emitidos APENAS
+				post-reconciliation (capability 3); estado intermediário
+				dispatched-awaiting-confirmation não emitido externamente;
+				QuerySettlementStatus query-surface expõe estado canonical
+				para consultas explícitas — sh-02 pode polling consulta
+				se precisar de visibilidade, mas resposta é estado
+				canonical, nunca speculative.
+				"""
+			rationale: """
+				sh-02 é último ponto da cadeia onde o dinheiro chega.
+				Vetor é optimism premature — agir antes do canonical.
+				Side-channel detail (classification regulatory/economic)
+				NÃO é entregue a sh-02 (Phase 1.4 side-channel mitigation);
+				vector de side-channel inferral foi movido para sh-06.
+				"""
+		}, {
+			stakeholderRef:  "sh-04"
+			participantType: "Regulatory boundary constraint authority (Bacen — NÃO adversarial)"
+			desiredBehavior: """
+				Publicar spec changes (Pix v2, novos arranjos, limites
+				prudenciais, Drex CBDC emergent 2026) com janela de
+				adoção suficiente para sistemas integrados absorverem
+				sem breaking. BKR responde via capability schema update
+				+ Phase-driven evolution.
+				"""
+			correctOperationIncentive: """
+				Bacen ganha quando sistemas integrados absorvem spec
+				changes determinísticamente — reduz incidents, melhora
+				estabilidade SPB/SPI agregada. Misaligned integrators
+				geram dispatches inválidos que poluem audit + reporting.
+				"""
+			manipulationVector: """
+				Regulatory boundary drift — spec/regulatory change not
+				absorbed by BKR (vetor é absence-of-adaptation por parte
+				do BKR, não malicious action por Bacen).
+				"""
+			manipulationCost: """
+				Custo de drift recai sobre BKR + instituição autorizada
+				parceira (PSTI/banco): dispatches rejeitados por rail
+				com regulatory-block, reporting inconsistente, possível
+				suspensão de arranjo de pagamento. Bacen não absorve
+				custo material — está do lado da spec.
+				"""
+			vsBenefit: """
+				BKR não tem benefício em desalinhamento — apenas custo.
+				Adoption discipline é dominant strategy.
+				"""
+			designResponse: """
+				Capability schema designed para extensão (cap 2 protocol
+				translation absorve novos formatos; cap 5 retry policy
+				absorve novos operational windows). RailProviderStatusUpdated
+				event-consumer (Phase 1.4) e QueryRailWindowStatus
+				query-deps surfacem spec-aware status. Phase-driven
+				evolution: novos rails (e.g., Drex) entram via canvas
+				revision + new external system ref + new command-invocation.
+				Escalation ec-regulatory-boundary-misalignment detecta
+				drift via rail behavior diverging from BKR expectations.
+				"""
+			rationale: """
+				sh-04 é boundary constraint authority, não adversarial.
+				ManipulationVector aqui é structural-absence (BKR não
+				absorvendo spec change) não malicious-action. Modelado
+				para preservar simetria do schema #IncentiveParticipant
+				sem implicar adversarial role do regulador.
+				"""
+		}, {
+			stakeholderRef:  "sh-05"
+			participantType: "Primary operator agent BKR (sh-05 Agente IA Mesh executando dispatch, reconciliation, retry, classification)"
+			desiredBehavior: """
+				Operar dentro de autonomousDecisions sob policy
+				determinística; escalar via supervisedDecisions /
+				escalationCriteria quando boundary anti-decision é
+				tocada; preservar disciplina técnica vs econômica em
+				toda decisão.
+				"""
+			correctOperationIncentive: """
+				Agent calibração: drift detection in subagent-execution-log;
+				governance envelope Phase 5 com bounded autonomy +
+				transparent escalation paths; audit trail (cc-04) torna
+				agent decisions reviewable post-hoc — agent ganha
+				estabilidade operacional sob disciplina.
+				"""
+			manipulationVector: """
+				Autonomous decision drift — rail selection optimizing
+				for agent-internal metric (latency self-preservation,
+				retry self-extension além de operational hours),
+				classification side-channel leak por descuido
+				(detail vazado a downstream consumers fora da policy
+				side-channel-aware), OR aceitar provider result após
+				suspected tampering sem escalation.
+				"""
+			manipulationCost: """
+				Drift detectado via: structural-checks pós-commit;
+				governanceScope boundaries explícitas em CUE; escalation
+				criteria executable; audit trail imutável. Custo
+				operacional de drift (incidents, reversal, regulatory
+				exposure) é caro e visível.
+				"""
+			vsBenefit: """
+				Agent não tem benefício pessoal em drift — está sob
+				governance envelope. Drift = governance violation =
+				reputational + operational cost. Dominant strategy é
+				disciplina.
+				"""
+			designResponse: """
+				governanceScope com 5 autonomousDecisions (boundaries
+				técnicas estritas) + 6 supervisedDecisions (anti-decision
+				boundaries) + 9 escalationCriteria (incluindo
+				ec-classification-side-channel-leak-detected meta-escalation
+				sobre próprio agent vazar info sensível). Agent governance
+				envelope Phase 5 codifica boundaries em CUE executable;
+				subagent-execution-log Phase 5 captura agent decisions
+				para calibration.
+				"""
+			rationale: """
+				sh-05 é actor primário de BKR. Vetor de drift é o mais
+				operacionalmente relevante porque agent toma N decisões
+				por minuto sob policy. Governance disciplina codificada
+				em CUE > confiança comportamental.
+				"""
+		}, {
+			stakeholderRef:  "sh-06"
+			participantType: "External adversarial actor (vetor adversarial canonical cross-BC per stakeholder-map)"
+			desiredBehavior: """
+				N/A — sh-06 é vetor adversarial por definição; design
+				do sistema é para tornar ataques impraticáveis, não
+				motivar 'correct operation'.
+				"""
+			correctOperationIncentive: """
+				N/A — sh-06 não tem incentivo a operar corretamente.
+				Sistema design assumes worst-case adversarial behavior
+				para mecanismos relevantes.
+				"""
+			manipulationVector: """
+				Settlement-boundary exploitation — explora a transição
+				determinística entre intent autorizado e finality
+				externamente determinada para induzir comportamento
+				incorreto do sistema.
+				"""
+			manipulationCost: """
+				4-way ID separation + cryptographic authorization proof
+				+ idempotency-by-attemptId + ownership-causal classification
+				+ side-channel mitigation + reconciliation determinística
+				+ structural validations via DICT/account availability
+				eliminam classes inteiras de attacks (replay, forgery,
+				duplicate-settlement, classification inferral, status
+				manipulation). Custo de exploit residual sobe rapidamente
+				com defense-in-depth.
+				"""
+			vsBenefit: """
+				Para exploits residuais (e.g., timing arbitrage sob
+				rail selection delegada): benefício marginal limitado;
+				custo de detection (audit trail completo, classification
+				ownership rastreável) alto.
+				"""
+			designResponse: """
+				Vetor agregador inclui (detail nesta rationale): (a)
+				duplicate settlement via replay — bloqueado por
+				idempotencyKey per attempt; (b) PSTI/provider tampering
+				— detectável via signature mismatch + payload mutation
+				detection + ec-provider-tampering-suspected escalation;
+				(c) rail status manipulation forjando RailProviderStatusUpdated
+				— mitigado por dual-source verification (event-consumer
+				push + query-deps pull) + Phase 1.6 open question
+				sobre tampering detection robusta; (d) cross-rail timing
+				arbitrage — neutralizado por bd-rail-selection-is-technical-only
+				(timing como decisão econômica FCE, não BKR); (e)
+				settlement indeterminate exploited as completed —
+				preservado pela disciplina de NÃO emitir outcome canonical
+				sob estado não-final (capability 3 + SettlementIndeterminate
+				event separado).
+				"""
+			rationale: """
+				sh-06 representa worst-case adversarial threat model
+				cross-BC (per domain/stakeholder-map.cue). Vetor agregador
+				captura settlement-boundary exploitation como categoria;
+				design responses específicos enumerados em rationale
+				preservam granularidade analítica sem fragmentar em
+				múltiplos participants. sh-06 não está em Phase 1.3
+				stakeholders[] porque não é affected actor; é adversarial
+				vector reservado para incentive analysis.
+				"""
 		}]
-		rationale: "Placeholder — incentive analysis completo entra em commit 1.5. BKR commodity reduz vetores estratégicos (provider substituível) mas eleva vetores operacionais (rail SLA, double-settlement, misrouting)."
+
+		rationale: """
+			5 participants (sh-01, sh-02, sh-04, sh-05, sh-06) cobrem
+			os 8 vetores adversariais identificados: (1) duplicate
+			settlement / replay → sh-06; (2) forged authorization proof
+			→ sh-01; (3) rail/provider status manipulation → sh-06; (4)
+			PSTI/provider tampering → sh-06; (5) settlement indeterminate
+			exploited as completed → sh-02 (premature acting) + sh-06
+			(adversarial); (6) cross-rail timing arbitrage → sh-06; (7)
+			failure-classification side-channel leakage → sh-05 (operator
+			drift) + sh-06 (adversarial inferral); (8) cancellation/reversal
+			confusion → sh-01 (premature cancel during non-final window).
+
+			Design pattern across participants: cryptographic gates +
+			4-way ID separation + ownership-causal classification +
+			side-channel mitigation + indeterminate preservation +
+			anti-decision boundary anchoring. Cada vetor mapeia a
+			designResponse específica que materializa em capabilities,
+			businessDecisions, communication patterns e governanceScope
+			boundaries.
+
+			sh-04 (Bacen) preservado como boundary constraint authority
+			não adversarial — manipulationVector modelado como structural-
+			absence (BKR não absorvendo spec change), não malicious-action.
+			sh-06 (adversário econômico) usa vetor agregador
+			(settlement-boundary exploitation) com detail enumerado em
+			rationale para honrar schema single-field constraint sem
+			perder granularidade analítica.
+			"""
 	}
 
 	// =============================================
@@ -1033,8 +1328,131 @@ canvas: artifact_schemas.#Canvas & {
 
 	ownership: {
 		domainAgentSpec: "contexts/bkr/agents/bkr-primary-agent.cue"
-		governanceScope: {}
-		rationale:       "Skeleton commit 1.1 estabelece domainAgentSpec canônico (forward reference — agent-spec será autorado em Phase 4 do bootstrap WI-062). governanceScope completo (esperado: autonomousDecisions cobrindo rail selection + retry strategy + timeout escalation; supervisedDecisions cobrindo manual reconciliation + provider override; escalationCriteria cobrindo Bacen regulatory breach + cross-rail orphan + economic value mismatch detected post-dispatch) entra em commit 1.5."
+		governanceScope: {
+			autonomousDecisions: [{
+				id:          "ad-rail-selection-under-upstream-constraints"
+				description: "Selecionar entre Pix (SPI), TED (STR/SITRAF), boleto (SILOC/CIP) ou SWIFT/correspondent banking conforme upstream-declared constraints (limites/tier/timing window em PaymentInstruction) + operational windows do rail + rail availability observada. Selection é função determinística sobre parâmetros técnicos."
+				rationale:   "Per bd-rail-selection-is-technical-only. Autonomia restrita a parâmetros técnicos — sem decisão econômica (custo/timing/destinatário). FCE delega seleção apenas quando instrução não a especifica; mesmo quando delegada, é technical routing."
+			}, {
+				id:          "ad-protocol-translation"
+				description: "Traduzir PaymentInstruction interna Mesh para formato externo do rail target — ISO 20022 pacs.008/002/004 (SPI/STR), CNAB SILOC, SWIFT MX/MT — sem reinterpretar semântica financeira. Campo a campo per spec do protocolo."
+				rationale:   "Per capability 2 protocol translation. Função pura sobre instrução autorizada — output é representação isomórfica em protocolo externo, não reinterpretação econômica."
+			}, {
+				id:          "ad-idempotency-duplicate-handling"
+				description: "Detectar idempotencyKey duplicado e retornar resultado anterior (no-op idempotente) sem nova execução de dispatch nem nova consulta a rail. Enforcement POR idempotencyKey (per execution attempt), NÃO por instructionId (per business correlation) — recurring legítimo sob mesmo instructionId + novo attemptId permitido."
+				rationale:   "Per capability 4 + 4-way ID separation. Idempotency é capability central que precede retry — retry sem idempotency vira vector de double-settlement (cap 5 prerequisite)."
+			}, {
+				id:          "ad-deterministic-retry-while-non-final"
+				description: "Aplicar política de retry e timeout determinística para falhas técnicas transitórias enquanto attempt em estado dispatched-awaiting-confirmation OU indeterminate. Retry pode ser re-query/reconciliation OU nova tentativa de dispatch conforme policy classification. When policy permits a new technical attempt, generate a new attemptId and idempotencyKey under the same instructionId. Bloqueado post-confirmation (reconciled-completed | reconciled-failed terminais)."
+				rationale:   "Per capability 5. Retry como lineage técnica explícita — nem todo retry gera novo dispatch; reconciliation/status re-query é também retry path. Anti-double-settlement por construção: novo attemptId quando policy autoriza, idempotencyKey separation, terminal state lockout."
+			}, {
+				id:          "ad-failure-classification-structural-technical-pass-through"
+				description: "Classificar falhas em 3 ownership tiers: (A) Structural — BKR-authoritative sobre schema → reject at BKR boundary; (B) Technical — BKR-authoritative sobre rail/provider observation → retry policy interna (ad-deterministic-retry-while-non-final); (C) Regulatory+Economic — BKR NÃO authoritative → pass-through escalation para FCE (supervisedDecisions). Side-channel mitigation aplicada por construção (categoria genérica downstream; detail apenas para FCE upstream)."
+				rationale:   "Per capability 6 + ownership causal. Autonomia restrita a tiers A+B onde BKR tem authority epistemic; tier C é pass-through obrigatório sem julgamento."
+			}]
+			supervisedDecisions: [{
+				id:          "sd-override-indeterminate-settlement"
+				description: "Forçar transição de attempt indeterminate para reconciled-completed ou reconciled-failed sem proof rail determinístico. Operação que colapsa epistemic distinction entre indeterminate (não sabemos outcome) e Failed/Completed (sabemos)."
+				rationale:   "Indeterminate is operationally non-final — override exige human judgment porque destrói distinção epistêmica preservada por design (Phase 1.4 SettlementIndeterminate evento separado). Auto-override invalidaria replay safety + reconciliation semantics + audit trail confiável."
+			}, {
+				id:          "sd-force-completion-failure-without-deterministic-rail-proof"
+				description: "Emitir SettlementCompleted ou SettlementFailed canonical sem confirmação rail explícita (e.g., manual após audit forensics, judicial order, batch gap recovery). Operação substitui mecanismo determinístico por decisão human-authoritative."
+				rationale:   "BKR perde determinismo se autoriza outcome canonical sem proof rail; quebra audit trail cc-04. Decisão exige human judgment + justificativa registrada."
+			}, {
+				id:          "sd-cross-rail-failover-not-pre-authorized"
+				description: "Trocar rail (e.g., Pix→TED) durante execução de uma instrução sem pre-authorized fallbackRails declarado em PaymentInstruction. Failover muda settlement semantics (timing, finality, fee structure)."
+				rationale:   "Per bd-rail-failure-is-not-payment-decision. Cross-rail failover é payment decision implícita — exige authorization explícita upstream OU manual escalation para FCE decidir reissuance."
+			}, {
+				id:          "sd-reverse-settlement-refund-estorno"
+				description: "Executar reverse settlement post-finality (pacs.004 refund, chargeback analog, judicial reversal). Nova obrigação econômica, não cancellation."
+				rationale:   "Reverse settlement envolve nova obrigação econômica + DRC/FCE orchestration + possível dispute workflow. Out of Phase 0 BKR scope; modeled em Phase 1.6 open question. Tentativas autonomous violariam anti-decision boundary."
+			}, {
+				id:          "sd-manual-provider-reconciliation"
+				description: "Reconciliar manualmente com provider quando event-driven reconciliation falha (provider lost data, batch gap, communication failure persistente). Substitui mecanismo determinístico por procedure operacional human-driven."
+				rationale:   "Manual reconciliation é decisão sobre validade de procedure não-determinística — exige human judgment para reconciliar BKR state com provider ground truth. Auto-acceptance abriria vector de drift silencioso."
+			}, {
+				id:          "sd-accept-provider-result-after-suspected-tampering"
+				description: "Aceitar resultado provider quando há sinal de tampering (PSTI signature mismatch, payload mutation inesperada, rail-level discriminator inconsistente, escalation ec-provider-tampering-suspected disparada)."
+				rationale:   "Aceitar resultado sob suspeita seria amplification de attack vector. Exige human decision após security review + provenance verification."
+			}]
+			escalationCriteria: [{
+				id:        "ec-double-settlement-detected"
+				condition: "idempotencyKey hit + provider confirms second dispatch despite no-op response from BKR; OR reconciled-completed event emitted twice for same attemptId; OR rail emits second SettlementCompleted for same instructionId+attemptId across separate dispatch paths."
+				action:    "Halt all dispatch for affected instructionId; emit DuplicateSettlementAnomaly event para fce + audit; sh-05 escala human-in-the-loop para diagnóstico (race bug interno OR idempotency failure OR provider behavior OR tampering — análise determina cause)."
+				rationale: "Double-settlement é falha em economia real (dinheiro movido duas vezes). Detection via idempotency violation OR audit log duplication. DuplicateSettlementAnomaly como categoria diagnóstica genérica — ProviderTamperingSuspected only triggered se evidência específica."
+			}, {
+				id:        "ec-authorization-proof-verification-failure"
+				condition: "Cryptographic signature inválida OR TTL expirada OR claim chain quebrada OR signature válida mas FCE-publisher key não registrada em agent-governance envelope FCE."
+				action:    "Reject dispatch with structural-instruction-invalid classification; emit AuthorizationProofRejected event para fce (upstream authorizer com need-to-know); audit trail registra rejection com categoria de falha proof; sh-05 não retry — failure terminal."
+				rationale: "Per bd-settlement-authorization-upstream. Authorization proof failure é structural rejection (BKR autoritativo sobre schema do proof) — não tentar dispatch. Detection é primeira linha de defesa contra forged authorization vector."
+			}, {
+				id:        "ec-rail-finality-irreversibility-conflict"
+				condition: "Rail confirma SettlementCompleted mas BKR internal state inconsistent (e.g., cancellation acknowledged + completion confirmed for same attemptId; OR reconciled-failed previamente registrado para mesma attemptId que agora rail confirma como completed)."
+				action:    "Halt subsequent dispatch para affected accounts; emit RailFinalityConflict event para fce + audit; trigger sd-manual-provider-reconciliation; security + audit review com forensics completo."
+				rationale: "Rail finality é authoritative (fora do BKR control); BKR state local conflitando com rail authoritative state é sinal de race/bug/tampering. Conservar safety > continuar dispatch."
+			}, {
+				id:        "ec-cross-rail-failover-attempted-without-pre-authorization"
+				condition: "sh-05 agent attempts dispatch on rail Y após rail X failure, sem fallbackRails pre-authorized declared em PaymentInstruction."
+				action:    "Block failover dispatch (ad-rail-selection-under-upstream-constraints constraint enforcement); emit CrossRailFailoverBlocked event para fce + sh-05 audit; FCE decide reissuance via nova PaymentInstruction."
+				rationale: "Per bd-rail-failure-is-not-payment-decision. Detection prevents agent drift de transformar rail failure em payment decision implícita."
+			}, {
+				id:        "ec-indeterminate-state-exceeds-operational-window"
+				condition: "Attempt em estado indeterminate por tempo > operational window do rail target (e.g., Pix > N minutes sem pacs.002; TED > end-of-business-day STR sem confirmação; boleto > D+2 sem retorno SILOC; SWIFT > N hours sem confirmação multi-hop)."
+				action:    "Emit SettlementIndeterminate canonical event para fce (Phase 1.4 outbound); classification update; aguardar fce decision sobre manual reconciliation, external check (ex: STR balance pull) ou aguardar próxima janela rail."
+				rationale: "Indeterminate além do operational window não pode permanecer estado interno indefinido. Escalation operacional preserva separação BCs — fce decide próximo passo econômico; BKR apenas reporta epistemic state."
+			}, {
+				id:        "ec-classification-side-channel-leak-detected"
+				condition: "DispatchClassification event ou QueryDispatchClassification response carregando compliance-sensitive detail (regulatory-block category, sanctions list inference, AML trigger specifics) para consumer NÃO identificado como upstream authorizer (e.g., regulatory-block detail emitido para audit aggregate consumer OR retornado em query para sh-02)."
+				action:    "Halt classification event emission para consumer não-FCE; audit emission history para affected events; review side-channel policy enforcement; trigger security review sobre como leak ocorreu (agent drift OR policy misconfig OR routing bug)."
+				rationale: "Meta-escalation sobre próprio BKR vazar info sensível. Side-channel mitigation Phase 1.2 cap 6 + Phase 1.4 communication depende de detection mechanism funcionar. Compliance info leak é vector de risk amplification (informa attacker sobre sanctions/AML target state)."
+			}, {
+				id:        "ec-provider-tampering-suspected"
+				condition: "PSTI/partner retorna unexpected payload mutation OR signature mismatch sobre response OR rail-level discriminator inconsistente com submitted instruction OR repeated divergence entre expected rail behavior e observed responses."
+				action:    "Halt dispatch via affected provider (ad-rail-selection-under-upstream-constraints exclui provider sob suspeita); failover apenas para backup integration se pre-authorized; trigger sd-accept-provider-result-after-suspected-tampering escalation a fce + sh-05 human + security review."
+				rationale: "PSTI/partner é single point para SCD acessar rails; compromise vector tem high impact. Detection antes de auto-acceptance previne attack amplification."
+			}, {
+				id:        "ec-regulatory-classification-routing"
+				condition: "Rail submission rejected with regulatory-block category (e.g., destinatário em sanctions list externa, AML trigger upstream, limite operacional regulatório excedido) per Phase 1.2 cap 6 tier C ownership."
+				action:    "Escalate to fce com sanitized classification (regulatory-block categoria genérica, sem revelar específico sanctions hit ou AML trigger — per side-channel mitigation); downstream consumers (audit, sh-02) recebem outcome SettlementFailed com categoria genérica sem detail."
+				rationale: "Regulatory-block é resposta normal do rail dado compliance externa upstream — não BKR regulatory breach, mas pass-through enforcement. Routing escala upstream para fce (que detém authorization e pode reissuance com correção upstream). Distinto de ec-regulatory-boundary-misalignment (que é BKR drift)."
+			}, {
+				id:        "ec-regulatory-boundary-misalignment"
+				condition: "Bacen-published spec change (Pix v2, novos arranjos, limites prudenciais, Drex CBDC) NÃO absorvida em BKR capabilities — detectado via rail behavior diverging persistently from BKR expectations (multiple dispatches rejected with unexpected categories OR responses with unrecognized fields/formats) indicando spec drift."
+				action:    "Halt rail-specific dispatch para rail afetado; emit RegulatoryBoundaryMisalignment event para fce/ato + sh-05 + ops audit; trigger capability schema update review + spec absorption work item."
+				rationale: "Boundary misalignment é structural drift do BKR relative ao Bacen spec — requires capability evolution. Distinto de ec-regulatory-classification-routing (instância regulatory-block é roteada upstream; misalignment é falha sistêmica de BKR adaptar)."
+			}]
+		}
+		rationale: """
+			BKR autonomy is technical only. Economic finality, reversal,
+			beneficiary mutation and payment authorization are always
+			upstream/supervised. Esta regra constitutiva materializa-se
+			em:
+			  - 5 autonomousDecisions cobrindo technical execution
+			    boundaries (rail selection sob constraints, protocol
+			    translation, idempotency, retry while non-final,
+			    classification structural-technical pass-through).
+			  - 6 supervisedDecisions formalizando anti-decision
+			    boundaries (indeterminate override, force outcome
+			    sem proof, cross-rail failover sem authorization,
+			    reverse settlement, manual reconciliation, accept
+			    after tampering).
+			  - 9 escalationCriteria cobrindo executable triggers
+			    para drift detection (double-settlement,
+			    authorization failure, finality conflict, failover
+			    sem auth, indeterminate timeout, side-channel leak,
+			    provider tampering, regulatory classification routing,
+			    regulatory boundary misalignment).
+
+			Cada criterion mapeia condição observável + action
+			determinística + rationale ancorando ownership causal.
+			Agent governance envelope Phase 5 materializará boundaries
+			executable em CUE com cross-BC trust anchor para FCE
+			authorization proof verification.
+
+			domainAgentSpec forward-reference (contexts/bkr/agents/
+			bkr-primary-agent.cue) será autorado em Phase 4 do bootstrap
+			WI-062.
+			"""
 	}
 
 	// =============================================
