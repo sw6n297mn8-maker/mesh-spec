@@ -434,11 +434,238 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// COMMUNICATION — placeholder; conteúdo em commit 1.4
+	// COMMUNICATION — Phase 1.4 WI-062
 	// =============================================
 
 	communication: {
-		rationale: "Placeholder — communication completa entra em commit 1.4. Esperado: inbound (PaymentInstruction de FCE — sync command); sinais operacionais de disponibilidade/estado de liquidação vindos de TCM ou providers, sem autoridade econômica de timing; outbound (SettlementCompleted/SettlementFailed/SettlementPending events consumidos por FCE/TCM/ATO); query-deps (AccountStatus externo via providers; estado operacional de TCM); commands (DispatchPayment sync); query-surfaces (QuerySettlementStatus). Ordering aprovado seguirá padrão DLV: businessDecisions (1.3) ANTES de communication (1.4)."
+		inbound: [{
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "FCE emite PaymentInstruction com authorization proof (cryptographic signature canonical + nonce + issued-at + validity window + claim chain — per bd-settlement-authorization-upstream). BKR valida proof estruturalmente antes de qualquer dispatch."
+			command:         "DispatchPayment"
+			resultingEvents: ["SettlementCompleted", "SettlementFailed", "SettlementIndeterminate", "DispatchClassification"]
+			description:     "Primary BKR command. FCE como autoridade econômica delega execução técnica a BKR sob authorization proof verificável. instructionId carregado em PaymentInstruction; BKR atribui attemptId per tentativa; railReferenceId emerge do rail post-dispatch."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "FCE solicita cancellation de instructionId+attemptId ainda em estado dispatched-awaiting-confirmation (pre-finality). Solicitação é NON-GUARANTEED — alguns rails aceitam cancel request (e.g., pacs.057 em SPI), outros best-effort, outros já entraram em clearing irreversível mesmo sem confirmation local."
+			command:         "RequestSettlementCancellation"
+			resultingEvents: ["DispatchCancellationAcknowledged", "DispatchCancellationRejected", "SettlementCompleted", "SettlementFailed"]
+			description:     "BKR may request cancellation before settlement finality, but settlement finality remains determined by the underlying rail. Rejeitado se attemptId já em estado reconciled-* (post-finality cancel exige reverse settlement upstream — fora de Phase 0). Race condition: cancel + confirmation podem colidir; idempotency (capability 4) resolve via attemptId state machine."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "tcm"
+			event:         "CashOperationalStatusUpdated"
+			reaction:      "BKR ajusta retry policy (capability 5) e operational availability classification (capability 6). TCM informs operational liquidity constraints (e.g., posição em conta PI suficiente para próxima janela TED), NOT settlement authorization nem timing econômico. BKR não decide PAGAR baseado em sinal TCM; apenas executa OU aguarda janela apropriada conforme constraint operacional informado."
+			description:   "Boundary semantic crítica: FCE autoriza economicamente; TCM informa constraint operacional de liquidez; BKR executa tecnicamente; rail determina finality. TCM evento NÃO é authorization signal — confundir destruiria separação BC. Per Phase 1.3 sh-04 + identidade canônica BKR."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "ext-partner-bank-or-psti"
+			event:         "RailProviderStatusUpdated"
+			reaction:      "Atualiza operational state de cada rail família (SPI/STR/SITRAF/SILOC/SWIFT) surfaceada pelo partner/PSTI integrator. Informa retry policy + classification (categoria technical: provider-unavailable, rail-out-of-hours, rail-rate-limited). BKR observa status; não decide settlement economic merit baseado em status."
+			description:   "Integration physical via PSTI homologada ou banco parceiro autorizado (per Phase 1.1 purpose); status events surfacem rail-level semantics (finality, retry, window) através do integration partner. Granularidade rail-by-rail preservada em query-deps + command-invocations (refs ext-spi-bacen, ext-str-bacen, etc.); event-consumer single porque integration boundary é única."
+		}, {
+			type:        "query-surface"
+			query:       "QuerySettlementStatus"
+			returnType:  "SettlementStatusView"
+			description: "Read model from event log canonical. Consultável por instructionId (business correlation) | attemptId (execution lineage) | railReferenceId (external reference). Retorna estado canônico ∈ {dispatched-awaiting-confirmation, reconciled-completed, reconciled-failed, indeterminate, cancellation-requested, cancellation-acknowledged}. Não emite outcome canonical sob estados não-finais — consumers downstream observam estado, não decidem por ele."
+		}, {
+			type:        "query-surface"
+			query:       "QueryDispatchClassification"
+			returnType:  "DispatchClassificationView"
+			description: "Failure classification detail consultável por instructionId | attemptId. Side-channel-aware: payload detalhado retornado apenas para callers identificáveis como upstream authorizer (FCE); demais consumers (audit, downstream observers) recebem categoria genérica + outcome sem detail que vaze compliance info (e.g., 'rail-rejected' sem revelar sanctions hit specifically). Per Phase 1.2 cap 6 side-channel mitigation."
+		}]
+
+		outbound: [{
+			type:    "event-publisher"
+			trigger: "Reconciliação determinística com confirmação rail (capability 3) atinge estado reconciled-completed."
+			event:   "SettlementCompleted"
+			consumers: ["fce", "tcm", "ato"]
+			description: "Outcome canonical — único evento de sucesso. Payload carrega instructionId + attemptId + railReferenceId + settlement timestamp final + rail discriminator. FCE consome para confirmation closure; TCM consome para cash position commit; ATO consome para repercussão fiscal/contábil. Não emitido sob estado intermediário ou indeterminate."
+		}, {
+			type:    "event-publisher"
+			trigger: "Reconciliação determinística com confirmação rail atinge estado reconciled-failed (rail rejeitou explicitamente; classification per capability 6)."
+			event:   "SettlementFailed"
+			consumers: ["fce", "tcm", "ato"]
+			description: "Outcome canonical de falha. Payload para fce inclui classification detail (side-channel-aware); payload para tcm/ato carrega outcome + categoria genérica sem detail sensível. FCE decide reissuance/cancellation; TCM reverte cash position reservado (se aplicável); ATO no-op fiscal ou annulment de prévio reconhecimento."
+		}, {
+			type:    "event-publisher"
+			trigger: "Estado attempt transita para indeterminate (timeout sem resposta definitiva do rail; provider em estado ambíguo) após esgotar retry policy interna."
+			event:   "SettlementIndeterminate"
+			consumers: ["fce"]
+			description: "Operational non-final escalation. Indeterminate é epistemicamente distinto de Failed — não sabemos outcome ainda, não que falhou. Evento separado preserva replay safety, reconciliation semantics e operational auditability — colapsar em Failed destruiria essas propriedades. FCE decide manual reconciliation, external check (e.g., consultar saldo via STR pull), ou aguardar próxima janela rail."
+		}, {
+			type:    "event-publisher"
+			trigger: "Failure classification (capability 6) categoriza falha por ownership causal (structural BKR-authoritative | technical BKR-authoritative | regulatory+economic pass-through)."
+			event:   "DispatchClassification"
+			consumers: ["fce"]
+			description: "Routing de failure handoff per Phase 1.2 cap 6. Detail completo enviado a fce (upstream authorizer com need-to-know); audit aggregate emitido em separado (não aqui) para outros consumers, sanitizado contra side-channel leak. Categorias canônicas: structural-instruction-invalid, technical-transient, provider-unavailable, rail-rate-limited, rail-out-of-hours, rail-rejected, regulatory-block, economic-instruction-invalid."
+		}, {
+			type:            "command-invocation"
+			interactionMode: "sync"
+			targetContext:   "ext-spi-bacen"
+			command:         "SubmitPixPayment"
+			trigger:         "PaymentInstruction validada (authorization proof + DICT resolution + structural validation) com rail=Pix. Despacho via PSTI/partner como integration physical."
+			description:     "ISO 20022 pacs.008 credit transfer message. Confirmação síncrona via pacs.002 (status report) recebida no mesmo round-trip OU async callback. endToEndId Pix emerge como railReferenceId. SPI 24/7 — operational window não é constraint temporal; provider/DICT availability é. Per Phase 1.2 cap 2 protocol translation."
+		}, {
+			type:            "command-invocation"
+			interactionMode: "sync"
+			targetContext:   "ext-str-bacen"
+			command:         "SubmitTedTransfer"
+			trigger:         "PaymentInstruction validada com rail=TED. Despacho dentro de janela STR (horários Bacen) OU SITRAF como alternativa via CIP."
+			description:     "ISO 20022 (em transição via STR modernization) ou formato STR legacy. Confirmação settlement via STR canonical message dentro de mesma data útil. SITRAF é alternative path via CIP com semantics similar; rail selection (capability 1) determina qual. ISPB+identifiers TED como railReferenceId."
+		}, {
+			type:            "command-invocation"
+			interactionMode: "sync"
+			targetContext:   "ext-siloc-cip"
+			command:         "SubmitBoletoPayment"
+			trigger:         "PaymentInstruction validada com rail=boleto. Despacho sync ao partner CIP; settlement async per SILOC schedule (D+0 ou D+1)."
+			description:     "CNAB 240/400 padrões ou API CIP. SILOC processa em batch com janelas determinísticas; confirmação settlement chega via retorno SILOC (file ou API push) async. Nosso Número como railReferenceId. Reconciliação consome retorno SILOC (capability 3)."
+		}, {
+			type:            "command-invocation"
+			interactionMode: "async"
+			targetContext:   "ext-swift-network"
+			command:         "SubmitSwiftPayment"
+			trigger:         "PaymentInstruction validada com rail=SWIFT/correspondent banking (cross-border ou specific routing). Despacho via banco correspondente."
+			description:     "SWIFT MX (ISO 20022 pacs.008) por default; MT103 legacy fallback apenas para correspondent partners ainda em transição MT→MX (deadline finalizada nov/2025). Confirmation multi-hop async via correspondent bank chain; UETR (Unique End-to-End Transaction Reference) SWIFT como railReferenceId. Reconciliação cross-hop pode levar minutos a horas — indeterminate state mais provável nessa rail."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ext-spi-bacen"
+			query:         "ResolvePixKey"
+			purpose:       "Authoritative external resolution prerequisite (NÃO structural-local validation). DICT (Diretório de Identificadores de Contas Transacionais) é external source of truth para Pix key → account info (ISPB, agency, account, account type, holder name proof). BKR consulta como pré-requisito de dispatch; não valida semanticamente, apenas resolve via autoridade externa oficial. Falha de resolução (key não existe, conta inativa, holder mismatch) → structural-instruction-invalid classification — instrução é estruturalmente inválida porque DICT (authoritative) rejeitou o identifier."
+			description:   "DICT como external source of truth distingue resolução autorizada de validação local. BKR não infere validade — DICT decide. Per Phase 1.2 cap 2."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ext-partner-bank-or-psti"
+			query:         "QueryAccountAvailability"
+			purpose:       "Verificar account active + within operational limits no partner/PSTI antes de dispatch. Provider obligation under arranjo de pagamento — BKR observa estado retornado pelo partner, não enforça policy."
+			description:   "Pre-dispatch account check no integration boundary físico (partner bank ou PSTI). Falha → technical (provider-unavailable) ou regulatory (account-blocked) classification per capability 6."
+		}, {
+			type:          "query-dependency"
+			targetContext: "tcm"
+			query:         "QueryCashOperationalAvailability"
+			purpose:       "Verificar constraint operacional de liquidez para próxima janela de rail target — TCM informs operational liquidity, NOT settlement authorization. BKR consome para garantir operational viability (e.g., conta PI tem saldo para próxima janela STR), não para decidir mérito econômico ou timing econômico."
+			description:   "Separação BC explícita: FCE autorização econômica; TCM constraint operacional; BKR execução técnica; rail finality. Sinal TCM é gate operacional advisory, não authorization."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ext-spi-bacen"
+			query:         "QuerySpiOperationalStatus"
+			purpose:       "Verificar SPI uptime + incident flag (Bacen publica status). SPI é 24/7 mas tem incidentes documentados — query informa retry policy + classification."
+			description:   "Status pull complementar ao event-consumer push (RailProviderStatusUpdated). Útil para pre-dispatch sanity check em momentos sensíveis."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ext-str-bacen"
+			query:         "QueryStrWindowStatus"
+			purpose:       "Verificar STR window atual (open/closed para a data; horários Bacen). Constraint determinística de retry policy (capability 5 — operational hours per rail)."
+			description:   "STR opera em janelas business hours definidas por Bacen. Despacho fora da janela aguarda próxima — não falha."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ext-sitraf-cip"
+			query:         "QuerySitrafWindowStatus"
+			purpose:       "Verificar SITRAF window atual (alternative TED path via CIP). Distinto de STR — diferentes finality semantics, diferentes operational windows, diferentes trust assumptions."
+			description:   "Granularidade preservada vs STR — SITRAF e STR são alternative paths para TED com semantics distintas. Rail selection (capability 1) determina qual usar dado upstream constraints."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ext-siloc-cip"
+			query:         "QuerySilocWindowStatus"
+			purpose:       "Verificar SILOC batch window (D+0/D+1 schedule). SILOC processa em batch — confirmação settlement não é instantânea. Query informa expected reconciliation timing."
+			description:   "Boleto via SILOC tem reconciliation semantics diferente de Pix/TED — batch processing. Indeterminate state mais comum nessa rail durante janelas de transição."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ext-swift-network"
+			query:         "QuerySwiftConnectivity"
+			purpose:       "Verificar correspondent bank availability + SWIFT network connectivity. Cross-border tem múltiplos hops — connectivity é cumulativa."
+			description:   "SWIFT multi-hop tem trust assumption cumulativa (correspondent chain) distinta de Pix/TED direct. Connectivity check informa retry policy + escalation timeout."
+		}]
+
+		rationale: """
+			Communication boundary modela BKR como deterministic
+			boundary managing the transition from economically
+			authorized intent into externally finalized settlement
+			under heterogeneous finality semantics — não é
+			payment API genérica nem banking adapter simples.
+			Esta identidade é constitutiva: cada inbound, outbound,
+			query-dependency e command-invocation reflete a
+			disciplina de separação BC.
+
+			Separação canônica das responsabilidades cross-BC:
+			  - FCE: autorização econômica (mérito de pagar,
+			    valor, destinatário, condições);
+			  - TCM: constraint operacional de liquidez (saldo
+			    disponível, posição em conta PI, próxima janela);
+			  - BKR: execução técnica determinística (dispatch,
+			    translation, reconciliation, retry, classification,
+			    cancel-request);
+			  - rail (SPI/STR/SITRAF/SILOC/SWIFT): finality
+			    semantics (quando dinheiro é considerado movido
+			    irrevocavelmente).
+			Confundir essas camadas degrada BKR a mini-treasury
+			(absorvendo TCM), mini-payment-engine (absorvendo FCE),
+			ou banking adapter genérico (ignorando rail heterogeneity).
+
+			Inbound: command-handlers (FCE→BKR sob authorization
+			proof verificável); event-consumers (TCM operational
+			liquidity; partner/PSTI rail status aggregate);
+			query-surfaces (read model side-channel-aware para
+			settlement state e classification detail). 6 entries
+			cobrindo todos os ingress paths.
+
+			Outbound: event-publishers (4 outcomes canônicos —
+			Completed/Failed/Indeterminate/Classification, com
+			Indeterminate explicitly preservado como evento
+			separado por ser epistemicamente distinto de Failed);
+			command-invocations (4 rails família — SubmitPixPayment
+			via SPI, SubmitTedTransfer via STR, SubmitBoletoPayment
+			via SILOC, SubmitSwiftPayment via SWIFT/correspondent);
+			query-dependencies (8 — DICT authoritative resolution,
+			partner account availability, TCM operational liquidity,
+			5 rail-specific window/connectivity checks preservando
+			granularidade per-rail semantics).
+
+			External system refs granulares (ext-spi-bacen,
+			ext-str-bacen, ext-sitraf-cip, ext-siloc-cip,
+			ext-swift-network, ext-partner-bank-or-psti)
+			preservam informação arquitetural: cada rail tem
+			finality semantics, retry semantics, operational
+			windows, reconciliation semantics e trust assumptions
+			distintas. Colapsar em ext-rail-provider destruiria
+			topologia regulada modelada como external integration
+			genérico.
+
+			DICT modelado como authoritative external resolution
+			prerequisite (não structural-local validation): DICT
+			é external source of truth para Pix key → account
+			mapping; BKR consulta autoridade externa oficial, não
+			infere validade local. Falha de resolução é
+			structural-instruction-invalid porque DICT (authoritative)
+			rejeitou o identifier — não porque BKR validou
+			semanticamente.
+
+			RequestSettlementCancellation modelada como NON-GUARANTEED
+			(best-effort pre-finality): BKR may request cancellation
+			before settlement finality, but settlement finality
+			remains determined by the underlying rail. Alguns rails
+			aceitam cancel (pacs.057 SPI), outros best-effort,
+			outros já clearing-irreversible mesmo sem confirmation
+			local. Reverse settlement (post-finality) é nova
+			obrigação econômica — fora de Phase 0 BKR scope (open
+			question Phase 1.6, envolve DRC/FCE).
+
+			Reverse settlement / estornos NÃO modelados em Phase 1.4
+			— envolvem nova obrigação econômica (pacs.004, refund,
+			dispute, judicial reversal, chargeback analogue) que
+			explode BC boundary e aproxima BKR de dispute/payment
+			engine. Defer correto a Phase 1.6 open question.
+
+			Drex (CBDC brasileira emergente 2026) NÃO modelada em
+			Phase 1.4 — pode introduzir paradigm shift (programmable
+			money, atomic settlement) que reshape entire
+			communication model. Defer a Phase 1.6 open question.
+
+			Open Finance ITP NÃO modelada em Phase 1.4 — authorization
+			owner ambiguity (consent OF user vs FCE Mesh) requer
+			ADR separado. Defer a Phase 1.6 open question.
+			"""
 	}
 
 	// =============================================
