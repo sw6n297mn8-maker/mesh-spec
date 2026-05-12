@@ -1456,8 +1456,513 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// RATIONALE OUTER — placeholder; conteúdo em commit 1.6
+	// ASSUMPTIONS — Phase 1.6 WI-062
+	// Agrupadas por epistemic dependency (3 clusters)
 	// =============================================
 
-	rationale: "Placeholder — rationale outer (síntese de identity + businessDecisions + anti-decision economic authority + commodity Wardley justification + cross-BC integration cascade FCE→BKR→external + lenses ativadas) entra em commit 1.6."
+	assumptions: [{
+		id: "as-bkr-access-model-1"
+		assumption: """
+			BKR assumes regulated access to Brazilian payment
+			infrastructure (SPB/SPI/STR/SITRAF/SILOC/CIP) through
+			either (a) direct regulated participation as IP/SCD
+			cumulando modalidade IP para conta transacional Pix
+			(capital mínimo R$ 5M a partir de 01/01/2026 per
+			normativo Bacen) ou (b) authorized intermediary
+			integration via PSTI homologada ou banco parceiro
+			autorizado em arranjo de pagamento. Conta PI / Conta
+			Pagamentos configurada em parceiro OU própria após
+			acumulação modalidade IP.
+			"""
+		invalidationSignal: """
+			Mudança regulatória Bacen que remova path de acesso
+			indireto via PSTI/IP partner OR exigência de
+			participação direta para SCDs com volumes específicos
+			OR descontinuação de arranjo de pagamento que Mesh
+			utiliza OR estratégia regulatória interna Mesh pivota
+			(e.g., obter banco licence direto, não SCD/IP) OR
+			capital requirement R$ 5M não atendido + decisão de
+			não prover conta transacional Pix.
+			"""
+		rationale: """
+			Cluster A — Access model. Separa capability do BC
+			(executar settlement sob intent autorizado) da
+			estratégia regulatória da empresa (qual licença/
+			parceiro/arranjo Mesh opera). BKR canvas é estável;
+			access model pode evoluir sem reescrever o BC. Phase 0
+			minimal viable: indireto via PSTI/partner; direto
+			requer ADR + capability schema update quando volume
+			justificar.
+			"""
+	}, {
+		id: "as-bkr-trust-anchor-1"
+		assumption: """
+			BKR assumes upstream authorization identities are
+			already established and governed externally. FCE-
+			publisher identity (cryptographic key registrada em
+			agent-governance envelope FCE Phase 5) é cross-BC
+			trust anchor; BKR consome para verificar authorization
+			proof, NÃO emite autoridade. Claim chain (command-id
+			FCE → authorization-id FCE → instructionId BKR)
+			audita-se via integridade criptográfica ancorada em
+			FCE. Signing keys management, rotation, revocation são
+			responsabilidade upstream — BKR consome o estado
+			canonical da agent-governance.
+			"""
+		invalidationSignal: """
+			FCE-publisher key comprometida OR rotated sem
+			propagação para BKR registro OR agent-governance
+			envelope FCE não materializado (Phase 5 falha) OR
+			proof spec evolui (signature algorithm mudança, TTL
+			semantics shift, claim chain format change) sem
+			capability schema update em BKR OR detection de
+			signature válida mas semantically forjada (e.g.,
+			replay com nonce reuse) indicando proof spec
+			incompleta.
+			"""
+		rationale: """
+			Cluster B — Trust anchor. Anti-decision boundary
+			depende de upstream proof verification working. BKR é
+			validador, não emissor de authority. Se identidade
+			upstream falha, BKR rejeita dispatch (structural-
+			instruction-invalid via ec-authorization-proof-
+			verification-failure) ao invés de compensar — preserva
+			separação BC. BKR valida; não emite autoridade.
+			"""
+	}, {
+		id: "as-bkr-provider-honesty-1"
+		assumption: """
+			Phase 0 assumes providers (PSTI/banco parceiro/rails
+			Bacen+CIP/SWIFT correspondents) are operationally
+			reliable but not infallible — settlement reports são
+			truthful em condições normais; reconciliation é
+			eventually consistent; isolated provider errors são
+			recoverable via retry + reconciliation; NO Byzantine
+			provider behavior (deliberate malicious tampering em
+			scale) é defended em Phase 0. BKR detection mechanisms
+			(signature verification, ID consistency, classification
+			ownership, ec-provider-tampering-suspected escalation)
+			catch many anomalies, mas Byzantine-resistant design
+			(cross-rail reconciliation, independent settlement
+			verification) é acknowledged future hardening scope.
+			"""
+		invalidationSignal: """
+			Repeated unexplained settlement anomalies acima de
+			baseline OR provider compromise documented externally
+			(security incident, partner reputational damage) OR
+			vm-bkr-07 provider anomaly escalation rate trending
+			alta sustentadamente OR regulatory mandate exigindo
+			Byzantine-resistant verification OR detection de
+			coordinated provider+adversary attack (ec-provider-
+			tampering-suspected escalations clustered).
+			"""
+		rationale: """
+			Cluster C — Provider honesty. Honest declaration evita
+			overclaim de segurança. Phase 0 trust boundary:
+			operational reliability assumed; full Byzantine
+			resistance deferred (open question oq-bkr-psti-
+			tampering-1 + oq-bkr-provider-lying-1 + oq-bkr-
+			secondary-reconciliation-1). Reconhecer scope de
+			hardening pendente sem fingir que está coberto.
+			"""
+	}]
+
+	// =============================================
+	// OPEN QUESTIONS — Phase 1.6 WI-062
+	// Organizadas por epistemological uncertainty class (3 clusters)
+	// =============================================
+
+	openQuestions: [{
+		id: "oq-bkr-drex-scope-1"
+		question: """
+			OQ-A Emerging rails. Drex (CBDC brasileira) — launch
+			phased 2026 inclui escopo BKR Phase 0? Initial Drex
+			foca interbank settlement + reconciliação de credit
+			liens (sem blockchain inicial); pode introduzir
+			programmable money semantics que altera
+			retry/idempotency/finality assumptions. Drex
+			programmable money (conditional/atomic settlement
+			primitives, smart contracts on CBDC) — BKR vira
+			smart contract executor ou permanece deterministic
+			boundary tradicional?
+			"""
+		impact: """
+			Inclusão de Drex como rail dentro do BKR requer: (a)
+			novo external system ref (ext-drex-bacen); (b)
+			capability schema update para absorver protocol
+			semantics distintas; (c) possível ADR sobre
+			programmable money scope (in/out Phase 0); (d)
+			reconciliation semantics review (atomic settlement
+			muda assumptions de capability 3); (e) potencial
+			impacto em business model SCD (Drex permite settlement
+			sem rails tradicionais?).
+			"""
+		rationale: "OQ-A Emerging rails. Drex é paradigm-shift potencial; revisita quando Bacen finalize spec inicial + qualquer pilot programmable money. Não bloqueia Phase 0 mas pode reshape capability schema."
+	}, {
+		id: "oq-bkr-pix-internacional-1"
+		question: """
+			OQ-A Emerging rails. Pix internacional — em
+			desenvolvimento Bacen 2026+. Pode introduzir implicit
+			FX conversion semantics dentro de operações Pix.
+			bd-no-value-payee-mutation declara FX out of Phase 0
+			scope; Pix internacional pode forçar revisão. Manter
+			scope FX out OU adaptar BKR para absorver Pix
+			internacional como rail distinto com FX flag?
+			"""
+		impact: """
+			Se Pix internacional é integrado como nova rail family
+			(ext-pix-int-bacen), BKR ganha novo command-invocation +
+			new operational semantics. Se reusa ext-spi-bacen com
+			FX flag, bd-no-value-payee-mutation precisa exceção
+			ou refinement. Aguarda spec Bacen finalization.
+			"""
+		rationale: "OQ-A Emerging rails. Pix internacional pode tensionar bd-no-value-payee-mutation (FX out of Phase 0). Revisita quando Bacen finalize protocolo + Mesh decide se cross-border é Phase 1+ target."
+	}, {
+		id: "oq-bkr-open-finance-itp-1"
+		question: """
+			OQ-A Emerging rails. Open Finance ITP (Iniciador de
+			Transações de Pagamento) — Mesh pode atuar como ITP
+			iniciando Pix em conta do pagador no banco parceiro.
+			Authorization owner é consent OF do usuário do banco
+			pagador OU FCE Mesh? Boundary FCE↔BKR↔ITP path requer
+			ADR separado.
+			"""
+		impact: """
+			Open Finance ITP introduces novo authorization model —
+			consent OF é proof of authority diferente de FCE-
+			publisher signature. BKR Phase 0 assume authority via
+			FCE proof; ITP path requer either (a) FCE adapta para
+			encapsular ITP consent OR (b) BKR accepts dual
+			authority models with explicit routing. ADR separado
+			antes de implementação.
+			"""
+		rationale: "OQ-A Emerging rails. ITP path introduz dual authority model (OF consent vs FCE signature). Revisita quando Mesh decide se atua como ITP — não bloqueia Phase 0."
+	}, {
+		id: "oq-bkr-psti-tampering-1"
+		question: """
+			OQ-B Trust hardening. PSTI tampering detection — se
+			Mesh usa PSTI para acesso indireto, PSTI vira single
+			point of failure E compromise. PSTI tem acesso a
+			PaymentInstructions; PSTI hostil pode reroute/mutate.
+			Defense in depth: cross-check via secondary path,
+			structural validation pós-PSTI, ou separate provider
+			tier?
+			"""
+		impact: """
+			Phase 0 detection: signature verification + ID
+			consistency + classification ownership pegam alguns
+			vetores. Byzantine-resistant design (cross-rail
+			reconciliation, independent settlement verification
+			via direct Bacen query, secondary provider) é future
+			hardening que requer (a) ADR sobre dual-provider
+			topology, (b) cost increase per dispatch, (c)
+			capability schema update. Threat model formalization
+			pendente.
+			"""
+		rationale: "OQ-B Trust hardening. Byzantine-resistant PSTI defense é future hardening — Phase 0 honest declaration via as-bkr-provider-honesty-1. Revisita quando provider anomaly trend (vm-bkr-07) justificar OR security incident externo."
+	}, {
+		id: "oq-bkr-provider-lying-1"
+		question: """
+			OQ-B Trust hardening. Provider lying about settlement
+			— provider retorna SettlementCompleted falsamente,
+			reverte via batch ou audit posterior. BKR Phase 0
+			confia no provider; cross-rail reconciliation (e.g.,
+			STR balance check pós-Pix completion) defer. Quando
+			promover ao escopo?
+			"""
+		impact: """
+			Independent settlement verification (conferir saldo
+			via STR após Pix completion, ou cross-check via
+			secondary provider) introduces cost + latency mas
+			protege contra provider malicious behavior. Phase 1+
+			decision: necessidade tracked via vm-bkr-07 provider
+			anomaly escalation rate trend.
+			"""
+		rationale: "OQ-B Trust hardening. Provider lying defense é Byzantine-resistant hardening. Phase 0 trust boundary explicitamente operational reliability sem Byzantine — assumption as-bkr-provider-honesty-1 ancora. Promoção tracked via metric trend."
+	}, {
+		id: "oq-bkr-secondary-reconciliation-1"
+		question: """
+			OQ-B Trust hardening. Secondary reconciliation paths
+			— quando event-driven reconciliation primary falha
+			(provider lost data, batch gap, communication failure
+			persistente), qual é o path autoritativo de
+			reconciliation? Direct STR pull? Audit log replay?
+			Manual operator override (já modelado em sd-manual-
+			provider-reconciliation)? Independent ledger
+			comparison?
+			"""
+		impact: """
+			Manual reconciliation já é supervised decision; mas
+			secondary AUTOMATED reconciliation path melhora
+			resiliência sem human bottleneck. Requires (a) ADR
+			sobre secondary reconciliation authority, (b)
+			capability schema update, (c) trust model definition
+			(qual secondary source é authoritative).
+			"""
+		rationale: "OQ-B Trust hardening. Secondary reconciliation reduz dependência de human bottleneck (sd-manual-provider-reconciliation) mas adiciona trust model complexity. Revisita quando frequência de manual override justificar automation."
+	}, {
+		id: "oq-bkr-recurring-lineage-1"
+		question: """
+			OQ-C Intent vs execution lineage. Recurring payment +
+			idempotency key strategy — qual identifier garante
+			idempotency entre attempts da mesma recurring
+			instruction? Per current design: instructionId é
+			business correlation (FCE-owned); attemptId é per-
+			execution (BKR-owned); idempotencyKey deriva de
+			attemptId. Para recurring, FCE precisa gerar novo
+			instructionId per cycle OU mesmo instructionId com
+			attempt-N counter?
+			"""
+		impact: """
+			Phase 0 assumption: cada cycle de recurring é novo
+			instructionId (FCE responsibility). Mas se recurring
+			é primitive modelada upstream (CMT?), pode haver
+			contrato sobre instructionId stability vs counter.
+			Requer alinhamento cross-BC FCE↔CMT↔BKR sobre lineage
+			semantics. ADR pendente quando CMT formalize recurring.
+			"""
+		rationale: "OQ-C Intent vs execution lineage. Recurring é primitive cross-BC (CMT/FCE upstream); BKR fornece idempotency mas lineage semantics decidida upstream. Revisita quando CMT canvas formalize recurring contract."
+	}, {
+		id: "oq-bkr-timing-arbitrage-1"
+		question: """
+			OQ-C Intent vs execution lineage. Cross-rail timing
+			arbitrage detection — bd-rail-selection-is-technical-
+			only proíbe arbitrage explicit, mas detection
+			mechanism robusto não foi definido. Como detectar se
+			sh-05 agent OR sh-06 adversary forçou rail selection
+			que beneficiou timing assimétrico (e.g., escolheu
+			boleto D+1 ao invés de Pix instant para criar float)?
+			"""
+		impact: """
+			Detection requires (a) audit log analysis com baseline
+			distribuição esperada de rail selection per instruction
+			class, (b) statistical anomaly detection sobre rail
+			mix, (c) policy enforcement determinístico (rail
+			selection rule-based vs optimization-based — current
+			design é rule-based, mas drift risk). vm-bkr-04
+			semantic-boundary violations prevented capta alguns
+			vectors mas não timing arbitrage subtle.
+			"""
+		rationale: "OQ-C Intent vs execution lineage. Timing arbitrage subtle requires statistical detection over baseline — detection mechanism robusto pendente. bd-rail-selection-is-technical-only proíbe explicitamente mas enforcement automatizado precisa Phase 1+ design."
+	}, {
+		id: "oq-bkr-cross-rail-authority-1"
+		question: """
+			OQ-C Intent vs execution lineage. Cross-rail
+			optimization authority — em quais condições (se
+			alguma) BKR pode optimizar rail selection beyond
+			strict upstream-declared constraints? Hoje: nunca
+			(purely technical, sob constraints). Mas se FCE delega
+			selection com 'cheapest viable rail' constraint, BKR
+			efetivamente optimiza dentro do constraint. Boundary
+			entre 'optimization sob constraint declarado' e
+			'arbitrage não autorizado' precisa ser formalizada.
+			"""
+		impact: """
+			Phase 0 maintained: BKR não optimiza independent. Mas
+			FCE-delegated optimization within declared constraints
+			é tipo de optimization (passa-se de rule-based para
+			constraint-satisfaction). Boundary semantics: BKR
+			autonomy = constraint satisfaction, NÃO objective
+			maximization. ADR pendente formalize.
+			"""
+		rationale: "OQ-C Intent vs execution lineage. Constraint satisfaction vs objective maximization boundary precisa formalização — current design é safe-by-default (rule-based) mas FCE-delegated constraints introduzem grey area. ADR pendente."
+	}]
+
+	// =============================================
+	// VERIFICATION METRICS — Phase 1.6 WI-062
+	// Invariants observáveis (não apenas SLA técnico)
+	// =============================================
+
+	verificationMetrics: [{
+		id:     "vm-bkr-01-duplicate-settlement-rate"
+		metric: "Rate of duplicated settlements detected — % de attemptIds com mais de um SettlementCompleted/Failed event canonical OR % de instructionIds com settlement em rails distintos sem fallbackRails pre-authorization."
+		target: "0.00% — zero tolerance (RECTOR operacional)."
+		onBreach: {
+			escalationRef: "ec-double-settlement-detected"
+			rationale:     "Duplicate é falha em economia real (dinheiro movido duas vezes). Any breach = immediate escalation; root cause analysis determina race bug / idempotency failure / provider behavior / tampering."
+		}
+		rationale: "Métrica RECTOR operacional. Garante idempotency-by-attemptId + retry guards + cross-rail authorization funcionam por construção. Detecção é primeira linha de defesa contra duplicate-settlement vector (sh-06 settlement-boundary exploitation)."
+	}, {
+		id:     "vm-bkr-02-indeterminate-reconciliation-duration"
+		metric: "Tempo (mean + p95) que attempt permanece em estado indeterminate antes de canonical reconciliation OR escalation. Per rail: Pix (target < operational window minutes); TED (target < end-of-business-day STR); boleto (target < D+2); SWIFT (target < multi-hop window)."
+		target: "p95 < operational window per rail; mean monotonic decreasing trend após Phase 0 baseline estabelecido; targets refined em Phase 1+."
+		onBreach: {
+			escalationRef: "ec-indeterminate-state-exceeds-operational-window"
+			rationale:     "Indeterminate além de operational window indica reconciliation failure persistent OR provider degradation OR tampering. Escala a fce para decision sobre manual reconciliation/external check."
+		}
+		rationale: "Mede ambiguidade operacional residual. Indeterminate é operationally non-final by design (capability 3); high duration sustained indica reconciliation mechanism deteriorando — degradação epistêmica."
+	}, {
+		id:     "vm-bkr-03-unauthorized-dispatch-rejection-rate"
+		metric: "Número (per period) de PaymentInstructions rejeitadas por authorization proof failure: signature inválida, TTL expirada, claim chain quebrada, FCE-publisher key não registrada em agent-governance."
+		target: "Baseline established Phase 0; threshold para alerting sobre crescimento súbito sustentado (sinal de attack attempt OR FCE drift)."
+		onBreach: {
+			escalationRef: "ec-authorization-proof-verification-failure"
+			rationale:     "Spike em rejeições indica either coordinated forgery attempt (sh-06 adversarial) OR FCE drift (key rotation sem propagação, proof spec mismatch). Ambos requerem investigation imediata."
+		}
+		rationale: "Mede boundary enforcement effectiveness. Authorization proof verification é primeira linha de defesa contra forged authorization vector (sh-01 manipulationVector). Métrica também detecta operational drift FCE↔BKR proof spec."
+	}, {
+		id:     "vm-bkr-04-semantic-boundary-violations-prevented"
+		metric: "Número (per period) de tentativas bloqueadas em anti-decision boundaries: cross-rail failover sem authorization, beneficiary mutation attempt, value mutation attempt, post-finality cancellation attempt, classification side-channel leak prevented."
+		target: "Observability-only — alta taxa indica agent drift OR adversarial activity (ambos exigem context). Baseline established Phase 0; trend analysis Phase 1+."
+		rationale: "Mede preservação do anti-decision boundary. 'Prevented' é success metric (BKR bloqueou); count + categoria identifica vector predominante. Sem onBreach direto porque é signal agregado — exige avaliação contextual human-in-the-loop sobre qual escalation/decision específica é apropriada (cada subcategoria já tem escalation própria em governanceScope)."
+	}, {
+		id:     "vm-bkr-05-reconciliation-consistency-rate"
+		metric: "% de SettlementCompleted/Failed events emitidos com rail proof determinístico (reconciliation message verificável: pacs.002 Pix, STR confirmation, SILOC retorno, SWIFT confirmation chain) vs eventos emitidos via supervised override (sd-force-completion-failure-without-deterministic-rail-proof)."
+		target: ">= 99.9% determinístico em condições normais; degradação significa reconciliation mechanism deteriorando."
+		onBreach: {
+			escalationRef: "ec-rail-finality-irreversibility-conflict"
+			rationale:     "Drop em consistency rate indica multiple finality conflicts requiring sd-manual-provider-reconciliation. Cluster de manual overrides é sinal de provider/rail issue sistemático."
+		}
+		rationale: "Mede integridade epistemológica do BC. Determinismo é constitutivo (BKR é deterministic settlement orchestration boundary); rate < 100% reflete operational reality mas degradação trend é red flag arquitetural."
+	}, {
+		id:     "vm-bkr-06-side-channel-leakage-incidents"
+		metric: "Número (per period) de incidentes detectados onde classification detail compliance-sensitive foi exposto a consumer não autorizado (regulatory-block detail vazado para audit aggregate, sanctions inference em query response a non-FCE consumer, AML trigger specifics em outbound event payload destinado a downstream)."
+		target: "0 (zero incidents) — any incident triggers immediate review."
+		onBreach: {
+			escalationRef: "ec-classification-side-channel-leak-detected"
+			rationale:     "Side-channel leak é vector de risk amplification (informa attacker sobre sanctions/AML target state). Detection pre-emptive é primeira linha; incident significa policy/routing falhou — review obrigatória."
+		}
+		rationale: "Side-channel mitigation Phase 1.2 cap 6 + Phase 1.4 communication depende de detection mechanism funcionar. Métrica meta sobre próprio BKR vazar info sensível — eixo de risk amplification self-induced."
+	}, {
+		id:     "vm-bkr-07-provider-anomaly-escalation-rate"
+		metric: "Número (per period) de escalations disparadas: DuplicateSettlementAnomaly, ProviderTamperingSuspected, RailFinalityConflict, RegulatoryBoundaryMisalignment. Agregada per provider/rail."
+		target: "Observability-only baseline; deteriorating trend (crescimento sustentado) é sinal de provider degradation OR threat model evolution requiring hardening."
+		rationale: "Mede health do boundary externo. Aggregator metric: spike em qualquer subcategoria informa onde focar hardening (e.g., DuplicateSettlementAnomaly spike → investigate idempotency mechanism OR provider behavior; ProviderTamperingSuspected spike → trigger security review). Sem onBreach direto porque é meta-aggregator — cada subcategoria já tem escalation própria."
+	}]
+
+	// =============================================
+	// RATIONALE OUTER — Phase 1.6 WI-062 (final)
+	// =============================================
+
+	rationale: """
+		BKR is a deterministic settlement orchestration boundary
+		operating under externally authorized economic intent.
+		Its role is not to decide whether money should move,
+		but to translate, dispatch, reconcile and canonicalize
+		settlement execution across heterogeneous regulated
+		rails while preserving upstream economic semantics
+		intact.
+
+		Anti-core differentiator. BKR deliberately isolates
+		commodity rail complexity (Pix via SPI, TED via
+		STR/SITRAF, boleto via SILOC/CIP, SWIFT/correspondent
+		banking em transição MT→MX/ISO 20022) away from
+		proprietary financial logic (FCE economic authorization,
+		REW risk gates, SCF antecipação semantics, TCM
+		treasury allocation). Sem BKR como BC separado, FCE
+		absorveria heterogeneidade de cada protocolo bancário
+		— acoplando lógica financeira proprietária a
+		integrações commodity. Identidade: low strategic
+		uniqueness (rails substituíveis por qualquer provedor),
+		high criticality operacional (movimenta dinheiro real,
+		regulado pelo Bacen e integrado ao SPB/SPI por meio
+		de instituições autorizadas).
+
+		Boundary anti-decision. BKR never (a) authorizes
+		payment — authorization é constitutivamente upstream
+		(FCE para liquidação, TCM para constraint operacional
+		de liquidez, policy para boundaries); (b) changes
+		beneficiary — payee mutation é mutação econômica
+		proibida; (c) changes value — value mutation é
+		mutação econômica proibida; (d) collapses ambiguity
+		into completion — indeterminate is operationally
+		non-final, evento separado preservado por design
+		porque epistemicamente distinto de Failed; (e)
+		performs treasury allocation — disponibilidade de
+		liquidez é informada por TCM como operational
+		constraint, não como timing authorization. Estes 5
+		nãos são constitutivos; codificados em
+		businessDecisions + supervisedDecisions +
+		escalationCriteria executable.
+
+		Determinism. Settlement canonicalization only occurs
+		after deterministic reconciliation com proof rail
+		verificável — pacs.002 para Pix via SPI; STR
+		confirmation para TED; retorno SILOC (file ou API
+		push) para boleto; SWIFT confirmation chain
+		multi-hop. SettlementCompleted/Failed canonical events
+		NÃO são emitidos sob estado intermediário, indeterminate
+		ou override sem proof. Atomic state machine sobre
+		cada attempt (requested → in-flight → confirmed |
+		failed | indeterminate) + 4-way ID separation
+		(instructionId business correlation FCE-owned;
+		attemptId execution lineage BKR-owned; railReferenceId
+		rail-owned external; idempotencyKey BKR-constructed
+		for enforcement) garantem replay safety + audit trail
+		consistency + reconciliation semantics.
+
+		Semantic preservation. Cross-rail translation MUST
+		preserve economic settlement semantics declared
+		upstream. Protocol translation (capability 2) é função
+		pura sobre instrução autorizada — output é
+		representação isomórfica em protocolo externo (ISO
+		20022 pacs.* / SWIFT MX/MT / CNAB SILOC), não
+		reinterpretação econômica. Rail selection (capability
+		1) é technical routing sob upstream-declared
+		constraints — nunca optimization independent. FX é
+		out of Phase 0 scope (currency conversion is out of
+		BKR Phase 0 scope unless represented as a separate
+		upstream-authorized instruction). Failure
+		classification (capability 6) preserva ownership
+		causal: structural+technical são BKR-authoritative;
+		regulatory+economic são pass-through para FCE
+		decision.
+
+		Three-layer distinction codificada. BKR materializa
+		separação canônica:
+		  - economic intent (FCE-owned, authorization
+		    cryptographic);
+		  - technical execution (BKR-owned, deterministic
+		    orchestration);
+		  - rail-level settlement evidence (rail-owned,
+		    finality semantics heterogêneas).
+		Esta separação aparece em todos os artefatos do canvas:
+		businessDecisions (bd-settlement-authorization-upstream,
+		bd-no-value-payee-mutation), capabilities (translation
+		isomórfica, classification ownership), communication
+		(authorization proof receipt, side-channel-aware
+		classification routing), governanceScope (5 autonomous
+		technical-only + 6 supervised anti-economic-decision +
+		9 escalation drift detection), stakeholders (TCM
+		informs operational liquidity NOT settlement
+		authorization; sh-04 Bacen boundary constraint
+		authority NOT downstream consumer).
+
+		BKR exists to ensure that heterogeneous financial
+		rails can be consumed as deterministic infrastructure
+		without allowing operational complexity to leak
+		upward into economic decision authority. Esta é a
+		frase de fechamento — alinhada à tese Mesh inteira
+		(dinheiro como primitiva nativa, operação determinística,
+		autoridade explicitamente escalada, boundary preservado
+		por construção, governança codificada em CUE, semantic
+		preservation cross-BC).
+
+		Forward-looking acknowledged. Open questions Phase 1.6
+		registram gaps conscientes sem colapsar escopo: Drex
+		CBDC emergent 2026 (paradigm shift potencial), Pix
+		internacional FX (scope review), Open Finance ITP
+		(authorization owner ambiguity), PSTI tampering +
+		provider lying + secondary reconciliation (Byzantine-
+		resistant hardening future), recurring + timing
+		arbitrage + cross-rail authority (lineage semantics
+		refinement). Assumptions registram premissas
+		regulatórias/operacionais (acesso regulado via PSTI/
+		IP/SCD; trust anchor upstream estabelecido externamente;
+		provider honesty operacional sem Byzantine defense
+		em Phase 0).
+
+		Lenses ativadas. lens-distributed-systems-design
+		(consistency/availability/partition + 4-way ID lineage),
+		lens-incentive-alignment (anti-decision boundary
+		preserving dp-08), lens-regulatory-compliance-as-
+		architecture (boundary constraint absorption não
+		enforcement), lens-trust-and-credibility-design
+		(authoritative external resolution prerequisite vs
+		structural-local validation), lens-temporal-modeling-
+		for-financial-systems (operational windows per rail +
+		indeterminate state preservation), lens-mechanism-
+		design (governanceScope codifica mech-agent-gate
+		Phase 5).
+		"""
 }
