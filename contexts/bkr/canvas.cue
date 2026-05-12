@@ -1492,7 +1492,8 @@ canvas: artifact_schemas.#Canvas & {
 			access model pode evoluir sem reescrever o BC. Phase 0
 			minimal viable: indireto via PSTI/partner; direto
 			requer ADR + capability schema update quando volume
-			justificar.
+			justificar. BKR consome o modelo regulatório; não o
+			define.
 			"""
 	}, {
 		id: "as-bkr-trust-anchor-1"
@@ -1534,7 +1535,8 @@ canvas: artifact_schemas.#Canvas & {
 		assumption: """
 			Phase 0 assumes providers (PSTI/banco parceiro/rails
 			Bacen+CIP/SWIFT correspondents) are operationally
-			reliable but not infallible — settlement reports são
+			reliable but not cryptographically trustless —
+			settlement reports são
 			truthful em condições normais; reconciliation é
 			eventually consistent; isolated provider errors são
 			recoverable via retry + reconciliation; NO Byzantine
@@ -1928,11 +1930,10 @@ canvas: artifact_schemas.#Canvas & {
 		authorization; sh-04 Bacen boundary constraint
 		authority NOT downstream consumer).
 
-		BKR exists to ensure that heterogeneous financial
-		rails can be consumed as deterministic infrastructure
-		without allowing operational complexity to leak
-		upward into economic decision authority. Esta é a
-		frase de fechamento — alinhada à tese Mesh inteira
+		BKR exists so that heterogeneous financial rails can
+		be consumed as deterministic infrastructure while
+		preserving upstream economic semantics intact. Esta é
+		a frase de fechamento — alinhada à tese Mesh inteira
 		(dinheiro como primitiva nativa, operação determinística,
 		autoridade explicitamente escalada, boundary preservado
 		por construção, governança codificada em CUE, semantic
