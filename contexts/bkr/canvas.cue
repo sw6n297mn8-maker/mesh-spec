@@ -168,13 +168,165 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// CAPABILITIES — placeholder; conteúdo em commit 1.2
+	// CAPABILITIES — Phase 1.2 WI-062
 	// =============================================
 
 	capabilities: {
 		operational: [{
-			description: "Placeholder — capabilities operacionais entram em commit 1.2."
-			rationale:   "Skeleton commit 1.1 estabelece shape; conteúdo substantivo (provavelmente cobrindo: rail dispatch + protocol translation + settlement confirmation reconciliation + retry/timeout handling determinístico) entra em commit 1.2."
+			capabilityRef: "cc-03"
+			description: """
+				Despachar PaymentInstruction recebida de FCE (já
+				autorizada upstream) para o rail bancário declarado
+				na instrução OU deterministically selected by technical
+				routing policy (e.g., latency, provider availability,
+				fee tier) quando FCE delega seleção. Despacho é
+				puramente técnico: não avalia mérito econômico da
+				instrução nem altera valor, destinatário ou obrigação
+				declarada. Rail selection nunca altera custo, prioridade
+				econômica ou destinatário sem autorização upstream.
+				"""
+			rationale: """
+				Encapsula heterogeneidade de protocolos atrás de
+				interface uniforme. Sem despacho centralizado, FCE
+				absorveria seleção de rail (decisão commodity)
+				acoplando lógica financeira a integrações substituíveis.
+				cc-03 (operação 24/7) habilitada por mech-agent-gate:
+				BKR consome PaymentInstruction como unidade atômica
+				autorizada e despacha sem janelas batch nem intervenção
+				rotineira. Routing policy é determinística e auditável
+				— quando aplicada, registra escolha + critério no event
+				log para replay.
+				"""
+		}, {
+			capabilityRef: "cc-03"
+			description: """
+				Traduzir vocabulário interno Mesh (PaymentInstruction,
+				SettlementRequest, structured fields) para formatos
+				externos de rails (ISO 20022 MX, COMPE 22-9, SWIFT MT,
+				formatos próprios de providers). Tradução é estrutural
+				— campo a campo per spec do protocolo — sem reinterpretar
+				semântica financeira nem omitir/criar informação
+				econômica.
+				"""
+			rationale: """
+				Boundary técnico. Protocolos externos evoluem (Pix v2,
+				SWIFT MT→MX migration, ISO 20022 fases) sem precisar
+				alterar contratos internos Mesh. cc-03 (operação 24/7)
+				habilitada por absorver volatilidade de formato dentro
+				do BKR: FCE permanece estável enquanto rails mudam.
+				Tradução é função pura sobre instrução autorizada —
+				output é representação isomórfica em protocolo externo,
+				não reinterpretação.
+				"""
+		}, {
+			capabilityRef: "cc-04"
+			description: """
+				Consumir confirmação ou falha emitida pelo rail
+				(synchronous response ou async callback), reconciliar
+				com PaymentInstruction original via identifiers
+				correlacionáveis (correlationId, endToEndId), e emitir
+				SettlementCompleted / SettlementFailed / SettlementPending
+				como evento canônico Mesh consumido por FCE/TCM/ATO.
+				"""
+			rationale: """
+				Rails têm semânticas heterogêneas de confirmação (Pix
+				instantâneo síncrono, TED D+0 com janelas, boleto
+				D+1/D+2 async, SWIFT multi-hop). BKR uniformiza outcome
+				em vocabulário Mesh sem alterar estado real nem
+				reinterpretar economicamente o resultado. cc-04
+				(auditoria contínua) habilitada por mech-three-sots:
+				reconciliação determinística produz events que feed
+				audit trail imutável; cada settlement é rastreável da
+				instrução à confirmação rail por correlation IDs
+				estáveis.
+				"""
+		}, {
+			capabilityRef: "cc-04"
+			description: """
+				Garantir que despacho repetido da mesma PaymentInstruction
+				(mesmo correlationId/endToEndId) NÃO produz settlement
+				duplicado. Detecção por idempotency key estável;
+				comportamento em duplicate-detected: retornar resultado
+				anterior ou rejeitar conforme estado do settlement
+				anterior (no-op idempotente).
+				"""
+			rationale: """
+				Pix/TED/SWIFT têm semânticas distintas de retry —
+				alguns aceitam idempotency nativamente (Pix endToEndId),
+				outros não. BKR provê garantia uniforme upstream para
+				FCE: instrução não é executada duas vezes mesmo sob
+				falha de rede, retry de FCE ou re-delivery de evento.
+				Sem isto, FCE absorveria duplicate-prevention per rail.
+				cc-04 (auditoria contínua) requer correção por construção:
+				event log sem duplicação é precondição para audit trail
+				confiável. Idempotency é capability central que precede
+				retry — retry sem idempotency vira vector de
+				double-settlement.
+				"""
+		}, {
+			capabilityRef: "cc-03"
+			description: """
+				Aplicar política de retry e timeout determinística para
+				falhas técnicas transitórias (rail timeout, transient
+				provider error, network partition). Política codificada
+				(max retries, backoff schedule, escalation timeout) por
+				classe de falha técnica; não envolve julgamento contextual
+				nem altera instrução econômica. Retry permitido apenas
+				enquanto settlement final NÃO foi confirmado; após
+				confirmação ou estado ambíguo (indeterminate provider
+				state), retry é proibido e o caso transita para
+				reconciliation (capability 3) ou escalation (capability 6),
+				nunca para nova tentativa de dispatch.
+				"""
+			rationale: """
+				Falhas técnicas transitórias são commonplace em
+				integrações externas (rails de terceiros). Política
+				determinística habilita replay, audit e supersession
+				(P10 — agentes estocásticos recomendam; gates
+				determinísticos validam). cc-03 (operação 24/7) requer
+				resiliência sem intervenção humana rotineira. Bloqueio
+				post-confirmação é não-negociável: retry após confirmação
+				é vector direto de double-settlement, que é falha em
+				economia real (dinheiro movido duas vezes). Idempotency
+				(capability 4) é precondição estrutural; retry guard é
+				precondição comportamental.
+				"""
+		}, {
+			capabilityRef: "cc-03"
+			description: """
+				Classificar falhas em categorias canônicas e roteá-las
+				para handoff apropriado:
+				  - 'technical-transient' / 'provider-unavailable':
+				    retry interno determinístico via capability 5.
+				  - 'structural-instruction-invalid' (campos malformados,
+				    schema violation, missing required fields, type
+				    mismatch): reject at BKR boundary com rejection
+				    event indicando structural error específico —
+				    BKR conhece schema da instrução e pode validar
+				    deterministicamente.
+				  - 'rail-rejected' / 'regulatory-block' /
+				    'economic-instruction-invalid' (limite excedido,
+				    destinatário bloqueado por compliance externa,
+				    valor inconsistente com policy): escalation a FCE
+				    (originador da instrução) sem tentativa de
+				    remediação automática.
+				"""
+			rationale: """
+				cc-03 (operação 24/7) requer routing determinístico de
+				falhas — humanos intervêm por exceção, não por rotina.
+				Handoff respeita boundary anti-decision: structural
+				rejection é técnico (BKR validador local sobre schema
+				declarado); economic/regulatory rejection requer
+				reinterpretação de mérito (alterar valor, destinatário
+				ou condições) — fora do escopo BKR por construção.
+				Escalation devolve a FCE quem autorizou originalmente
+				e pode decidir reissuance, cancellation ou ajuste de
+				instrução. Distinção structural vs economic invalidity
+				é boundary explícita: BKR rejeita structural sem
+				escalar (custo de escalation > custo de rejection); BKR
+				escala economic sem rejeitar (rejeitar economic exigiria
+				julgamento que BKR não tem).
+				"""
 		}]
 		hasSyncSurface:  true
 		hasAsyncSurface: true
