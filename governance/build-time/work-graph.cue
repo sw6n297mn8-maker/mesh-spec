@@ -65,7 +65,7 @@ workGraph: {
 		id:              "p9-stack-definition"
 		order:           9
 		dependsOnPhases: ["p6-strategic-completion"]
-		rationale:       "W005 — Stack definition. Depende de p6 porque Conway alignment (WI-074) informa stack choices: team topology constrains architecture choice (Skelton/Pais). Stack ADRs decidem codegen, compute, persistence, eventing, boundaries, operability, frontend."
+		rationale:       "W005 — Stack definition. Depende de p6 porque Conway alignment (WI-116) informa stack choices: team topology constrains architecture choice (Skelton/Pais). Stack ADRs decidem codegen, compute, persistence, eventing, boundaries, operability, frontend."
 	}, #Phase & {
 		id:              "p7-cross-context-workflows-expansion"
 		order:           10
@@ -687,117 +687,117 @@ workGraph: {
 	},
 
 	// ============================================================
-	// Phase p6: W002 strategic completion (WI-066..069, 072..077)
+	// Phase p6: W002 strategic completion (WI-110..113, WI-114..119)
 	// ============================================================
 	#ExecutionDependency & {
-		taskId:    "WI-066"
+		taskId:    "WI-110"
 		dependsOn: []
 		phaseId:   "p6-strategic-completion"
 		groupId:   "g8-discovery-and-method"
 	}, #ExecutionDependency & {
-		taskId: "WI-067"
-		dependsOn: [{taskId: "WI-066", version: 1}]
+		taskId: "WI-111"
+		dependsOn: [{taskId: "WI-110", version: 1}]
 		phaseId: "p6-strategic-completion"
 		groupId: "g8-discovery-and-method"
 	}, #ExecutionDependency & {
-		taskId: "WI-068"
-		dependsOn: [{taskId: "WI-067", version: 1}]
+		taskId: "WI-112"
+		dependsOn: [{taskId: "WI-111", version: 1}]
 		phaseId: "p6-strategic-completion"
 		groupId: "g8-discovery-and-method"
 	}, #ExecutionDependency & {
-		taskId: "WI-069"
-		dependsOn: [{taskId: "WI-066", version: 1}]
+		taskId: "WI-113"
+		dependsOn: [{taskId: "WI-110", version: 1}]
 		phaseId: "p6-strategic-completion"
 		groupId: "g8-discovery-and-method"
 	}, #ExecutionDependency & {
-		taskId:    "WI-072"
+		taskId:    "WI-114"
 		dependsOn: []
 		phaseId:   "p6-strategic-completion"
 		groupId:   "g8-tier-and-ownership"
 	}, #ExecutionDependency & {
-		taskId:    "WI-073"
+		taskId:    "WI-115"
 		dependsOn: []
 		phaseId:   "p6-strategic-completion"
 		groupId:   "g8-tier-and-ownership"
 	}, #ExecutionDependency & {
-		taskId: "WI-074"
-		dependsOn: [{taskId: "WI-073", version: 1}]
+		taskId: "WI-116"
+		dependsOn: [{taskId: "WI-115", version: 1}]
 		phaseId: "p6-strategic-completion"
 		groupId: "g8-tier-and-ownership"
 	}, #ExecutionDependency & {
-		taskId: "WI-075"
-		dependsOn: [{taskId: "WI-068", version: 1}]
+		taskId: "WI-117"
+		dependsOn: [{taskId: "WI-112", version: 1}]
 		phaseId: "p6-strategic-completion"
 		groupId: "g8-stability-and-evolution"
 	}, #ExecutionDependency & {
-		taskId:    "WI-076"
+		taskId:    "WI-118"
 		dependsOn: []
 		phaseId:   "p6-strategic-completion"
 		groupId:   "g8-stability-and-evolution"
 	}, #ExecutionDependency & {
-		taskId: "WI-077"
-		dependsOn: [{taskId: "WI-072", version: 1}]
+		taskId: "WI-119"
+		dependsOn: [{taskId: "WI-114", version: 1}]
 		phaseId: "p6-strategic-completion"
 		groupId: "g8-stability-and-evolution"
 	},
 
 	// ============================================================
-	// Phase p7: W003 cross-context-workflows (WI-078..084)
+	// Phase p7: W003 cross-context-workflows (WI-120..126)
 	// ============================================================
 	#ExecutionDependency & {
-		taskId:    "WI-078"
+		taskId:    "WI-120"
 		dependsOn: []
 		phaseId:   "p7-cross-context-workflows-expansion"
 		groupId:   "g9-flows-inventory"
 	}, #ExecutionDependency & {
-		taskId: "WI-079"
-		dependsOn: [{taskId: "WI-078", version: 1}]
+		taskId: "WI-121"
+		dependsOn: [{taskId: "WI-120", version: 1}]
 		phaseId: "p7-cross-context-workflows-expansion"
 		groupId: "g9-flows-instances"
 	}, #ExecutionDependency & {
-		taskId: "WI-080"
-		dependsOn: [{taskId: "WI-078", version: 1}]
+		taskId: "WI-122"
+		dependsOn: [{taskId: "WI-120", version: 1}]
 		phaseId: "p7-cross-context-workflows-expansion"
 		groupId: "g9-flows-instances"
 	}, #ExecutionDependency & {
-		taskId: "WI-081"
-		dependsOn: [{taskId: "WI-078", version: 1}]
+		taskId: "WI-123"
+		dependsOn: [{taskId: "WI-120", version: 1}]
 		phaseId: "p7-cross-context-workflows-expansion"
 		groupId: "g9-flows-instances"
 	}, #ExecutionDependency & {
-		taskId: "WI-082"
-		dependsOn: [{taskId: "WI-078", version: 1}]
+		taskId: "WI-124"
+		dependsOn: [{taskId: "WI-120", version: 1}]
 		phaseId: "p7-cross-context-workflows-expansion"
 		groupId: "g9-flows-instances"
 	}, #ExecutionDependency & {
-		taskId: "WI-083"
-		dependsOn: [{taskId: "WI-078", version: 1}]
+		taskId: "WI-125"
+		dependsOn: [{taskId: "WI-120", version: 1}]
 		phaseId: "p7-cross-context-workflows-expansion"
 		groupId: "g9-flows-instances"
 	}, #ExecutionDependency & {
-		taskId: "WI-084"
-		dependsOn: [{taskId: "WI-078", version: 1}]
+		taskId: "WI-126"
+		dependsOn: [{taskId: "WI-120", version: 1}]
 		phaseId: "p7-cross-context-workflows-expansion"
 		groupId: "g9-flows-instances"
 	},
 
 	// ============================================================
-	// Phase p8: W004 C4 architecture (WI-085..101)
+	// Phase p8: W004 C4 architecture (WI-127 + WI-086..101)
 	// ============================================================
 	#ExecutionDependency & {
-		taskId:    "WI-085"
+		taskId:    "WI-127"
 		dependsOn: []
 		phaseId:   "p8-c4-architecture"
 		groupId:   "g10-c4-foundation"
 	}, #ExecutionDependency & {
 		taskId: "WI-086"
-		dependsOn: [{taskId: "WI-085", version: 1}]
+		dependsOn: [{taskId: "WI-127", version: 1}]
 		phaseId: "p8-c4-architecture"
 		groupId: "g10-c4-foundation"
 	}, #ExecutionDependency & {
 		taskId: "WI-087"
 		dependsOn: [
-			{taskId: "WI-085", version: 1},
+			{taskId: "WI-127", version: 1},
 			{taskId: "WI-102", version: 1},
 			{taskId: "WI-103", version: 1},
 		]

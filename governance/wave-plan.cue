@@ -472,7 +472,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				"""
 
 			tasks: [{
-				id:         "WI-066"
+				id:         "WI-110"
 				title:      "Criar ADR — BC discovery method (event storming / domain storytelling / business capability mapping)"
 				tshirtSize: "M"
 				dependsOn: []
@@ -482,30 +482,30 @@ wavePlan: artifact_schemas.#WavePlan & {
 				}]
 				rationale: "Não há ADR documentando o método pelo qual os 27 subdomínios e 10 BCs atuais foram derivados. Sem método repetível, futuros BCs ou splits/merges serão improvisação. ADR formaliza event storming + domain storytelling + business capability mapping como métodos canônicos."
 			}, {
-				id:         "WI-067"
+				id:         "WI-111"
 				title:      "Criar ADR — BC boundary volatility analysis framework + classificação per BC"
 				tshirtSize: "M"
-				dependsOn: ["WI-066"]
+				dependsOn: ["WI-110"]
 				outputs: [{
 					artifact: "architecture/adrs/adr-089-bc-boundary-volatility-analysis.cue"
 					type:     "create"
 				}]
 				rationale: "Boundaries têm volatility distinta (core domains tipicamente mais volatile; generic estáveis). Sem análise, refactor cost descoberto runtime. ADR define framework de classificação per boundary + classificação inicial dos BCs existentes."
 			}, {
-				id:         "WI-068"
+				id:         "WI-112"
 				title:      "Criar ADR — BC splits/merges governance process"
 				tshirtSize: "M"
-				dependsOn: ["WI-067"]
+				dependsOn: ["WI-111"]
 				outputs: [{
 					artifact: "architecture/adrs/adr-090-bc-splits-merges-governance.cue"
 					type:     "create"
 				}]
 				rationale: "Não há governança documentada sobre quando um BC deve ser dividido (cresceu demais) ou fundido (acoplamento excessivo). Sem processo, fracture ou sclerosis é destino default. ADR define gatilhos quantitativos + qualitativos, approval chain, e migration path."
 			}, {
-				id:         "WI-069"
+				id:         "WI-113"
 				title:      "Criar schema #DomainStory + primeira instância para CMT (event storming canonical)"
 				tshirtSize: "L"
-				dependsOn: ["WI-066"]
+				dependsOn: ["WI-110"]
 				outputs: [{
 					artifact: "architecture/artifact-schemas/domain-story.cue"
 					type:     "create"
@@ -532,7 +532,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				"""
 
 			tasks: [{
-				id:         "WI-072"
+				id:         "WI-114"
 				title:      "Criar ADR — Strategic ADR tier classification (strategic vs structural vs tactical)"
 				tshirtSize: "M"
 				dependsOn: []
@@ -545,7 +545,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				]
 				rationale: "87 ADRs existentes não têm tier classification. ADR define taxonomia (strategic = domain vision/subdomain map/context map/canvas; structural = schemas/templates/governance; tactical = building blocks/conventions/checks) + backfill discipline. Critério crucial para priorização de ADRs strategic em decisões downstream (stack, container topology)."
 			}, {
-				id:         "WI-073"
+				id:         "WI-115"
 				title:      "Criar ADR — Domain Expert canonical per BC (extends stakeholder-map semantics)"
 				tshirtSize: "S"
 				dependsOn: []
@@ -559,10 +559,10 @@ wavePlan: artifact_schemas.#WavePlan & {
 				]
 				rationale: "Stakeholder-map (adr-009) tem catálogo mas sem campo 'domain expert canonical' explicit per BC. DDD requer human anchor para ratificar ubiquitous language + modelagem. ADR formaliza atribuição (mesmo que single-person hoje, é onde futuras decisões de ownership começam)."
 			}, {
-				id:         "WI-074"
+				id:         "WI-116"
 				title:      "Criar ADR + lens — Team Topology/Conway alignment + atribuição inicial per BC"
 				tshirtSize: "L"
-				dependsOn: ["WI-073"]
+				dependsOn: ["WI-115"]
 				outputs: [{
 					artifact: "architecture/adrs/adr-093-team-topology-conway-alignment.cue"
 					type:     "create"
@@ -587,17 +587,17 @@ wavePlan: artifact_schemas.#WavePlan & {
 				"""
 
 			tasks: [{
-				id:         "WI-075"
+				id:         "WI-117"
 				title:      "Criar ADR — Aggregate identity stability policy"
 				tshirtSize: "M"
-				dependsOn: ["WI-068"]
+				dependsOn: ["WI-112"]
 				outputs: [{
 					artifact: "architecture/adrs/adr-094-aggregate-identity-stability.cue"
 					type:     "create"
 				}]
 				rationale: "Quando aggregate boundary muda (refactor / split / merge), como event history migra? Identity stable? Renomear é breaking? Sem policy, event-sourced runner futuro fica refém. ADR define convenções (identity types vs aggregate codes; immutable identity vs migration path)."
 			}, {
-				id:         "WI-076"
+				id:         "WI-118"
 				title:      "Criar build-time check — UL drift detection"
 				tshirtSize: "M"
 				dependsOn: []
@@ -612,10 +612,10 @@ wavePlan: artifact_schemas.#WavePlan & {
 				]
 				rationale: "lens-domain-language-and-terminology-design (78KB) existe mas check operacional não. Sem mecanismo, drift de UL é invisível: mesmo termo significando coisas distintas cross-BC. Check valida term consistency entre glossário, domain-model e canvas per BC + cross-BC clash detection."
 			}, {
-				id:         "WI-077"
+				id:         "WI-119"
 				title:      "Criar ADR — Strategic refactoring discipline (subdomain Core/Supporting/Generic promotion)"
 				tshirtSize: "M"
-				dependsOn: ["WI-072"]
+				dependsOn: ["WI-114"]
 				outputs: [{
 					artifact: "architecture/adrs/adr-095-strategic-refactoring-discipline.cue"
 					type:     "create"
@@ -640,7 +640,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				"""
 
 			tasks: [{
-				id:         "WI-078"
+				id:         "WI-120"
 				title:      "Criar ADR — Cross-context-flows inventory & roadmap"
 				tshirtSize: "L"
 				dependsOn: []
@@ -648,70 +648,70 @@ wavePlan: artifact_schemas.#WavePlan & {
 					artifact: "architecture/adrs/adr-096-cross-context-flows-inventory.cue"
 					type:     "create"
 				}]
-				rationale: "ADR inventaria todos os flows cross-BC candidatos (settlement, refund, dispute resolution, onboarding, taxes/accounting, insurance coverage) + prioriza por blast radius e regulatory criticality. Roadmap aponta para WI-079..084 como instâncias derivadas."
+				rationale: "ADR inventaria todos os flows cross-BC candidatos (settlement, refund, dispute resolution, onboarding, taxes/accounting, insurance coverage) + prioriza por blast radius e regulatory criticality. Roadmap aponta para WI-121..126 como instâncias derivadas."
 			}]
 		}
 
 		"W003-instances": {
 			id:    "W003-instances"
 			title: "Cross-context-workflows — instâncias per saga"
-			rationale: "Instancia os 6 flows cross-context priorizados em WI-078. Cada WI cria um arquivo em architecture/cross-context-workflows/ conformante a #CrossContextFlow (adr-032). Nomes finais podem evoluir do inventory; placeholders aqui marcam escopo + ownership."
+			rationale: "Instancia os 6 flows cross-context priorizados em WI-120. Cada WI cria um arquivo em architecture/cross-context-workflows/ conformante a #CrossContextFlow (adr-032). Nomes finais podem evoluir do inventory; placeholders aqui marcam escopo + ownership."
 
 			tasks: [{
-				id:         "WI-079"
+				id:         "WI-121"
 				title:      "Criar cross-context-flow — settlement (FCE-led)"
 				tshirtSize: "L"
-				dependsOn: ["WI-078"]
+				dependsOn: ["WI-120"]
 				outputs: [{
 					artifact: "architecture/cross-context-workflows/settlement.cue"
 					type:     "create"
 				}]
 				rationale: "Settlement atravessa REW (eligibility) → FCE (liquidação) → BKR (execução PIX/SPB) → CMT (commitment closure). Critical financial flow; sem documentação cross-BC, fronteira é descoberta runtime."
 			}, {
-				id:         "WI-080"
+				id:         "WI-122"
 				title:      "Criar cross-context-flow — refund-and-reward (REW-led)"
 				tshirtSize: "L"
-				dependsOn: ["WI-078"]
+				dependsOn: ["WI-120"]
 				outputs: [{
 					artifact: "architecture/cross-context-workflows/refund-and-reward.cue"
 					type:     "create"
 				}]
 				rationale: "Refund processing tocando CMT (commitment reversal) → REW (score impact) → FCE (reversão financeira) → NTF (participante notificado). Failure modes em cada fase determinam SLA cross-BC."
 			}, {
-				id:         "WI-081"
+				id:         "WI-123"
 				title:      "Criar cross-context-flow — dispute-resolution (DRC-led)"
 				tshirtSize: "L"
-				dependsOn: ["WI-078"]
+				dependsOn: ["WI-120"]
 				outputs: [{
 					artifact: "architecture/cross-context-workflows/dispute-resolution.cue"
 					type:     "create"
 				}]
 				rationale: "Dispute lifecycle DRC (orchestrator) ↔ CMT (commitment freeze) ↔ FCE (escrow) ↔ NPM (participant management). Authority + audit trail cross-BC."
 			}, {
-				id:         "WI-082"
+				id:         "WI-124"
 				title:      "Criar cross-context-flow — onboarding-and-credit (NPM+REW-led)"
 				tshirtSize: "L"
-				dependsOn: ["WI-078"]
+				dependsOn: ["WI-120"]
 				outputs: [{
 					artifact: "architecture/cross-context-workflows/onboarding-and-credit.cue"
 					type:     "create"
 				}]
 				rationale: "Onboarding NPM (KYC) → IDC (identity verification) → REW (credit scoring) → CMT (first commitment eligibility). Boundary regulatório (LGPD/Bacen)."
 			}, {
-				id:         "WI-083"
+				id:         "WI-125"
 				title:      "Criar cross-context-flow — tax-and-accounting (ATO-led)"
 				tshirtSize: "L"
-				dependsOn: ["WI-078"]
+				dependsOn: ["WI-120"]
 				outputs: [{
 					artifact: "architecture/cross-context-workflows/tax-and-accounting.cue"
 					type:     "create"
 				}]
 				rationale: "FCE (movimentação) → ATO (fiscal/tax derivation) → external (Receita Federal). Obrigação acessória regulada; non-compliance tem consequência legal direta."
 			}, {
-				id:         "WI-084"
+				id:         "WI-126"
 				title:      "Criar cross-context-flow — insurance-coverage (INS-led)"
 				tshirtSize: "L"
-				dependsOn: ["WI-078"]
+				dependsOn: ["WI-120"]
 				outputs: [{
 					artifact: "architecture/cross-context-workflows/insurance-coverage.cue"
 					type:     "create"
@@ -736,7 +736,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				"""
 
 			tasks: [{
-				id:         "WI-085"
+				id:         "WI-127"
 				title:      "Criar ADR — C4 generation strategy (CUE-derived Structurizr DSL)"
 				tshirtSize: "M"
 				dependsOn: []
@@ -749,7 +749,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				id:         "WI-086"
 				title:      "Criar schemas C4 — #C4Workspace, #C4View, #C4Element, #C4Relationship"
 				tshirtSize: "L"
-				dependsOn: ["WI-085"]
+				dependsOn: ["WI-127"]
 				outputs: [{
 					artifact: "architecture/artifact-schemas/c4-workspace.cue"
 					type:     "create"
@@ -762,7 +762,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				id:         "WI-087"
 				title:      "Criar ADR — Container topology (1:1 BC↔container vs agrupamento vs polyglot)"
 				tshirtSize: "L"
-				dependsOn: ["WI-085", "WI-102", "WI-103"]
+				dependsOn: ["WI-127", "WI-102", "WI-103"]
 				outputs: [{
 					artifact: "architecture/adrs/adr-098-container-topology.cue"
 					type:     "create"
@@ -902,7 +902,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 		"W004-tooling": {
 			id:    "W004-tooling"
 			title: "C4 — codegen script + CI drift detection"
-			rationale: "Operacionaliza CUE-derived strategy (WI-085): codegen CUE → Structurizr DSL + CI check de drift entre fonte CUE e DSL gerado."
+			rationale: "Operacionaliza CUE-derived strategy (WI-127): codegen CUE → Structurizr DSL + CI check de drift entre fonte CUE e DSL gerado."
 
 			tasks: [{
 				id:         "WI-100"
