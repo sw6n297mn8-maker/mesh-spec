@@ -341,15 +341,312 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// STAKEHOLDERS — placeholder; conteúdo em commit 1.3
+	// BUSINESS DECISIONS — Phase 1.3 WI-062
+	// =============================================
+
+	businessDecisions: [{
+		id: "bd-rail-selection-is-technical-only"
+		decision: """
+			Rail selection é technical routing apenas — escolha entre
+			Pix, TED, boleto ou SWIFT/correspondent banking baseada em
+			technical availability, protocol compatibility, operational
+			latency, and upstream-declared constraints (limites/tier
+			declarados em PaymentInstruction). Custo/fee só entra como
+			constraint declarada upstream, não otimização local de BKR.
+			Selection nunca altera prioridade econômica ou destinatário.
+			"""
+		rationale: """
+			FCE delega a BKR seleção de rail apenas quando a instrução
+			não a especifica. Mesmo quando delegada, seleção é função
+			determinística sobre parâmetros técnicos + constraints
+			upstream-declared — não envolve julgamento de mérito
+			financeiro. Tratar rail selection como decisão econômica
+			(incluindo otimização de fee) acoplaria FCE a especificidade
+			de protocolos commodity e abriria vector de manipulação
+			(BKR escolhe rail X com fee Y diferente do desejado por FCE).
+			"""
+		consequences: """
+			BKR registra rail-selected + critério aplicado em event log
+			(audit trail completo via cc-04); FCE pode reverter seleção
+			declarando rail explícito em PaymentInstruction; mudança de
+			rail provider/protocolo (e.g., novo Pix v2, novo provider
+			PSP) impacta apenas BKR (substituição de protocol module),
+			sem cascada em FCE; fee/cost considerations sempre vêm de
+			constraints upstream — BKR não otimiza independente.
+			"""
+	}, {
+		id: "bd-settlement-authorization-upstream"
+		decision: """
+			Settlement authorization deve originar-se upstream de BKR
+			(FCE para liquidação, TCM para timing operacional, policy
+			para boundaries). BKR não autoriza settlements — apenas
+			executa instrução autorizada. BKR rejects instructions
+			without upstream authorization proof: cada PaymentInstruction
+			deve carregar evidência verificável de autoridade
+			(authorization signature, attested commandId, claim chain
+			de FCE→BKR rastreável). correlationId sozinho não é proof
+			de autoridade.
+			"""
+		rationale: """
+			Anti-decision boundary é constitutiva do BKR. Autorização
+			requer julgamento econômico (mérito de pagar, valor correto,
+			destinatário válido, timing apropriado) — capacidades fora
+			do escopo BKR commodity. Permitir BKR autorizar settlements
+			(ou aceitar instrução sem proof de autoridade) introduziria
+			autonomia em camada que move dinheiro real sem evidência+gate
+			upstream, violando mech-agent-gate. correlationId pode ser
+			forjado em isolamento; proof exige cryptographic signature
+			ou claim chain verificável que ancora a autoridade a FCE
+			(quem detém autoridade econômica).
+			"""
+		consequences: """
+			PaymentInstruction recebida por BKR é validada estruturalmente
+			(authorization proof presente + verificável) ANTES de qualquer
+			dispatch; FCE+TCM são responsáveis por validar mérito antes
+			de emitir instruction; BKR rejeita PaymentInstruction sem
+			authorization proof com erro estruturado
+			(structural-instruction-invalid); tentativas de injetar
+			settlement direto em BKR (e.g., manual override por operador)
+			requerem path supervisionado fora do flow normal, registrado
+			como exception event.
+			"""
+	}, {
+		id: "bd-no-value-payee-mutation"
+		decision: """
+			Nenhuma mutação de valor, destinatário (payee), conta de
+			origem ou condições econômicas dentro do BKR. Mutações
+			operacionais técnicas (format conversion, correlation ID
+			transcription, retry counter increment, protocol field
+			mapping) permitidas; mutações econômicas estritamente
+			proibidas. Currency conversion is out of BKR Phase 0 scope
+			unless represented as a separate upstream-authorized
+			instruction.
+			"""
+		rationale: """
+			Imutabilidade econômica da PaymentInstruction é precondição
+			para audit trail confiável (cc-04). Permitir BKR alterar
+			valor ou destinatário introduziria ponto de manipulação
+			invisível downstream de FCE — quem autorizou X poderia ter
+			Y executado. Distinção técnica vs econômica é binária:
+			structural (sim, mapeamento campo a campo) vs semantic
+			(não, alteração de meaning). FX/currency conversion é
+			explicitamente fora do scope BKR Phase 0 — abrir FX dentro
+			do BKR introduziria spread/rate decisions que são pricing
+			(domínio de TCM/policy upstream).
+			"""
+		consequences: """
+			BKR consome PaymentInstruction como struct imutável após
+			authorization upstream; necessidade de modificar
+			valor/destinatário pós-autorização requer cancelamento +
+			reissuance via FCE (path explícito, auditável);
+			FX/currency conversion deferred — futuras necessidades de
+			cross-currency settlement requerem ADR + WI separado
+			expandindo o scope ou modelando FX como BC separado (e.g.,
+			FXC) que emite PaymentInstruction final em moeda destino
+			para BKR.
+			"""
+	}, {
+		id: "bd-rail-failure-is-not-payment-decision"
+		decision: """
+			Falha de provider ou rail (technical-transient,
+			provider-unavailable, regulatory-block, rail-rejected,
+			economic-instruction-invalid) NÃO cria payment decision
+			dentro do BKR. Falhas técnicas: retry interno determinístico
+			(capability 5) sobre mesmo rail/mesma instrução. Falhas
+			terminais: escalation a FCE para decisão sobre
+			reissuance/cancellation. Cross-rail failover may change
+			settlement semantics (e.g., different settlement window,
+			different fee structure, different reconciliation timing)
+			and therefore requires upstream authorization unless
+			pre-authorized in the instruction via explicit fallback
+			rails declarados.
+			"""
+		rationale: """
+			Tratar rail failure como autorização para alternative routing
+			(e.g., 'rail X falhou, BKR seleciona rail Y') seria payment
+			decision implícita — escolher continuar pagando com diferente
+			caminho técnico cuja semântica financeira (timing, finalidade,
+			costs) difere. Anti-decision boundary preserva: BKR informa
+			FCE da falha; FCE decide se reissua, cancela ou aceita.
+			Pre-authorized fallback rails são possíveis se FCE declara em
+			PaymentInstruction (e.g., 'Pix primary, TED fallback if Pix
+			unavailable'), mas decisão pertence a FCE no momento da
+			autorização original, não a BKR no momento da falha.
+			"""
+		consequences: """
+			Cross-rail failover (Pix→TED após Pix indisponível) só ocorre
+			se pre-authorized via fallbackRails em PaymentInstruction OU
+			se FCE emite nova PaymentInstruction; BKR pode oferecer a
+			FCE informação sobre rail availability como sinal advisory
+			(não como autorização); rail provider downtime prolongado
+			escala automaticamente — não vira workaround silencioso;
+			BKR não pode 'salvar' liquidação trocando rail sem permissão
+			explícita.
+			"""
+	}, {
+		id: "bd-settlement-state-post-reconciliation"
+		decision: """
+			Settlement state (SettlementCompleted, SettlementFailed,
+			SettlementPending) é canonical apenas após reconciliation
+			com confirmação de rail (capability 3). Estado intermediário
+			(dispatched-awaiting-confirmation, retry-in-progress) é
+			interno ao BKR e não emitido como event downstream.
+			"""
+		rationale: """
+			Rails têm semânticas de latência distintas — Pix instantâneo,
+			TED com janelas D+0/D+1, boleto D+1/D+2 com refeitura, SWIFT
+			multi-hop com confirmações em cascata. Emitir
+			SettlementCompleted otimisticamente (e.g., após dispatch
+			successful sem aguardar confirmação rail) criaria estado
+			incorreto downstream caso provider rejeite asynchronously ou
+			reverta. Apenas reconciliation com confirmação rail fecha o
+			loop. Sem isto, audit trail (cc-04) perde correspondência
+			com realidade financeira — event log diverge do estado real
+			de dinheiro movido.
+			"""
+		consequences: """
+			FCE/TCM/ATO consomem apenas eventos pós-reconciliation —
+			ledger downstream reflete realidade rail; despachos pendentes
+			não aparecem em ledger até confirmados; estado ambíguo
+			(provider sem resposta dentro do timeout) escala como
+			exception, não vira default 'pending forever'; idempotency
+			(capability 4) garante que mesma instrução não dispara dois
+			settlements canonicalizados mesmo em caso de retry após
+			ambiguidade.
+			"""
+	}]
+
+	// =============================================
+	// STAKEHOLDERS — Phase 1.3 WI-062
 	// =============================================
 
 	stakeholders: [{
-		stakeholderRef:    "sh-01"
-		roleInContext:     "Placeholder — completado em commit 1.3."
-		impactDescription: "Placeholder — completado em commit 1.3."
-		rationale:         "Skeleton stakeholder; stakeholders substantivos (provavelmente: sh-01 originadora consumindo settlement outcome para fluxo; sh-02 fornecedor recebendo crédito final; sh-04 instituição financeira parceira como provider de rails; sh-05 operador agente BKR) em commit 1.3."
+		stakeholderRef: "sh-01"
+		roleInContext: """
+			Originadora upstream cuja PaymentInstruction (emitida via
+			FCE) é executada por BKR. Consumidora indireta de
+			settlement outcome para coordenação de fluxo financeiro
+			(e.g., baixa de obrigação, atualização de status interno,
+			kickoff de próxima etapa operacional).
+			"""
+		impactDescription: """
+			Velocidade e confiabilidade de settlement determinam ciclo
+			de caixa da operação. Failures recorrentes de BKR podem
+			travar liquidações downstream impactando relação com
+			fornecedores e capacidade de SCF (antecipação depende de
+			settlements limpos). Ambiguidade de estado
+			(não-reconciliação) gera incerteza operacional sobre
+			cumprimento de compromissos.
+			"""
+		rationale: """
+			sh-01 é raiz econômica do macrofluxo
+			(P2P→CMT→...→FCE→BKR). BKR move o dinheiro que sh-01
+			autorizou via FCE. Embora sh-01 não interaja diretamente
+			com BKR (canais via FCE), seu interesse em settlement
+			determinístico é primário — BKR é último ponto antes da
+			obrigação econômica ser cumprida fisicamente.
+			"""
+	}, {
+		stakeholderRef: "sh-02"
+		roleInContext: """
+			Beneficiário final — recebe crédito real via rail bancário
+			no fim da cadeia. BKR é o ponto onde a obrigação econômica
+			gerada upstream (em CMT/FCE) materializa-se em dinheiro
+			movido para sh-02.
+			"""
+		impactDescription: """
+			Settlement success/failure afeta diretamente recebimento
+			físico de fundos. Ambiguidade pós-dispatch (sem
+			reconciliation) gera incerteza operacional — sh-02 não
+			pode atuar sobre crédito esperado até reconciliation
+			confirmar. Failures terminais ou delays prolongados
+			impactam fluxo de caixa de sh-02 (especialmente para
+			fornecedores com baixa folga operacional).
+			"""
+		rationale: """
+			sh-02 é beneficiário direto do output BKR — o crédito chega
+			via rail consumido por BKR. Confiabilidade BKR (incluindo
+			idempotency, reconciliation, classification) é determinante
+			para experiência sh-02. Sem reconciliation canonical, sh-02
+			não sabe se foi pago, gerando follow-ups manuais que custam
+			tempo a ambos lados.
+			"""
+	}, {
+		stakeholderRef: "sh-04"
+		roleInContext: """
+			Regulador do sistema financeiro pelo qual BKR opera (SPB/PIX
+			integration via instituições autorizadas). Define operational
+			limits, settlement rules, payment arrangement requirements,
+			and provider obligations sobre rails que BKR utiliza.
+			"""
+		impactDescription: """
+			Regulação Bacen define o universo de rails utilizáveis e
+			limites operacionais aplicáveis (e.g., limites Pix, horários
+			TED, requisitos de instituições autorizadas em arranjos de
+			pagamento). Mudanças regulatórias (novo Pix versão, limites
+			prudenciais, novos arranjos) impactam capabilities BKR
+			(precisam reflexar nova spec do rail) mas não autoridade
+			econômica BKR (que permanece em FCE/SCF upstream).
+			"""
+		rationale: """
+			sh-04 é boundary constraint sobre operações BKR. Diferente
+			de atuar como compliance-enforcer ativo dentro do BKR
+			(papel de IDC/NPM/FCE para KYC/AML/Bacen reporting), Bacen
+			impacta BKR via spec dos rails e requisitos operacionais
+			sobre provedores. BKR opera no espaço definido pelo Bacen,
+			mas não enforça policy regulatória — apenas executa dentro
+			das regras de protocolo já incorporadas nos rails.
+			"""
+	}, {
+		stakeholderRef: "sh-05"
+		roleInContext: """
+			Operador primário do BKR — dispatcha PaymentInstruction
+			recebida de FCE, monitora reconciliation, aplica retry
+			policy determinística, classifica failures, escala
+			exceptions a FCE quando boundary anti-decision é tocada.
+			Atua dentro do governanceScope definido em Phase 1.5.
+			"""
+		impactDescription: """
+			Saúde operacional do agente determina disponibilidade
+			contínua de BKR (cc-03 — operação 24/7). Decisões técnicas
+			autônomas (rail selection determinístico, retry sob policy
+			codificada) requerem boundaries explícitas em capabilities +
+			businessDecisions + governanceScope para não vazarem em
+			decisões econômicas. Drift de comportamento do agente vira
+			fonte de risco operacional direto sobre dinheiro real.
+			"""
+		rationale: """
+			sh-05 é o ator que materializa as decisões técnicas do BKR
+			no dia-a-dia operacional. Diferente de DLV (analysis
+			primary), BKR agent é gateway+execution — recebe, traduz,
+			despacha, reconcilia, classifica. Anti-decision boundary do
+			BKR depende crucialmente da disciplina do agente em rejeitar
+			tentações de remediação econômica (e.g., 'rail X falhou,
+			talvez tentar rail Y faria FCE economizar tempo');
+			governance envelope Phase 1.5 codifica essas boundaries
+			determinísticas.
+			"""
 	}]
+
+	// =============================================
+	// COSTS ELIMINATED — intentionally omitted (generic BC)
+	// =============================================
+	//
+	// BKR é classification.subdomainType "generic" — schema permite
+	// omissão de costsEliminated (campo optional `costsEliminated?`).
+	// Quality criterion tq-cv-10 enforça presença apenas para
+	// core/supporting; generic é isento por design.
+	//
+	// Rationale da isenção: BKR não faz claim direto de
+	// cost-elimination per se. Valor agregado é risk/complexity
+	// isolation entre Mesh (lógica financeira proprietária) e rails
+	// regulados externos (commodity infrastructure). Sem BKR como BC
+	// separado, FCE absorveria custo de complexidade de cada
+	// rail/provider — esse custo evitado é benefício arquitetural
+	// (clean boundary FCE↔BKR↔external), não cost-elimination
+	// strategic claim que mereça ce-NN ref formal.
+	//
+	// Articulação completa em outer rationale Phase 1.6.
 
 	// =============================================
 	// INCENTIVE ANALYSIS — placeholder; conteúdo em commit 1.5
