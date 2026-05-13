@@ -199,13 +199,299 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// CAPABILITIES — placeholder; conteúdo em commit 1.2
+	// CAPABILITIES — 7 capabilities (Phase 1.2)
 	// =============================================
+	// Anti-drift clause transversal (per founder Phase 1.2):
+	//   FCE owns economic eligibility convergence, not upstream truth
+	//   production nor downstream settlement execution.
+	//
+	// Identity refinement transversal (per founder Phase 1.2):
+	//   Compliance é mecanismo; crystallization de autoridade econômica
+	//   executável é identidade. FCE é o único BC autorizado a
+	//   transformar convergência operacional em autoridade econômica
+	//   executável.
 
 	capabilities: {
 		operational: [{
-			description: "Placeholder — capabilities operacionais entram em commit 1.2."
-			rationale:   "Skeleton commit 1.1 estabelece shape; conteúdo substantivo (provavelmente cobrindo: payment lifecycle state machine determinística + PrePaymentGuardService 11-invariant enforcement + FinancializationService all-or-nothing + AuthorizationProof emission cryptographic + cross-BC condition evaluation + outcome reconciliation + retention release condicional) entra em commit 1.2."
+			description: """
+				Lifecycle econômico canonical de payment obligation no
+				BC FCE. State machine: proposed → guarded → authorized
+				→ dispatched → settled OR failed OR reversed.
+				Transições determinísticas governadas por gates
+				(PrePaymentGuardService aprova → guarded → authorized),
+				authorization emission (AuthorizationProofService
+				crystalliza → dispatched), e outcome consumption
+				(cap-payment-outcome-routing routes BKR canonical
+				outcomes → settled/failed). Reverse pathway é
+				exceptional: requires NEW AuthorizationProof + upstream
+				mandate (DRC/policy); reverse não nasce autonomamente
+				em FCE. Distinguishable semanticamente do BKR
+				SettlementAttempt state machine (T1-T8) — FCE state
+				machine modela payment obligation lifecycle
+				(compromisso → autorização → settlement outcome
+				reconhecido); BKR T1-T8 modela technical dispatch
+				lifecycle (instrução recebida → executada →
+				reconciled). 1 PaymentObligation FCE pode gerar N
+				SettlementAttempts BKR via retry per BKR
+				inv-attempt-identity-per-retry.
+				"""
+			capabilityRef: "cc-03"
+			rationale: """
+				Lifecycle canonical materializa identidade FCE:
+				economic state machine cross-BC anchor. Estados são
+				economic semantic (proposed = obligation reconhecida +
+				guarded = condições convergeram + authorized =
+				AuthorizationProof emitida + dispatched = BKR consumiu
+				+ settled/failed = BKR outcome canonicalizado consumido
+				+ reversed = exceptional pathway pós-mandate). Cada
+				transição é gated por capability específica:
+				cap-prepayment-guard-service controla guarded →
+				authorized; cap-authorization-proof-emission
+				materializa authorized → dispatched;
+				cap-payment-outcome-routing materializa dispatched →
+				settled/failed. FCE owns economic eligibility
+				convergence, not upstream truth production nor
+				downstream settlement execution. Reverse-settlement
+				folded como exceptional pathway (não capability
+				identitária standalone) per founder Phase 1.2: reverse
+				não é raison d'être do FCE; é exceção upstream-
+				mandated.
+				"""
+		}, {
+			description: """
+				Gate determinístico multi-fonte enforçando 11
+				invariantes financeiros antes de FCE emitir
+				AuthorizationProof. Inputs ponderados:
+				vo-commitment-state (CMT — must be in 'accepted' OR
+				'in-progress'), vo-budget-reservation (BDG — must have
+				sufficient reserved budget), vo-risk-eligibility (REW
+				— must be currently eligible AND not aged out),
+				vo-invoice (INV — must be issued AND validated AND not
+				cancelled), vo-evidence-bundle (DLV — must satisfy
+				retention release conditions when applicable),
+				vo-cash-operational-availability (TCM — advisory input;
+				informs timing not authorization). Output binary:
+				authorize-payment OR reject-with-classification. NÃO
+				inclui evidence verification logic (DLV territory);
+				NÃO inclui risk scoring (REW); apenas enforça
+				aggregation invariants determinísticos.
+				"""
+			capabilityRef: "cc-01"
+			rationale: """
+				PrePaymentGuard é o single gate através do qual
+				economic authority FCE materializa. 11 invariantes
+				incluem (preliminar Phase 3 domain-model):
+				inv-payment-requires-accepted-commitment +
+				inv-budget-reservation-required +
+				inv-risk-eligibility-current + inv-invoice-validated +
+				inv-evidence-complete-for-release +
+				inv-no-duplicate-authorization-under-instructionId +
+				inv-authorization-proof-cryptographic-validity +
+				inv-financialization-atomic +
+				inv-reverse-payment-requires-upstream-mandate +
+				inv-tcm-advisory-only +
+				inv-anti-economic-decision-bypass. Cada invariant é
+				deterministic guard; classification de failure routing
+				para REW (eligibility) OR BDG (budget) OR DLV
+				(evidence) OR upstream (policy) — never opaque
+				rejection. Compliance é mecanismo; crystallization de
+				autoridade econômica executável via emission
+				downstream é identidade.
+				"""
+		}, {
+			description: """
+				All-or-nothing atomic crystallization que converte
+				estado operacional elegível em obrigação financeira
+				irrevogavelmente observável. Financialization is the
+				canonical transition from operational truth to
+				network-visible financial truth. Garante que partial
+				commits NÃO geram partial financial obligations
+				(vector adversarial #1 do FCE). Materializa o ponto
+				onde commitment econômico FCE-consumed + evidence
+				operacional verificado + risk eligibility válido +
+				budget reservado convergem em PaymentObligation
+				observável pela rede inteira (downstream SCF para
+				antecipação + secondary financing, REW para risk
+				model, ATO para accounting, INS para insurance
+				coverage). NÃO inclui invoice generation (INV); NÃO
+				inclui working capital product structuring (SCF); NÃO
+				inclui contract terms management (CTR).
+				"""
+			capabilityRef: "cc-03"
+			rationale: """
+				Capability economicamente mais importante do FCE —
+				heart of the Mesh loop. Sem financialization
+				observável, downstream BCs operam sobre estado
+				inconsistente: SCF antecipa obrigação que pode não
+				existir; REW modela risco sem visibility into actual
+				obligation; ATO contabiliza sem fato consolidado; INS
+				underwrite sem fato substrato verificável.
+				All-or-nothing atomicity é vector adversarial crítico
+				— partial financialization criaria 'shadow
+				obligations' que vazam dependency consistency. A
+				palavra crítica é OBSERVÁVEL: obrigação não é apenas
+				criada, é fato confiável da rede. Per founder Phase
+				1.2: 'Financialization is the canonical transition
+				from operational truth to network-visible financial
+				truth' — heart of the Mesh value proposition. FCE owns
+				economic eligibility convergence + observability
+				anchor; upstream BCs own truth production; downstream
+				BCs consume observable fact.
+				"""
+		}, {
+			description: """
+				Cryptographic crystallization da economic authority
+				FCE per PaymentInstruction. Composição
+				AuthorizationProof (per BKR Phase 2 glossary
+				term-authorization-proof + Phase 3
+				vo-authorization-proof): (a) cryptographic signature
+				sobre canonical encoding de (instructionId + payer +
+				payee + value); (b) nonce single-use replay
+				protection; (c) issued-at timestamp; (d) validity
+				window upstream-declared (FCE owns; NOT derived from
+				BKR state); (e) claim chain link to FCE agent
+				identity authorizing. Output consumed by BKR via
+				cmd-dispatch-payment-instruction; AuthorizationProof
+				validity is consumed never interpreted nor redefined
+				por BKR per BKR
+				inv-authorization-proof-verification-gate. Reverse
+				pathway: NEW AuthorizationProof for NEW economic
+				obligation (mandato upstream DRC/policy required);
+				original NEVER reusable for reverse intent.
+				"""
+			capabilityRef: "cc-03"
+			rationale: """
+				Materializa economic authority crystallization em
+				cryptographic boundary contra forgery/replay/expiry
+				attacks per BKR Phase 5 documented. FCE é único locus
+				que pode gerar valid AuthorizationProof — possessing
+				FCE agent identity + valid nonce-issuing capability é
+				sufficient condition (e prova) de economic decision.
+				Compliance é mecanismo; crystallization de autoridade
+				econômica executável é identidade — esta capability é
+				onde a identidade materializa cryptographically.
+				Original AuthorizationProof NEVER reusable for
+				reverse economic intent (per BKR
+				inv-reverse-settlement-upstream-authorized-only);
+				reverse-payment requires NEW proof for NEW obligation.
+				Validity window upstream-declared garante que FCE
+				governs expiry semantics; BKR consome literal
+				validity, nunca estende. FCE owns economic authority
+				emission; not upstream truth production nor
+				downstream technical execution.
+				"""
+		}, {
+			description: """
+				Ponderação determinística de 6 upstream reads em
+				single decision: authorize OR reject OR escalate.
+				Reads: CMT commitment state + BDG budget reservation
+				+ REW risk eligibility + INV invoice + DLV evidence +
+				TCM operational advisory. FCE evaluates eligibility,
+				never rewrites upstream truth. Upstream BCs own fact
+				production; FCE owns payment eligibility convergence.
+				NÃO inclui upstream decision authority (cada BC owns
+				sua decision); NÃO inclui condition policy definition
+				(declared upstream em ADRs/business decisions); NÃO
+				inclui retry of upstream reads (failure paths são
+				FCE-internal classification para escalation routing).
+				"""
+			capabilityRef: "cc-03"
+			rationale: """
+				FCE é 'downstream dominant do grafo' per subdomain —
+				concentra dependências de leitura cross-BC.
+				Capability captura aggregation pattern formalmente: 6
+				upstream reads ponderados deterministicamente produzem
+				authorization-eligibility verdict. Asymmetria de
+				autoridade é estrutural: FCE consome facts (não
+				reescreve), evaluates convergence (não overrides),
+				produces eligibility verdict (não policy). Vector
+				adversarial protegido: FCE poderia tentar corrigir
+				risco silenciosamente OR reinterpretar evidence OR
+				ajustar budget semanticamente — todos forbidden por
+				construção. Cada upstream BC owns sua truth; FCE
+				convergence é função pura desses inputs. Elimina
+				classe inteira de drift arquitetural futuro: FCE
+				corrigindo risco / reinterpretando evidence /
+				ajustando budget. Per founder Phase 1.2: 'FCE
+				evaluates eligibility, never rewrites upstream truth.
+				Upstream BCs own fact production; FCE owns payment
+				eligibility convergence.'
+				"""
+		}, {
+			description: """
+				Consumo de canonical outcomes published por BKR
+				(SettlementFinalized / SettlementFailed /
+				SettlementIndeterminate / FailureClassified /
+				InstructionRejected) → trigger downstream FCE state
+				transitions (lifecycle update + retention release
+				decision + reversal pathway evaluation + downstream
+				PaymentSettled emission para REW/ATO/TCM/SCF). BKR
+				owns reconciliation truth; FCE owns economic lifecycle
+				reaction. NÃO inclui BKR reconciliation (BKR
+				svc-reconciliation consome rail signals; FCE consome
+				BKR canonical outcome — distinct boundary); NÃO inclui
+				rail signal interpretation; NÃO inclui rail outcome
+				arbitration. Indeterminate consumption preserves FCE
+				epistemic state (non-final; aguarda BKR resolution
+				via cmd-resolve-indeterminate-state).
+				"""
+			capabilityRef: "cc-03"
+			rationale: """
+				Boundary preservation explícita BKR↔FCE — BKR
+				canonicalizes settlement state per Phase 5
+				evt-settlement-finalized/failed/indeterminate; FCE
+				reacts economicamente. Semantically clear separation:
+				BKR é settlement execution authority; FCE é economic
+				lifecycle authority. Distinct concerns: BKR resolve
+				'did money move at rail layer?' (technical question);
+				FCE resolve 'what does this mean for the payment
+				obligation lifecycle?' (economic question). Per
+				founder Phase 1.2 boundary direction: BKR = execução
+				técnica de settlement e reconciliação operacional do
+				dispatch; FCE = autoridade econômica + governance +
+				lifecycle. Esta capability preserva separation
+				operationally — single-source-of-truth para outcome
+				é BKR; FCE never re-arbitrates.
+				"""
+		}, {
+			description: """
+				Liberação de retentions vinculada a evidence
+				completude (DLV) + financialization completion +
+				cross-condition convergence. Materializa anti-fraud
+				guard: money releases ONLY post operational
+				verification convergence. Inputs:
+				evidence-bundle-status (DLV — completeness verified)
+				+ financialization-state (FCE internal — atomic
+				completion) + budget-retention (BDG — retention amount
+				declared) + commitment-state (CMT — commitment
+				progressed). Output: trigger PaymentRelease event
+				consumed downstream para next-tranche disbursement OR
+				full release. NÃO inclui evidence completeness
+				determination (DLV); NÃO inclui retention amount
+				calculation upstream (BDG/CTR); NÃO inclui escrow
+				custody (financial infra externa).
+				"""
+			capabilityRef: "cc-01"
+			rationale: """
+				Capability operacional core do moat Mesh: 'dinheiro
+				condicionado a verdade operacional verificável.'
+				Retention release é onde Mesh value proposition
+				materializa concretamente — sem evidence completude
+				verifiable, dinheiro não move. Distingue Mesh de
+				mecanismos de pagamento commodity (escrow simples
+				libera por timer; banco libera por instrução manual).
+				Anti-fraud por construção: retention release exige
+				convergence multi-fonte determinístico — não há
+				single signature que libera; há aggregation de
+				operational truth + financial truth + commitment
+				truth. Per founder Phase 1.2: cc-01 (liberação
+				vinculada a evidência) alinhado ao moat Mesh —
+				dinheiro condicionado a verdade operacional
+				verificável. FCE owns economic eligibility convergence
+				(when conditions met → release authorized); upstream
+				BCs (DLV evidence + BDG retention amount + CMT
+				commitment state) own truth production.
+				"""
 		}]
 		hasSyncSurface:  true
 		hasAsyncSurface: true
