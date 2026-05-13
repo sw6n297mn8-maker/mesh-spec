@@ -1094,7 +1094,7 @@ glossary: artifact_schemas.#Glossary & {
 	}, {
 		code:   "term-cross-bc-condition-evaluation"
 		name:   "Avaliação de Condição Cross-BC"
-		termEn: "Cross-BC Condition Evaluation"
+		termEn: "Cross BC Condition Evaluation"
 		definition: """
 			Capability canônica FCE de avaliar UpstreamConditions de
 			múltiplos BCs sem mutação de estado upstream nem
