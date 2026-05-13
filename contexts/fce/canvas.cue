@@ -866,7 +866,332 @@ canvas: artifact_schemas.#Canvas & {
 	// =============================================
 
 	communication: {
-		rationale: "Placeholder — communication completa entra em commit 1.4. Esperado: inbound (CommitmentAccepted/CommitmentStateChanged de CMT; BudgetApproved/BudgetReserved de BDG; CounterpartyRiskAlertRaised + EligibilityDecision de REW; InvoiceIssued/InvoiceCancelled de INV; DeliveryVerified + EvidenceCommitted de DLV; CashOperationalStatusUpdated de TCM como advisory; SettlementFinalized/SettlementFailed/SettlementIndeterminate/FailureClassified/InstructionRejected de BKR como outcome); outbound (PaymentInstruction + AuthorizationProof para BKR via cmd-dispatch-payment-instruction; PaymentSettled/PaymentObligationDefaulted/PaymentReleased para REW/ATO/TCM/SCF; ReversePaymentInstruction para BKR sob authorization upstream de DRC); query-deps (CommitmentState; ContractTerms; AccountAvailability TCM); commands (DispatchPayment inbound de policy/agent; RequestRetentionRelease; AuthorizeReversePayment sob DRC mandate); query-surfaces (QueryPaymentStatus; QueryAuthorizationProof scoped per caller). Cross-BC dependencies amplas refletem FCE como downstream dominant do grafo."
+		inbound: [{
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "FCE agent identifies candidate payment authorization triggered by upstream policy tier OR convergence-evaluation-eligible state (CMT commitment in valid state + invoice present + evidence sufficient + risk eligible + budget reserved). Handler invokes cap-prepayment-guard-service + cap-cross-bc-condition-evaluation → produces authorization verdict."
+			command:         "AuthorizePayment"
+			resultingEvents: ["PaymentAuthorized", "PaymentAuthorizationRejected", "EligibilityConvergenceFailed"]
+			description:     "Primary FCE inbound — authorization request. Verdict é deterministic convergence per bd-authorization-is-convergence-not-decision. Resulting event distribution: PaymentAuthorized (convergence succeeded → emits AuthorizationProof + invokes BKR dispatch) | PaymentAuthorizationRejected (structural failure) | EligibilityConvergenceFailed (convergence didn't satisfy — distinct from structural rejection)."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "DLV emits trigger via EvidenceCommitted indicating retention release conditions met OR upstream policy tier explicitly requests release. Handler invokes cap-retention-release-conditional convergence evaluation (evidence + financialization + budget retention + commitment state)."
+			command:         "RequestRetentionRelease"
+			resultingEvents: ["RetentionReleased", "RetentionBlocked"]
+			description:     "Retention release request — moat Mesh materializado per cc-01. 4-source convergence determinístic; nenhum single-signature override pathway (anti-fraud estrutural)."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "DRC dispute resolution determines reversal mandate OR FCE policy tier (not runtime agent) authorizes refund OR regulatory mandate flows through governed upstream process. Handler validates mandate proof + invokes cap-authorization-proof-emission para NEW AuthorizationProof (NEVER derived from original)."
+			command:         "AuthorizeReversePayment"
+			resultingEvents: ["ReverseSettlementOutcome"]
+			description:     "Reverse-payment authorization — DRC-only OR policy tier OR regulatory mandate per bd-reverse-settlement-upstream-mandated-only. FCE NEVER originates reverse autonomously. NEW AuthorizationProof for NEW obligation; original NEVER reusable."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "cmt"
+			event:         "CommitmentAccepted"
+			reaction:      "FCE cache vo-commitment-state snapshot (read-only); marca commitment como eligible-pending-financialization no internal state machine. NEVER reinterpret commitment semantics — CMT owns commitment truth per bd-upstream-truth-immutable-from-fce."
+			description:   "Truth-bearing input #1 — entrada do commitment lifecycle no FCE convergence pool. Sem CommitmentAccepted upstream, FCE não tem semantic basis para authorization downstream."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "cmt"
+			event:         "CommitmentStateChanged"
+			reaction:      "Update cached snapshot vo-commitment-state; trigger condition re-evaluation se affecting pending authorization cycle. Cache cleared se commitment cancelled OR rolled back."
+			description:   "Lifecycle state propagation from CMT. FCE may snapshot or reference, never reinterpret semantics (per bd-upstream-truth-immutable-from-fce)."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "bdg"
+			event:         "BudgetApproved"
+			reaction:      "Cache vo-budget-reservation snapshot. Marks budget eligibility para authorization convergence evaluation."
+			description:   "Truth-bearing input from BDG — budget approval upstream condition para convergence."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "bdg"
+			event:         "BudgetReserved"
+			reaction:      "Update reservation snapshot; reservation amount tracked para retention release evaluation pos-convergence."
+			description:   "Budget reservation lifecycle — atomic snapshot consumption. Reservation semantics never reinterpreted por FCE."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "rew"
+			event:         "EligibilityDecision"
+			reaction:      "Cache vo-risk-eligibility snapshot; includes timestamp para staleness check during convergence evaluation. NEVER reinterprets risk semantics — eligibility meaning belongs to REW."
+			description:   "Truth-bearing risk input from REW — eligibility verdict para convergence pool. Stale eligibility (per policy threshold) triggers QueryRiskEligibilityCurrent re-validation."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "rew"
+			event:         "CounterpartyRiskAlertRaised"
+			reaction:      "Update eligibility cache; trigger re-evaluation se affecting pending authorization cycle. Pending authorization halted até eligibility re-validated."
+			description:   "Risk state propagation. FCE consumes alert as upstream truth; never re-arbitrates risk semantics."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "inv"
+			event:         "InvoiceIssued"
+			reaction:      "Cache vo-invoice snapshot; validates invoice presence para convergence evaluation. Invoice validity semantics belongs to INV — FCE consumes presence + validity flag."
+			description:   "Truth-bearing input from INV — fiscal/contábil substrate para payment authorization."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "inv"
+			event:         "InvoiceCancelled"
+			reaction:      "Update invoice state; cascade to affected authorization cycle (rejection se already authorized but not yet settled — coordinates with BKR cancellation se in-flight)."
+			description:   "Invoice cancellation propagation — boundary-sensitive (cascade interaction with BKR cancellation request if dispatched)."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "dlv"
+			event:         "DeliveryVerified"
+			reaction:      "Cache vo-evidence-bundle snapshot; verifies evidence completeness flag para convergence + retention release evaluation. NEVER reinterprets evidence semantics — DLV owns evidence truth."
+			description:   "Truth-bearing input from DLV — operational verification substrate. Core do moat Mesh: payment authorization vinculado a evidence verificável."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "dlv"
+			event:         "EvidenceCommitted"
+			reaction:      "Update evidence snapshot; may trigger automatic RequestRetentionRelease command-handler invocation se retention release conditions canonical met."
+			description:   "Evidence lifecycle update — pode triggar automatic retention release pathway."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "tcm"
+			event:         "CashOperationalStatusUpdated"
+			reaction:      "Informs timing advisory for authorization scheduling — NEVER authorizes payment. Per bd-tcm-advisory-only: TCM advisory ≠ FCE authority. Liquidity insufficient pode atrasar authorization (defer) MAS NEVER weaken upstream conditions to accelerate (per canonical clause #4)."
+			description:   "ADVISORY input from TCM — informs operational timing constraint. Critical anti-drift: TCM cannot become 'quem decide timing econômico' over time. FCE may defer authorization due to non-convergence, but never accelerate authorization by weakening upstream conditions."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "bkr"
+			event:         "SettlementFinalized"
+			reaction:      "Publishes canonical consequence PaymentSettled downstream (rew/ato/tcm/scf). Lifecycle state transitions to settled. FCE NEVER re-arbitrates BKR settlement outcome — single source of truth para settlement é BKR per bd-settlement-delegated-to-bkr."
+			description:   "BKR canonical positive outcome consumed. FCE outbound events express economic interpretation, not settlement execution truth itself (canonical clause #2)."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "bkr"
+			event:         "SettlementFailed"
+			reaction:      "Publishes canonical consequence PaymentObligationUnsettled downstream. Lifecycle state transitions to unsettled. Triggers reissuance pathway evaluation OR cancellation. FCE NEVER overrides BKR failure verdict."
+			description:   "BKR canonical negative outcome — FCE economic reaction reflects failed obligation lifecycle without re-arbitration."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "bkr"
+			event:         "SettlementIndeterminate"
+			reaction:      "Publishes canonical consequence PaymentPendingFinalReconciliation downstream. Lifecycle state preserves epistemic non-finality. Downstream consumers MUST NOT collapse into Settled nor Unsettled. Resolution waits BKR cmd-resolve-indeterminate-state explicit per BKR Phase 5 boundary."
+			description:   "BKR ambiguous outcome — FCE preserves non-collapse per bd-upstream-truth-immutable-from-fce. Epistemic boundary protected end-to-end."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "bkr"
+			event:         "FailureClassified"
+			reaction:      "Consume classification as routing metadata only, NEVER as authority to reinterpret settlement causality. Classification subtype guides escalation routing decision (compliance officer sh-06 oversight for regulatory subtype) + downstream reissuance pathway eligibility. FCE NEVER absorbs classification semantics into economic policy."
+			description:   "BKR granular classification — strict boundary preservation. Hoje routing metadata; NEVER drift to 'retry heuristics' OR 'economic policy adaptation'. Critical anti-drift clause: FCE consumes classification as routing metadata only, never as authority to reinterpret settlement causality."
+		}, {
+			type:          "event-consumer"
+			sourceContext: "bkr"
+			event:         "InstructionRejected"
+			reaction:      "Pre-dispatch rejection by BKR (structural-invalid OR boundary check failure). FCE publishes canonical consequence PaymentAuthorizationRejected upstream (sh-01 + policy tier); lifecycle state transitions to rejected."
+			description:   "BKR boundary rejection — FCE reflects rejection economic-side. New authorization cycle requires new InstructionId + new AuthorizationProof per BKR inv-authorization-proof-verification-gate amplification."
+		}, {
+			type:        "query-surface"
+			query:       "QueryPaymentStatus"
+			returnType:  "PaymentStatusView"
+			description: "Public read-only lifecycle state query per instructionId. Returns canonical FCE state ∈ {proposed, guarded, authorized, dispatched, settled, unsettled, pending-final-reconciliation, rejected, reversed}. Per canonical clause #3: queries expose authorization state and economic lifecycle state, not authoritative upstream truth."
+		}, {
+			type:        "query-surface"
+			query:       "QueryAuthorizationProof"
+			returnType:  "AuthorizationProofReferenceView"
+			description: "Scoped read-only authorization reference query. Returns hash + audit reference (NEVER full proof payload — cryptographic boundary preservation). Caller identity verified via projection layer side-channel filter: only originating policy tier can request full reference; demais consumers receive existence + hash only."
+		}, {
+			type:        "query-surface"
+			query:       "QueryEligibilityVerdict"
+			returnType:  "EligibilityVerdictView"
+			description: "FCE's convergence verdict for a candidate payment authorization. Returns verdict ∈ {eligible, ineligible, pending-conditions} + classification routing if ineligible. Verdict is ephemeral and derived, not canonical upstream state — consumers MUST NOT use verdict as source-of-truth substitute for upstream BC state (CMT/BDG/REW/INV/DLV own canonical truth respectively). Side-channel filtered per caller authorization."
+		}]
+
+		outbound: [{
+			type:            "command-invocation"
+			interactionMode: "sync"
+			targetContext:   "bkr"
+			command:         "DispatchPaymentInstruction"
+			trigger:         "FCE convergence evaluation completed positive (cap-cross-bc-condition-evaluation + cap-prepayment-guard-service approved); AuthorizationProof emitted via cap-authorization-proof-emission. PaymentInstruction payload + AuthorizationProof composite consumed by BKR."
+			description:     "Primary outbound — authority crystallization materializada cryptographically. BKR Phase 5 boundary: BKR consumes proof validity never interprets nor redefines. Per bd-settlement-delegated-to-bkr: FCE is sole AuthorizationProof emitter; BKR is sole settlement execution authority."
+		}, {
+			type:            "command-invocation"
+			interactionMode: "sync"
+			targetContext:   "bkr"
+			command:         "RequestSettlementCancellation"
+			trigger:         "Upstream cancellation mandate received pre-finality (e.g., InvoiceCancelled while attempt in-flight; commitment cancelled with downstream pending dispatch). FCE forwards cancellation request to BKR per non-guaranteed pacs.057 pathway."
+			description:     "Cancellation request boundary — NON-GUARANTEED per BKR Phase 1.4. FCE does not interpret rail-level cancellation outcome; BKR ACL events (acknowledged/rejected) flow back via standard reconciliation path."
+		}, {
+			type:            "command-invocation"
+			interactionMode: "sync"
+			targetContext:   "bkr"
+			command:         "DispatchReversePaymentInstruction"
+			trigger:         "Reverse-payment authorization completed via DRC mandate OR policy tier OR regulatory mandate. NEW AuthorizationProof emitted (NEVER derived from original); ReversePaymentInstruction payload + NEW AuthorizationProof composite consumed by BKR."
+			description:     "Reverse pathway outbound — boundary preservation per inv-reverse-settlement-upstream-authorized-only. Defense-in-depth com BKR Phase 5: BKR rejects reverse without NEW AuthorizationProof + upstream mandate proof."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE cap-authorization-proof-emission completed; AuthorizationProof crystallized; PaymentInstruction dispatched to BKR."
+			event:   "PaymentAuthorized"
+			consumers: ["rew", "ato"]
+			description: "Authority crystallization milestone. REW updates risk model (authorized payment is observable economic fact). ATO marks fiscal accrual reference."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE cap-financialization-service atomic crystallization completed — 6 upstream reads converged + AuthorizationProof emitted + commitment state progresses to obligated. Heart of Mesh loop: operational truth → network-visible financial truth atomic."
+			event:   "PaymentObligationCreated"
+			consumers: ["scf", "rew", "ato", "ins"]
+			description: "Single canonical birth event of economic truth on Mesh network. SCF antecipa obrigação como fact (não promessa). REW modela risk com base em obligation observável. ATO contabiliza fact consolidado. INS underwrite com substrate verificável. Per bd-financialization-is-atomic: ontological #1 da Mesh."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE consumed BKR SettlementFinalized; lifecycle transitions to settled state. Publishes canonical consequence."
+			event:   "PaymentSettled"
+			consumers: ["rew", "ato", "tcm", "scf"]
+			description: "Economic interpretation of BKR SettlementFinalized — FCE outbound expresses economic consequence, not settlement execution truth itself (canonical clause #2). REW closes risk cycle. ATO finalizes accounting. TCM updates position. SCF closes antecipação cycle se aplicável."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE consumed BKR SettlementFailed; lifecycle transitions to unsettled state. Publishes canonical consequence."
+			event:   "PaymentObligationUnsettled"
+			consumers: ["rew", "ato"]
+			description: "Economic lifecycle outcome of obligation not settling (renamed from 'PaymentFailedEconomically' per founder Phase 1.4 ajuste 2 — avoid 'economically' as future semantic garbage; preserve explicit link to settlement). Triggers reissuance pathway evaluation OR cancellation. REW updates obligation tracking. ATO marks annullment OR pending reissuance."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE consumed BKR SettlementIndeterminate; lifecycle state preserves epistemic non-finality."
+			event:   "PaymentPendingFinalReconciliation"
+			consumers: ["rew", "ato"]
+			description: "Epistemic non-finality preserved end-to-end. Downstream consumers MUST NOT collapse into Settled nor Unsettled — preserves replay safety + reconciliation semantics + operational auditability. Resolution waits BKR cmd-resolve-indeterminate-state explicit per bd-upstream-truth-immutable-from-fce."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE cap-retention-release-conditional convergence evaluation completed positive (evidence + financialization + budget retention + commitment state). Triggered via RequestRetentionRelease command-handler."
+			event:   "RetentionReleased"
+			consumers: ["bdg", "scf"]
+			description: "Moat Mesh materializado per cc-01 — dinheiro condicionado a verdade operacional verificável. BDG updates retention amount. SCF unlocks downstream financing eligibility se aplicável. Anti-fraud guard estrutural materializada."
+		}, {
+			type:    "event-publisher"
+			trigger: "Reverse-payment execution completed via BKR (consumed via standard settlement outcome path — SettlementFinalized OR SettlementFailed para reverse instruction)."
+			event:   "ReverseSettlementOutcome"
+			consumers: ["drc", "ato", "rew"]
+			description: "Economic consequence of reverse-settlement execution. DRC closes dispute resolution cycle. ATO marks reverse accounting entries. REW updates risk model post-reverse outcome."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE cap-prepayment-guard-service detected structural failure (proof invalid, business-invalid pre-dispatch, OR BKR InstructionRejected propagation)."
+			event:   "PaymentAuthorizationRejected"
+			consumers: ["sh-01"]
+			description: "Boundary-level rejection — structural failure distinct from convergence non-success. New authorization cycle requires new instructionId + new AuthorizationProof. Originadora (sh-01 policy tier) decides correction pathway."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE cap-cross-bc-condition-evaluation produced non-convergence verdict — one OR more upstream conditions failed to satisfy authorization threshold."
+			event:   "EligibilityConvergenceFailed"
+			consumers: ["rew", "bdg", "sh-01"]
+			description: "Convergence failure distinct from authorization rejection. World converged to 'not eligible' — upstream BC state didn't satisfy convergence. Classification routing identifies which BC needs attention (REW se eligibility expired; BDG se budget insufficient; etc.). Per bd-authorization-is-convergence-not-decision: FCE evaluates convergence; never decides discretionarily."
+		}, {
+			type:    "event-publisher"
+			trigger: "FCE cap-retention-release-conditional detected non-convergence — 1+ of 4 sources (evidence + financialization + budget retention + commitment state) didn't satisfy release threshold."
+			event:   "RetentionBlocked"
+			consumers: ["bdg", "sh-01"]
+			description: "Explicit non-convergence signal for retention release. Distinct from release deferral (advisory delay) — RetentionBlocked é structural non-convergence; release pathway exige condition resolution upstream."
+		}, {
+			type:          "query-dependency"
+			targetContext: "cmt"
+			query:         "QueryCommitmentState"
+			purpose:       "Re-validation pre-authorization when cached vo-commitment-state snapshot stale per FCE policy threshold. FCE may cache, snapshot, or reference upstream truth for authorization evaluation, but never reinterpret upstream semantic meaning."
+			description:   "Stale-cache fallback to authoritative CMT source. CMT remains single source of truth para commitment state per bd-upstream-truth-immutable-from-fce."
+		}, {
+			type:          "query-dependency"
+			targetContext: "ctr"
+			query:         "QueryContractTerms"
+			purpose:       "Contract terms validation cross-check — eligibility convergence requires verification against contract conditions (e.g., payment terms allow current authorization timing; retention amounts match contract)."
+			description:   "Contract terms validation — CTR owns contract truth; FCE consumes for convergence verification."
+		}, {
+			type:          "query-dependency"
+			targetContext: "tcm"
+			query:         "QueryAccountAvailability"
+			purpose:       "Pre-dispatch operational liquidity advisory check (informs timing; NEVER authorizes payment per bd-tcm-advisory-only). FCE may defer authorization based on TCM advisory, but never accelerate by weakening upstream conditions."
+			description:   "TCM advisory query — informs timing decision; does not authorize. Critical anti-drift: TCM cannot become 'quem decide timing econômico' over time."
+		}, {
+			type:          "query-dependency"
+			targetContext: "rew"
+			query:         "QueryRiskEligibilityCurrent"
+			purpose:       "Re-validation when cached vo-risk-eligibility snapshot aged out per FCE staleness threshold. REW provides current eligibility state; FCE never reinterprets semantics."
+			description:   "Stale-cache fallback to authoritative REW source. REW remains single source of truth para risk eligibility."
+		}]
+
+		rationale: """
+			Communication boundary modela FCE como downstream-
+			authoritative authority crystallization layer — convergence
+			node de 5 upstream truth-bearing inputs + 1 advisory input
+			+ 5 BKR settlement outcome inputs; emite authorization
+			cryptographic + economic lifecycle outcomes downstream.
+
+			4 canonical clauses transversais governam communication
+			semantics:
+
+			(1) TRANSVERSAL PRINCIPLE — FCE is downstream-authoritative,
+			not upstream-controlling. Downstream dominance é dependency
+			pattern (concentra leituras cross-BC para convergence);
+			NOT control authority (não reescreve upstream facts; não
+			arbitra settlement; não substitui rail outcome
+			interpretation).
+
+			(2) OUTBOUND EVENTS PRINCIPLE — FCE outbound events express
+			economic interpretation of canonical settlement outcomes,
+			not settlement execution truth itself. PaymentSettled é
+			economic consequence de BKR SettlementFinalized;
+			PaymentObligationUnsettled é economic consequence de BKR
+			SettlementFailed; PaymentPendingFinalReconciliation é
+			economic acknowledgment de BKR SettlementIndeterminate.
+			BKR owns settlement truth; FCE owns economic consequence.
+
+			(3) QUERIES PRINCIPLE — Queries expose authorization state
+			and economic lifecycle state, not authoritative upstream
+			truth. QueryPaymentStatus expõe lifecycle FCE-canonical;
+			QueryAuthorizationProof expõe reference hash (never
+			payload); QueryEligibilityVerdict é ephemeral and derived,
+			not canonical upstream state. Consumers MUST consultar
+			upstream BCs (CMT/BDG/REW/INV/DLV) para canonical truth de
+			respective domains.
+
+			(4) TEMPORAL AUTHORITY DRIFT CLAUSE — FCE may defer
+			authorization due to non-convergence, but never accelerate
+			authorization by weakening upstream conditions. Protege
+			contra deriva perigosíssima futura: 'flexibilizar evidence
+			porque está demorando'; 'aceitar risk stale
+			temporariamente'; 'usar cache vencido para acelerar'.
+			Defer é acceptable; weaken é forbidden.
+
+			Semantic ownership matrix preservada explicitly:
+			- BKR owns: SettlementFinalized | SettlementFailed |
+			  SettlementIndeterminate (technical settlement outcomes)
+			- FCE owns: PaymentAuthorized | PaymentObligationCreated |
+			  PaymentSettled | PaymentObligationUnsettled |
+			  PaymentPendingFinalReconciliation | RetentionReleased |
+			  ReverseSettlementOutcome | PaymentAuthorizationRejected |
+			  EligibilityConvergenceFailed | RetentionBlocked
+			- Anti-pattern names forbidden: PaymentCompleted,
+			  ObligationSettled, PaymentFinalized, SettlementCompleted
+			  — sugerem dual ownership OR boundary blur.
+
+			Anti-drift transversal clause (eco em bd-upstream-truth-
+			immutable-from-fce + outer rationale Phase 1.6):
+			'FCE owns authorization convergence, never truth production
+			nor settlement execution.' Esta é literalmente o anti-
+			monólito semântico do FCE — impede absorção de REW
+			(eligibility semantics), DLV (evidence semantics), BDG
+			(budget semantics), INV (invoice semantics), CMT
+			(commitment semantics), BKR (settlement execution), TCM
+			(treasury authority).
+
+			Critical anti-drift on FailureClassified consumption: FCE
+			consumes classification as routing metadata only, never as
+			authority to reinterpret settlement causality. Hoje routing
+			metadata; NEVER drift to retry heuristics OR economic
+			policy adaptation OR BKR absorption.
+
+			39 entries total (22 inbound + 17 outbound — 3 commands +
+			16 events truth/advisory/outcome + 3 query-surfaces para
+			inbound; 3 command-invocations + 10 event-publishers +
+			4 query-dependencies para outbound). Scale reflects FCE
+			downstream-dominant nature; ownership rigor preserves
+			boundary integrity per founder Phase 1.4 ajuste 8 (scale
+			não é o problema; ownership é).
+
+			Wording shift per founder Phase 1.4 ajuste 5: 'trigger
+			downstream FCE state transitions' substituído por 'publish
+			canonical consequence' em descriptions/reactions onde FCE
+			acts on BKR outcomes — preserves downstream autonomy +
+			boundedness; FCE reflects consequence, not defines policy.
+			"""
 	}
 
 	// =============================================
