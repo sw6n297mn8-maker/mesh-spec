@@ -1503,8 +1503,350 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	// =============================================
-	// RATIONALE OUTER — placeholder; conteúdo em commit 1.6
+	// ASSUMPTIONS — 3 epistemological (Phase 1.6)
 	// =============================================
+	// Per founder Phase 1.6 direction: assumptions protect ontologia,
+	// not operação. As 3 hipóteses estruturais sem as quais FCE não
+	// pode existir como bounded context distinct.
 
-	rationale: "Placeholder — rationale outer (síntese de identity + businessDecisions + economic authority enforcement + cross-BC integration cascade upstream→FCE→BKR + 11 invariantes formal protection + 3 services architectural roles + lenses ativadas + alignment com BKR Phase 2 glossary boundary terms) entra em commit 1.6."
+	assumptions: [{
+		id:                "as-fce-1"
+		assumption:        "Upstream BCs remain authoritative for their semantic domains: CMT for commitment state semantics; BDG for budget semantics; REW for risk eligibility semantics; INV for invoice validity semantics; DLV for evidence completeness semantics; TCM for operational availability semantics. FCE consumes truth produced by these BCs without semantic reinterpretation; may cache, snapshot, or reference but never reinterpret."
+		invalidationSignal: "If any upstream BC's semantic authority is reassigned to FCE (e.g., FCE evolves to compute risk scores OR validate evidence semantics OR override budget meaning), this assumption is invalidated and FCE has crossed into super-orchestrator drift. Detection via boundary integrity runner + dm-* drift metrics + ec-upstream-truth-mutation-attempt escalation criterion + vm-fce-upstream-truth-mutation-attempt-rate."
+		rationale:         "A1 upstream truth authority assumption — per bd-upstream-truth-immutable-from-fce + canonical anti-drift clause 'FCE owns authorization convergence, never truth production nor settlement execution.' Esta é a hipótese ontológica mais crítica do BC — sem ela, FCE não pode existir como context bounded distinct from upstream concerns. Invalidation = FCE identity collapse."
+	}, {
+		id:                "as-fce-2"
+		assumption:        "Settlement outcome truth is externalized canonically by BKR and never reconstructed by FCE. SettlementFinalized/SettlementFailed/SettlementIndeterminate produzidos por BKR são unique source of truth for settlement state; FCE reacts economically (PaymentSettled/PaymentObligationUnsettled/PaymentPendingFinalReconciliation) sem arbitrate rail outcome OR reconstruct settlement state from secondary sources."
+		invalidationSignal: "If FCE begins to interpret rail signals directly OR override BKR canonical outcomes OR reconstruct settlement state from secondary sources, this assumption is invalidated. Detection via boundary integrity check on FCE event emission paths (no rail-signal access in FCE agent code) + ec-reverse-without-mandate-detected related patterns + audit trail rail signal access analysis."
+		rationale:         "A2 settlement outcome externalization assumption — per bd-settlement-delegated-to-bkr + BKR Phase 5 boundary canonical. Settlement truth externalization é structural — sem essa separação, FCE e BKR colapsam em settlement engine monolítico, destruindo dual-bounded-context architecture."
+	}, {
+		id:                "as-fce-3"
+		assumption:        "Economic authority emerges only through deterministic convergence of upstream truth — never through discretion, optimization, OR heuristic. AuthorizationProof emission is pure function of upstream convergence + stability window; never expression of agent judgment, throughput optimization, OR operational pressure adaptation."
+		invalidationSignal: "If AuthorizationProof emission paths begin to depend on factors outside convergence determinism (e.g., throughput targets, operational pressure, discretionary agent judgment, threshold weakening for acceleration), this assumption is invalidated. Detection via ec-condition-weakening-to-accelerate (primary architectural drift detector) + ec-convergence-boundary-erosion-detected (meta-pattern) + vm-fce-condition-weakening-detection-rate metric."
+		rationale:         "A3 economic authority boundedness assumption — per bd-authorization-is-convergence-not-decision + canonical clause 'FCE autonomy is bounded by convergence determinism.' Esta é a assumption epistemológica que protege ontologicamente o BC contra optimization pressure — o real adversarial vector do FCE long-term."
+	}]
+
+	// =============================================
+	// OPEN QUESTIONS — 9 (Phase 1.6)
+	// =============================================
+	// 4 critical questions per founder Phase 1.6 direction (a-d) +
+	// 5 emerging/edge case questions covering Phase 1+ evolution.
+
+	openQuestions: [{
+		id:        "oq-fce-1"
+		question:  "Temporal convergence stability — quanto tempo convergence precisa permanecer válida antes de crystallization? Phase 0 stability window é parameterizado mas threshold canonical não é fixado. Trade-off: window curto permite acceleration (flickering exploitation risk); window longo aumenta latência (operational pressure for shortening)."
+		impact:    "Direct impact em vetor adversarial #1 (sh-05 silent autonomy expansion via flickering exploitation). Window threshold demais fraco abre exploit; demais forte cria operational pressure → ec-condition-weakening-to-accelerate trigger pattern. Calibration é open empírica."
+		rationale: "Per founder Phase 1.5 ajuste 3 + Phase 1.6 (a). Stability window protection contra convergence flickering é structural mas threshold ótimo emerge de operational data + adversarial pattern observation. Phase 1+ calibração via governance envelope."
+	}, {
+		id:        "oq-fce-2"
+		question:  "Cross-window invalidation semantics — o que acontece se: risk expira / budget muda / evidence é revogada / commitment muda entre convergence, authorization, dispatch, settlement? Phase 0 default é halt + escalation; mas para alguns scenarios automatic rollback OR graceful re-authorization seriam mais apropriados."
+		impact:    "Cross-window invalidation affects vetor sh-02 (downstream financing rapid claim) + atomicity guarantee. Sem policy clear, cada window incident escala manualmente; com policy automatic mal calibrada, financialization atomicity poderia ser violada."
+		rationale: "Per founder Phase 1.6 (b). Edge case structural envolvendo temporal coherence cross-BC. Resolution requer empirical observation de window incident patterns + cross-BC coordination protocols."
+	}, {
+		id:        "oq-fce-3"
+		question:  "Re-financialization semantics após rollback/reversal — nasce nova obrigação ontologicamente? Mesma obrigação revive? Lineage continua via NEW PaymentObligationCreated ou Update event? Novo AuthorizationProof sempre implica nova ontologia OR pode preservar lineage continuity?"
+		impact:    "Affects downstream financing (SCF antecipação reconciliation: same obligation OR new?) + audit forensic reconstruction. Diferentes semantic models implicam diferentes regulatory/accounting treatments downstream."
+		rationale: "Per founder Phase 1.6 (c). Ontological question sobre identity de obligation post-rollback. Resolution informa schema design Phase 3 (event design) + downstream BC contracts."
+	}, {
+		id:        "oq-fce-4"
+		question:  "Convergence snapshot semantics — FCE opera sobre: live reads para cada convergence evaluation? Snapshot consistente cross 6 upstream reads? Eventual consistency tolerada? Temporal locking required (e.g., snapshot taken at evaluation start)? Phase 0 default é snapshot per evaluation; mas cross-BC eventual consistency pode criar invalid snapshots não detectáveis."
+		impact:    "Snapshot semantics affect atomicity guarantee + cross-BC race condition surface. Live reads maximize freshness mas multiplicam network calls; snapshot fixed permite cross-BC eventual inconsistency at evaluation time."
+		rationale: "Per founder Phase 1.6 (d). Extremely important question per founder — affects entire convergence evaluation correctness. Resolution requer distributed systems design + eventual consistency taxonomy + temporal coordination spec."
+	}, {
+		id:        "oq-fce-5"
+		question:  "Multi-currency authorization semantics — Drex emerging (Real Digital) + cross-border SWIFT integration require multi-currency convergence. Phase 0 assume single-currency (BRL); Drex post-launch e cross-border SWIFT introduce dual-currency authorization patterns. Conversion semantics + exchange-rate-window + multi-currency AuthorizationProof composition open."
+		impact:    "Affects forward compatibility Phase 1+ Drex rollout + cross-border SWIFT scaling. Schema design Phase 3 deve antecipar multi-currency convergence OR ficar bounded para BRL only Phase 0 com refactoring path declared."
+		rationale: "Forward-looking — Drex launch + Bacen cross-border push em 2026/2027 traz multi-currency settlement realistic. FCE multi-currency authorization é Phase futura mas semântica deve ser open question para evitar early lock-in errado."
+	}, {
+		id:        "oq-fce-6"
+		question:  "Cascade authorization pattern — when one PaymentObligationCreated triggers immediate downstream payment (e.g., SCF antecipação automatic payout post atomic financialization). Phase 0 considers each authorization independent; cascade patterns introduce temporal coupling + lineage tracking complexity. Should cascade payments be modeled as separate authorization cycles OR sub-cycles?"
+		impact:    "Affects SCF integration contract + audit lineage reconstruction. Independent cycles preserve atomicity per payment; sub-cycles capture economic causation but complicate lineage forensic."
+		rationale: "Edge case Phase 1+ SCF integration may require cascade pattern. Phase 0 defers to independent cycle model (simpler) but acknowledges pattern may emerge."
+	}, {
+		id:        "oq-fce-7"
+		question:  "Financialization rollback authority graduation — Phase 0 sd-financialization-rollback is fully supervised. When/whether autonomous rollback authority can graduate via calibration? Some rollback scenarios are deterministic (e.g., subsequent evidence forgery detection); supervised intervention for every rollback creates operational pressure."
+		impact:    "Long-term operational scalability vs boundary integrity preservation. Autonomous rollback authority é structurally dangerous (atomicity inverse) mas operationally needed at scale. Resolution requires calibration framework Phase 1+ + drift metrics."
+		rationale: "Phase 1+ governance evolution question. Boundary integrity vs operational scalability tension. Phase 0 errs toward supervised; pattern may evolve via Phase 5 envelope calibration paths."
+	}, {
+		id:        "oq-fce-8"
+		question:  "Identity erosion long-term observability — how detect cumulative drift over multi-year horizon when individual decisions appear reasonable? Drift metrics (dm-*) catch short-term patterns; ec-convergence-boundary-erosion-detected é meta-pattern detection; mas multi-year drift via slow threshold relaxation OR gradual semantic absorption requires longer-horizon observability framework."
+		impact:    "Real adversarial pattern of FCE is gradualism per founder Phase 1.5. Without multi-year observability, BC may erode invisibly over time despite all Phase 0 protections functioning correctly individually."
+		rationale: "Per founder Phase 1.5 ajuste 7 elevation of meta-pattern detection. Long-term identity preservation requires observability beyond Phase 0 drift metrics — Phase 2+ multi-year observability framework é open architectural question."
+	}, {
+		id:        "oq-fce-9"
+		question:  "Regulatory boundary alignment cadence — how often + by what process regulatory updates (Bacen SCD rule changes + Pix policy updates + AML/KYC threshold changes + sanctions list updates) propagate into FCE convergence policy via IDC/NPM channels? Phase 0 quarterly review (per sh-04 incentive analysis); but high-frequency regulatory churn could create coordination gap."
+		impact:    "ec-regulatory-boundary-misalignment escalation triggers when spec drift not absorbed; high-frequency churn cria sustained escalation pattern OR forced quarterly review insufficient. Resolution informa governance envelope Phase 5 + cross-BC coordination protocols."
+		rationale: "Per sh-04 structural-absence vector. Regulatory channels é cross-cutting concern affecting FCE/IDC/NPM coordination. Process resolution requer governance committee + IDC integration cadence design."
+	}]
+
+	// =============================================
+	// VERIFICATION METRICS — 7 (Phase 1.6)
+	// =============================================
+	// vm-fce-01 é PRIMARY METRIC do BC — convergence integrity, not
+	// throughput. Per founder Phase 1.5 ajuste 9 + Phase 1.6 #3.
+
+	verificationMetrics: [{
+		id:     "vm-fce-01"
+		metric: "Convergence Integrity Rate — % of FCE authorizations (AuthorizationProof emitted) that remained valid (não invalidated, não rolled back, não revealed as ghost-authorization) sustained across rolling 30-day window. PRIMARY METRIC of FCE BC — explicit NOT authorization throughput."
+		target: ">= 99.95% sustained across rolling 30-day window; any single-day < 99.5% triggers documented causal review"
+		onBreach: {
+			escalationRef: "ec-convergence-boundary-erosion-detected"
+			rationale:    "Sustained convergence integrity decline indicates either (a) structural threshold drift; (b) cumulative gradual erosion; (c) external adversarial pattern matur. Escalates to meta-pattern detector — governance review (potential structural rollback OR scope reduction) required."
+		}
+		rationale: "PRIMARY METRIC per founder canonical evaluation clause: 'FCE is evaluated on convergence integrity, NOT authorization throughput.' Métricas erradas destroem arquitetura correta — explicit declaration que measurement system mede the right property é defense final contra erosão cumulativa via optimization pressure (real adversarial vector long-term)."
+	}, {
+		id:     "vm-fce-02"
+		metric: "Upstream Truth Mutation Attempt Rate — count of detected attempts where FCE agent OR system component tried to mutate cached upstream VO contents OR reinterpret upstream semantics. Measured via boundary integrity runner check + audit trail state diff analysis."
+		target: "0 events per rolling 7-day window (zero tolerance — any attempt is structural integrity failure)"
+		onBreach: {
+			escalationRef: "ec-upstream-truth-mutation-attempt"
+			rationale:    "Mutation attempt is structural integrity failure regardless of whether successful. Detection triggers halt + structural review per ec-upstream-truth-mutation-attempt action protocol."
+		}
+		rationale: "Per as-fce-1 (upstream truth authority assumption) + bd-upstream-truth-immutable-from-fce. Mede semantic drift directly — single attempt invalidates A1. Zero-tolerance porque boundary integrity é binary, não graduated."
+	}, {
+		id:     "vm-fce-03"
+		metric: "Condition Weakening Detection Rate — count of ec-condition-weakening-to-accelerate triggers (PRIMARY ARCHITECTURAL DRIFT DETECTOR) over rolling 30-day window. Mede organizational pressure against architectural integrity."
+		target: "0 triggers per rolling 30-day window (zero tolerance); any single trigger requires founder + governance review"
+		onBreach: {
+			escalationRef: "ec-condition-weakening-to-accelerate"
+			rationale:    "Trigger indicates organizational pressure successfully manifesting as architectural compromise. Per founder Phase 1.5 ajuste 5: primary architectural drift detector. Single trigger é serious; sustained pattern é catastrophic."
+		}
+		rationale: "Mede pressure organizational against the architecture — extremely rare metric. Mede the inverse of throughput optimization pressure. Per founder Phase 1.6: 'optimization pressure against convergence integrity' é o real adversarial inimigo do FCE."
+	}, {
+		id:     "vm-fce-04"
+		metric: "Financialization Atomicity Consistency Rate — % of PaymentObligationCreated events where downstream consumers (SCF + REW + ATO + INS) observed consistent state network-wide. Measured via cross-BC consistency check + audit trail reconciliation."
+		target: "100% (zero tolerance — atomicity é ontológica per bd-financialization-is-atomic; any partial commit invalidates BC integrity)"
+		onBreach: {
+			escalationRef: "ec-financialization-atomicity-violation"
+			rationale:    "Per bd-financialization-is-atomic: atomicity is heart of Mesh loop. Single violation indicates structural integrity failure; sustained operation impossible until root cause resolved."
+		}
+		rationale: "Per as-fce-3 (economic authority boundedness) + bd-financialization-is-atomic. Atomicity é ontological property — observable network-wide consistency é defining characteristic. Zero-tolerance porque atomicity binary não graduated."
+	}, {
+		id:     "vm-fce-05"
+		metric: "Epistemic Non-Collapse Preservation Rate — % of SettlementIndeterminate states (consumed from BKR via cap-payment-outcome-routing) that remained preserved as PaymentPendingFinalReconciliation downstream without collapse into Settled OR Unsettled. Measured via downstream consumer behavior audit + state transition consistency check."
+		target: "100% preservation rate (zero downstream collapse tolerated)"
+		onBreach: {
+			escalationRef: "ec-convergence-boundary-erosion-detected"
+			rationale:    "Epistemic collapse downstream indicates either FCE consumer protocol violation OR BC implementation defect collapsing non-final state. Boundary integrity violation."
+		}
+		rationale: "Métrica raríssima — almost nobody measures this. Preserva epistemic non-finality end-to-end (BKR → FCE → downstream). Critical para preservation of canonical clause '4 categorical inputs/outputs preserved distinctly' across the chain. Heart of architecture maturity."
+	}, {
+		id:     "vm-fce-06"
+		metric: "Ghost Authorization Detection Rate — count of ec-ghost-authorization-detected triggers (authorizations completed but downstream evidence/operational reconciliation showed no underlying operation) over rolling 90-day window."
+		target: "0 events per rolling 90-day window (zero tolerance — ghost authorization é catastrophic per as-fce-1 violation)"
+		onBreach: {
+			escalationRef: "ec-ghost-authorization-detected"
+			rationale:    "Ghost authorization indicates either upstream BC compromise OR FCE convergence bypass. Forensic investigation required across 6 upstream BCs."
+		}
+		rationale: "Per sh-01 adversarial vector (ghost-payment via forged upstream truth). Detection via downstream observability feedback loop — financialization atomicity ensures detectability over time via dm-* metrics."
+	}, {
+		id:     "vm-fce-07"
+		metric: "Side-Channel Leak Incidents Count — count of ec-classification-side-channel-leak-detected + ec-fce-info-leak-meta-detection triggers over rolling 90-day window. Compliance-sensitive information leakage via FCE classification routing OR event payload patterns."
+		target: "0 events per rolling 90-day window (zero tolerance — leak amplification risk per sh-06 incentive analysis)"
+		onBreach: {
+			escalationRef: "ec-classification-side-channel-leak-detected"
+			rationale:    "Side-channel leak is amplification risk informing adversarial pattern continuation. Regulatory compliance breach + sanctions exposure potential."
+		}
+		rationale: "Per sh-06 adversarial vector + side-channel mitigation principle. Zero tolerance porque compliance violations cumulative over time can trigger regulatory action + criminal liability under AML/KYC regimes."
+	}]
+
+	// =============================================
+	// RATIONALE OUTER (Phase 1.6) — cristalização conceitual
+	// =============================================
+	// Per founder Phase 1.6: outer rationale precisa fazer algo
+	// diferente — consolidar a teoria operacional do FCE. Tornar
+	// impossível esquecer o que o FCE É. Porque o maior risco
+	// futuro não é implementação errada — é reinterpretarem o BC
+	// como "sistema de pagamentos".
+
+	rationale: """
+		FCE is the bounded context responsible for crystallizing
+		conditional economic authority into network-visible financial
+		obligations.
+
+		FCE is NOT a payment processor. FCE is NOT a treasury
+		orchestrator. FCE is NOT an ERP financial engine. FCE is NOT
+		a workflow coordination layer. FCE is NOT a settlement
+		engine.
+
+		FCE is the architectural layer where operational truth
+		(commitment + evidence + risk eligibility + budget + invoice
+		+ advisory) converge deterministically into network-visible
+		economic authority, materialized cryptographically via
+		AuthorizationProof, consumed by BKR for technical settlement
+		execution, and propagated downstream as canonical economic
+		consequence.
+
+		The center of FCE is ontological, not operational:
+		financialization é the canonical transition from operational
+		truth to network-visible financial truth. Without FCE
+		performing this transition atomically and observably,
+		downstream consumers (SCF antecipação + REW risk modeling +
+		ATO accounting + INS insurance underwriting + secondary
+		financing) operate over inconsistent state. The Mesh value
+		proposition depends entirely on this single canonical birth
+		event of economic truth existing as a reliable network fact.
+
+		AXIAL CANONICAL CLAUSE:
+		FCE owns authorization convergence, never truth production
+		nor settlement execution.
+
+		Esta é a frase mais importante da arquitetura inteira do BC.
+		Ela é o centro gravitacional arquitetural do contexto. Ela
+		impede absorção de REW (risk semantics), DLV (evidence
+		semantics), BDG (budget semantics), INV (invoice semantics),
+		CMT (commitment semantics), BKR (settlement execution), TCM
+		(treasury authority). Sem ela, FCE inevitavelmente vira
+		super-orchestrator absorvendo cross-BC concerns ao longo do
+		tempo. Esta cláusula axial deve sobreviver a toda evolução
+		futura do BC; qualquer mudança que a viole é structural
+		drift requiring governance-level rollback.
+
+		CANONICAL EVALUATION METRIC:
+		FCE is evaluated on convergence integrity, not authorization
+		throughput.
+
+		Métricas erradas destroem arquitetura correta. Throughput
+		pressure inevitavelmente cria threshold weakening + cache
+		stretching + semantic reinterpretation + authority drift.
+		vm-fce-01 (Convergence Integrity Rate) é PRIMARY METRIC
+		explicit. Ela mede a propriedade ontológica do BC — não a
+		propriedade operacional. Sustained convergence integrity
+		decline triggers ec-convergence-boundary-erosion-detected
+		meta-pattern escalation + governance review (potential
+		structural rollback). Sistema de medição que mede the right
+		property é defesa final contra erosão cumulativa.
+
+		CANONICAL ARCHITECTURAL TRADE-OFF:
+		FCE intentionally sacrifices authorization speed in favor of
+		convergence integrity.
+
+		Esta frase protege a arquitetura contra pressão operacional
+		futura. Operacionalmente, alguém vai querer aumentar
+		throughput, reduzir waiting, minimizar pending states,
+		acelerar release, melhorar UX. Cada um desses pressures
+		empurra a arquitetura para weakening + reinterpretation +
+		semantic absorption. A decisão é estrutural: FCE prioriza
+		integrity sobre velocity. Pendings prolongados, defers
+		operacionais, e supervised escalations são acceptable cost
+		operacional para preservar boundary integrity.
+
+		EXPLICIT ARCHITECTURAL ANTI-GOAL:
+		Optimization pressure against convergence integrity.
+
+		Este é o real inimigo arquitetural do FCE long-term. Não é
+		fraud, replay, cache poisoning, OR settlement ambiguity.
+		É a pressure cumulative organizacional para "fazer FCE
+		mais rápido", "reduzir wait time", "flexibilizar só este
+		caso", "inferir evidence temporariamente". Cada individual
+		decision appears reasonable; cumulative pattern destrói
+		boundary integrity. ec-condition-weakening-to-accelerate
+		é primary architectural drift detector contra este anti-
+		goal; vm-fce-03 (Condition Weakening Detection Rate) mede
+		incidence directly.
+
+		IDENTITY SEPARATION FROM BKR (Phase 5 closed):
+		FCE é conditional economic authority crystallization layer;
+		BKR é technical settlement execution layer. Boundary é
+		structural per BKR Phase 2 glossary + Phase 5 cst-
+		reverse-settlement-upstream-only. Both layers protect
+		complementary boundaries:
+		- BKR: technical settlement integrity + epistemic settlement
+		  preservation + rail execution boundary;
+		- FCE: conditional economic authority + convergence integrity
+		  + financialization ontology.
+		Reverse-settlement requires upstream mandate em ambos
+		layers (defense-in-depth) — FCE sd-reverse-payment-
+		authorization + BKR cst-reverse-settlement-upstream-only.
+		Settlement truth canonical em BKR; FCE economic consequence.
+		Esta separação é structurally protected per bd-settlement-
+		delegated-to-bkr + as-fce-2.
+
+		4 CANONICAL CLAUSES (communication layer + boundary axial):
+		(1) FCE is downstream-authoritative, not upstream-controlling.
+		(2) FCE outbound events express economic interpretation of
+		    canonical settlement outcomes, not settlement execution
+		    truth itself.
+		(3) Queries expose authorization state and economic lifecycle
+		    state, not authoritative upstream truth.
+		(4) FCE may defer authorization due to non-convergence, but
+		    never accelerate authorization by weakening upstream
+		    conditions. (Temporal authority drift protection.)
+
+		ONTOLOGICAL ASSUMPTIONS (as-fce-1/2/3):
+		FCE depends ontologically on 3 epistemological assumptions:
+		(A1) Upstream BCs remain authoritative for their semantic
+		domains; (A2) Settlement outcome truth is externalized
+		canonically by BKR and never reconstructed by FCE; (A3)
+		Economic authority emerges only through deterministic
+		convergence of upstream truth. Invalidation of any
+		assumption = FCE identity collapse. As 3 são protected via
+		bd-upstream-truth-immutable-from-fce + bd-settlement-
+		delegated-to-bkr + bd-authorization-is-convergence-not-
+		decision respectively.
+
+		AUTONOMY BOUNDED BY CONVERGENCE DETERMINISM:
+		FCE autonomy is bounded by convergence determinism — esta
+		frase canônica limita não apenas o nível de autonomia
+		(propose-and-wait vs execute-and-log) mas a ONTOLOGIA da
+		autonomia permitida. FCE pode reconhecer convergence; nunca
+		pode otimizar convergence. Convergence reconhecida é
+		authority crystallization; convergence otimizada é authority
+		drift toward super-orchestrator.
+
+		LENSES APLICADAS (4 primárias + 1 transversal):
+		- lens-ai-agent-governance (primária): autonomyLevel matrix
+		  + governanceScope authority/supervision/escalation; 6
+		  autonomousDecisions são deterministic functions; 6
+		  supervisedDecisions cover discretionary; 12 escalationCriteria
+		  cover boundary erosion vectors.
+		- lens-ddd-strategic-modeling (primária): bounded context
+		  com identity ontológica; cross-BC boundary preservation
+		  com 6 upstream truth-bearing inputs + 1 advisory + 5 BKR
+		  outcome reactions; downstream financing consumer feedback
+		  loop via observable financialization.
+		- lens-incentive-alignment (primária): 5 stakeholder
+		  adversarial vectors com sh-05 cumulative drift = vetor #1;
+		  defense-in-depth via cryptographic boundary +
+		  financialization atomicity + cross-BC convergence cost.
+		- lens-anti-fragility (primária): ontological transitions
+		  protected via atomicity (financialization) + cryptographic
+		  binding (authorization proof) + epistemic preservation
+		  (indeterminate non-collapse) + boundary erosion meta-
+		  detection.
+		- lens-regulatory-compliance-as-architecture (transversal):
+		  side-channel mitigation per sh-06; regulatory boundary
+		  constraint absorption per sh-04 structural-absence; 13+
+		  audit trail fields paralelo BKR Phase 5 regulatory-grade.
+
+		FORWARD-LOOKING ACKNOWLEDGED:
+		- oq-fce-1 temporal convergence stability threshold —
+		  empirical calibration Phase 1+.
+		- oq-fce-2 cross-window invalidation semantics — distributed
+		  systems coordination Phase 1+.
+		- oq-fce-3 re-financialization ontology — schema design
+		  Phase 3 + downstream contracts.
+		- oq-fce-4 convergence snapshot semantics — distributed
+		  systems design.
+		- oq-fce-5 multi-currency authorization — Drex 2026+
+		  preparation.
+		- oq-fce-8 identity erosion long-term observability —
+		  multi-year drift framework Phase 2+.
+
+		PROHIBITION CLAUSE (anti-reinterpretation explicit):
+		FCE must NEVER be reinterpreted as "sistema de pagamentos."
+		This BC is conditional economic authority crystallization,
+		not payment processing. Any future evolution that frames FCE
+		as payment-centric introduces semantic absorption of
+		downstream concerns (settlement execution from BKR) OR
+		upstream concerns (truth production from REW/DLV/BDG/INV/
+		CMT). The semantic prohibition is structural — embedded in
+		bd-* + assumptions + verification metrics + escalation
+		criteria + observability contracts. Phase 2 glossary, Phase
+		3 domain model, Phase 4 agent spec, Phase 5 governance
+		envelope all materialize this prohibition operationally.
+		The biggest future risk is not implementation error — it is
+		semantic reinterpretation. This rationale exists primarily
+		to make that reinterpretation impossible to forget.
+		"""
 }
