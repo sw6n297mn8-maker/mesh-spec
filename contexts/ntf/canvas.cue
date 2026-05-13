@@ -154,6 +154,8 @@ canvas: artifact_schemas.#Canvas & {
 		mechanically conservative, anti-degradation infrastructures.
 		"""
 
+	ubiquitousLanguageRef: "contexts/ntf/glossary.cue"
+
 	classification: {
 		subdomainType:    "generic"
 		businessRole:     "operational-enabler"
