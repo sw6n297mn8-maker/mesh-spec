@@ -782,22 +782,23 @@ canvas: artifact_schemas.#Canvas & {
 				action:    "L3 escalation + C3 + drift class #9 violation review"
 				rationale: "Per drift class #9 + C3: precursor of engagement platform drift. Bounce ≠ disengagement; click ≠ acceptance."
 			}]
-			rationale: """
-				Governance scope distinct from FCE pattern porque NTF é
-				generic-subdomain protecting substitutability vs FCE
-				constitutional-integrity. Autonomous set é deterministic
-				protocol execution — sem judgment. Supervised set protects
-				canonical gates (certification, revocation, scope, matrix).
-				Escalation criteria cover 12 drift classes + 15 constitutional
-				clauses violations explicitly.
-
-				Per founder framing 'admissibility-governed transport governance
-				layer': governance scope explicit reflects this — autonomous é
-				protocol execution; supervised é canonical change; escalation é
-				cultural/institutional pressure detection.
-				"""
 		}
-		rationale: "Ownership canonical: domain agent é agt-ntf-primary (Phase 4 materialization); governance scope materializa 7+7+12 canonical decisions structured by phase + clause + drift class coverage."
+		rationale: """
+			Ownership canonical: domain agent é fce-primary-agent path
+			(Phase 4 materialization); governance scope materializa 7+7+12
+			canonical decisions structured by phase + clause + drift class
+			coverage. Governance scope distinct from FCE pattern porque NTF é
+			generic-subdomain protecting substitutability vs FCE
+			constitutional-integrity. Autonomous set é deterministic
+			protocol execution — sem judgment. Supervised set protects
+			canonical gates (certification, revocation, scope, matrix).
+			Escalation criteria cover 12 drift classes + 15 constitutional
+			clauses violations explicitly. Per founder framing
+			'admissibility-governed transport governance layer': governance
+			scope explicit reflects this — autonomous é protocol execution;
+			supervised é canonical change; escalation é cultural/institutional
+			pressure detection.
+			"""
 	}
 
 	assumptions: [{
