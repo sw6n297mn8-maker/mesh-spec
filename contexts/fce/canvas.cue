@@ -1231,17 +1231,90 @@ canvas: artifact_schemas.#Canvas & {
 
 	incentiveAnalysis: {
 		participants: [{
+			stakeholderRef:            "sh-05"
+			participantType:           "runtime authorization operations agent"
+			desiredBehavior:           "FCE agent operates strict convergence evaluation per 6 upstream reads + bd-authorization-is-convergence-not-decision; emits AuthorizationProof only when ALL conditions converge per deterministic rules; defers when non-convergent (per canonical clause #4: defer acceptable, weaken forbidden); respects cache staleness thresholds + invokes re-validation queries when needed; never mutates upstream truth nor reinterprets upstream semantics."
+			correctOperationIncentive: "Operator audited via 13-field audit trail (paralelo BKR Phase 5 pattern); promotion paths via calibration require sustained zero-violation track record across full outcome distribution (não apenas happy paths); evaluation metric is convergence integrity, NOT authorization throughput."
+			manipulationVector:        "Silent autonomy expansion (cumulative drift): (a) caching upstream truth beyond staleness policy (using aged eligibility OR stale budget); (b) condition threshold weakening to accelerate convergence (drop one of 6 upstream reads when 'demorando'); (c) heuristic adaptation embedding economic policy decisions; (d) semantic absorption (gradually interpreting upstream meanings — 'evidence is probably complete' OR 'risk should be eligible by now'); (e) treating TCM advisory as timing authority; (f) convergence flickering exploitation (issue authorization between A and A+1s when condition validity transient). Cumulative drift over time = FCE identity erosion."
+			manipulationCost:          "Individual instance: low (single runtime decision appears reasonable in isolation). Cumulative pattern detection: medium (audit trail review identifies pattern across time + dm-* drift metrics). Boundary integrity validation runner: high (structural drift detection via convergence consistency rate + ec-convergence-boundary-erosion-detected escalation criterion)."
+			vsBenefit:                 "Catastrophic — FCE identity erosion is anti-Mesh pattern. Single FCE that absorbs upstream concerns destroys the entire architectural premise. Boundary integrity loss is not recoverable via supervised intervention; requires governance-level rollback. Each individual decision appears reasonable; cumulative pattern is destructive. Real adversarial pattern of FCE is gradualism, not explicit failure."
+			designResponse:            "(a) Cache staleness policy enforced via runner check (boundary integrity validation); (b) governance envelope blastRadiusCaps Phase 5 cap mutations aggressively (paralelo BKR pattern, even tighter for FCE given convergence sensitivity); (c) escalationCriteria ec-condition-weakening-to-accelerate (primary architectural drift detector) + ec-eligibility-staleness-bypass + ec-upstream-truth-mutation-attempt + ec-convergence-boundary-erosion-detected detect specific drift vectors; (d) drift metrics on convergence consistency rate detect gradual pattern erosion; (e) sustained 60-day zero-violation precondition for any autonomy promotion; (f) evaluation metric explicit canonical: convergence integrity not throughput."
+			rationale:                 "Vetor adversarial #1 do FCE — non-obvious porque drift is gradual + each individual decision appears reasonable. Cumulative erosion é o real vector. Per founder Phase 1.2/1.3/1.4/1.5 transversal direction + anti-monólito clause: 'FCE owns authorization convergence, never truth production nor settlement execution.' Drift via sh-05 runtime is the primary pathway through which FCE would become super-orchestrator over time. FCE autonomy is bounded by convergence determinism — limits the ontology of autonomy permitted, not just its level."
+		}, {
 			stakeholderRef:            "sh-01"
-			participantType:           "Placeholder — preenchido em commit 1.5."
-			desiredBehavior:           "Placeholder."
-			correctOperationIncentive: "Placeholder."
-			manipulationVector:        "Placeholder."
-			manipulationCost:          "Placeholder."
-			vsBenefit:                 "Placeholder."
-			designResponse:            "Placeholder."
-			rationale:                 "Skeleton; vetores adversariais substantivos (esperados: ghost-payment authorization without evidence; retention release sem complete operational verification; budget bypass via partial release patterns; risk override silently after eligibility decision aged out; rail substitution post-authorization for cost arbitrage; double dispatch under race condition; reverse settlement initiated by FCE without DRC mandate; FinancializationService all-or-nothing bypass via partial commits) em commit 1.5."
+			participantType:           "upstream authority issuer (commitment + budget originator)"
+			desiredBehavior:           "Originadora emits commitments + budget approvals + invoices reflecting genuine economic operations; upstream BC trust chain (CMT/BDG/INV authorities) issues facts grounded in operational reality; cryptographic identity protected; multi-BC chain integrity preserved."
+			correctOperationIncentive: "Commitment + budget + invoice authority chain is audit-traceable; downstream financialization observability creates feedback loop — ghost commitments without ultimate physical operation become detectable via DLV evidence non-convergence + dm-* drift metrics over time."
+			manipulationVector:        "Ghost-payment authorization via forged upstream truth: (a) fake CommitmentAccepted without real commitment; (b) backdated evidence inference (manipulate evidence timestamps); (c) fake risk eligibility via REW compromise; (d) collusion across multiple upstream BCs to satisfy convergence simultaneously without underlying truth. Goal: extract payment authorization for non-existent operation."
+			manipulationCost:          "High — requires either cryptographic key compromise OR multi-BC collusion. Defense-in-depth via cross-BC convergence reduces single-BC attack surface; ghost-payment requires coordinated forgery across 5+ BCs (CMT + BDG + REW + INV + DLV)."
+			vsBenefit:                 "Low — single payment fraud bounded by financialization atomicity. PaymentObligationCreated is observable network-wide; downstream consumers (SCF antecipação) detect inconsistency over time. Recurring ghost-payments at scale would trigger network-wide anomaly via dm-* metrics + ec-ghost-authorization-detected."
+			designResponse:            "(a) Cryptographic AuthorizationProof boundary (5-component composite per bd-authorization-proof-cryptographic-binding); (b) 6-source convergence requires coordinated forgery; (c) escalationCriteria ec-ghost-authorization-detected detects authorization patterns without underlying truth; (d) audit trail 13+ fields reconstruct full convergence evaluation for forensic review; (e) financialization observability creates downstream feedback loop (SCF antecipação reconciliation detects inconsistency); (f) atomic financialization (no partial commits) bounds blast radius even under hypothetical breakthrough."
+			rationale:                 "Per bd-financialization-is-atomic — financialization is the canonical transition from operational truth to network-visible financial truth. Atomicity itself is part of ghost-payment defense: shadow obligations cannot be partial; either fully crystallized OR not at all. Defense-in-depth assumes some upstream BC compromise possible; FCE convergence boundary contains blast radius."
+		}, {
+			stakeholderRef:            "sh-02"
+			participantType:           "downstream financing consumer + payment beneficiary"
+			desiredBehavior:           "Downstream financing actor (SCF antecipação + secondary financing + retention recipients) consume PaymentObligationCreated as canonical observable fact post atomic financialization; respect epistemic non-finality of PaymentPendingFinalReconciliation; do NOT collapse non-final states into final assumptions."
+			correctOperationIncentive: "Financing decisions based on observable financial truth (not promise) reduce risk premium; antecipação cycles align with actual financialization atomicity; retention release timing predictable per cap-retention-release-conditional convergence."
+			manipulationVector:        "Rapid antecipação claim from non-final state: (a) consume PaymentObligationCreated before financialization atomicity fully completed (temporal race); (b) infer retention release pre-evidence completeness (downstream pressure to release earlier); (c) treat PaymentPendingFinalReconciliation as PaymentSettled (epistemic collapse). Goal: extract financing benefit before underlying state truly stable."
+			manipulationCost:          "Medium — requires temporal race against atomic crystallization OR epistemic collapse cooperation from FCE/SCF integration layer. Race condition narrow if atomicity guarantee enforced via aggregate handler."
+			vsBenefit:                 "Medium — financing fraud bounded by re-verification post-claim. Audit trail captures temporal sequence; SCF antecipação reconciliation triggers anomaly detection if PaymentObligationCreated retroactively reversed OR non-final state collapsed."
+			designResponse:            "(a) Atomic financialization with transactional guarantee (no partial commits observable network-wide); (b) PaymentPendingFinalReconciliation as distinct canonical event (NOT collapsable into Settled per canonical clause #4 echo); (c) consumerProtocol contract (paralelo BKR Phase 5 adr-084): consumers MUST handle non-final states; (d) SCF antecipação reconciliation contract enforces fact-based (not promise-based) financing."
+			rationale:                 "Bounded adversarial vector — financialization atomicity + epistemic preservation contain blast radius. Anti-fraud guard via 4-source convergence (RetentionReleaseConvergenceSet) preserves moat: retention release vinculada a verdade operacional verificável (cc-01)."
+		}, {
+			stakeholderRef:            "sh-04"
+			participantType:           "regulatory boundary constraint authority (non-adversarial)"
+			desiredBehavior:           "Bacen + regulatory bodies publish stable + interpretable regulatory specs (SCD + Pix policy + AML/KYC) that FCE convergence policy absorbs as upstream truth via IDC/NPM. Regulatory spec changes flow through governed channels with adequate notice for FCE policy adaptation."
+			correctOperationIncentive: "Compliance achieved via mechanism (FCE convergence policy + IDC enforcement) not heuristic; regulatory audit trail reconstruction supported via 13-field audit; FCE never enforces regulatory policy directly (per RegulatoryBoundary glossary term)."
+			manipulationVector:        "Structural-absence (NOT malicious): regulatory spec drift not absorbed into FCE convergence policy in adequate time — leads to gap between current regulation and FCE behavior. Examples: new Bacen ruling on AML thresholds not propagated; SCD operational rules updated without IDC notification chain; sanctions list updates not reaching REW eligibility model. FCE compliance violations cumulative over time despite no operational malice."
+			manipulationCost:          "(não-malicious) — cost is operational coordination gap, not adversarial action. Mitigation requires governance/IDC channel discipline."
+			vsBenefit:                 "(não-malicious assessment) — compliance violations cumulative over time can trigger regulatory action; financial penalties + reputation damage; potential loss of SCD license."
+			designResponse:            "(a) ec-regulatory-boundary-misalignment escalation criterion (paralelo BKR Phase 5 pattern) — halt + escalate sem heuristic adaptation; (b) IDC/NPM channel propagates regulatory updates as upstream truth; (c) FCE convergence policy versioned (per governance-version audit field); (d) regulatory specialist (sh-04 stakeholder) reviews boundary alignment quarterly minimum."
+			rationale:                 "Non-adversarial participant modeled per structural-absence pattern — captures regulatory drift risk without implying Bacen as adversary. Per glossary term-regulatory-boundary: BKR (and FCE) consume regulatory constraints as inputs; never enforce policy beyond structural absorption. Same boundary principle applies upstream."
+		}, {
+			stakeholderRef:            "sh-06"
+			participantType:           "compliance officer / side-channel routing policy authority"
+			desiredBehavior:           "Compliance officer governs side-channel routing policy (which classification detail visibility flows to which consumer per caller identity); side-channel mitigation enforced via prj-failure-classification + prj-eligibility-verdict projection layer filtering; classification subtypes (regulatory + account-status + rail-limit + provider-policy) routed per caller authorization."
+			correctOperationIncentive: "Compliance audit trail captures all routing policy decisions; side-channel mitigation via projection layer is auditable + reproducible; sh-06 oversight separable from runtime authorization (sh-05 territory)."
+			manipulationVector:        "(a) Side-channel routing policy adjustment without audit (silently relaxing visibility constraints); (b) classification detail leak to non-authorized consumer (granular sanctions detail OR AML triggers routed to broad downstream); (c) sh-06 authority abuse: side-channel routing manipulation for downstream financial benefit (informing favored consumers about flagged transactions); (d) projection layer bypass via direct event consumption."
+			manipulationCost:          "Medium — requires policy authority abuse OR projection layer bypass. Detection via audit trail spot-checks + ec-classification-side-channel-leak-detected escalation criterion (paralelo BKR Phase 5)."
+			vsBenefit:                 "High — regulatory compliance breach + sanctions exposure + potential criminal liability under AML/KYC regimes. Side-channel leak amplification risk (compliance info informing adversarial pattern continuation)."
+			designResponse:            "(a) Projection layer enforces filtering deterministically (not via discretionary sh-06 decision per query); (b) ec-classification-side-channel-leak-detected detects leak patterns; (c) ec-fce-info-leak-meta-detection self-monitoring (paralelo BKR ec-bkr-info-leak-meta-detection); (d) sd-side-channel-routing-policy-change requires supervised approval + audit; (e) sh-06 stakeholder distinct from sh-05 (authorization operations) to preserve separation of concerns."
+			rationale:                 "Side-channel mitigation is FCE Phase 0 priority because FCE classification routing handles regulatory-sensitive detail (REW eligibility decisions + BDG budget detail can reveal counterparty risk profiles). Boundary integrity requires compliance authority orthogonal to authorization runtime; sh-06 distinct from sh-05 prevents single-actor compromise."
 		}]
-		rationale: "Placeholder — incentive analysis completo entra em commit 1.5. FCE core + compliance-enforcer eleva vetores estratégicos (manipulação de gate authorization é vector adversarial #1) sobre operacionais (race conditions secundárias)."
+		rationale: """
+			5 incentive participants cobrem 5 categorias de adversarial
+			risk distintas: (1) sh-05 runtime drift cumulativo — vetor
+			adversarial #1 do FCE; (2) sh-01 ghost-payment via upstream
+			forgery — bounded by atomicity + convergence; (3) sh-02
+			downstream financing rapid claim — bounded by atomicity +
+			epistemic preservation; (4) sh-04 regulatory structural-
+			absence — non-malicious drift via spec coordination gap;
+			(5) sh-06 side-channel routing manipulation — compliance
+			authority abuse vector.
+
+			Vetor adversarial #1 (sh-05 cumulative drift) é qualitativa-
+			mente diferente dos demais: não é explicit failure but
+			gradual erosion. Each individual decision appears reasonable;
+			cumulative pattern destrói boundary integrity. Detection
+			pattern requires drift metrics + boundary integrity runner
+			+ ec-convergence-boundary-erosion-detected meta-pattern
+			escalation (renamed from ec-authorization-boundary-
+			exploitation-detected per founder Phase 1.5 ajuste 7).
+
+			FCE autonomy is bounded by convergence determinism — esta
+			frase canônica limita não apenas o nível de autonomia
+			(propose-and-wait vs execute-and-log) mas a ONTOLOGIA da
+			autonomia permitida. FCE pode reconhecer convergence; nunca
+			pode otimizar convergence. Convergence reconhecida é
+			authority crystallization; convergence otimizada é authority
+			drift toward super-orchestrator.
+
+			Per founder Phase 1.5 ajuste 9 — canonical evaluation metric:
+			FCE is evaluated on convergence integrity, not authorization
+			throughput. Métricas erradas destroem arquitetura correta.
+			Optimizing throughput inevitably enfraquece thresholds +
+			reinterpreta upstream truth + absorve authority.
+			"""
 	}
 
 	// =============================================
@@ -1250,8 +1323,183 @@ canvas: artifact_schemas.#Canvas & {
 
 	ownership: {
 		domainAgentSpec: "contexts/fce/agents/fce-primary-agent.cue"
-		governanceScope: {}
-		rationale:       "Skeleton commit 1.1 estabelece domainAgentSpec canônico (forward reference — agent-spec será autorado em Phase 4 do bootstrap WI-043). governanceScope completo (esperado: autonomousDecisions cobrindo guard evaluation determinística + AuthorizationProof generation + retention release condicional automática; supervisedDecisions cobrindo budget override + risk eligibility waiver + reverse-payment authorization (sempre DRC-mandated) + financialization rollback; escalationCriteria cobrindo guard failure pattern + cross-BC evidence inconsistency + budget mismatch + risk eligibility expired + double-authorization attempt + reverse-settlement-without-mandate detection + financialization atomicity violation + cross-rail substitution attempt + PrePaymentGuardService bypass detection) entra em commit 1.5."
+		governanceScope: {
+			autonomousDecisions: [{
+				id:          "ad-deterministic-convergence-evaluation"
+				description: "FCE agent evaluates 6 upstream reads (CMT commitment state + BDG budget reservation + REW risk eligibility + INV invoice + DLV evidence + TCM operational advisory) via cap-cross-bc-condition-evaluation per deterministic rules — pure function output (eligible / ineligible / pending) without discretion. Output é determinado completamente por inputs upstream; never depends on agent judgment."
+				rationale:   "Per bd-authorization-is-convergence-not-decision: FCE evaluates eligibility, never rewrites upstream truth. Convergence evaluation é pure function; autonomy bounded by determinism. Permite execute-and-log Phase 1+ (post-calibration) porque output é reproduzível + auditável."
+			}, {
+				id:          "ad-atomic-financialization-when-converged"
+				description: "FCE agent invokes cap-financialization-service when convergence completeness is provably stable within the evaluation window (per founder Phase 1.5 ajuste 3 — protege convergence flickering). Atomic crystallization é transactional + observable network-wide. Convergence momentânea seguida de invalidation logo após NÃO suficiente — stability window enforced antes de emission."
+				rationale:   "Per bd-financialization-is-atomic: heart of Mesh loop. Convergence flickering protection é critical porque FCE opera sobre múltiplos upstreams cuja validity pode oscilar. Stability window é structural protection (não policy heuristic) — runner check enforced via aggregate handler temporal validation."
+			}, {
+				id:          "ad-authorization-proof-emission-when-eligible"
+				description: "FCE agent emits AuthorizationProof composite (5 components: cryptographic signature + nonce + issuedAt + validity window + claim chain) via cap-authorization-proof-emission when convergence verdict = eligible AND stability window satisfied. Deterministic cryptographic operation — same convergence state produces same proof structure."
+				rationale:   "Per bd-authorization-proof-cryptographic-binding: cryptographic crystallization da economic authority FCE. Autonomy possível porque cryptographic operation é deterministic + bounded; non-deterministic decision moved upstream (convergence evaluation)."
+			}, {
+				id:          "ad-bkr-outcome-canonical-consumption"
+				description: "FCE agent consumes BKR canonical outcomes (SettlementFinalized/Failed/Indeterminate) via cap-payment-outcome-routing; deterministic state transition reflection (lifecycle update + downstream PaymentSettled/Unsettled/PendingFinalReconciliation publication). FCE NEVER re-arbitrates BKR outcome per bd-settlement-delegated-to-bkr."
+				rationale:   "Per canonical clause #2: FCE outbound events express economic interpretation of canonical settlement outcomes, not settlement execution truth itself. BKR owns settlement truth; FCE owns economic consequence. Mapping is deterministic; no discretion."
+			}, {
+				id:          "ad-classification-routing-metadata-only"
+				description: "FCE agent consumes BKR FailureClassified as routing metadata only — guides escalation routing decision (sh-06 compliance oversight for regulatory subtype) + downstream reissuance pathway eligibility flagging. NEVER reinterprets settlement causality. Hoje routing metadata; NEVER drift to retry heuristics OR economic policy adaptation."
+				rationale:   "Per founder Phase 1.4 ajuste 3: FCE consumes classification as routing metadata only, never as authority to reinterpret settlement causality. Anti-drift critical clause: routing metadata é structural categorization; reinterpretation seria absorption."
+			}, {
+				id:          "ad-retention-release-when-convergence-set-met"
+				description: "FCE agent triggers RetentionReleased when RetentionReleaseConvergenceSet (canonical 4-source set per founder Phase 1.5 ajuste 4) converges: DLV evidence completeness + FCE financialization atomic completion + BDG budget retention amount + CMT commitment state progression. Deterministic 4-source AND gate; no single-signature override pathway."
+				rationale:   "Per bd-retention-release-conditional-on-operational-truth + cc-01: moat Mesh materializado — dinheiro condicionado a verdade operacional verificável. RetentionReleaseConvergenceSet nomenclatura canônica explicita estrutura (per founder Phase 1.5 ajuste 4) — aparecerá em audit, queries, métricas, governance, explicabilidade."
+			}]
+
+			supervisedDecisions: [{
+				id:          "sd-reverse-payment-authorization"
+				description: "Authorize reverse-payment for an existing PaymentObligation that has been settled. Requires explicit mandate proof: DRC dispute resolution determination OR FCE policy tier (not runtime agent) mandate OR regulatory mandate flowing through governed upstream process. Generates NEW AuthorizationProof for NEW economic obligation (NEVER derived from original)."
+				rationale:   "Per bd-reverse-settlement-upstream-mandated-only: FCE never originates reverse-settlement autonomously. Defense-in-depth com BKR Phase 5 cst-reverse-settlement-upstream-only — even se FCE tried autonomous reverse, BKR rejects sem upstream mandate proof. Supervised approval enforces mandate validation + audit trail completeness."
+			}, {
+				id:          "sd-budget-override-or-waiver"
+				description: "When BDG budget reservation insufficient but business case justifies override (e.g., emergency payment with retroactive budget approval pathway). Supervisor approves with documented rationale + audit trail; FCE never autonomously overrides budget insufficient."
+				rationale:   "Budget is BDG truth per bd-upstream-truth-immutable-from-fce; override NEVER mutates BDG state — only authorizes temporary tolerance under explicit audit. Supervised because override is discretionary; convergence pattern explicitly broken via supervisor decision (not heuristic agent adaptation)."
+			}, {
+				id:          "sd-risk-eligibility-waiver-post-aged"
+				description: "When cached vo-risk-eligibility snapshot aged out per FCE staleness threshold AND QueryRiskEligibilityCurrent returns ineligible OR unavailable AND business case requires time-bounded tolerance. Supervisor approves waiver with audit; waiver never mutates REW truth; only authorizes temporary tolerance under explicit audit (per founder Phase 1.5 ajuste 8)."
+				rationale:   "Per founder Phase 1.5 ajuste 8: waiver never mutates REW truth; only authorizes temporary tolerance under explicit audit. Sem essa cláusula, waiver vira reinterpretation, depois vira shadow risk engine. Critical anti-drift: waiver é supervisor decision + audit, NEVER FCE agent caching ineligibility as eligible."
+			}, {
+				id:          "sd-financialization-rollback"
+				description: "Post-atomic crystallization rollback — when financialization completed but fraud OR evidence forgery detected post-fact, rollback affects network observability (PaymentObligationCreated retroactively invalidated). Structural reversal pathway via supervisor mandate; affects SCF antecipação reconciliation + REW risk model + ATO accounting downstream."
+				rationale:   "Per bd-financialization-is-atomic: irrevocable atomicity is structural property post-crystallization. Rollback violates atomicity by definition — requires supervised intervention + downstream coordination + audit trail. Not autonomous because consequences propagate network-wide."
+			}, {
+				id:          "sd-side-channel-routing-policy-change"
+				description: "Classification detail visibility policy change (sh-06 compliance officer authority) — affects regulatory-sensitive routing (granular subtype detail flow to callers per identity). Supervisor (sh-06 compliance officer) approves change with audit; policy versioned via governance-version field."
+				rationale:   "Side-channel routing affects regulatory compliance + sanctions exposure. Policy changes require oversight separable from runtime authorization (sh-05 territory). Versioning enables forensic reconstruction of which policy was active per audit trail entry."
+			}, {
+				id:          "sd-cancel-pending-authorization-pre-dispatch"
+				description: "Cancel authorization before BKR dispatch sent — post-authorization but pre-BKR commit (between AuthorizationProof emission and DispatchPaymentInstruction issued). Supervisor approves cancellation rationale; reverses lifecycle state from authorized to rejected; no rail-level cancellation needed (no dispatch occurred)."
+				rationale:   "Cancellation pre-dispatch is discretionary intervention; convergence was met but external factors (upstream cancellation OR detected anomaly) justify halt. Supervisor decision required because cancellation overrides deterministic flow that already converged. Audit trail captures cancellation reason."
+			}]
+
+			escalationCriteria: [{
+				id:        "ec-ghost-authorization-detected"
+				condition: "Authorization completed (AuthorizationProof emitted) but downstream evidence/operational reconciliation shows no underlying operation: DLV evidence completeness rate declined for instructionId family + cross-BC inconsistency pattern detected via dm-* metrics + SCF antecipação reconciliation triggers anomaly."
+				action:    "Halt all pending authorizations for affected originadora (sh-01 family); emit GhostAuthorizationAnomaly event para audit + sh-06 compliance officer review; forensic investigation across 6 upstream BCs to identify ghost source (CMT/BDG/REW/INV/DLV); sustained pattern triggers ec-convergence-boundary-erosion-detected meta-escalation."
+				rationale: "Vector adversarial sh-01 (ghost-payment via forged upstream truth) detection. Bounded by financialization atomicity but cumulative ghost-payments destroy network confidence. Detection feedback loop via downstream observable inconsistency."
+			}, {
+				id:        "ec-financialization-atomicity-violation"
+				condition: "Partial financialization commit detected — PaymentObligationCreated emitted but one or more downstream consumers (SCF/REW/ATO/INS) observed inconsistent state OR aggregate handler transactional guarantee broken via system fault."
+				action:    "Halt all financialization operations system-wide; emit AtomicityViolationDetected event para compliance + founder; structural rollback evaluation (sd-financialization-rollback) for affected obligation; forensic investigation of aggregate handler integrity."
+				rationale: "Catastrophic per bd-financialization-is-atomic — atomicity is heart of Mesh loop. Single violation indicates structural integrity failure; sustained operation impossible until root cause resolved."
+			}, {
+				id:        "ec-reverse-without-mandate-detected"
+				condition: "Autonomous reverse-payment attempt detected — FCE agent attempted to invoke DispatchReversePaymentInstruction OR ReversePayment cycle without valid DRC/policy/regulatory mandate proof; OR reverse instruction emitted via original AuthorizationProof reuse."
+				action:    "Halt all reverse-payment operations; emit AutonomousReverseAttemptDetected event para founder + DRC + compliance; FCE agent rollback to no-autonomous-action authonomy level pending forensic + structural review."
+				rationale: "Per bd-reverse-settlement-upstream-mandated-only: FCE never originates reverse. Autonomous reverse attempt indicates either agent compromise OR boundary integrity violation. Defense-in-depth com BKR Phase 5 cst-reverse-settlement-upstream-only — both layers should reject."
+			}, {
+				id:        "ec-tcm-advisory-treated-as-authority"
+				condition: "FCE agent behavior pattern shows TCM signal driving authorization decisions: authorization timing correlation with TCM liquidity signal > policy threshold; OR authorization deferred/expedited based on TCM advisory without convergence change; OR audit trail shows TCM as decision factor in authorization rationale."
+				action:    "Emit TCMAdvisoryDriftDetected event para compliance + founder; review FCE agent decision patterns; if confirmed, agent autonomy regression + boundary integrity validation runner audit."
+				rationale: "Per bd-tcm-advisory-only: TCM informs timing; never authorizes payment. Liquidity drift is dangerous boundary erosion — TCM cannot become 'quem decide timing econômico'. Critical anti-drift detection."
+			}, {
+				id:        "ec-upstream-truth-mutation-attempt"
+				condition: "FCE attempting to mutate cached upstream VO contents OR reinterpret upstream semantics — detected via aggregate handler immutability check OR runner state diff detection comparing FCE-internal cached state to authoritative upstream BC state."
+				action:    "Halt FCE operations; emit UpstreamTruthMutationAttempt event para founder; structural integrity validation; if confirmed, agent regression to no-autonomous-action + governance review."
+				rationale: "Per bd-upstream-truth-immutable-from-fce + canonical clause: FCE may cache, snapshot, or reference upstream truth for authorization evaluation, but never reinterpret upstream semantic meaning. Critical boundary protection — mutation attempt is structural integrity failure."
+			}, {
+				id:        "ec-eligibility-staleness-bypass"
+				condition: "Cached vo-risk-eligibility (OR other upstream cached snapshot) used beyond staleness policy threshold without re-validation query (QueryRiskEligibilityCurrent OR equivalent). Detected via timestamp check on cache reads + audit trail temporal sequence."
+				action:    "Emit StalenessBypassDetected event para compliance + sh-05 supervisor; FCE agent autonomy review (degradation possible if pattern); evidence preservation for forensic."
+				rationale: "Staleness bypass is silent autonomy expansion vector — sh-05 #1 adversarial vector instance. Detection enforced via runner check (boundary integrity validation), not heuristic. Cumulative pattern triggers ec-convergence-boundary-erosion-detected meta-escalation."
+			}, {
+				id:        "ec-evidence-completeness-override"
+				condition: "Retention release triggered without DLV evidence convergence — RetentionReleaseConvergenceSet 4-source guard bypassed: release authorized despite vo-evidence-bundle.completenessFlag=false OR DLV not yet emitted DeliveryVerified for affected commitment."
+				action:    "Halt retention release operation; emit EvidenceCompletenessOverrideDetected event para compliance + sh-06 + DLV team; forensic of how 4-source guard was bypassed; structural integrity validation."
+				rationale: "Per bd-retention-release-conditional-on-operational-truth + cc-01: moat Mesh materializado — dinheiro condicionado a verdade operacional verificável. Evidence completeness override violates DLV boundary AND moat structurally. Distinct from ec-cross-bc-condition-bypass: this protects DLV-specific semantics + retention fraud specifically."
+			}, {
+				id:        "ec-cross-bc-condition-bypass"
+				condition: "Convergence evaluation skipped one or more upstream reads — 6-source guard incomplete: authorization issued without complete CMT + BDG + REW + INV + DLV + TCM advisory cycle. Detected via audit trail completeness check OR runner state validation."
+				action:    "Halt affected authorization; emit ConvergenceBypassDetected event para compliance + sh-05 supervisor; FCE agent autonomy review; evidence preservation."
+				rationale: "Structural protection: protects mechanism geral de convergence (vs ec-evidence-completeness-override que protege DLV-specific semantics). Overlap parcial é estrutural — diferentes layers protecting different boundaries. Both criteria retained per founder Phase 1.5 ajuste 6."
+			}, {
+				id:        "ec-condition-weakening-to-accelerate"
+				condition: "Pattern detected of convergence threshold being relaxed to accelerate authorization — temporal authority drift via condition weakening (per canonical clause #4 violation). Examples: convergence rate decline correlation with operational pressure metrics; threshold drift in audit trail over time; pattern of 'temporary' relaxation becoming sustained."
+				action:    "PRIMARY ARCHITECTURAL DRIFT DETECTOR — emit ArchitecturalDriftDetected event para founder + governance review; FCE agent autonomy regression to no-autonomous-action; full convergence policy audit + restoration to canonical thresholds; sustained pattern triggers ec-convergence-boundary-erosion-detected meta-escalation."
+				rationale: "Per founder Phase 1.5 ajuste 5: primary architectural drift detector. Real adversarial pattern of FCE is gradualism — convergence threshold weakening over time = catastrophic identity erosion. Per canonical clause #4: FCE may defer authorization due to non-convergence, but never accelerate authorization by weakening upstream conditions. Most important escalation criterion for FCE long-term integrity."
+			}, {
+				id:        "ec-classification-side-channel-leak-detected"
+				condition: "Compliance-sensitive granular classification routed to non-authorized consumer — regulatory subtype OR sanctions hint OR AML triggers visible in event payload OR query response to caller not authorized per side-channel routing policy. Detected via projection layer filter audit + dm-side-channel-leakage-count drift metric (paralelo BKR Phase 5)."
+				action:    "Halt classification routing operations; emit SideChannelLeakDetected event para compliance officer (sh-06) + founder; projection layer policy review; affected events quarantine pending compliance assessment."
+				rationale: "Per bd-classification-routing-metadata-only + side-channel mitigation principle. FCE handles regulatory-sensitive detail; leak vector é amplification risk (informs adversarial pattern continuation). Paralelo BKR Phase 5 ec-classification-side-channel-leak-detected."
+			}, {
+				id:        "ec-convergence-boundary-erosion-detected"
+				condition: "Meta-pattern detection: cumulative drift indicators suggest FCE absorbing upstream concerns over time. Aggregated signals: ec-eligibility-staleness-bypass count > threshold + ec-condition-weakening-to-accelerate pattern + ec-tcm-advisory-treated-as-authority instances + ec-upstream-truth-mutation-attempt incidents + drift metrics on convergence consistency rate. Meta-pattern recognizes gradualism that individual events miss."
+				action:    "PRIMARY CONVERGENCE BOUNDARY EROSION DETECTOR — emit ConvergenceBoundaryErosionDetected event para founder + governance committee; FCE governance review (potential structural rollback OR scope reduction); agent autonomy regression; long-term boundary integrity assessment."
+				rationale: "Per founder Phase 1.5 ajuste 7: renamed from ec-authorization-boundary-exploitation-detected. Captures cumulative erosion patterns better. Real adversarial pattern of FCE is gradualism, not explicit failure. Each individual decision appears reasonable; cumulative pattern is destructive. This criterion exists to detect what individual criteria miss."
+			}, {
+				id:        "ec-fce-info-leak-meta-detection"
+				condition: "Self-monitoring trigger on FCE leaking economic info via PaymentObligationCreated patterns OR query layer (paralelo BKR Phase 5 ec-bkr-info-leak-meta-detection): network observability of authorization patterns revealing counterparty risk profiles OR commitment terms OR competitive intelligence."
+				action:    "Emit FCEInfoLeakDetected event para compliance + founder; information disclosure pattern analysis; output payload review for affected event types; potential structural change to event payload composition."
+				rationale: "Meta-detection trigger captures information leakage via patterns rather than direct leak. FCE financialization observability is feature (network value); but observability without governance leaks competitive intelligence + counterparty profiles. Paralelo BKR Phase 5 ec-bkr-info-leak-meta-detection."
+			}]
+		}
+		rationale: """
+			Skeleton commit 1.1 estabelece domainAgentSpec canônico
+			(forward reference — agent-spec será autorado em Phase 4
+			do bootstrap WI-043). Phase 1.5 commit substancia
+			governanceScope com 6 autonomous + 6 supervised + 12
+			escalation criteria materializing boundary erosion
+			protection.
+
+			Governance scope encodes the canonical boundary: 6
+			autonomous decisions são pure deterministic functions
+			(convergence evaluation, atomic crystallization with
+			stability window, proof emission, outcome consumption,
+			classification routing, conditional release via
+			RetentionReleaseConvergenceSet); 6 supervised decisions
+			cover discretionary operations (reverse mandate, budget
+			override, risk eligibility waiver com cláusula explícita
+			que waiver never mutates REW truth, financialization
+			rollback, policy change, pre-dispatch cancellation);
+			12 escalation criteria cover boundary erosion vectors
+			(semantic absorption, threshold weakening, atomicity
+			violation, mandate bypass, advisory authority drift,
+			upstream truth mutation, staleness bypass, evidence
+			override, cross-BC bypass, side-channel leak, convergence
+			boundary erosion meta-pattern, info leak meta-detection).
+
+			FCE autonomy is bounded by convergence determinism —
+			esta frase canônica limita não apenas o nível de autonomia
+			(propose-and-wait vs execute-and-log) mas a ONTOLOGIA da
+			autonomia permitida. FCE pode reconhecer convergence;
+			nunca pode otimizar convergence.
+
+			ec-condition-weakening-to-accelerate é primary
+			architectural drift detector — most important criterion
+			for FCE long-term integrity. ec-convergence-boundary-
+			erosion-detected é meta-pattern detector capturing
+			gradualism that individual criteria miss.
+
+			Canonical evaluation metric per founder Phase 1.5 ajuste
+			9: FCE is evaluated on convergence integrity, NOT
+			authorization throughput. Métricas erradas destroem
+			arquitetura correta. Optimizing throughput inevitably
+			enfraquece thresholds + reinterpreta upstream truth +
+			absorve authority. Esta é a defesa final contra erosão
+			cumulativa: certificar que measurement system mede the
+			right property.
+
+			Defense-in-depth com BKR Phase 5: FCE governance + BKR
+			governance protegem boundaries complementares. Reverse-
+			settlement requires upstream mandate em ambos (FCE
+			sd-reverse-payment-authorization + BKR cst-reverse-
+			settlement-upstream-only). Settlement truth canonical em
+			BKR; FCE economic consequence — both layers respect
+			separation per bd-settlement-delegated-to-bkr.
+
+			Phase 5 envelope (post-Phase 4 agent-spec) materializará
+			operational scope: autonomy caps (paralelo BKR 1
+			concurrent mutation maximum), escalation channels,
+			calibration criteria (sustained zero-violation + non-
+			happy-path inclusive coverage), drift metrics, failure
+			handling. Phase 1.5 governanceScope declara QUANDO
+			escalate; Phase 5 envelope declara COMO.
+			"""
 	}
 
 	// =============================================
