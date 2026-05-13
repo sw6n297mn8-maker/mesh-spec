@@ -207,62 +207,12 @@ canvas: artifact_schemas.#Canvas & {
 			"""
 	}
 
-	negativeBoundaries: [{
-		responsibility: "Lógica de domínio — decisão sobre o que comunicar e quando."
-		delegatedTo: {
-			type: "subdomain"
-			ref:  "cmt"
-		}
-		rationale: "NTF entrega; subdomínios emissores (CMT, FCE, BKR, DLV, IDC, INV, BDG, REW, NPM, P2P, CTR, SSC, etc.) decidem conteúdo e timing. Fusão acoplaria infraestrutura de entrega a lógica de negócio — cada novo canal exigiria revisão de regras de domínio."
-	}, {
-		responsibility: "Crescimento da rede — detecção e ativação de contrapartes."
-		delegatedTo: {
-			type: "subdomain"
-			ref:  "ngr"
-		}
-		rationale: "NTF entrega convites; NGR decide quem convidar e com qual proposta de valor. Separação permite que estratégia de growth evolua sem alterar infraestrutura de entrega."
-	}, {
-		responsibility: "Semantic communication preferences (consent semantics, opt-out interpretation, channel preferences per legal context)."
-		delegatedTo: {
-			type: "subdomain"
-			ref:  "idc"
-		}
-		rationale: "Per founder Phase 1.1 ajuste: NTF possui apenas transport-layer reachability metadata (technical channel availability, hard-bounce status, token validity). Semantic preferences são IDC-owned. Confusão causa engagement-platform drift (drift class #5)."
-	}, {
-		responsibility: "Regulatory obligation semantics (BACEN comm requirements, AML reporting timing, compliance interpretation)."
-		delegatedTo: {
-			type: "subdomain"
-			ref:  "rew"
-		}
-		rationale: "Per founder Phase 1.1 ajuste: NTF transports regulatory communications via evidentiary contracts; REW/IDC own semantic compliance requirements. NTF nunca interpreta compliance — apenas executes evidentiary transport. 'O inferno arquitetural começa quando infraestrutura tenta ajudar compliance.'"
-	}]
-
-	strategicProfile: {
-		complexity: "medium"
-		volatility: "medium"
-		rationale: """
-			Complexity medium: NTF gerencia heterogeneidade de canais
-			(email/SMS/push/webhook) com delivery guarantees per
-			transport class + two-tier substrate (provider claims +
-			admissibility certifications) + evidence model — mas
-			lógica é mechanical (deterministic protocol execution),
-			NÃO interpretive. Complexity comes from structural depth
-			(11 capabilities + 6 contracts + admissibility matrix +
-			evidence model), NÃO from semantic interpretation.
-
-			Volatility medium: novos canais (channel additions) +
-			providers mudam (provider substitutions) + capability
-			claims evoluem (verification cycles) sem alteração de
-			identity. Identity stability é canonical property —
-			substitutability preservation implies architectural
-			stability sob channel/provider turnover.
-
-			NÃO é high complexity (não governa semantic interpretation
-			nem business logic) nem low complexity (legal evidence
-			boundary + regulatory communications + audit trails
-			incurr governance overhead substantial).
-			"""
-	}
+	// NOTE: negativeBoundaries vivem em strategic/subdomains/ntf.cue
+	// (not canvas field). NTF subdomain canonical declara CMT (decide
+	// conteúdo/timing), NGR (decide growth strategy), IDC (semantic
+	// preferences), REW (regulatory compliance semantics) como
+	// negative boundary delegations. Canvas refletisce em
+	// businessDecisions + governanceScope sem replicar.
 
 	capabilities: {
 		operational: [{
@@ -709,7 +659,7 @@ canvas: artifact_schemas.#Canvas & {
 	}
 
 	ownership: {
-		domainAgentSpec: "agt-ntf-primary"
+		domainAgentSpec: "contexts/ntf/agents/ntf-primary-agent.cue"
 		governanceScope: {
 			autonomousDecisions: [{
 				id:          "apply-admissibility-matrix-mechanically"
