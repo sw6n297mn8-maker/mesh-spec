@@ -465,7 +465,7 @@ ntfDomainModel: build_time.#SelfReviewReport & {
 			todos em aggregate.handlesCommands[]. Single aggregate
 			significa nenhuma duplicação possível.
 
-			tq-dm-02 (event → ≥1 aggregate): ✓ — 21 published events
+			tq-dm-02 (event → ≥1 aggregate): ✓ — 24 published events
 			todos em aggregate.emitsEvents[]; 3 internal events consumed
 			via policies (padrão ACL). Note: 3 internal events sourceContext=
 			ext-provider-ecosystem; published events sem sourceContext.
@@ -507,7 +507,7 @@ ntfDomainModel: build_time.#SelfReviewReport & {
 			não justifica modules).
 
 			tq-dm-11 (canvas outbound alignment): runner-validated (cross-
-			file). 21 published events documentados; canvas Phase 1.5
+			file). 24 published events documentados; canvas Phase 1.5
 			communication outbound deve incluir correspondências para
 			TransportContractAdmissibilityRefused, AdmissibilityConservatism
 			Triggered, DispatchAdmissibilityCertified, DispatchAttempted,
@@ -532,7 +532,7 @@ ntfDomainModel: build_time.#SelfReviewReport & {
 			RevokePendingDispatch.
 
 			tq-dm-13 (codes únicos + prefixos corretos): ✓ — Verificado
-			por inspeção: events evt-* (24), commands cmd-* (17),
+			por inspeção: events evt-* (27), commands cmd-* (17),
 			invariants inv-* (16), valueObjects vo-* (12), aggregates
 			agg-* (1), entities ent-* (2), domainServices svc-* (6),
 			policies pol-* (4), projections prj-* (4), query capabilities
@@ -698,7 +698,7 @@ ntfDomainModel: build_time.#SelfReviewReport & {
 		+ 11-state bipartite lifecycle + 12 VOs (incluindo binding
 		immutability + replay discriminator + observation provenance
 		asymmetric) + 6 admissibility guardians + 17 commands + 24
-		events (3 internal ACL + 21 published) + 1 aggregate root com 2
+		events (3 internal ACL + 24 published) + 1 aggregate root com 2
 		nested entities (Tier 1/Tier 2 distinct entities) + 4 policies
 		(todas review-trigger) + 4 projections.
 

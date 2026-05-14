@@ -67,7 +67,7 @@ package ntf
 //
 // =============================================================================
 //
-// 24 events (3 internal ACL + 21 published)
+// 27 events (3 internal ACL + 24 published)
 // 17 commands (8 substrate + 9 execution; intent-named, never delivery-named)
 // 16 invariants (5 boundary + 7 admissibility + 4 epistemic)
 // 12 value objects (incluindo vo-admissibility-certification-snapshot +
@@ -104,7 +104,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	boundedContextRef: "ntf"
 
 	// =========================================================================
-	// EVENTS — 24 total (3 internal ACL + 21 published)
+	// EVENTS — 27 total (3 internal ACL + 24 published)
 	// =========================================================================
 
 	events: [
@@ -2215,7 +2215,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		Phase 3.5 commands/events (3 ajustes):
 		- split cmd-issue-admissibility-certification em success/failure
 		- split evt em completed/failed
-		- recount 17 commands + 24 events
+		- recount 17 commands + 27 events
 
 		Phase 3.6 aggregate (3 ajustes):
 		- handlesCommands count 17 (não 15)
@@ -2235,7 +2235,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		=========================================================================
 
 		16 invariants (5 bdy + 7 adm + 4 eps)
-		24 events (3 internal ACL + 21 published)
+		27 events (3 internal ACL + 24 published)
 		17 commands (8 substrate + 9 execution)
 		12 value objects (incluindo binding immutability + replay
 		   discriminator + observation provenance)
