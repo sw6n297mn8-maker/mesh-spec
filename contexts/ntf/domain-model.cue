@@ -1099,7 +1099,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				catastrophic vector.
 
 				Institutional-resistant trait: pressão para 'reduce
-                provider-claim suspicion to improve delivery confidence
+				provider-claim suspicion to improve delivery confidence
 				metrics' é vetor recorrente — esta invariant rejeita
 				estructuralmente categoria collapse.
 
