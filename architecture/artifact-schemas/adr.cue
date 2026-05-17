@@ -30,14 +30,20 @@ package artifact_schemas
 #ADRBase: {
 	id:    string & =~"^adr-[0-9]{3}$"
 	title: string & !=""
-	date:  string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+
+	// Formato ISO YYYY-MM-DD com validação básica de mês/dia.
+	// NOTE: NÃO valida calendário real (ex: Feb 30 ainda passa; year
+	// range arbitrário). Validação completa de calendário é
+	// responsabilidade do CI per adr-076.
+	date: string & =~"^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
 
 	// Classificação da decisão — governa peso de revisão e rastreabilidade.
 	decisionClass: #DecisionClass
 
-	// Quem decidiu. Para mesh-spec atual: "founder".
-	// Futuramente: agente + aprovador humano.
-	decider: string & !=""
+	// Quem decidiu. Restricted enum per adr-076: "founder" para humano
+	// OR agt-* code para agente. Forward-compatible com agente +
+	// aprovador humano futuros.
+	decider: #Decider
 
 	// Contexto que motivou a decisão. O "porquê agora".
 	context: string & !=""
@@ -51,8 +57,12 @@ package artifact_schemas
 	// Status da decisão — discriminante da união em #ADR.
 	status: #NonSupersededStatus | "superseded"
 
-	// ADR que substitui este (preenchido apenas quando status == "superseded").
-	// Constraint de presença/ausência é imposto pela união discriminada em #ADR.
+	// NOTE:
+	// supersededBy MUST be declared in #ADRBase because CUE unions
+	// cannot introduce new fields into closed structs.
+	// The discriminated union in #ADR only REFINES presence:
+	// - forbidden when status != "superseded"
+	// - required when status == "superseded"
 	supersededBy?: string & =~"^adr-[0-9]{3}$"
 
 	// ── Metadata de risco ──
@@ -91,7 +101,14 @@ package artifact_schemas
 	defersTo?: [...string & =~"^def-[0-9]{3}$"]
 
 	// Princípios de design (design-principles.cue) aplicados na decisão.
-	principlesApplied: [string & !="", ...string & !=""]
+	// Per adr-076: cada entry deve começar com identificador estável
+	// (regex permissivo permite estilo P1 / P10 / dp-04 / ten-009 /
+	// adr-XXX seguidos por separator opcional + prose). Identifier
+	// prefix mínimo 2 chars; prose após é livre.
+	principlesApplied: [
+		string & =~"^[A-Za-z][A-Za-z0-9-]+",
+		...string & =~"^[A-Za-z][A-Za-z0-9-]+",
+	]
 
 	// ── Cadeia de decisão ──
 
@@ -134,10 +151,21 @@ package artifact_schemas
 			test:        "Cada path em affectedArtifacts existe no repositório ou será criado como output direto da decisão registrada. Paths que não existem e não serão criados são referências quebradas."
 			severity:    "fail"
 			rationale:   "affectedArtifacts é entrada para análise de blast radius e CI. Paths fictícios tornam a rastreabilidade ilusória."
+		}, {
+			id:          "tq-adr-04"
+			description: "ADR tem impacto rastreável (≥1 de affectedArtifacts/plannedOutputs/derivedArtifacts populado)"
+			test:        "Pelo menos um dos 3 blocos de rastreabilidade está presente non-empty: affectedArtifacts (paths existentes alterados), plannedOutputs (paths novos criados), derivedArtifacts (paths regenerados como consequência). Constraint at-least-one não enforce-ável em CUE schema (limites de disjunção sobre fields opcionais); enforcement deterministic via structural-check sc-adr-01 (kind at-least-one-block-present per adr-076)."
+			severity:    "fail"
+			rationale:   "ADR sem impacto rastreável é decoração — derrota propósito de governança proporcional. Per princípio canônico estabelecido em adr-076: quando CUE não consegue expressar a regra, o enforcement deve subir para CI structural-check — não virar convenção."
 		}]
 		rationale: "ADRs são o registro de decisão do sistema. Critérios garantem que cada ADR captura o espaço de decisão, não apenas o resultado."
 	}
 }
+
+// Decider per adr-076: "founder" para decisões humanas OR agt-* code
+// para decisões de agente. Forward-compatible com modelo agente +
+// aprovador humano (estrutura registrada quando materializar).
+#Decider: "founder" | (string & =~"^agt-[a-z][a-z0-9-]*$")
 
 #DecisionClass: "foundational" | "structural" | "local" | "experimental"
 // foundational: decisão que define base do sistema (governança, schema base, SoTs)

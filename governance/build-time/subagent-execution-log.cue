@@ -789,48 +789,191 @@ subagentExecutionLog: {
 			reviewMs:    0
 			totalMs:     395215
 		}
+	}, {
+		dispatchId:   "disp-008"
+		workItem:     "WI-060"
+		date:         "2026-05-04"
+		target:       "contexts/ssc/glossary.cue"
+		artifactType: "glossary"
+
+		authoringSubagent: {
+			dispatched:     true
+			subagentType:   "general-purpose"
+			result:         "success"
+			cueVetAttempts: 1
+			cueVetExitCode: 0
+			notes: """
+				Quarto non-PG dispatch successful — primeiro non-PG em
+				WI-060 SSC bootstrap (Phase 2). Glossary é segundo
+				dispatch successful do tipo (após disp-005 BDG glossary)
+				— confirma adr-074 Known gap pattern: glossary é
+				estruturalmente baixa-média densidade, viável within API
+				timeout window. PG glossary aplicado section-by-section
+				(3 sections per workOrder). 19 terms propostos no draft
+				inicial cobrindo: 4 entities (Decisão de Sourcing + 3
+				subtipos), 2 processes (RFQ + Equalização TCO), 3
+				classifications (Categoria de Compra + Fornecedor
+				Qualificado + Fracionamento), 1 role (Category Manager),
+				2 values (FitnessSignals + DecisionRationale), 1 rule
+				(Fitness Rules), 6 events (3 decisão + 3 RFQ lifecycle).
+
+				Subagent honestly flagged em reasoning report: 19 terms
+				é alto vs cmt 14, bdg 15 — justificável dado que 3
+				subtipos de Decisão de Sourcing requerem terms separados
+				per bd-decision-type-is-declared-upfront (binding
+				regimes distintos em P2P). Anti-mini-NIM rigorously
+				enforced: ReputationScore + RiskRating excluídos como
+				antiTerms em FitnessSignals; Scoring Algorithm +
+				Heurística como antiTerms em FitnessRules. Loanword
+				preservation following bdg/idc precedent (RFQ, Strategic
+				Award, Category Manager, FitnessSignals, FitnessRules,
+				TCO, Fragmentation). Cross-BC vocabulary consistency:
+				term-fracionamento mirrors bdg para vetor adversarial
+				análogo.
+
+				Issue de transporte (não-semântico): subagent retornou
+				HTML entities (&amp;/&lt;/&gt;) em string output — pattern
+				idêntico a disp-007. Conversão para caracteres reais
+				aplicada pre-write pelo main agent. Categoria de feedback
+				possivelmente endereçável por output-format directive em
+				promptTemplate futuro. Recurrence em disp-007 + disp-008
+				sugere que advisory directive seria útil; não codificar
+				ainda como def-XXX (sample N=2 insuficiente para
+				justificar mecanismo formal).
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched: false
+			notes: """
+				Review subagent NÃO dispatched — founder optou por review
+				direto + 9 ajustes substantivos pre-write em batch. Valid
+				bypass per CLAUDE.md "Authoring Declarativo" P10 framing:
+				founder approval gate final em todos os casos. Pattern
+				consistente com disp-005/006/007: para artefatos com
+				domain-specific nuances densas (UL é especialmente
+				sensível a subtle policy/protocol creep), founder review
+				direta é complemento robusto a subagent dispatch.
+				"""
+		}
+
+		founderDecision: {
+			outcome: "approved-with-9-adjustments-batch"
+			notes: """
+				Founder review pre-write aplicou 9 ajustes substantivos
+				em batch (não rounds iterativos) para separar UL de
+				protocol/integration policy:
+
+				1. term-strategic-award: definition simplificada
+				   (protocolo de janela [StrategicAward, ContractActivation]
+				   move para domain-model + integration policy)
+				2. term-category-manager: definição genérica resiliente
+				   a evoluções operacionais; Phase 0 caveats movem para
+				   rationale como nota operacional
+				3. term-fornecedor-qualificado: category role →
+				   classification (gate de elegibilidade aplicado a role,
+				   não role em si)
+				4. term-fracionamento: category rule → classification
+				   (workaround para schema #TermCategory que não inclui
+				   'anti-pattern' enum; dívida explícita registrada)
+				5-9. Refs a oq-ssc removidas de definitions onde não-
+				     essenciais — mantidas em rationale onde context
+				     Phase 0 é necessário (term-fitness-signals
+				     mantém oq refs em definition pois essenciais para
+				     entender camada optionalPhase0)
+
+				Materializado em 2 commits incrementais per founder
+				request 'dívida em 2 partes': part 1 (8 terms — anchor +
+				process + roles, commit 9fcc407) + part 2 (11 terms —
+				machinery + events + adversarial, commit c5bdc83).
+				cue vet ./... EXIT=0 em ambos commits intermediários.
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:   false
+			selfReviewFailRetry:  false
+			ambiguityEscalation:  false
+			manualTakeoverPath:   false
+			apiTimeoutTakeover:   false
+			reviewSubagentBypass: true
+			notes: """
+				Single-attempt successful sem fallbacks de recovery
+				exercitados. cueVet PASSED first try (sem retry); API
+				timeout não atingido (glossary é estruturalmente baixa-
+				média densidade); review subagent intencionalmente
+				bypassed per founder choice + review direto + 9 ajustes
+				batch.
+
+				reviewSubagentBypass NÃO é fallback — design choice.
+				Pattern consistente com disp-005/006/007 reviewBypass
+				classification.
+				"""
+		}
+
+		calibrationFindings: [
+			"Quinto dispatch successful overall (disp-001 + disp-005/006/007/008); quarto non-PG successful authoring. Glossary é segundo do tipo (após disp-005 BDG glossary) — confirma reusabilidade do pattern: glossary é candidato consistente para subagent-drafted dada densidade estrutural baixa-média + cross-checks limitados (3 sections + intra-glossary refs).",
+			"HTML entity transport issue agora N=2 (disp-007 + disp-008). Sample ainda insuficiente para codificar como def-XXX, mas pattern recorrente sugere que advisory directive em promptTemplate seria útil ('do not HTML-escape characters in CUE code blocks'). Reavaliar pós-disp-009 ou disp-010.",
+			"Founder review batch (9 ajustes em uma rodada vs rounds iterativos) é pattern emergente útil para artefatos onde founder tem clareza completa do escopo a priori (post-Q1-Q10 para SSC). Distinto de pattern bdg-glossary onde founder optou por 3-cycle red team em rounds iterativos. Trade-off: batch é eficiente quando issues são identificáveis no draft; iterativo é mais robusto quando issues emergem da própria revisão.",
+			"Schema #TermCategory limitação reconhecida em term-fracionamento (workaround classification para conceito que seria mais bem modelado como anti-pattern). Dívida explícita registrada em rationale do termo + rationale outer. Não codificado como tension entry (would be over-modeling para schema gap singular); reavaliar se múltiplos BCs subsequentes encontrarem o mesmo gap.",
+			"Materialização em 2 commits incrementais per founder request: part 1 (anchor+process+roles) + part 2 (machinery+events+adversarial). Pattern útil para review granular — cada parte estabelece subset coerente de UL com cue vet válido. Reusável para futuros glossaries grandes (>15 terms).",
+		]
+
+		pipelineOutcome: "successful-authoring-without-full-pipeline"
+
+		executionTimings: {
+			authoringMs: 357092
+			reviewMs:    0
+			totalMs:     357092
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    7
+		totalDispatches:    8
 		successfulPipeline: 1
-		failureRate:        0.43 // 3/7 failures (disp-002 + disp-003 + disp-004)
+		failureRate:        0.375 // 3/8 failures (disp-002 + disp-003 + disp-004)
 		fallbacksExercised: 5 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
 			apiTimeout:      2 // disp-003 + disp-004
 		}
 		notes: """
-			Failure rate: amostra (n=7) com 3 failures + 1 pipeline
-			successful (WI-069 PG-tension-entry) + 3 successful authoring
+			Failure rate: amostra (n=8) com 3 failures + 1 pipeline
+			successful (WI-069 PG-tension-entry) + 4 successful authoring
 			sem full pipeline (disp-005 glossary BDG + disp-006 domain-model
-			BDG + disp-007 agent-governance BDG — review subagent
-			intencionalmente bypassado por escolha founder de manual
-			review + judgment call evaluation direta).
+			BDG + disp-007 agent-governance BDG + disp-008 glossary SSC —
+			review subagent intencionalmente bypassado por escolha founder
+			de manual review + judgment call evaluation direta).
 			Honest distinction: successfulPipeline conta apenas authoring →
-			review → founder approval completo; disp-005/006/007 são
+			review → founder approval completo; disp-005/006/007/008 são
 			successfulAuthoring mas não successfulPipeline pelo bypass
 			deliberado de review subagent. fallbacksExercised conta apenas
 			recovery from failure (cascade escalation, manual takeover,
 			cueVetRetry); reviewBypass é design choice, não recovery.
 
-			disp-005/006/007 confirmam adr-074 Known gap pattern:
+			disp-005/006/007/008 confirmam adr-074 Known gap pattern:
 			subagent-drafted viável para artefatos com baixa-média
 			densidade estrutural + cross-checks limitados (glossary 3
 			sections + domain-model 3 sections + agent-governance 3
 			sections; canvas 8 sections falha consistentemente).
 			cueVetFailureRetry pattern exercitado em disp-005 + disp-006
-			(2/3 successful non-PG); disp-007 single-attempt sem retry
-			(cueVet PASSED first try) — Path C founder-approved.
+			(2/4 successful non-PG); disp-007/008 single-attempt sem
+			retry (cueVet PASSED first try).
 
-			WI-048 BDG BC bootstrap CLOSED com disp-007 (agent-governance
-			final phase). Calibração final WI-048 subagent-drafted
-			viability: glossary/domain-model/agent-governance dentro da
-			fronteira viável; canvas permanently removed per adr-074
-			amendment 2; agent-spec preventive manual takeover pending
-			evidence empírica em futuras iterations.
+			Glossary é segundo tipo successful em multiple BCs (BDG +
+			SSC) — pattern reusável confirmado: 3 sections + intra-
+			glossary refs + cross-BC vocabulary consistency.
+
+			HTML entity transport issue recorrente N=2 (disp-007 +
+			disp-008) — calibration finding sugere advisory directive
+			em promptTemplate; reavaliar pós N=3+.
+
+			WI-048 BDG BC bootstrap CLOSED com disp-007. WI-060 SSC
+			bootstrap em progresso: Phase 1 canvas (manual, 4 commits)
+			+ Phase 2 glossary (disp-008, 2 commits) DONE; Phases 3-5
+			(domain-model, agent-spec, agent-governance) pending.
 			"""
 	}
 }

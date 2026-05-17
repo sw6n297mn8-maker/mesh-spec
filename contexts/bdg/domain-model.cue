@@ -304,7 +304,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		rule:      "Liberação de Comprometimento devolve ao Saldo Disponível exatamente o valor previamente reservado pelo Comprometimento referenciado — nunca mais, nunca menos. Referência ao BudgetCommitmentId é obrigatória; liberações sem referência ou com valor divergente são bloqueadas."
 		rationale: "Garante que reversões de reserva mantêm a invariante de que Saldo Disponível = Limite − Σ(comprometimentos ativos). Sem esta invariante, divergências numéricas acumulam e o cálculo de Saldo Disponível regride para snapshot inconsistente."
 	}, {
-		code:      "inv-commitment-id-uniqueness-per-cost-center"
+		code:      "inv-commitment-id-global-uniqueness-active"
 		name:      "Unicidade de Comprometimento por Compromisso"
 		rule:      "Cada CommitmentId tem no máximo um Comprometimento Orçamentário ativo (não liberado) registrado em BDG. Re-aprovação de um mesmo CommitmentId já com Comprometimento ativo é bloqueada — exigiria liberação prévia."
 		rationale: "Idempotência de aprovação ao nível de compromisso: previne double-booking que inflaria comprometimento agregado contra o Centro de Custo. Sustenta cálculo correto de Saldo Disponível. Histórico de Comprometimentos liberados por CommitmentId é preservado (BudgetCommitmentIds distintos) — regra restringe apenas ATIVOS simultâneos, não impede re-aprovação após liberação prévia."
@@ -355,7 +355,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			type:        "string"
 			description: "Identificador único da reserva orçamentária."
 		}]
-		rationale: "Identidade da entity ent-budget-commitment nested em agg-cost-center. Distinção de CommitmentId é deliberada: um CommitmentId tem (no máximo) um BudgetCommitmentId ATIVO, mas reservas históricas (liberadas) preservam BudgetCommitmentIds distintos para auditabilidade. Sustenta inv-released-amount-matches-commitment e inv-commitment-id-uniqueness-per-cost-center."
+		rationale: "Identidade da entity ent-budget-commitment nested em agg-cost-center. Distinção de CommitmentId é deliberada: um CommitmentId tem (no máximo) um BudgetCommitmentId ATIVO, mas reservas históricas (liberadas) preservam BudgetCommitmentIds distintos para auditabilidade. Sustenta inv-released-amount-matches-commitment e inv-commitment-id-global-uniqueness-active."
 	}, {
 		code:        "vo-rejection-reason"
 		name:        "RejectionReason"
@@ -503,7 +503,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				kind:        "primitive"
 				name:        "status"
 				type:        "string"
-				description: "active | released — sustenta cálculo de Saldo Disponível e inv-commitment-id-uniqueness-per-cost-center."
+				description: "active | released — sustenta cálculo de Saldo Disponível e inv-commitment-id-global-uniqueness-active."
 			}, {
 				kind:        "primitive"
 				name:        "approvedAt"
@@ -548,7 +548,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-commitment-not-payment",
 			"inv-allocation-not-treasury",
 			"inv-released-amount-matches-commitment",
-			"inv-commitment-id-uniqueness-per-cost-center",
+			"inv-commitment-id-global-uniqueness-active",
 		]
 
 		usesValueObjects: [
@@ -559,7 +559,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-commitment-release-reason",
 		]
 
-		rationale: "Single aggregate porque Centro de Custo é a única consistency boundary de BDG: cálculo de Saldo Disponível, registro de Comprometimento e Liberação são mutações que devem ser atômicas para preservar a invariante Saldo = Limite − Σ(comprometimentos ativos). Aggregate sem lifecycle (per tq-dmg-07): justificativa estrutural — persiste registry de Comprometimentos ativos (entities owned) que sustenta inv-released-amount-matches-commitment e inv-commitment-id-uniqueness-per-cost-center; serve como uniqueness registry e ledger de reservas orçamentárias. Sem essa estrutura persistente, o Gate de Cobertura regride a snapshot stateless e a idempotência por compromisso fica sem enforcement. Lifecycle do próprio Centro de Custo (criação, ajuste de Limite, descontinuação) é governance externa per bd-allocation-not-treasury — não modelado como state machine porque transições não são triggered por commands de domínio do BDG; modelar especulativo violaria heuristic do PG. Eventos publicados (BudgetApproved/Rejected/Released) e ACL (CommitmentAcceptedReceived) listados em emitsEvents conforme padrão CMT/NPM (tq-dm-02): aggregate registra os fatos no seu event stream — ACL adapter produz semanticamente o evento traduzido. Note: vo-budget-approval-status e vo-cost-center-availability NÃO listados em usesValueObjects porque são tipos de retorno de queries (projeções), não fields stored no aggregate — tq-dm-04 warn aceito para esses dois VOs."
+		rationale: "Single aggregate porque Centro de Custo é a única consistency boundary de BDG: cálculo de Saldo Disponível, registro de Comprometimento e Liberação são mutações que devem ser atômicas para preservar a invariante Saldo = Limite − Σ(comprometimentos ativos). Aggregate sem lifecycle (per tq-dmg-07): justificativa estrutural — persiste registry de Comprometimentos ativos (entities owned) que sustenta inv-released-amount-matches-commitment e inv-commitment-id-global-uniqueness-active; serve como uniqueness registry e ledger de reservas orçamentárias. Sem essa estrutura persistente, o Gate de Cobertura regride a snapshot stateless e a idempotência por compromisso fica sem enforcement. Lifecycle do próprio Centro de Custo (criação, ajuste de Limite, descontinuação) é governance externa per bd-allocation-not-treasury — não modelado como state machine porque transições não são triggered por commands de domínio do BDG; modelar especulativo violaria heuristic do PG. Eventos publicados (BudgetApproved/Rejected/Released) e ACL (CommitmentAcceptedReceived) listados em emitsEvents conforme padrão CMT/NPM (tq-dm-02): aggregate registra os fatos no seu event stream — ACL adapter produz semanticamente o evento traduzido. Note: vo-budget-approval-status e vo-cost-center-availability NÃO listados em usesValueObjects porque são tipos de retorno de queries (projeções), não fields stored no aggregate — tq-dm-04 warn aceito para esses dois VOs."
 	}]
 
 	// =============================================

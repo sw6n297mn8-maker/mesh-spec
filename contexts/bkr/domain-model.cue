@@ -1,0 +1,1913 @@
+package bkr
+
+// domain-model.cue — Banking Rails & Settlement: Tactical Domain Model.
+// Instância de #DomainModel (architecture/artifact-schemas/domain-model.cue).
+//
+// Materializa Phase 3 do WI-062 BKR bootstrap via authoring manual section-
+// gated per manualAuthoringProtocol (adr-057). Cascade ordering per adr-053/
+// adr-054: schema #DomainModel + PG existem; canvas BKR Phase 1 stable
+// (cf513a4 + f6dfc69); glossary BKR Phase 2 stable (85eddac); domain-model
+// é Phase 3 building blocks DDD táticos.
+//
+// Phase 3 sub-phases pre-write conceptual scaffold (3.A.1-5) + catalog
+// proposals (3.B.1-4 + 3.C + 3.D + 3.E) com founder iterative review
+// totaling 30+ ajustes finos absorvidos.
+//
+// Composição:
+// - 9 invariants (5 constitutivos canvas + 4 operacionais)
+// - 13 events (5 published + 2 internal lifecycle + 1 BKR-emitted cancellation
+//   request + 4 ACL events com sourceContext + 1 reconciliation marker)
+// - 6 commands (2 inbound FCE + 4 internal lifecycle/transition triggers)
+// - 15 valueObjects (4 IDs + 3 composite DTOs + 1 enum-state + 5 discriminators
+//   + 2 composite tipo)
+// - 1 aggregate (agg-settlement-attempt) com 1 entity nested
+//   (ent-cancellation-request) + lifecycle 6-state + 7 transitions
+// - 3 domainServices (svc-reconciliation + svc-failure-classification +
+//   svc-technical-rail-selection — todos cross-source determinístic processes)
+// - 2 policies (pol-reconciliation-outcome-routing + pol-cancellation-outcome-
+//   routing) — automation event → command com guards
+// - 3 projections (prj-settlement-status + prj-failure-classification + prj-
+//   audit-trail) com 9 query capabilities total
+// - systemConsistencyModel (eventual + production-safety hardening per adr-084)
+// - decisionAuthorityModel hybrid (technical authoritative + rail/status
+//   advisory; 4 non-authoritative concepts articulados em rationale)
+// - consistencyBoundary per agg-settlement-attempt
+//
+// Lenses aplicadas:
+// - lens-distributed-systems-design (4-way ID separation + atomic state
+//   machine + reconciliation determinism)
+// - lens-incentive-alignment (anti-decision boundary preservada via 9
+//   invariants protected pelo único aggregate)
+// - lens-regulatory-compliance-as-architecture (RegulatoryBoundary absorption
+//   not enforcement; svc-failure-classification subtype provider-or-rail-
+//   reject preservado distinto de regulatory-only)
+// - lens-trust-and-credibility-design (vo-authorization-proof composite com
+//   5 components; consumed never interpreted)
+// - lens-mechanism-design (governance scope codificado em invariants
+//   protegidos atomicamente per command handling)
+//
+// Materializado em 1 commit Phase 3.F após 30+ founder ajustes pre-write.
+// Identidade canônica preservada: BKR is a deterministic settlement
+// orchestration boundary operating under externally authorized economic
+// intent.
+
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
+
+domainModel: artifact_schemas.#DomainModel & {
+	code:              "bkr"
+	name:              "Banking Rails & Settlement Domain Model"
+	boundedContextRef: "bkr"
+
+	// ============================================================
+	// INVARIANTS (9)
+	// ============================================================
+
+	invariants: [{
+		code: "inv-anti-decision-boundary"
+		name: "Anti-Decision Boundary"
+		rule: """
+			BKR NEVER authorizes payment, NEVER mutates beneficiary,
+			NEVER alters value, NEVER collapses ambiguity into
+			completion, and NEVER performs treasury allocation. Any
+			action requiring economic decision is delegated upstream
+			(FCE) or surfaced via supervised escalation (mech-agent-
+			gate per Phase 5 agent-governance).
+			"""
+		rationale: "Invariante constitutiva #1 do BC. Cristaliza a fronteira entre execução técnica (BKR) e decisão econômica (FCE/TCM/DRC). Sem esta invariante, BKR sofre scope creep para mini-FCE / mini-DRC / mini-treasury via porta de aparente conveniência operacional. Materializa as 5 'nevers' constitutivas do canvas outer rationale."
+	}, {
+		code: "inv-authorization-proof-verification-gate"
+		name: "Authorization Proof Verification Gate"
+		rule: """
+			No SettlementAttempt is dispatched without AuthorizationProof
+			verified at BKR boundary: (a) cryptographic signature valid;
+			(b) nonce not previously consumed; (c) issued-at timestamp
+			present; (d) validity window not expired per upstream-
+			declared deadline; (e) claim chain resolvable to upstream
+			authorizer identity. AuthorizationProof validity is
+			consumed, never interpreted or redefined by BKR. Instruction
+			rejected pre-dispatch is terminal for that instruction
+			intake; new attempt requires a new authorized
+			PaymentInstruction (new InstructionId + new
+			AuthorizationProof) or corrected upstream instruction.
+			"""
+		rationale: "Implementa o axioma 'BKR consumes authorization semantics; it does not originate them' do glossary term-authorization-proof. Sem este gate, BKR vira autorizador implícito ao aceitar dispatch sem proof verificável. dp-08 (custo manipulação > benefício) demanda barreira criptográfica explícita. Cláusula terminal rejection per ajuste Phase 3.A.3 — preserva integridade do InstructionId lineage."
+	}, {
+		code: "inv-settlement-finality-post-reconciliation-only"
+		name: "Settlement Finality Post-Reconciliation Only"
+		rule: """
+			SettlementFinality is declared only after deterministic
+			Reconciliation completes with rail-verifiable proof
+			satisfying 4 conditions: (a) instructionId × railReferenceId
+			× outcome match; (b) rail signal confirms irreversibility
+			per rail-specific semantics; (c) value coherence; (d)
+			payee coherence. Rail confirmation alone does NOT produce
+			SettlementFinality. SettlementFinality is a canonical
+			assertion by BKR about the state of the system, not merely
+			a forwarded rail signal.
+			"""
+		rationale: "Distingue 'rail confirmou receipt' de 'system canonicalizou settlement' per glossary term-settlement-finality. Sem esta invariante, BKR vira eco passivo do rail e perde authority de canonicalização. Boundary integrity test: BKR não emite evt-settlement-finalized sem Reconciliation completa por svc-reconciliation."
+	}, {
+		code: "inv-indeterminate-state-non-collapse"
+		name: "Indeterminate State Non-Collapse"
+		rule: """
+			SettlementIndeterminate MUST be preserved as epistemic state
+			distinct from SettlementFailed and SettlementFinality. NÃO
+			coerced em boolean (completed: true/false), NÃO mapeado a
+			'pending' genérico, NÃO emite evento canônico downstream
+			de completion. Resolution paths: (a) re-query rail; (b)
+			reconciliation manual; (c) escalation via rail-specific
+			timeout policy. Transition out of indeterminate is explicit
+			via cmd-resolve-indeterminate-state only.
+			"""
+		rationale: "Indeterminate é epistemicamente distinto per glossary term-settlement-indeterminate: 'sabemos que falhou' (Failed) vs 'não sabemos ainda' (Indeterminate). Colapsar destrói 3 propriedades: replay safety (retry baseado em assumption errada → double-settlement), reconciliation semantics, operational auditability. Founder Phase 3.A.3 gate principal."
+	}, {
+		code: "inv-attempt-identity-per-retry"
+		name: "Attempt Identity Per Retry"
+		rule: """
+			Each new technical dispatch following a retry decision
+			generates a new SettlementAttempt with new attemptId + new
+			idempotencyKey under the same instructionId. Existing
+			SettlementAttempt entity NEVER mutates its attemptId. Re-
+			query and reconciliation paths that do NOT generate new
+			dispatch do NOT create new SettlementAttempt.
+			"""
+		rationale: "Lineage técnica explícita é pré-condição para replay safety e forensic clarity per glossary term-attempt-id. Mutar attemptId esconde retries no audit trail; reusar attemptId entre dispatches gera ambiguidade indistinguível de double-settlement. Founder Phase 3.A.3 ajuste 1: re-query é resolução, não novo attempt."
+	}, {
+		code: "inv-idempotency-enforcement-per-attempt"
+		name: "Idempotency Enforcement Per Attempt"
+		rule: """
+			IdempotencyKey enforcement happens per SettlementAttempt,
+			NEVER per InstructionId. Using InstructionId as idempotency
+			enforcement is invariant violation: blocks legitimate re-
+			dispatch under the same economic instruction (rail rejects
+			as duplicate falso-positivo) AND fails to prevent replay
+			(because multiple SettlementAttempts may legitimately share
+			one InstructionId when upstream policy authorizes re-
+			dispatch after a non-final or failed execution path).
+			"""
+		rationale: "Vector adversarial CRÍTICO per glossary term-idempotency-key. A diferença entre 'per attempt' e 'per instruction' é a fronteira entre replay-attack-blocked + legitimate-re-dispatch-permitted vs replay-blocked + re-dispatch-blocked. Confusão silenciosa = ambos os lados do trade-off falham. Phase 3.A.1 ajuste 3 + Phase 3.B.1 ajuste 1: 'multiple SettlementAttempts may legitimately share one InstructionId when upstream policy authorizes re-dispatch after a non-final or failed execution path' substitui 'recurring legítimo' / 'retries with same InstructionId required' (mais preciso operacionalmente)."
+	}, {
+		code: "inv-rail-selection-technical-criteria-only"
+		name: "Rail Selection By Technical Criteria Only"
+		rule: """
+			TechnicalRailSelection considers ONLY 4 criteria:
+			(a) technical availability against operational window;
+			(b) protocol compatibility between payer and payee;
+			(c) latency admissibility against upstream-declared
+			settlement semantics (constraint check, NOT optimization
+			target);
+			(d) upstream-declared constraints. Rail selection by cost,
+			treasury position, fee arbitrage, scoring/adaptive
+			optimization, or smart routing functions is FORBIDDEN.
+			"""
+		rationale: "Termo perigosíssimo do glossary term-technical-rail-selection. Sem invariante explícita, 'selecionar rail' vira porta de entrada para BKR exercer decisões econômicas. Per dp-08 e bd-rail-selection-is-technical-only do canvas: seleção é restritamente técnica. svc-technical-rail-selection materializa este invariant como deterministic process."
+	}, {
+		code: "inv-failure-classification-no-automatic-remediation"
+		name: "Failure Classification Produces Ownership, Not Remediation"
+		rule: """
+			FailureClassification produces a tuple (category, ownership,
+			optional subtype). Categories: structural-invalid, technical-
+			failure, provider-or-rail-reject (subtypes: regulatory |
+			account-status | rail-limit | provider-policy), upstream-
+			policy-reject, business-invalid. Ownership: BKR-
+			authoritative, external, upstream, upstream-semantic.
+			Classification does NOT automatically issue remediation
+			commands (cross-rail failover, compensating settlement,
+			economic adjustment). Technical-failure may make a
+			deterministic retry eligible ONLY IF retry policy is pre-
+			authorized by the instruction's fallback declaration or
+			by an upstream policy explicitly governing the rail; in
+			absence of pre-authorization, technical-failure escalates
+			without auto-remediation. Remediation otherwise requires
+			separate upstream-authorized command.
+			"""
+		rationale: "Classification produces routing implication, not decision per glossary term-failure-classification. Auto-remediation = scope creep: retry-automatic vector double-settlement; cross-rail failover sem auth = payment decision implícita; compensating settlement = treasury overreach. Phase 3.A.1 ajuste 4 + Phase 3.B.1 ajuste 2: 'may make a deterministic retry eligible' (não 'may trigger') preserva alinhamento — classification torna elegível, policy/command posterior dispara. svc-failure-classification materializa este invariant."
+	}, {
+		code: "inv-reverse-settlement-upstream-authorized-only"
+		name: "Reverse Settlement Upstream-Authorized Only"
+		rule: """
+			Any reverse-settlement execution by BKR requires NEW
+			AuthorizationProof for a NEW economic obligation distinct
+			from the original PaymentInstruction. ReversePaymentInstruction
+			must arrive from FCE (policy-driven refund), DRC (dispute
+			reversal), or upstream process responding to regulatory
+			mandate (BKR does not receive direct authorization from a
+			regulator; regulatory mandates flow through governed
+			upstream processes). BKR NEVER originates reverse-
+			settlement autonomously; never derives reverse-authorization
+			from original AuthorizationProof; never executes Pix
+			devolução / pacs.004 / chargeback as response to
+			Reconciliation anomaly. Original AuthorizationProof is
+			never reusable for reverse economic intent.
+			"""
+		rationale: "Vector #1 de scope creep BKR→DRC/FCE/treasury per glossary term-reverse-settlement (8 antiTerms). Sem invariante explícita, rails-native reversal protocols (Pix devolução, pacs.004) parecem naturalmente BKR-owned por proximidade técnica. Economic semantics da reversão NÃO é BKR. Phase 3.A.1 ajuste 5 + Phase 3.B.1 ajuste 3: clausula final 'Original AuthorizationProof is never reusable for reverse economic intent' fecha o atalho mental mais perigoso (derivar reverse authorization da proof original)."
+	}]
+
+	// ============================================================
+	// EVENTS (13)
+	// ============================================================
+
+	events: [{
+		code:        "evt-payment-instruction-accepted"
+		name:        "PaymentInstructionAccepted"
+		description: "Marker interno de T1 transition: AuthorizationProof verified (signature + nonce + validity-window + claim-chain) + SettlementAttempt entity created em state=requested. Não é resulting event de cmd-dispatch-payment-instruction visível cross-BC; é marker local para audit trail e para svc-technical-rail-selection downstream."
+		rationale:   "Lifecycle marker interno per state machine T1 (Phase 3.A.3). Distingue 'instruction accepted at BKR boundary' de 'instruction dispatched to rail' (que é T3 → evt-attempt-dispatched). Aceitação ≠ rail admissibility. Rail admissibility é avaliada subsequentemente por svc-technical-rail-selection antes de T3 transition para in-flight; T1 marca apenas verificação de AuthorizationProof + entity creation. visibility=internal porque audience é BKR-internal; consumers downstream observam via evt-settlement-* outcomes ou prj-audit-trail."
+		visibility:  "internal"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "paymentInstruction"
+			valueObjectRef: "vo-payment-instruction"
+			description:    "Snapshot do PaymentInstruction value object recebido (immutable input)."
+		}, {
+			kind:           "value-object-ref"
+			name:           "authorizationProof"
+			valueObjectRef: "vo-authorization-proof"
+			description:    "AuthorizationProof verified (snapshot para audit). BKR consome validity; nunca interpreta nem redefine (inv-authorization-proof-verification-gate)."
+		}, {
+			kind: "primitive"
+			name: "acceptedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-instruction-rejected"
+		name:        "InstructionRejected"
+		description: "Outcome canonical de pre-dispatch rejection — instrução falha estruturalmente (structural-invalid OR business-invalid OR upstream-policy-reject OR authorization-proof-invalid) at BKR boundary; SettlementAttempt transiciona requested → rejected (T2). Distinto de SettlementFailed (post-dispatch reconciliation outcome) — rejection nunca atingiu o rail."
+		rationale:   "Per Phase 3.A.4 ajuste 3: promovido a published para que FCE distinga rejection (terminal pre-dispatch) de failure (terminal post-rail). visibility=published; consumer fce. Inv-authorization-proof-verification-gate amplification: terminal para essa instruction intake; new attempt requires new InstructionId + new AuthorizationProof."
+		visibility:  "published"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "failureClassification"
+			valueObjectRef: "vo-failure-classification"
+			description:    "Classification computed by svc-failure-classification (category ∈ {structural-invalid, business-invalid, upstream-policy-reject} para rejection paths)."
+		}, {
+			kind: "primitive"
+			name: "rejectedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-attempt-dispatched"
+		name:        "AttemptDispatched"
+		description: "Marker interno de T3 transition: SettlementAttempt transiciona requested → in-flight; technical dispatch executed via cmd-dispatch-to-rail. svc-technical-rail-selection produced rail target; idempotencyKey constructed; instruction sent to rail."
+		rationale:   "Lifecycle marker interno per state machine T3 (Phase 3.A.3). Marca o ponto técnico em que BKR enviou instrução ao rail; outcome subsequente flui via reconciliation."
+		visibility:  "internal"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "idempotencyKey"
+			valueObjectRef: "vo-idempotency-key"
+		}, {
+			kind:           "value-object-ref"
+			name:           "railSelected"
+			valueObjectRef: "vo-rail-target"
+		}, {
+			kind: "primitive"
+			name: "dispatchedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-settlement-finalized"
+		name:        "SettlementFinalized"
+		description: "Canonical positive outcome — emitted when Reconciliation determinística completou com proof rail verificável e aggregate transicionou para estado finalized (T4 ou T7). Único evento de sucesso publicado; consumers fce/tcm/ato consomem para closure / cash position commit / fiscal repercussion."
+		rationale:   "Outcome canonical SettlementFinality per glossary term-settlement-finality. Emitted ONLY post-Reconciliation + 4 conditions match (inv-settlement-finality-post-reconciliation-only). Não emitido sob in-flight, indeterminate ou failed. Renamed from canvas 'SettlementCompleted' per Phase 3.A.4 ajuste 1 — alinha glossary boundary."
+		visibility:  "published"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+			description:    "Primary rail-owned reference per Phase 3.A.2 cardinality 0..N (one primary selected for canonical reconciliation)."
+		}, {
+			kind:           "value-object-ref"
+			name:           "rail"
+			valueObjectRef: "vo-rail-target"
+		}, {
+			kind:           "value-object-ref"
+			name:           "value"
+			valueObjectRef: "vo-settlement-value"
+		}, {
+			kind:        "primitive"
+			name:        "settlementFinalAt"
+			type:        "datetime"
+			description: "Rail-observed settlement timestamp consumed as input to BKR canonicalization."
+		}, {
+			kind:        "primitive"
+			name:        "canonicalizedAt"
+			type:        "datetime"
+			description: "BKR-determined timestamp do Reconciliation completion (when BKR asserted finality canonical)."
+		}]
+	}, {
+		code:        "evt-settlement-failed"
+		name:        "SettlementFailed"
+		description: "Canonical negative outcome — emitted when Reconciliation determinística completou com rail-verifiable proof de falha (rail rejeitou explicitamente; classification per svc-failure-classification). T5 (in-flight → failed) ou T8 (indeterminate → failed via resolution)."
+		rationale:   "Outcome canonical de falha post-rail. Distinto de evt-instruction-rejected (pre-dispatch rejection que nunca atingiu rail). Payload para fce inclui classification detail (side-channel-aware via prj-failure-classification); payload para tcm/ato carrega outcome + categoria genérica sem detail sensível."
+		visibility:  "published"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+			description:    "Optional iff failure occurred without rail-side reference assignment."
+		}, {
+			kind:           "value-object-ref"
+			name:           "failureClassification"
+			valueObjectRef: "vo-failure-classification"
+		}, {
+			kind:           "value-object-ref"
+			name:           "rail"
+			valueObjectRef: "vo-rail-target"
+		}, {
+			kind: "primitive"
+			name: "failedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-settlement-indeterminate"
+		name:        "SettlementIndeterminate"
+		description: "Operational non-final escalation — Reconciliation NÃO pôde determinar deterministically se settlement foi bem-sucedido, falhou ou continua pending no rail. Estado epistemic preservado distinto de Failed/Finalized. Causes: timeout-without-final-signal, value-divergence, signal-contradiction, missing-reconciliation-match. T6 (in-flight → indeterminate)."
+		rationale:   "Per inv-indeterminate-state-non-collapse: indeterminate é epistemicamente distinto. Evento separado preserva replay safety, reconciliation semantics, operational auditability — colapsar em Failed destruiria essas propriedades. FCE decide manual reconciliation, external check, ou aguardar próxima janela rail."
+		visibility:  "published"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+			description:    "Optional iff indeterminacy precedes rail reference assignment."
+		}, {
+			kind:           "value-object-ref"
+			name:           "indeterminacyReason"
+			valueObjectRef: "vo-indeterminacy-reason"
+		}, {
+			kind:           "value-object-ref"
+			name:           "rail"
+			valueObjectRef: "vo-rail-target"
+		}, {
+			kind: "primitive"
+			name: "indeterminateAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-failure-classified"
+		name:        "FailureClassified"
+		description: "Routing-specific granular event para fce per side-channel-aware policy. Emitted alongside evt-settlement-failed (post-rail failure) OR evt-instruction-rejected (pre-dispatch rejection). Detail completo enviado a fce (upstream authorizer com need-to-know); demais consumers recebem categoria genérica via prj-failure-classification sanitized aggregate."
+		rationale:   "Per canvas Phase 1.4 outbound event-publisher (renamed from DispatchClassification per Phase 3.A.4 ajuste 1). Side-channel mitigation per Phase 1.2 cap 6: detail granular apenas via canal autorizado FCE."
+		visibility:  "published"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "classification"
+			valueObjectRef: "vo-failure-classification"
+		}, {
+			kind: "primitive"
+			name: "classifiedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-cancellation-requested-of-rail"
+		name:        "CancellationRequestedOfRail"
+		description: "BKR-emitted internal event marker quando cmd-request-settlement-cancellation é processado e BKR despacha cancellation request ao rail (e.g., pacs.057 SPI). Não causa state transition primário no aggregate parent (per Phase 3.A.3 ajuste cancellation deferral); ent-cancellation-request entity captura sub-lifecycle."
+		rationale:   "Marker interno para audit trail. Outcome do rail flow via separate ACL events (acknowledged/rejected) que entram no normal reconciliation path quando aplicável."
+		visibility:  "internal"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:        "primitive"
+			name:        "cancellationRequestReason"
+			type:        "string"
+			description: "Technical reason for requesting pre-finality cancellation, not economic reversal rationale (per Phase 3.B.3 ajuste rename)."
+		}, {
+			kind: "primitive"
+			name: "requestedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:          "evt-cancellation-acknowledged-by-rail"
+		name:          "CancellationAcknowledgedByRail"
+		description:   "Tradução ACL de cancellation acknowledgment recebido via partner/PSTI integration boundary — rail aceitou cancellation request (e.g., pacs.057 acknowledgment SPI ou equivalente). Trigger para pol-cancellation-outcome-routing → cmd-record-reconciliation-outcome com outcome=failed + classification subtype='cancellation-honored-by-rail'."
+		rationale:     "Event interno traduzido de sinal externo de partner/PSTI. Sufixo '-by-rail' marca origem rail-side. sourceContext preserva rastreabilidade ao integration boundary físico."
+		visibility:    "internal"
+		sourceContext: "ext-partner-bank-or-psti"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+		}, {
+			kind: "primitive"
+			name: "acknowledgedAt"
+			type: "datetime"
+		}, {
+			kind: "primitive"
+			name: "receivedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:          "evt-cancellation-rejected-by-rail"
+		name:          "CancellationRejectedByRail"
+		description:   "Tradução ACL de cancellation rejection recebida via partner/PSTI — rail recusou cancellation (e.g., já em clearing irreversível, post-finality, ou rail-specific impossibility). Default no-op em pol-cancellation-outcome-routing per Phase 3.A.5 ajuste 3: attempt remains governed by normal reconciliation path."
+		rationale:     "Event interno traduzido. Rejection não decide attempt outcome by default; cancellation outcome rejected é audit marker em ent-cancellation-request mas não força state transition no parent aggregate."
+		visibility:    "internal"
+		sourceContext: "ext-partner-bank-or-psti"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+			description:    "Optional iff rail rejected cancellation before assigning reference."
+		}, {
+			kind:        "domain-type"
+			name:        "rejectionReason"
+			type:        "RailCancellationRejectionReason"
+			description: "Discriminator: clearing-irreversible | post-finality | rail-not-supported | rail-specific."
+		}, {
+			kind: "primitive"
+			name: "rejectedAt"
+			type: "datetime"
+		}, {
+			kind: "primitive"
+			name: "receivedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:          "evt-cash-operational-status-updated-received"
+		name:          "CashOperationalStatusUpdatedReceived"
+		description:   "Tradução ACL de CashOperationalStatusUpdated recebido via TCM. Surface operational liquidity constraint per rail per next window (e.g., posição em conta PI suficiente para próxima janela TED). Informa svc-technical-rail-selection critério (a) + retry policy. NÃO settlement authorization nem timing econômico."
+		rationale:     "Event interno traduzido de sinal externo de TCM. Sufixo '-received' segue convenção ACL paralela a P2P/CMT/BDG. Boundary semantic crítica: TCM evento NÃO é authorization signal — confundir destruiria separação BC."
+		visibility:    "internal"
+		sourceContext: "tcm"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rail"
+			valueObjectRef: "vo-rail-target"
+		}, {
+			kind:        "domain-type"
+			name:        "liquidityAvailability"
+			type:        "LiquidityAvailability"
+			description: "Discriminator: sufficient | insufficient-for-next-window | uncertain. Granular detail (saldo, position) pass-through pelo TCM."
+		}, {
+			kind: "primitive"
+			name: "nextWindowAt"
+			type: "datetime"
+			description: "Próxima janela operacional aplicável ao rail (TCM-side knowledge)."
+		}, {
+			kind: "primitive"
+			name: "receivedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:          "evt-rail-provider-status-updated-received"
+		name:          "RailProviderStatusUpdatedReceived"
+		description:   "Tradução ACL de RailProviderStatusUpdated recebido via integration partner (PSTI homologada ou banco parceiro autorizado). Surface rail-level operational state (availability, degraded, out-of-hours, rate-limited) por rail família (SPI/STR/SITRAF/SILOC/SWIFT). Informa svc-technical-rail-selection critério (a) + retry policy + classification."
+		rationale:     "Event interno traduzido de sinal externo de partner/PSTI (canvas inbound event-consumer). Sufixo '-received' segue convenção ACL paralela a P2P/CMT/BDG. Domain model permanece puro (linguagem local); sourceContext preserva rastreabilidade ao integration boundary físico. BKR observa status as technical availability input; it does not decide economic settlement merit based on status."
+		visibility:    "internal"
+		sourceContext: "ext-partner-bank-or-psti"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rail"
+			valueObjectRef: "vo-rail-target"
+		}, {
+			kind:           "value-object-ref"
+			name:           "operationalStatus"
+			valueObjectRef: "vo-rail-operational-status"
+		}, {
+			kind:        "domain-type"
+			name:        "statusDetail"
+			type:        "RailStatusDetail"
+			description: "Detail granular per status (e.g., for rate-limited: window remaining; for degraded: affected operations)."
+		}, {
+			kind: "primitive"
+			name: "providerObservedAt"
+			type: "datetime"
+			description: "Timestamp em que partner/PSTI observou o status (pode preceder receivedAt)."
+		}, {
+			kind: "primitive"
+			name: "receivedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-reconciliation-completed"
+		name:        "ReconciliationCompleted"
+		description: "Marker emitted by svc-reconciliation indicating that a deterministic Reconciliation cycle completed for a SettlementAttempt, producing a trichotomic outcome (finalized | failed | indeterminate). Triggers pol-reconciliation-outcome-routing → cmd-record-reconciliation-outcome para aggregate state transition."
+		rationale:   "Internal marker. Aggregate emitsEvents inclui este event per P2P convention (event-stream entry para satisfazer tq-dm-02), sem claim de semantic authorship — svc-reconciliation produz semantically; aggregate registra fato no event stream local."
+		visibility:  "internal"
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "outcome"
+			valueObjectRef: "vo-settlement-state"
+			description:    "Trichotomic discriminator: finalized | failed | indeterminate."
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+			description:    "Primary rail-observed reference; absent iff outcome=indeterminate without rail correlation."
+		}, {
+			kind:           "value-object-ref"
+			name:           "failureClassification"
+			valueObjectRef: "vo-failure-classification"
+			description:    "Populated iff outcome=failed."
+		}, {
+			kind:           "value-object-ref"
+			name:           "indeterminacyReason"
+			valueObjectRef: "vo-indeterminacy-reason"
+			description:    "Populated iff outcome=indeterminate."
+		}, {
+			kind: "primitive"
+			name: "reconciledAt"
+			type: "datetime"
+		}]
+	}]
+
+	// ============================================================
+	// COMMANDS (6)
+	// ============================================================
+
+	commands: [{
+		code:        "cmd-dispatch-payment-instruction"
+		name:        "DispatchPaymentInstruction"
+		description: "Comando inbound de FCE para BKR solicitando execução técnica de uma PaymentInstruction sob AuthorizationProof verificável. Sync per canvas: FCE aguarda confirmation imediata de aceitação na borda BKR (proof verified + Attempt entity created). Outcome subsequente flui via published events (evt-settlement-finalized | evt-settlement-failed | evt-settlement-indeterminate | evt-failure-classified | evt-instruction-rejected)."
+		rationale:   "Primary BKR command per canvas Phase 1.4 inbound command-handler 'DispatchPaymentInstruction' (post Phase 3.A.4 rename de 'DispatchPayment'). Materializa fronteira FCE→BKR: FCE autoriza economicamente, BKR consome instrução sob proof. Handled por agg-settlement-attempt; cria nova SettlementAttempt entity (T1) + dispara svc-technical-rail-selection downstream antes de T3."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "paymentInstruction"
+			valueObjectRef: "vo-payment-instruction"
+			description:    "Composite DTO: payer + payee + value + rail-hint (optional pin) + AuthorizationProof + claim chain. BKR consome estrutura imutável; nunca muta beneficiary nem valor (inv-anti-decision-boundary)."
+		}, {
+			kind:        "primitive"
+			name:        "submittedAt"
+			type:        "datetime"
+			description: "FCE-side timestamp de submission; usado para forensic clarity e validity-window arithmetic na verification gate."
+		}]
+	}, {
+		code:        "cmd-request-settlement-cancellation"
+		name:        "RequestSettlementCancellation"
+		description: "Comando inbound de FCE para BKR solicitando cancellation de uma SettlementAttempt em state in-flight (pre-finality). NON-GUARANTEED — alguns rails aceitam pacs.057 ou equivalente, outros best-effort, outros já em clearing irreversível. Não causa state transition primário no aggregate; cria/atualiza ent-cancellation-request entity nested + emits evt-cancellation-requested-of-rail. Outcome do rail flow via evt-cancellation-acknowledged-by-rail (acknowledged → cmd-record-reconciliation-outcome subtype='cancellation-honored-by-rail') ou evt-cancellation-rejected-by-rail (no-op default)."
+		rationale:   "Per Phase 3.A.4 ajuste 4 + Phase 3.B.3 ajuste 5: command com side-effect externo, NÃO lifecycle transition primária. Per Phase 3.B.3 ajuste pequeno: cancellationRequestReason é technical reason, não economic reversal rationale (anti-decision-boundary preservation)."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+			description:    "Specific attempt to cancel; cancellation per attempt, não per instructionId."
+		}, {
+			kind:        "primitive"
+			name:        "cancellationRequestReason"
+			type:        "string"
+			description: "Technical reason for requesting pre-finality cancellation, not economic reversal rationale."
+		}, {
+			kind: "primitive"
+			name: "requestedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "cmd-reject-instruction"
+		name:        "RejectInstruction"
+		description: "Comando internal para T2 transition (requested → rejected). Issued post-svc-failure-classification quando boundary check detecta structural-invalid OR business-invalid OR upstream-policy-reject OR authorization-proof-invalid pre-dispatch. Aggregate handler aplica state transition + emits evt-instruction-rejected (published) + evt-failure-classified (published)."
+		rationale:   "Internal command para materializar T2 transition. cmd-dispatch-payment-instruction cria attempt em requested; svc-failure-classification detecta failure cause; cmd-reject-instruction issued para canonicalize rejection state."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "failureClassification"
+			valueObjectRef: "vo-failure-classification"
+			description:    "Computed by svc-failure-classification; carries category + ownership + optional subtype."
+		}, {
+			kind:        "primitive"
+			name:        "rejectionReason"
+			type:        "string"
+			description: "Forensic clarity narrative; granular detail filtrado per side-channel policy em prj-failure-classification."
+		}, {
+			kind: "primitive"
+			name: "rejectedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "cmd-dispatch-to-rail"
+		name:        "DispatchToRail"
+		description: "Comando internal para T3 transition (requested → in-flight). Issued post-svc-technical-rail-selection quando rail é selected per 4 critérios técnicos + svc-failure-classification did not detect boundary failure. Aggregate handler aplica state transition + executes technical dispatch via integration adapter (canvas command-invocation Submit{Pix,Ted,Boleto,Swift}Payment) + emits evt-attempt-dispatched."
+		rationale:   "Internal command que abstrai integration. svc-technical-rail-selection produz vo-rail-target; idempotencyKey constructed pelo aggregate per attempt; instruction sent via adapter ao external rail per railSelected."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "idempotencyKey"
+			valueObjectRef: "vo-idempotency-key"
+			description:    "BKR-constructed enforcement value per attempt."
+		}, {
+			kind:           "value-object-ref"
+			name:           "railSelected"
+			valueObjectRef: "vo-rail-target"
+			description:    "Output of svc-technical-rail-selection per 4 critérios técnicos."
+		}, {
+			kind: "primitive"
+			name: "dispatchedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "cmd-record-reconciliation-outcome"
+		name:        "RecordReconciliationOutcome"
+		description: "Comando internal issued por pol-reconciliation-outcome-routing OR pol-cancellation-outcome-routing carregando outcome trichotomic determinado por svc-reconciliation (finalized | failed | indeterminate). Aggregate handler transiciona state per outcome value: T4 → finalized, T5 → failed, T6 → indeterminate. Trichotomic routing é deterministic per Reconciliation 4-conditions match (per glossary term-reconciliation). Conditional fields: failureClassification populated iff outcome=failed; indeterminacyReason populated iff outcome=indeterminate. Schema não valida condicionalmente (limitação conhecida); aggregate handler enforces conditional integrity per outcome discriminator."
+		rationale:   "Comando internal único que cobre 3 transitions (T4/T5/T6) per Reconciliation outcome — schema permite single command com multiple (from, to) entries em lifecycle.transitions distintas. Outcome é encoded em vo-settlement-state field; aggregate handler routes per discriminator. Per founder Phase 3.B.3 ajuste 3: ponto canônico é que decisão vem de um único processo de Reconciliation; separar em três commands poderia reintroduzir divergência de routing."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "outcome"
+			valueObjectRef: "vo-settlement-state"
+			description:    "Trichotomic discriminator: finalized | failed | indeterminate (excludes other states; aggregate handler validates value)."
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+			description:    "Primary rail-observed reference used in Reconciliation match. Optional iff outcome=indeterminate without rail-side correlation."
+		}, {
+			kind:           "value-object-ref"
+			name:           "failureClassification"
+			valueObjectRef: "vo-failure-classification"
+			description:    "Computed by svc-failure-classification; present iff outcome=failed."
+		}, {
+			kind:           "value-object-ref"
+			name:           "indeterminacyReason"
+			valueObjectRef: "vo-indeterminacy-reason"
+			description:    "Discriminator: timeout-without-final-signal | value-divergence | signal-contradiction | missing-reconciliation-match. Present iff outcome=indeterminate."
+		}, {
+			kind:        "primitive"
+			name:        "reconciledAt"
+			type:        "datetime"
+			description: "BKR-determined timestamp do Reconciliation completion."
+		}]
+	}, {
+		code:        "cmd-resolve-indeterminate-state"
+		name:        "ResolveIndeterminateState"
+		description: "Comando internal para T7/T8 transitions (indeterminate → finalized | failed). Issued via explicit resolution path: re-query rail confirmou outcome OR manual reconciliation determined outcome OR escalation procedure determined outcome. NÃO automatic; resolutionEvidence required para audit trail."
+		rationale:   "Per inv-indeterminate-state-non-collapse: transição out of indeterminate é explícita; nunca timeout-driven auto-progression. Resolution paths são 3: re-query-rail-confirmed (rail re-consulted produced determinism) | manual-reconciliation (human-driven match após investigation) | escalation-determined (rail-specific timeout policy ou Bacen escalation)."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "attemptId"
+			valueObjectRef: "vo-attempt-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "resolution"
+			valueObjectRef: "vo-settlement-state"
+			description:    "Discriminator: finalized | failed (only; not indeterminate). Aggregate handler validates."
+		}, {
+			kind:           "value-object-ref"
+			name:           "resolutionEvidence"
+			valueObjectRef: "vo-resolution-evidence"
+			description:    "Discriminator do path que resolveu indeterminacy."
+		}, {
+			kind:           "value-object-ref"
+			name:           "railReferenceId"
+			valueObjectRef: "vo-rail-reference-id"
+			description:    "Optional iff resolution did not produce rail correlation."
+		}, {
+			kind:           "value-object-ref"
+			name:           "failureClassification"
+			valueObjectRef: "vo-failure-classification"
+			description:    "Optional iff resolution=failed."
+		}, {
+			kind: "primitive"
+			name: "resolvedAt"
+			type: "datetime"
+		}]
+	}]
+
+	// ============================================================
+	// VALUE OBJECTS (15)
+	// ============================================================
+
+	valueObjects: [{
+		code:        "vo-instruction-id"
+		name:        "InstructionId"
+		description: "FCE-owned upstream business correlation identifier. Generated at FCE no momento da emissão de uma PaymentInstruction, antes de qualquer dispatch técnico em BKR. Permanece estável across all SettlementAttempts gerados sob essa instrução — é o fio de rastreabilidade business-level cross-BC. Cardinalidade: 1 InstructionId : N SettlementAttempts : N RailReferenceIds. NUNCA reutilizado entre instruções distintas. NUNCA usado as idempotency enforcement; BKR derives or assigns a separate IdempotencyKey per SettlementAttempt."
+		fields: [{
+			kind:        "primitive"
+			name:        "value"
+			type:        "string"
+			description: "String identifier; formato fce-{year}-{sequence} ou outro pattern emitido por FCE (BKR não controla format)."
+		}]
+		constraints: [
+			"value não-vazio",
+			"value imutável após criação (immutability constraint enforced by aggregate)",
+			"value único por business action; reuso é structural-invalid",
+		]
+		rationale: "Wrapper VO para preservar type-safety: campos de InstructionId em commands/events/aggregate usam value-object-ref vo-instruction-id ao invés de primitive string (evita mistura acidental com AttemptId/IdempotencyKey/RailReferenceId no nível de código). Per glossary term-instruction-id + inv-attempt-identity-per-retry."
+	}, {
+		code:        "vo-attempt-id"
+		name:        "AttemptId"
+		description: "BKR-owned identifier representando uma execução técnica concreta (SettlementAttempt) contra um rail. Generated em BKR no momento da decisão de dispatch (T1 aggregate creation). Cardinalidade: 1 SettlementAttempt : 1 AttemptId; múltiplos AttemptIds podem existir sob 1 InstructionId via retries. AttemptId é a identidade do state machine atomic per attempt."
+		fields: [{
+			kind:        "primitive"
+			name:        "value"
+			type:        "string"
+			description: "BKR-generated UUID ou structured identifier."
+		}]
+		constraints: [
+			"value não-vazio",
+			"value imutável após criação",
+			"value único across all SettlementAttempt instances",
+		]
+		rationale: "Per glossary term-attempt-id + inv-attempt-identity-per-retry. Identity técnica per execução; nunca mutado nem reutilizado entre attempts."
+	}, {
+		code:        "vo-idempotency-key"
+		name:        "IdempotencyKey"
+		description: "BKR-constructed enforcement value per SettlementAttempt. Enviado ao rail como Idempotency-Key header (HTTP), Pix idempotency control, OR SWIFT MessageId construct per protocol. Cardinalidade: 1 SettlementAttempt : 1 IdempotencyKey; nunca reutilizado across attempts."
+		fields: [{
+			kind:        "primitive"
+			name:        "value"
+			type:        "string"
+			description: "BKR-constructed string; pode ser hash deterministic do payload OR UUID puro per implementation."
+		}]
+		constraints: [
+			"value não-vazio",
+			"value único per SettlementAttempt; novo dispatch técnico gera novo idempotencyKey",
+			"NUNCA derivado de InstructionId only (vector adversarial CRÍTICO)",
+		]
+		rationale: "Per glossary term-idempotency-key + inv-idempotency-enforcement-per-attempt. Enforcement boundary anti-replay/anti-double-settlement. Distinto de AttemptId: AttemptId é entity identity; IdempotencyKey é enforcement value (mesmo se literal value coincide em algumas implementações, semanticamente são conceitos distintos)."
+	}, {
+		code:        "vo-rail-reference-id"
+		name:        "RailReferenceId"
+		description: "Rail-owned identifier atribuído pelo rail no recebimento ou processamento de uma SettlementAttempt. Exemplos: E2E ID em Pix via SPI; MessageId em SWIFT MX (pacs.008); ISPB+identifiers TED via STR; Nosso Número boleto via SILOC. BKR observa nos signals retornados; nunca emite — apenas correlaciona via Reconciliation."
+		fields: [{
+			kind:        "primitive"
+			name:        "value"
+			type:        "string"
+			description: "Rail-side string identifier per protocol."
+		}, {
+			kind:           "value-object-ref"
+			name:           "railFamily"
+			valueObjectRef: "vo-rail-target"
+			description:    "Rail discriminator que originou esta reference (preserva semantic context per protocol)."
+		}]
+		constraints: [
+			"value não-vazio",
+			"value rail-assigned (BKR não constrói; observa)",
+			"railFamily must match rail used for the SettlementAttempt",
+		]
+		rationale: "Per glossary term-rail-reference-id. Identifier externo rail-owned. Distinto dos outros 3 IDs do 4-way separation por ownership (rail) e direction (observed-back, não carry-forward). Cardinalidade 0..N rail-observed references per attempt; primary selected for canonical reconciliation when available (per Phase 3.A.2 ajuste)."
+	}, {
+		code:        "vo-authorization-proof"
+		name:        "AuthorizationProof"
+		description: "Cryptographic evidence of upstream authorization. Composição mínima: (a) cryptographic signature sobre instructionId + payer + payee + value; (b) nonce previne replay; (c) issued-at timestamp; (d) validity window upstream-declared (NÃO derivada de estado BKR downstream); (e) claim chain link to upstream authorizer (FCE agent identity). AuthorizationProof validity is consumed, never interpreted or redefined by BKR. Original AuthorizationProof is never reusable for reverse economic intent."
+		fields: [{
+			kind:        "primitive"
+			name:        "signature"
+			type:        "string"
+			description: "Cryptographic signature sobre canonical encoding de (instructionId + payer + payee + value). Algoritmo e key reference declarados em separate spec (operational, não domain-level)."
+		}, {
+			kind:        "primitive"
+			name:        "nonce"
+			type:        "string"
+			description: "Unique value preventing replay; consumed once per verification."
+		}, {
+			kind:        "primitive"
+			name:        "issuedAt"
+			type:        "datetime"
+			description: "FCE-side timestamp de signing."
+		}, {
+			kind:        "primitive"
+			name:        "validityWindowEndsAt"
+			type:        "datetime"
+			description: "Upstream-declared expiration deadline. BKR consome; nunca estende nem interpreta."
+		}, {
+			kind:        "domain-type"
+			name:        "claimChain"
+			type:        "ClaimChain"
+			description: "Claim chain link to upstream authorizer identity (e.g., fce-agent-prod). Estrutura recursiva validável; deferred ao integration layer."
+		}]
+		constraints: [
+			"signature non-empty + cryptographically valid against canonical payload encoding",
+			"nonce non-empty + globally unique (BKR verifies nonce not previously consumed)",
+			"issuedAt ≤ validityWindowEndsAt",
+			"now() at verification time ≤ validityWindowEndsAt (else rejected per inv-authorization-proof-verification-gate)",
+			"claimChain resolvable to upstream authorizer identity",
+			"Immutable post-creation; BKR consumes validity, never redefines",
+		]
+		rationale: "Composite VO materializa boundary criptográfica FCE/BKR per glossary term-authorization-proof + inv-authorization-proof-verification-gate. 5-component minimum compõe defense-in-depth: signature contra forgery + nonce contra replay + issuedAt+validity contra stale proof + claimChain contra arbitrary key substitution. Original AuthorizationProof não reusável para reverse economic intent (per inv-reverse-settlement-upstream-authorized-only — reverse requer novo AuthorizationProof). Per Phase 3.B.4 ajuste: constraint de validity foi corrigido para 'now() ≤ validityWindowEndsAt' (anteriormente invertido)."
+	}, {
+		code:        "vo-payment-instruction"
+		name:        "PaymentInstruction"
+		description: "Composite DTO FCE-originated representing intenção econômica autorizada upstream cristalizada como instrução técnica para BKR execução. Carrega instructionId + payer + payee + value + railHint (optional pin) + AuthorizationProof. BKR consome estrutura imutável; nunca muta beneficiary nem valor."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "payer"
+			valueObjectRef: "vo-participant-identifier"
+		}, {
+			kind:           "value-object-ref"
+			name:           "payee"
+			valueObjectRef: "vo-participant-identifier"
+		}, {
+			kind:           "value-object-ref"
+			name:           "value"
+			valueObjectRef: "vo-settlement-value"
+		}, {
+			kind:           "value-object-ref"
+			name:           "railHint"
+			valueObjectRef: "vo-rail-target"
+			description:    "Optional pin de rail upstream-declared. Quando absent, svc-technical-rail-selection escolhe per critérios."
+		}, {
+			kind:           "value-object-ref"
+			name:           "authorizationProof"
+			valueObjectRef: "vo-authorization-proof"
+		}, {
+			kind:        "domain-type"
+			name:        "claimChainContext"
+			type:        "ClaimChainContext"
+			description: "Optional context about upstream authorizer chain (e.g., FCE agent identity, originating workflow ref)."
+		}]
+		constraints: [
+			"All required fields non-empty",
+			"PaymentInstruction is not Payment — value object representing technical instruction, not economic intent itself",
+			"Immutable post-creation; BKR consumes structure, never mutates payer/payee/value",
+		]
+		rationale: "Composite VO per glossary term-payment-instruction. Termo gateway do BC. PaymentInstruction is not Payment é invariante constitutivo — sem essa fronteira a UL colapsa."
+	}, {
+		code:        "vo-failure-classification"
+		name:        "FailureClassification"
+		description: "Tuple ortogonal produzida por svc-failure-classification representando ownership causal de uma falha (SettlementAttempt failed ou rejected pre-dispatch). 3 campos: category (5 values), ownership (4 values), optional subtype (only when category=provider-or-rail-reject). Classification determina routing de remediation per inv-failure-classification-no-automatic-remediation."
+		fields: [{
+			kind:        "domain-type"
+			name:        "category"
+			type:        "FailureCategory"
+			description: "Discriminator: structural-invalid | technical-failure | provider-or-rail-reject | upstream-policy-reject | business-invalid."
+		}, {
+			kind:        "domain-type"
+			name:        "ownership"
+			type:        "FailureOwnership"
+			description: "Discriminator: BKR-authoritative | external | upstream | upstream-semantic."
+		}, {
+			kind:        "domain-type"
+			name:        "subtype"
+			type:        "ProviderOrRailRejectSubtype"
+			description: "Discriminator: regulatory | account-status | rail-limit | provider-policy. Populated iff category=provider-or-rail-reject. Conditional integrity enforced by svc-failure-classification + aggregate handler; schema não valida condicionalmente."
+		}, {
+			kind:        "primitive"
+			name:        "detailReference"
+			type:        "string"
+			description: "Opaque reference to granular failure detail in prj-failure-classification projection (side-channel-aware retrieval per caller identity). NÃO incluí granular detail aqui para preservar sanitização downstream."
+		}]
+		constraints: [
+			"category ∈ {structural-invalid, technical-failure, provider-or-rail-reject, upstream-policy-reject, business-invalid}",
+			"ownership ∈ {BKR-authoritative, external, upstream, upstream-semantic}",
+			"subtype ∈ {regulatory, account-status, rail-limit, provider-policy} iff category=provider-or-rail-reject; absent otherwise",
+			"category × ownership consistency: structural-invalid → BKR-authoritative; technical-failure → BKR-authoritative; provider-or-rail-reject → external; upstream-policy-reject → upstream; business-invalid → upstream-semantic",
+		]
+		rationale: "Tupla canônica per glossary term-failure-classification + Phase 3.A.5 + Phase 3.B.1 ajustes. Side-channel mitigation: detailReference (opaque) NÃO carrega granular detail; prj-failure-classification gera detail per caller identity. svc-failure-classification materializa este VO."
+	}, {
+		code:        "vo-rail-target"
+		name:        "RailTarget"
+		description: "Discriminator dos rails operacionais BKR. Cada value carrega semantic distinct per protocol (finality semantics, operational windows, retry policy, reconciliation cadence)."
+		fields: [{
+			kind:        "domain-type"
+			name:        "value"
+			type:        "RailTargetEnum"
+			description: "Discriminator: pix-spi | ted-str | ted-sitraf | boleto-siloc | swift. Drex-future emergerá em wave futura quando rail entrar em produção."
+		}]
+		constraints: [
+			"value ∈ {pix-spi, ted-str, ted-sitraf, boleto-siloc, swift}",
+		]
+		rationale: "Discriminator do rail físico. Distinct values preservam rail-granular semantics per protocol — colapsar em 'rail-provider' único destruiria diferenças canônicas (e.g., Pix instant 24/7 vs SILOC batch D+1)."
+	}, {
+		code:        "vo-operational-window"
+		name:        "OperationalWindow"
+		description: "Restrição temporal de disponibilidade per rail: período(s) durante o(s) qual(is) o rail aceita dispatch e processa settlements. Variável per rail e ao longo do tempo (Bacen publica mudanças de calendário operacional)."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rail"
+			valueObjectRef: "vo-rail-target"
+		}, {
+			kind: "primitive"
+			name: "windowStart"
+			type: "datetime"
+		}, {
+			kind: "primitive"
+			name: "windowEnd"
+			type: "datetime"
+		}, {
+			kind:        "primitive"
+			name:        "recurrence"
+			type:        "string"
+			description: "Recurrence pattern: weekdays | always-on | batch-D+0 | batch-D+1 | per-cutoff | etc."
+		}, {
+			kind:        "domain-type"
+			name:        "calendarException"
+			type:        "CalendarException"
+			description: "Bacen holidays + ad-hoc closures + extension declarations. Optional iff no exceptions apply."
+		}]
+		constraints: [
+			"windowStart ≤ windowEnd OR recurrence=always-on (Pix special case)",
+			"rail aligned with window semantics (e.g., pix-spi → recurrence=always-on; ted-str → weekdays-Bacen-hours)",
+		]
+		rationale: "Per glossary term-operational-window. Constraint técnico observável (não decision target); consumido por svc-technical-rail-selection critério (a) + timeout policy + escalation criteria."
+	}, {
+		code:        "vo-settlement-value"
+		name:        "SettlementValue"
+		description: "Money type representing valor monetário do settlement. Composite: amount + currency."
+		fields: [{
+			kind:        "primitive"
+			name:        "amount"
+			type:        "decimal"
+			description: "Numeric amount em smallest currency unit (e.g., centavos para BRL)."
+		}, {
+			kind:        "primitive"
+			name:        "currency"
+			type:        "string"
+			description: "ISO 4217 currency code (e.g., BRL, USD, EUR)."
+		}]
+		constraints: [
+			"amount > 0",
+			"currency ISO 4217 3-character code",
+			"BRL é default para rails domésticos (Pix/TED/boleto); SWIFT permite multi-currency",
+		]
+		rationale: "Money type básico. Imutável; mutação de valor é vector adversarial (inv-anti-decision-boundary)."
+	}, {
+		code:        "vo-settlement-state"
+		name:        "SettlementState"
+		description: "Discriminator do estado canônico do SettlementAttempt no lifecycle. Mirrors lifecycle.states do agg-settlement-attempt."
+		fields: [{
+			kind:        "domain-type"
+			name:        "value"
+			type:        "SettlementStateEnum"
+			description: "Discriminator: requested | rejected | in-flight | finalized | failed | indeterminate."
+		}]
+		constraints: [
+			"value ∈ {requested, rejected, in-flight, finalized, failed, indeterminate}",
+		]
+		rationale: "VO discriminator preserva enum constraint + type-safety. Per Phase 3.A.5 ajuste 5: VO ao invés de stringly-typed lifecycle reforça SettlementIndeterminate como state nominal distinto."
+	}, {
+		code:        "vo-indeterminacy-reason"
+		name:        "IndeterminacyReason"
+		description: "Discriminator de causa de SettlementIndeterminate state. Cada value tem documented resolution semantics."
+		fields: [{
+			kind:        "domain-type"
+			name:        "value"
+			type:        "IndeterminacyReasonEnum"
+			description: "Discriminator: timeout-without-final-signal | value-divergence | signal-contradiction | missing-reconciliation-match."
+		}]
+		constraints: [
+			"value ∈ {timeout-without-final-signal, value-divergence, signal-contradiction, missing-reconciliation-match}",
+			"timeout-without-final-signal → re-query rail é resolution path típica",
+			"value-divergence → manual reconciliation é resolution path típica",
+			"signal-contradiction → escalation per rail-specific policy é resolution path típica",
+			"missing-reconciliation-match → manual investigation é resolution path típica",
+		]
+		rationale: "Catalogado como VO per Phase 3.B.4 decision (boundary meaning para forensic clarity). Discriminator + per-value resolution semantics preserva audit trail."
+	}, {
+		code:        "vo-resolution-evidence"
+		name:        "ResolutionEvidence"
+		description: "Discriminator do path que resolveu indeterminate state via cmd-resolve-indeterminate-state."
+		fields: [{
+			kind:        "domain-type"
+			name:        "value"
+			type:        "ResolutionEvidenceEnum"
+			description: "Discriminator: re-query-rail-confirmed | manual-reconciliation | escalation-determined."
+		}, {
+			kind:        "domain-type"
+			name:        "evidenceDetail"
+			type:        "EvidenceDetail"
+			description: "Optional granular detail per resolution path (e.g., for manual-reconciliation: human authorizer identity + reconciliation timestamp)."
+		}]
+		constraints: [
+			"value ∈ {re-query-rail-confirmed, manual-reconciliation, escalation-determined}",
+			"manual-reconciliation requires authorized human reviewer identity in evidenceDetail",
+			"escalation-determined requires rail-specific escalation policy ref",
+		]
+		rationale: "Catalogado como VO per Phase 3.B.4 (boundary meaning para audit trail + each path has authority requirements)."
+	}, {
+		code:        "vo-rail-operational-status"
+		name:        "RailOperationalStatus"
+		description: "Discriminator do estado operacional rail-side. Drives svc-technical-rail-selection critério (a) + retry policy + classification."
+		fields: [{
+			kind:        "domain-type"
+			name:        "value"
+			type:        "RailOperationalStatusEnum"
+			description: "Discriminator: available | degraded | unavailable | out-of-hours | rate-limited."
+		}]
+		constraints: [
+			"value ∈ {available, degraded, unavailable, out-of-hours, rate-limited}",
+		]
+		rationale: "Catalogado como VO per Phase 3.B.4 (boundary meaning). Status discriminator drives downstream technical decisions; preserva rail-level semantics distinct from BKR-side state."
+	}, {
+		code:        "vo-participant-identifier"
+		name:        "ParticipantIdentifier"
+		description: "Brazilian banking participant identity. Composite: ISPB + agency + account + account type + holder identification + optional Pix key. Per Bacen standards + DICT structure."
+		fields: [{
+			kind:        "primitive"
+			name:        "ispb"
+			type:        "string"
+			description: "Identificador da Instituição participante do SPB (8 dígitos)."
+		}, {
+			kind:        "primitive"
+			name:        "agencyCode"
+			type:        "string"
+			description: "Código da agência (banking branch identifier)."
+		}, {
+			kind:        "primitive"
+			name:        "accountNumber"
+			type:        "string"
+			description: "Número da conta no participante."
+		}, {
+			kind:        "domain-type"
+			name:        "accountType"
+			type:        "AccountType"
+			description: "Discriminator: corrente | poupança | pagamento | salário."
+		}, {
+			kind:        "primitive"
+			name:        "holderIdentification"
+			type:        "string"
+			description: "CPF (11 dígitos) ou CNPJ (14 dígitos) do titular."
+		}, {
+			kind:        "primitive"
+			name:        "holderName"
+			type:        "string"
+			description: "Nome canonical do titular per cadastro do participante."
+		}, {
+			kind:        "primitive"
+			name:        "pixKey"
+			type:        "string"
+			description: "Optional Pix key (CPF/CNPJ/email/phone/random UUID); resolved via DICT quando aplicável."
+		}]
+		constraints: [
+			"ispb 8-digit numeric string",
+			"holderIdentification 11 (CPF) or 14 (CNPJ) digit numeric string",
+			"accountType ∈ {corrente, poupança, pagamento, salário}",
+			"pixKey format depends on key type (DICT-validated externally)",
+			"BKR consumes per DICT/partner authoritative resolution; never validates locally beyond structural format",
+		]
+		rationale: "Per Phase 3.B.4 ajuste 3 founder: payer/payee identity é boundary-sensitive; deixar como domain-type nominal aumentaria risco de stringly-typed banking identity. Brazilian banking standards (ISPB + Bacen + DICT) carregam constraints estruturais que justificam catalog."
+	}]
+
+	// ============================================================
+	// AGGREGATES (1, com 1 entity nested + 6-state lifecycle + 7 transitions)
+	// ============================================================
+
+	aggregates: [{
+		code:        "agg-settlement-attempt"
+		name:        "SettlementAttempt"
+		description: "Aggregate root único do BC BKR representando uma execução técnica concreta de uma PaymentInstruction contra um rail. Identidade attemptId; lifecycle atomic state machine (requested → rejected | in-flight → finalized | failed | indeterminate); cada novo dispatch técnico após decisão de retry gera nova SettlementAttempt instance sob o mesmo InstructionId. Consistency boundary preservada per attempt — múltiplas attempts coexistem como instances distintas; nenhuma mutação cross-attempt."
+
+		rootIdentity: {
+			field: "attemptId"
+			type: {
+				kind:           "value-object-ref"
+				valueObjectRef: "vo-attempt-id"
+			}
+		}
+
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "instructionId"
+			valueObjectRef: "vo-instruction-id"
+			description:    "FCE-owned upstream business correlation; persists across all attempts under same instruction."
+		}, {
+			kind:           "value-object-ref"
+			name:           "idempotencyKey"
+			valueObjectRef: "vo-idempotency-key"
+			description:    "BKR-constructed enforcement value per attempt; sent to rail; new key per new dispatch."
+		}, {
+			kind:           "value-object-ref"
+			name:           "paymentInstruction"
+			valueObjectRef: "vo-payment-instruction"
+			description:    "Snapshot imutável da instruction recebida no momento da T1 acceptance (carrega payer/payee/value/rail-hint/AuthorizationProof)."
+		}, {
+			kind:           "value-object-ref"
+			name:           "authorizationProof"
+			valueObjectRef: "vo-authorization-proof"
+			description:    "Snapshot da proof verificada (audit trail). BKR consome validity, nunca interpreta nem redefine."
+		}, {
+			kind:           "value-object-ref"
+			name:           "state"
+			valueObjectRef: "vo-settlement-state"
+			description:    "Estado atual no lifecycle. Discriminator: requested | rejected | in-flight | finalized | failed | indeterminate."
+		}, {
+			kind:           "value-object-ref"
+			name:           "railSelected"
+			valueObjectRef: "vo-rail-target"
+			description:    "Rail selecionado por svc-technical-rail-selection. Populated post T3 dispatch; absent in requested/rejected states."
+		}, {
+			kind:        "domain-type"
+			name:        "railReferences"
+			type:        "RailReferenceSet"
+			description: "Cardinality 0..N rail-observed references per Phase 3.A.2 + Phase 3.C ajuste 2: pluralidade semântica preservada estruturalmente via domain-type RailReferenceSet (NÃO single vo-rail-reference-id wrapped). Primary selected for canonical reconciliation when available; vo-rail-reference-id mantido em events/commands para single-reference contexts."
+		}, {
+			kind:           "value-object-ref"
+			name:           "failureClassification"
+			valueObjectRef: "vo-failure-classification"
+			description:    "Populated iff state ∈ {rejected, failed}. Tuple (category, ownership, optional subtype). svc-failure-classification computa; aggregate armazena."
+		}, {
+			kind:           "value-object-ref"
+			name:           "indeterminacyReason"
+			valueObjectRef: "vo-indeterminacy-reason"
+			description:    "Populated iff state=indeterminate. Discriminator de causa."
+		}, {
+			kind:           "value-object-ref"
+			name:           "resolutionEvidence"
+			valueObjectRef: "vo-resolution-evidence"
+			description:    "Populated when state transitions out of indeterminate (T7/T8) via cmd-resolve-indeterminate-state. Audit trail de qual path resolveu."
+		}, {
+			kind:        "primitive"
+			name:        "createdAt"
+			type:        "datetime"
+			description: "Timestamp de aggregate creation (T1 implicit transition)."
+		}, {
+			kind:        "primitive"
+			name:        "lastTransitionAt"
+			type:        "datetime"
+			description: "Timestamp da última lifecycle transition state-to-state."
+		}]
+
+		handlesCommands: [
+			"cmd-dispatch-payment-instruction",
+			"cmd-request-settlement-cancellation",
+			"cmd-reject-instruction",
+			"cmd-dispatch-to-rail",
+			"cmd-record-reconciliation-outcome",
+			"cmd-resolve-indeterminate-state",
+		]
+
+		emitsEvents: [
+			"evt-payment-instruction-accepted",
+			"evt-instruction-rejected",
+			"evt-attempt-dispatched",
+			"evt-settlement-finalized",
+			"evt-settlement-failed",
+			"evt-settlement-indeterminate",
+			"evt-failure-classified",
+			"evt-cancellation-requested-of-rail",
+			"evt-cancellation-acknowledged-by-rail",
+			"evt-cancellation-rejected-by-rail",
+			"evt-cash-operational-status-updated-received",
+			"evt-rail-provider-status-updated-received",
+			"evt-reconciliation-completed",
+		]
+
+		protectsInvariants: [
+			"inv-anti-decision-boundary",
+			"inv-authorization-proof-verification-gate",
+			"inv-settlement-finality-post-reconciliation-only",
+			"inv-indeterminate-state-non-collapse",
+			"inv-attempt-identity-per-retry",
+			"inv-idempotency-enforcement-per-attempt",
+			"inv-rail-selection-technical-criteria-only",
+			"inv-failure-classification-no-automatic-remediation",
+			"inv-reverse-settlement-upstream-authorized-only",
+		]
+
+		entities: [{
+			code:        "ent-cancellation-request"
+			name:        "CancellationRequest"
+			description: "Nested entity dentro de agg-settlement-attempt representando uma cancellation request issued via cmd-request-settlement-cancellation. Cardinality 0 ou 1 per attempt; sub-lifecycle interno (pending → acknowledged | rejected) tracked separadamente do lifecycle do attempt parent. NÃO cria state primário no aggregate parent (per Phase 3.A.3 ajuste cancellation deferral); outcome da rail flow via separate events que entram no normal reconciliation path."
+
+			identity: {
+				field: "cancellationRequestId"
+				type: {
+					kind: "primitive"
+					type: "string"
+				}
+			}
+
+			fields: [{
+				kind:        "primitive"
+				name:        "cancellationRequestReason"
+				type:        "string"
+				description: "Technical reason for requesting pre-finality cancellation, not economic reversal rationale (per Phase 3.B.3 ajuste rename)."
+			}, {
+				kind:        "primitive"
+				name:        "requestedAt"
+				type:        "datetime"
+				description: "Timestamp do command processing por aggregate handler."
+			}, {
+				kind:        "primitive"
+				name:        "requestSentToRailAt"
+				type:        "datetime"
+				description: "Timestamp do dispatch da cancellation request ao rail (e.g., pacs.057 SPI). Optional iff dispatch ainda pendente."
+			}, {
+				kind:        "primitive"
+				name:        "outcomeReceivedAt"
+				type:        "datetime"
+				description: "Timestamp do rail outcome (acknowledged/rejected). Optional iff outcome ainda pendente."
+			}, {
+				kind:        "domain-type"
+				name:        "outcomeStatus"
+				type:        "CancellationOutcome"
+				description: "Discriminator: pending | acknowledged | rejected. Pending até rail responder. Acknowledged quando rail aceita pacs.057 ou equivalente. Rejected quando rail recusa (e.g., já em clearing irreversível)."
+			}, {
+				kind:        "domain-type"
+				name:        "railResponseDetails"
+				type:        "RailResponseDetails"
+				description: "Detail granular do rail response (rail reason code, settlement state at rail-side). Optional iff outcomeStatus=pending."
+			}]
+
+			rationale: "Nested entity per Phase 3.A.5 ajuste 4 (founder: ent-cancellation-request com sub-lifecycle próprio merece isolamento; não colocar fields direto no root). Identity próprio (cancellationRequestId derivable per attempt) preserva audit trail mesmo quando outcome flow into parent attempt state via cmd-record-reconciliation-outcome (e.g., cancellation-honored-by-rail subtype)."
+		}]
+
+		usesValueObjects: [
+			"vo-instruction-id",
+			"vo-attempt-id",
+			"vo-idempotency-key",
+			"vo-rail-reference-id",
+			"vo-authorization-proof",
+			"vo-payment-instruction",
+			"vo-failure-classification",
+			"vo-rail-target",
+			"vo-settlement-value",
+			"vo-settlement-state",
+			"vo-indeterminacy-reason",
+			"vo-resolution-evidence",
+			"vo-participant-identifier",
+		]
+
+		lifecycle: {
+			initialState: "requested"
+
+			states: [
+				"requested",
+				"rejected",
+				"in-flight",
+				"finalized",
+				"failed",
+				"indeterminate",
+			]
+
+			transitions: [{
+				from:               "requested"
+				to:                 "rejected"
+				triggeredByCommand: "cmd-reject-instruction"
+				emitsEvents: ["evt-instruction-rejected", "evt-failure-classified"]
+				guards: ["inv-failure-classification-no-automatic-remediation"]
+				description:        "T2: pre-dispatch rejection — structural-invalid OR business-invalid OR upstream-policy-reject OR authorization-proof-invalid detected at BKR boundary by svc-failure-classification. Terminal state; new attempt requires new authorized PaymentInstruction (per inv-authorization-proof-verification-gate amplification)."
+			}, {
+				from:               "requested"
+				to:                 "in-flight"
+				triggeredByCommand: "cmd-dispatch-to-rail"
+				emitsEvents: ["evt-attempt-dispatched"]
+				guards: [
+					"inv-rail-selection-technical-criteria-only",
+					"inv-idempotency-enforcement-per-attempt",
+					"inv-attempt-identity-per-retry",
+				]
+				description: "T3: technical dispatch executed. svc-technical-rail-selection produces rail per 4 critérios técnicos; idempotencyKey constructed per attempt; sent to rail."
+			}, {
+				from:               "in-flight"
+				to:                 "finalized"
+				triggeredByCommand: "cmd-record-reconciliation-outcome"
+				emitsEvents: ["evt-settlement-finalized"]
+				guards: [
+					"inv-settlement-finality-post-reconciliation-only",
+					"inv-anti-decision-boundary",
+				]
+				description: "T4: SettlementFinality canonicalizada post-Reconciliation (4 conditions match). Routing per outcome=finalized field of cmd-record-reconciliation-outcome."
+			}, {
+				from:               "in-flight"
+				to:                 "failed"
+				triggeredByCommand: "cmd-record-reconciliation-outcome"
+				emitsEvents: ["evt-settlement-failed", "evt-failure-classified"]
+				guards: ["inv-failure-classification-no-automatic-remediation"]
+				description:        "T5: SettlementFailed canonicalizada post-Reconciliation com proof. Routing per outcome=failed."
+			}, {
+				from:               "in-flight"
+				to:                 "indeterminate"
+				triggeredByCommand: "cmd-record-reconciliation-outcome"
+				emitsEvents: ["evt-settlement-indeterminate"]
+				guards: ["inv-indeterminate-state-non-collapse"]
+				description:        "T6: SettlementIndeterminate preservado como estado epistemic distinto. Routing per outcome=indeterminate. NÃO emite settlement-finalized nem settlement-failed; consumer downstream observa estado distinto."
+			}, {
+				from:               "indeterminate"
+				to:                 "finalized"
+				triggeredByCommand: "cmd-resolve-indeterminate-state"
+				emitsEvents: ["evt-settlement-finalized"]
+				guards: [
+					"inv-indeterminate-state-non-collapse",
+					"inv-settlement-finality-post-reconciliation-only",
+				]
+				description: "T7: explicit resolution out of indeterminate via re-query rail OR manual reconciliation OR escalation. Routing per resolution=finalized. NÃO automatic; resolutionEvidence required."
+			}, {
+				from:               "indeterminate"
+				to:                 "failed"
+				triggeredByCommand: "cmd-resolve-indeterminate-state"
+				emitsEvents: ["evt-settlement-failed", "evt-failure-classified"]
+				guards: [
+					"inv-indeterminate-state-non-collapse",
+					"inv-failure-classification-no-automatic-remediation",
+				]
+				description: "T8: explicit resolution out of indeterminate determining failure. Routing per resolution=failed."
+			}]
+		}
+
+		consistencyBoundary: {
+			guarantees: [
+				"Atomic state transition per transition entry: T2-T8 cada transition é single transactional step on aggregate state; partial state mutations não são observáveis.",
+				"AuthorizationProof verification atomic at T1 aggregate creation: proof verified completely (signature + nonce + issuedAt + validityWindow + claimChain) antes de SettlementAttempt entity persisted; falha de verificação cancela creation sem produzir aggregate instance.",
+				"Identity + input snapshot immutability: attemptId (rootIdentity), instructionId, idempotencyKey, paymentInstruction snapshot, authorizationProof snapshot são immutable post-creation; mutações em aggregate state limitam-se aos fields state, railSelected, railReferences, failureClassification, indeterminacyReason, resolutionEvidence, lastTransitionAt.",
+				"Invariant enforcement atomic per command handling: aggregate handler verifica todos os invariants protegidos relevantes ao command antes de qualquer state mutation; violação rejeita command sem partial state mutation.",
+				"Idempotency enforcement per attempt: aggregate rejeita re-processing de same command targeting same (attemptId, idempotencyKey) pair; previne double-state-mutation por replay attack ou network retry.",
+				"Cancellation entity (ent-cancellation-request) outcome integration atomic: when rail outcome (acknowledged/rejected) arrives via ACL events, aggregate handler updates ent-cancellation-request.outcomeStatus + (when applicable) issues cmd-record-reconciliation-outcome em single transaction.",
+			]
+			explicitlyDoesNotGuarantee: [
+				"Cross-attempt atomicity: multiple SettlementAttempt instances under same instructionId são independent aggregate instances; sem shared state nem transactional coordination across attempts.",
+				"Synchronous rail reconciliation: rail signal arrives async via partner/PSTI; reconciliation outcome computed independently por svc-reconciliation e applied via cmd-record-reconciliation-outcome (eventual consistency entre dispatch e outcome aggregate state update).",
+				"Real-time rail finality reflection: BKR's SettlementFinality canonicalization may lag rail-side finality timestamp por reconciliation processing time + cmd-record-reconciliation-outcome handling.",
+				"Cross-rail uniform finality semantics: aggregate state reflete rail-specific outcome (Pix instant vs TED D+0 vs SILOC batch vs SWIFT multi-hop); BKR não normaliza para abstração cross-rail unified.",
+				"Concurrent rail signals ordering: when multiple rail signals arrive for same attempt (e.g., ACCEPTED followed by SETTLED), svc-reconciliation processes per arrival order but aggregate state reflects last applied outcome; ordering within reconciliation window é responsibility of rail integration adapter.",
+			]
+			failureModes: [
+				"Indeterminate state persistence: timeout-without-final-signal | value-divergence | signal-contradiction | missing-reconciliation-match — aggregate persiste em indeterminate até explicit cmd-resolve-indeterminate-state; reconciliation backlog cresce sob ambiguity sustentada.",
+				"Failed pre-dispatch (T2 → rejected): structural-invalid | business-invalid | upstream-policy-reject detected at boundary; technical-failure before rail dispatch remains a technical execution failure and may make retry eligible only if pre-authorized.",
+				"Failed post-dispatch (T5/T8 → failed): provider-or-rail-reject | technical-failure post-rail detected via svc-reconciliation; transição para failed é terminal para esse attempt; retry decision (when policy permits) generates new SettlementAttempt instance.",
+				"Cancellation race: cmd-request-settlement-cancellation may arrive durante in-flight; rail outcome (acknowledged via pacs.057 ou rejected) arrives via ACL events; aggregate handler atomically updates ent-cancellation-request + (if acknowledged) issues cmd-record-reconciliation-outcome with subtype='cancellation-honored-by-rail' subsequent.",
+				"Aggregate handler exception: command processing exception leaves aggregate in pre-command state (atomicidade preservada); upstream re-issues command if needed (idempotency enforcement prevents double-processing).",
+				"Cancellation rejected by rail: when rail refuses cancellation, aggregate persists em in-flight (ou já transicionou para finalized/failed/indeterminate normal flow); ent-cancellation-request.outcomeStatus=rejected é audit marker, sem state primário no aggregate parent.",
+			]
+			rationale: """
+				agg-settlement-attempt é consistency boundary per attemptId.
+				Atomic guarantees apply intra-aggregate (per attempt instance);
+				cross-attempt consistency é eventual via instructionId lineage
+				tracked em prj-audit-trail. Failure modes enumeram os 4 paths
+				principais (rejected, failed, indeterminate, cancellation race)
+				que aggregate handler trata determinísticamente per atomic
+				transitions + invariant enforcement.
+
+				explicitlyDoesNotGuarantee é declaração proativa contra over-
+				promise: cross-attempt + sync rail + real-time finality + cross-
+				rail uniform são todas tentações comuns que BKR explicitly does
+				not provide; consumers operam sob esses limites (per
+				consumerProtocol em systemConsistencyModel).
+				"""
+		}
+
+		rationale: """
+			Único aggregate do BC BKR. Consistency boundary per attemptId —
+			cada SettlementAttempt é unidade atômica de execução técnica
+			com identidade própria, lifecycle próprio e estado mutável.
+			PaymentInstruction (input imutável) e AuthorizationProof
+			(input imutável) ficam como value objects consumidos.
+
+			Cancellation handled inside aggregate via cmd-request-settlement-
+			cancellation + ent-cancellation-request nested (Phase 3.A.5
+			ajuste 4 founder: NÃO criar service separado). Cancellation NÃO
+			cria state primário (Phase 3.A.3 ajuste cancellation deferral);
+			outcome da rail flow into normal reconciliation path via cmd-
+			record-reconciliation-outcome com classification subtype=
+			"cancellation-honored-by-rail".
+
+			agg-settlement-attempt cobre forward settlement execution apenas
+			(Phase 3.A.5 ajuste 4 founder). agg-reverse-settlement-attempt
+			é Phase futura separada quando ReverseSettlement workflow for
+			definido.
+
+			usesValueObjects lista 13 of 15 VOs catalogados (excluding vo-
+			operational-window + vo-rail-operational-status — esses são
+			primariamente usados por svc-technical-rail-selection e events;
+			aceitar tq-dm-04 warn ao invés de listar artificialmente per
+			founder direction Phase 3.B.4 ajuste 4).
+
+			emitsEvents includes locally recorded event-stream entries for
+			ACL-translated inputs and service-produced reconciliation
+			markers, per P2P convention, to satisfy event ownership in the
+			domain model without claiming semantic authorship by the
+			aggregate (per Phase 3.C ajuste pequeno reword).
+
+			9 invariants protected — todos os 9 do Phase 3.B.1 catalog,
+			materializando os 5 guardrails founder Phase 3 (anti-decision
+			boundary + authorization gate + finality post-reconciliation
+			+ indeterminate non-collapse + attempt lineage + idempotency
+			per attempt + rail selection technical-only + classification
+			non-remediation + reverse upstream-authorized).
+			"""
+	}]
+
+	// ============================================================
+	// DOMAIN SERVICES (3)
+	// ============================================================
+
+	domainServices: [{
+		code:        "svc-reconciliation"
+		name:        "Reconciliation"
+		description: "Processo determinístico cross-source que correlaciona SettlementAttempt state (BKR-side: instructionId × attemptId × idempotencyKey × instructed value/payee/rail) contra rail settlement/confirmation signals received via partner/PSTI ACL events (rail-side: railReferenceId × confirmed value/payee/status/timestamp) per 4 conditions do glossary term-reconciliation: (a) instructionId presente em railReferenceId metadata OR claim chain match; (b) value coherence; (c) payee coherence; (d) status terminal coerente. Outcome trichotomic: finalized | failed | indeterminate. Emits evt-reconciliation-completed; pol-reconciliation-outcome-routing transforma em cmd-record-reconciliation-outcome."
+
+		orchestrates: ["agg-settlement-attempt"]
+
+		rationale: "Cross-source determinism: rail settlement/confirmation signals chegam async via partner/PSTI integration. svc-reconciliation correlaciona contra aggregate state armazenado e produz canonical outcome. Não pertence ao aggregate individual porque a lógica consome MULTIPLE inputs orquestrados (rail signal + aggregate state + reconciliation policy per rail). Per founder direction Phase 3.A.4 ajuste 5: 'Reconciliation é processo determinístico cross-source, não lifecycle action pura do aggregate.' Materializa inv-settlement-finality-post-reconciliation-only e inv-indeterminate-state-non-collapse via outcome routing. Per Phase 3.E ajuste 1 founder: rail status updates (RailProviderStatusUpdated) são operational status, não confirmação de settlement; reconciliation consome especificamente settlement/confirmation signals."
+	}, {
+		code:        "svc-failure-classification"
+		name:        "FailureClassification"
+		description: "Processo determinístico cross-source que classifica falhas detectadas em 5 categorias × 4 ownership × optional subtype, produzindo vo-failure-classification. Triggers: (a) pre-dispatch boundary check (structural-invalid | business-invalid | upstream-policy-reject); (b) post-dispatch rail rejection (provider-or-rail-reject com subtypes regulatory | account-status | rail-limit | provider-policy); (c) technical-failure (BKR-authoritative pre ou post rail) — produces retry eligibility only when pre-authorized policy exists; otherwise escalates. Output embedded em cmd-reject-instruction OR cmd-record-reconciliation-outcome payload. Side-channel mitigation: detailReference opaque para sanitized downstream consumption via prj-failure-classification."
+
+		orchestrates: ["agg-settlement-attempt"]
+
+		rationale: "Cross-source: classification consome rail error codes + BKR boundary state + AuthorizationProof validity + upstream policy refs + observed dispatch outcome. Não pertence ao aggregate individual porque a lógica de classification é compartilhada entre pre-dispatch (T2 rejected path) e post-dispatch (T5/T8 failed path). Materializa inv-failure-classification-no-automatic-remediation: produz tuple (category, ownership, optional subtype), NOT remediation; technical-failure produces retry eligibility only when pre-authorized policy exists, otherwise escalates (per Phase 3.E ajuste 2). Side-channel mitigation per canvas Phase 1.2 cap 6 + Phase 1.4: detailReference opaque preserva sanitization downstream."
+	}, {
+		code:        "svc-technical-rail-selection"
+		name:        "TechnicalRailSelection"
+		description: "Processo determinístico cross-source que seleciona rail target (vo-rail-target) per 4 critérios técnicos do glossary term-technical-rail-selection: (a) technical availability — rail dentro de operational-window; (b) protocol compatibility — payer/payee suportam protocolo; (c) latency admissibility — rail latency admissível contra upstream-declared validity-window (constraint check, NOT optimization target); (d) upstream-declared constraints — instruction railHint ou pin OR fallback list. Output vo-rail-target embedded em cmd-dispatch-to-rail. Quando upstream-declared constraints contradizem critérios (a-c), rejection com classification structural-invalid via svc-failure-classification; NUNCA substitui silently."
+
+		orchestrates: ["agg-settlement-attempt"]
+
+		rationale: "Cross-source: consume operational-window (rail-side via query-deps + ACL events evt-rail-provider-status-updated-received) + protocol compatibility (payer/payee VOs from vo-payment-instruction) + latency window (vo-authorization-proof.validityWindowEndsAt) + upstream constraints (vo-payment-instruction.railHint). Materializa inv-rail-selection-technical-criteria-only: cost optimization, treasury position, fee arbitrage, scoring/adaptive optimization, smart routing são FORBIDDEN. Per founder Phase 3.A.5 ajuste 2: 'Não absorver rail selection no aggregate. Service explícito justifica cross-source nature.'"
+	}]
+
+	// ============================================================
+	// POLICIES (2)
+	// ============================================================
+
+	policies: [{
+		code:        "pol-reconciliation-outcome-routing"
+		name:        "ReconciliationOutcomeRouting"
+		description: "Policy que consume evt-reconciliation-completed (emitted by svc-reconciliation) e issues cmd-record-reconciliation-outcome carregando outcome trichotomic (finalized | failed | indeterminate) + railReferenceId + (when applicable) failureClassification + indeterminacyReason. Aggregate handler routes per outcome discriminator field per state machine T4/T5/T6."
+
+		triggeredByEvent: "evt-reconciliation-completed"
+		issuesCommand:    "cmd-record-reconciliation-outcome"
+
+		guards: [
+			"inv-settlement-finality-post-reconciliation-only",
+			"inv-indeterminate-state-non-collapse",
+			"inv-failure-classification-no-automatic-remediation",
+			"inv-anti-decision-boundary",
+		]
+
+		rationale: "Schema #Policy é automação simples event → command. Aqui, svc-reconciliation produz outcome semântico (cross-source process); pol-reconciliation-outcome-routing applica guards + dispatcha command per founder Phase 3.A.4 ajuste 5 fluxo. Separação service/policy preserva clareza: service computa, policy roteia. Guards garantem que routing respeita boundary integrity (não produz finality sem proof, não colapsa indeterminate, não auto-remedia, não excede anti-decision boundary)."
+	}, {
+		code:        "pol-cancellation-outcome-routing"
+		name:        "CancellationOutcomeRouting"
+		description: "Policy que consume evt-cancellation-acknowledged-by-rail (rail aceitou cancellation via pacs.057 ou equivalente) e issues cmd-record-reconciliation-outcome com outcome=failed + classification subtype='cancellation-honored-by-rail'. Para evt-cancellation-rejected-by-rail: NO policy explícita (no-op default per founder Phase 3.A.5 ajuste 3); attempt remains governed by normal reconciliation path."
+
+		triggeredByEvent: "evt-cancellation-acknowledged-by-rail"
+		issuesCommand:    "cmd-record-reconciliation-outcome"
+
+		guards: [
+			"inv-anti-decision-boundary",
+			"inv-failure-classification-no-automatic-remediation",
+		]
+
+		rationale: "Cancellation outcome integration per founder Phase 3.A.5 ajuste 3: cancellation outcome é evento auxiliar que precisa entrar no lifecycle sem virar state primário. Acknowledged → routes to failed via classification subtype 'cancellation-honored-by-rail'. Failed here means terminal non-finalized attempt outcome, not economic failure (per Phase 3.E ajuste 3 founder). Rejected → no policy (default: attempt continua normal reconciliation path). Schema #Policy.triggeredByEvent é single — rejected handling fica implicit (sem ação automática) preservando founder direction. Guards garantem cancellation routing não viola anti-decision-boundary nem produz auto-remediation."
+	}]
+
+	// ============================================================
+	// PROJECTIONS (3, com 9 query capabilities total)
+	// ============================================================
+
+	projections: [{
+		code:        "prj-settlement-status"
+		name:        "SettlementStatus"
+		description: "Read model from event log canonical (per canvas Phase 1.4 query-surface QuerySettlementStatus). Materializa estado canônico do SettlementAttempt consultável por instructionId (business correlation) | attemptId (execution lineage) | railReferenceId (external reference). Não emite outcome canonical sob estados não-finais (in-flight, indeterminate) — consumers downstream observam estado, não decidem por ele."
+
+		consumesEvents: [
+			"evt-payment-instruction-accepted",
+			"evt-attempt-dispatched",
+			"evt-settlement-finalized",
+			"evt-settlement-failed",
+			"evt-settlement-indeterminate",
+			"evt-instruction-rejected",
+			"evt-cancellation-requested-of-rail",
+			"evt-cancellation-acknowledged-by-rail",
+			"evt-cancellation-rejected-by-rail",
+		]
+
+		queryCapabilities: [{
+			code:        "qry-settlement-status-by-instruction-id"
+			description: "Retorna SettlementStatusView para instructionId, incluindo lista de attempts associados + estado canonical de cada + lineage técnica."
+			rationale:   "Business correlation lookup — FCE/ATO consultam por instructionId (sua correlation key)."
+		}, {
+			code:        "qry-settlement-status-by-attempt-id"
+			description: "Retorna SettlementStatusView para attemptId específico, incluindo state machine current state + transitions history + (when terminal) outcome data."
+			rationale:   "Execution lineage lookup — operational debug e forensic per attempt."
+		}, {
+			code:        "qry-settlement-status-by-rail-reference-id"
+			description: "Retorna SettlementStatusView via railReferenceId, resolvendo à attempt + instruction associadas."
+			rationale:   "Reverse lookup from rail-side identifier — útil para reconciliation manual e investigação cross-system."
+		}]
+
+		rationale: "Per canvas Phase 1.4 query-surface QuerySettlementStatus + tq-dm-16 alignment. Side-channel-aware: classification detail filtrado per caller identity em query layer (callers identifiable como upstream authorizer FCE recebem granular; demais recebem sanitized). Consumes events do lifecycle inteiro + cancellation-related events para state reconstruction completa."
+	}, {
+		code:        "prj-failure-classification"
+		name:        "FailureClassification"
+		description: "Read model with side-channel-aware payload — full granular detail (category + ownership + subtype + indeterminacyReason + detailReference resolved) apenas para callers identificáveis como upstream authorizer (FCE); demais consumers (audit, downstream observers) recebem categoria genérica + outcome sem detail que vaze compliance info (e.g., 'rail-rejected' sem revelar sanctions hit specifically). Per canvas Phase 1.2 cap 6 side-channel mitigation."
+
+		consumesEvents: [
+			"evt-failure-classified",
+			"evt-instruction-rejected",
+		]
+
+		queryCapabilities: [{
+			code:        "qry-failure-classification-by-instruction-id"
+			description: "Retorna FailureClassificationView para instructionId, agregando classifications de todos os attempts associados quando aplicável."
+			rationale:   "Business correlation — FCE consulta para decidir reissuance/cancellation per ownership causal."
+		}, {
+			code:        "qry-failure-classification-by-attempt-id"
+			description: "Retorna FailureClassificationView para attempt específico — granular detail com subtype + indeterminacyReason + detailReference."
+			rationale:   "Per attempt detail — operational debug e forensic per execution."
+		}]
+
+		rationale: "Per canvas Phase 1.4 query-surface QueryFailureClassification (renamed from DispatchClassification during Phase 3.A.4) + tq-dm-16 alignment. Side-channel mitigation materializada em projection layer: query handler verifica caller identity e retorna sanitized OR granular per authorization. detailReference (opaque string em vo-failure-classification) é resolved aqui para granular callers; sanitized para outros."
+	}, {
+		code:        "prj-audit-trail"
+		name:        "AuditTrail"
+		description: "Append-only event log forensic projection. Consume todos os 13 events do BC para preservar full audit trail incluindo lifecycle markers, published outcomes, ACL inputs (TCM cash status + partner/PSTI rail status + rail cancellation outcomes), e reconciliation marker (svc-reconciliation output). Não permite mutações; cada query retorna snapshot imutável do event stream filtered per query parameters."
+
+		consumesEvents: [
+			"evt-payment-instruction-accepted",
+			"evt-instruction-rejected",
+			"evt-attempt-dispatched",
+			"evt-settlement-finalized",
+			"evt-settlement-failed",
+			"evt-settlement-indeterminate",
+			"evt-failure-classified",
+			"evt-cancellation-requested-of-rail",
+			"evt-cancellation-acknowledged-by-rail",
+			"evt-cancellation-rejected-by-rail",
+			"evt-cash-operational-status-updated-received",
+			"evt-rail-provider-status-updated-received",
+			"evt-reconciliation-completed",
+		]
+
+		queryCapabilities: [{
+			code:        "qry-audit-trail-by-instruction-id"
+			description: "Retorna ordered event sequence para instructionId, incluindo events de todos os attempts associados + ACL inputs no contexto temporal."
+			rationale:   "Business correlation forensic — reconstrução completa do lifecycle por business action."
+		}, {
+			code:        "qry-audit-trail-by-attempt-id"
+			description: "Retorna ordered event sequence para attempt específico — lifecycle markers + outcomes + ACL events relevantes ao attempt."
+			rationale:   "Per attempt forensic — reconstrução completa do execution lineage."
+		}, {
+			code:        "qry-audit-trail-by-rail-reference-id"
+			description: "Retorna ordered event sequence para railReferenceId — reverse lookup forensic from rail-side identifier."
+			rationale:   "Cross-system forensic — útil para investigação de discrepâncias com rail-side records."
+		}, {
+			code:        "qry-audit-trail-by-time-range"
+			description: "Retorna events em time-range especificado, filtered opcionalmente por rail target ou event type. Útil para análise de incidentes operacionais (e.g., janela de outage SPI)."
+			rationale:   "Operational forensic — análise de patterns temporais e correlation com incidentes externos."
+		}]
+
+		rationale: "Per Phase 3.A.5 founder direction: audit trail forensic precisa ver inputs externos e reconciliation marker, não apenas state-change events. Append-only event log concern, NÃO aggregate (per Phase 3.A.2 ajuste linha 19). Cumpre obrigação de auditoria + forensic clarity. 4 queryCapabilities cobrem business correlation, attempt lineage, rail-side reverse lookup, e operational time-range analysis."
+	}]
+
+	// ============================================================
+	// INTERPRETATION CONTRACTS (per adr-081)
+	// ============================================================
+
+	systemConsistencyModel: {
+		type: "eventual"
+
+		intraAggregateGuarantees: [
+			"Atomic state transition per transition entry (T2-T8): cada transition é single transactional step on aggregate state.",
+			"AuthorizationProof verification atomic at T1 aggregate creation: proof verified before SettlementAttempt entity persisted.",
+			"Identity + input immutability: attemptId, instructionId, idempotencyKey, paymentInstruction snapshot, authorizationProof snapshot são immutable post-creation.",
+			"Invariant enforcement atomic per command handling: 9 invariants checked atomically per command processing; violation rejects command without partial state mutation.",
+			"Idempotency enforcement per attempt: aggregate rejects re-processing of same (attemptId, idempotencyKey) pair.",
+		]
+
+		crossAggregateGuarantees: [
+			"Cross-attempt instructionId lineage is reconstructible via audit/projections: multiple SettlementAttempt instances under same instructionId share business correlation; lineage retrievable via prj-audit-trail.",
+			"ACL convention: external signals (TCM operational status, partner/PSTI rail status, rail confirmations) translated into internal events with sourceContext; aggregate consumes via translated events with explicit source attribution.",
+			"Cross-BC published events delivered with at-least-once semantics; consumers (fce/tcm/ato/rew) MUST handle duplicate delivery via instructionId+attemptId idempotency.",
+		]
+
+		explicitlyDoesNotGuarantee: [
+			"Synchronous coordination across attempts under same instructionId: each attempt is independently reconciled; cross-attempt state consistency é eventual.",
+			"Cross-rail uniform finality semantics: BKR does NOT enforce normalized finality across rails; SettlementFinality reflects rail-specific irreversibility per rail's protocol semantics.",
+			"Time-bounded resolution of indeterminate state: SettlementIndeterminate may persist until explicit cmd-resolve-indeterminate-state; no auto-progression via timeout.",
+			"Total ordering of events across attempts: events causally ordered per attempt only; cross-attempt event ordering depends on instructionId-scoped audit retrieval.",
+			"Real-time rail finality reflection: BKR SettlementFinality canonicalization may lag rail-side finality by Reconciliation processing time.",
+			"BKR does not guarantee upstream economic correctness of the PaymentInstruction; it only verifies AuthorizationProof structure and executes technical settlement semantics.",
+		]
+
+		conflictResolution: {
+			strategy: "explicit-command"
+			rationale: "Conflicts (cancellation race vs reconciliation, concurrent rail signals, indeterminate resolution paths) resolved via explicit command sequencing per atomic state machine + idempotencyKey enforcement (rail-side dedup) + cmd-resolve-indeterminate-state explicit resolution. Last-write-wins seria perigoso para settlement state (perderia rail finality proof); causal-ordering exigiria distributed coordination que BKR não impõe."
+		}
+
+		consumerProtocol: [
+			"Consumers MUST handle SettlementIndeterminate as distinct state from SettlementFailed and SettlementFinalized — preserves epistemic boundary per inv-indeterminate-state-non-collapse; non-final state with NO canonical outcome assertion.",
+			"Consumers MUST treat published events as canonical authority for settlement state; NO inferring outcome from rail signals directly nor from BKR's internal lifecycle markers.",
+			"Consumers MUST handle InstructionRejected as terminal for that instruction intake; new instruction requires new InstructionId + new AuthorizationProof per inv-authorization-proof-verification-gate.",
+			"Consumers MUST handle FailureClassified detail per side-channel-aware policy: only FCE receives granular classification (category + ownership + subtype); downstream consumers (TCM/ATO/REW) receive sanitized aggregate via prj-failure-classification projection layer.",
+			"Consumers MUST NOT derive new authorization from existing AuthorizationProof for reverse economic intent; per inv-reverse-settlement-upstream-authorized-only, reverse settlement requires NEW AuthorizationProof for NEW economic obligation.",
+		]
+
+		systemFailureModes: [
+			"Indeterminate state persistence: when neither rail re-query, manual reconciliation, nor escalation produces deterministic outcome, attempt persists em indeterminate até explicit resolution; reconciliation backlog cresce sob falha sustentada.",
+			"Rail provider unavailability: cascading attempts under same rail fail com provider-or-rail-reject classification (subtype rail-limit ou provider-policy); upstream FCE/REW deve adjustar instruction routing.",
+			"Network partition BKR ↔ partner/PSTI: dispatch may succeed at rail enquanto BKR não recebe acknowledgment; produces indeterminate via timeout-without-final-signal; resolution requires re-query post-recovery.",
+			"Concurrent retry under same instructionId: when upstream policy permits parallel re-dispatch após non-final attempt, multiple SettlementAttempt instances coexist; mitigated by per-attempt idempotencyKey preventing rail-side double-execution; cross-attempt outcome reconciliation responsibility upstream.",
+			"Bacen/CIP regulatory specification change não absorvida: rail behavior diverges from BKR's protocol-translation expectations; produces classification drift; mitigated by ec-regulatory-boundary-misalignment escalation per canvas Phase 1.5.",
+		]
+
+		replayScopeStrategy: "by-correlationId"
+
+		rationale: """
+			Eventual consistency at system level — cada SettlementAttempt é
+			consistency boundary atômico isolado; cross-attempt + cross-BC
+			coordination é eventual via published events + audit trail. Strong
+			consistency seria over-promise para sistema com rail externos
+			async + multi-attempt lineage. Causal ordering exigiria
+			distributed coordination que BKR explicitamente não impõe.
+
+			4 fields opcionais hardening (per adr-084 tq-dm-18 warn) declarados
+			proactivamente porque BKR é high-criticality generic BC: consumers
+			cross-BC (FCE/TCM/ATO/REW) operam sob canonical outputs do BKR
+			e precisam de protocol explicit; production failure modes precisam
+			ser declared upfront para evitar over-promise; replayScopeStrategy
+			by-correlationId (instructionId) reflete que audit + forensic
+			reconstruction é per business-action, não per attempt isolated;
+			replay per-attempt continua via attemptId dentro do escopo.
+			"""
+	}
+
+	decisionAuthorityModel: {
+		type: "hybrid"
+
+		authoritativeScope: """
+			Technical settlement execution + canonicalization:
+			(1) SettlementAttempt entity lifecycle and state canonicalization
+			    (requested → rejected | in-flight → finalized | failed |
+			    indeterminate);
+			(2) reconciliation outcome canonicalization (deterministic match
+			    against rail signals via svc-reconciliation 4-conditions);
+			(3) failure classification (5 categories × 4 ownership × optional
+			    subtype via svc-failure-classification);
+			(4) technical rail selection per 4 strict criteria (technical-
+			    availability + protocol-compatibility + latency-admissibility +
+			    upstream-declared-constraints; never economic optimization);
+			(5) audit trail writes (append-only event log entries per attempt
+			    via prj-audit-trail).
+			Consumers (FCE, TCM, ATO, REW) MUST treat BKR's canonical state
+			assertions for these scopes as authoritative; downstream business
+			logic (cash position commit, fiscal repercussion, risk profile
+			update, reissuance decisions) flows from BKR's canonical outputs.
+			"""
+
+		advisoryScope: """
+			Rail-level operational signals + granular failure classification
+			detail surfaced as observational data:
+			(a) operational windows per rail (informed by query-deps to rail
+			    providers);
+			(b) provider/rail status updates (received via ACL events from
+			    partner/PSTI integration boundary);
+			(c) cancellation request outcomes (acknowledged/rejected by rail —
+			    non-guaranteed);
+			(d) granular failure classification subtype detail and
+			    indeterminacy reason taxonomy (consumed via prj-failure-
+			    classification projection).
+			Consumers MAY use these signals as input to upstream decisions
+			(retry timing, instruction reissuance, escalation logic) but BKR
+			does NOT assert obligation that consumers act on advisory signals;
+			signals are descriptive of rail/provider state, not prescriptive
+			of consumer behavior.
+			"""
+
+		rationale: """
+			BKR é hybrid porque carrega dois papéis distintos cross-BC:
+
+			(a) AUTHORITATIVE sobre execução técnica + canonicalização —
+			consumers MUST treat BKR's settlement state outcomes
+			(SettlementFinalized / SettlementFailed / SettlementIndeterminate /
+			FailureClassified / InstructionRejected) as canonical authority;
+			sem isso, consumers downstream operariam sobre estado inconsistente
+			ou infeririam outcomes from rail signals diretamente (violando
+			inv-settlement-finality-post-reconciliation-only).
+
+			(b) ADVISORY sobre rail-level operational signals — consumers MAY
+			usar para upstream decisions (retry policy, instruction adjustment)
+			mas BKR não impõe obrigação de ação; rail status é observational
+			input, não prescriptive directive.
+
+			4 conceitos NÃO entram em authoritativeScope nem advisoryScope
+			porque BKR consome (não emite) decisão sobre eles —
+			nonAuthoritative-by-construction (schema #HybridAuthority não tem
+			campo nonAuthoritativeScope per Phase 3.A.5 ajuste; articulado
+			aqui em rationale per founder direction):
+
+			(i) economic intent — FCE-owned upstream; BKR consome via
+			PaymentInstruction value object; nunca decide if/why to pay (per
+			inv-anti-decision-boundary 5 nevers);
+			(ii) payment authorization — FCE-owned via AuthorizationProof;
+			BKR consome validity (signature + nonce + validity-window +
+			claim-chain), nunca interpreta nem redefine (per inv-
+			authorization-proof-verification-gate);
+			(iii) reverse-settlement intent — FCE/DRC/upstream-process-
+			responding-to-regulatory-mandate-owned; BKR executes only under
+			new upstream-authorized ReversePaymentInstruction com NEW
+			AuthorizationProof (per inv-reverse-settlement-upstream-
+			authorized-only — original AuthorizationProof never reusable for
+			reverse economic intent);
+			(iv) regulatory policy — Bacen/CIP/SWIFT/Drex-defined; BKR
+			absorbs as structural constraint, never enforces policy beyond
+			structural validation (per glossary term-regulatory-boundary:
+			RegulatoryBoundary constrains BKR behavior but does not grant
+			BKR regulatory authority). Provider-or-rail-reject is observed
+			and classified; it is not regulatory policy enforcement by BKR.
+
+			Schema extension nonAuthoritativeScope deferida — só aparece como
+			ADR quando o mesmo padrão repetir em ≥2 BCs adicionais (per
+			founder Phase 3.A.5 ajuste 6).
+			"""
+	}
+
+	// ============================================================
+	// OUTER RATIONALE
+	// ============================================================
+
+	rationale: """
+		Domain model BKR materializa Phase 3 do WI-062 BKR bootstrap.
+		Building blocks DDD táticos formalizam a UL canonicalizada em
+		Phase 2 glossary + boundary integrity articulada em Phase 1
+		canvas.
+
+		Composição: 9 invariants (5 constitutivos canvas + 4 operacionais)
+		+ 13 events (5 published + 2 internal lifecycle + 1 BKR-emitted
+		cancellation request + 4 ACL events com sourceContext + 1
+		reconciliation marker) + 6 commands (2 inbound FCE + 4 internal
+		lifecycle/transition triggers) + 15 valueObjects (4 IDs + 3
+		composite DTOs + 1 enum-state + 5 discriminators + 2 composite
+		tipo) + 1 aggregate (agg-settlement-attempt) com 1 entity nested
+		(ent-cancellation-request) + lifecycle 6-state + 7 transitions +
+		3 domainServices (cross-source determinístic processes) + 2
+		policies (event → command automation com guards) + 3 projections
+		(state, classification, audit trail) com 9 query capabilities
+		total + systemConsistencyModel eventual + decisionAuthorityModel
+		hybrid + consistencyBoundary per aggregate.
+
+		Identidade canônica preservada: BKR is a deterministic
+		settlement orchestration boundary operating under externally
+		authorized economic intent. Domain model materializa essa
+		identidade em building blocks táticos: agg-settlement-attempt
+		é o ÚNICO consistency boundary; svc-reconciliation + svc-
+		failure-classification + svc-technical-rail-selection são
+		cross-source deterministic processes que produzem inputs ao
+		aggregate; 9 invariants protegem boundary integrity atomicamente
+		per command handling; 13 events articulam communication interna
+		+ cross-BC + ACL translations.
+
+		5 lenses aplicadas:
+		- lens-distributed-systems-design (4-way ID separation
+		  cristalizada em vo-instruction-id × vo-attempt-id × vo-
+		  idempotency-key × vo-rail-reference-id; atomic state machine
+		  6-state + 7 transitions; reconciliation determinism via 4
+		  conditions);
+		- lens-incentive-alignment (anti-decision boundary preservada
+		  via 9 invariants protected pelo único aggregate; cross-anti-
+		  collapse matrix dos IDs preserva replay safety);
+		- lens-regulatory-compliance-as-architecture (RegulatoryBoundary
+		  absorption not enforcement; svc-failure-classification subtype
+		  provider-or-rail-reject preservado distinto de regulatory-only
+		  com 4 subtypes regulatory/account-status/rail-limit/provider-
+		  policy);
+		- lens-trust-and-credibility-design (vo-authorization-proof
+		  composite com 5 components defense-in-depth; consumed never
+		  interpreted; original never reusable for reverse intent);
+		- lens-mechanism-design (governance scope codificado em
+		  invariants protegidos atomicamente per command handling; 5
+		  guardrails founder Phase 3 — SettlementIndeterminate epistemic
+		  preservation, attempt lineage per retry, ReverseSettlement
+		  upstream-authorized-only, TechnicalRailSelection technical-
+		  criteria-only, FailureClassification ownership-not-remediation
+		  — todos formalizados como invariants protegidos).
+
+		Phase 3 conceptual scaffold (3.A.1-5) + catalogs incremental
+		(3.B.1-4) + aggregate (3.C) + interpretation contracts (3.D) +
+		services/policies/projections (3.E) executados via authoring
+		manual section-gated per manualAuthoringProtocol (adr-057).
+		Founder iterative review aplicou 30+ ajustes finos pre-write
+		distribuídos por 9 sub-phases; Phase 3.F write único integra
+		todos os ajustes em single arquivo atomic (per Phase 2 lesson:
+		building blocks DDD são semanticamente interdependentes; write
+		incremental criaria estados intermediários onde refs apontam
+		para code-refs ainda ausentes).
+
+		Canvas amendments concorrentes (3 renames + 1 new outbound
+		event-publisher per Phase 3.A.4 + Phase 3.E ajustes):
+		SettlementCompleted → SettlementFinalized (alinha glossary
+		term-settlement-finality); DispatchClassification →
+		FailureClassified (alinha glossary term-failure-classification);
+		DispatchPayment → DispatchPaymentInstruction (alinha glossary
+		term-payment-instruction); InstructionRejected adicionado como
+		outbound event-publisher canvas (terminal pre-dispatch outcome
+		distinto de SettlementFailed).
+
+		Phase 4 (agent-spec) próxima per manualAuthoringProtocol section
+		gates ordering. Phase 5 (agent-governance) materializa 9
+		invariants + escalation criteria + autonomy envelope.
+
+		Forward-looking acknowledged: agg-reverse-settlement-attempt é
+		Phase futura separada (ReverseSettlement workflow não modelado
+		em Phase 3 per founder direction); Drex/Pix internacional/Open
+		Finance ITP emergem em wave futura quando rails entrarem em
+		produção; cancellation explicit state machine pode ser
+		adicionado em wave futura (atualmente tratado como ent-
+		cancellation-request nested entity sub-lifecycle); domain-type
+		fields que ainda não emergiram como VOs (ClaimChain,
+		RailReferenceSet, RailStatusDetail, CancellationOutcome,
+		RailCancellationRejectionReason, etc.) são tratados como
+		domain-type nominais até demanda revelar boundary meaning.
+		"""
+}

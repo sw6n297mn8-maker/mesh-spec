@@ -193,6 +193,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 			test:        "O campo verticalApplicability está presente e declara explicitamente o modo (vertical-agnostic, vertical-specific ou vertical-adaptable) com rationale. Ausência do campo é warning na Fase 1 do rollout definido em adr-043; novos canvases devem declarar o campo já na criação. Canvases existentes permanecem estruturalmente válidos e entram em backfill progressivo guiado por este warning."
 			severity:    "warn"
 			rationale:   "adr-043 Fase 1: campo opcional no schema, obrigatoriedade normativa de authoring sinalizada por warn advisory. Fase 2 promove a fail após backfill completo verificado."
+		}, {
+			id:          "tq-cv-14"
+			description: "VerificationMetric.onBreach.escalationRef referencia escalationCriterion existente no mesmo canvas"
+			test:        "Para cada verificationMetrics[].onBreach.escalationRef declarado, o id correspondente DEVE existir em ownership.governanceScope.escalationCriteria[].id. Validação por runner/unificação. Phase 1 advisory: campo onBreach é opcional. Ausência explícita de onBreach NÃO é oversight — significa observability-only metric (signal sem escalation direta; exige avaliação contextual human-in-the-loop). Compatibilidade semântica entre metric e escalation referenciada é responsabilidade do design (validação manual Phase 1; potencial automação Phase 2 via validation-prompt advisory). Phase 2 ADR posterior promove tq-cv-14 a fail após backfill completo."
+			severity:    "warn"
+			rationale:   "Metric sem ligação à action é dashboard, não governance. Link unidirecional metric → escalation (uma escalation pode ser acionada por múltiplas métricas) fecha loop determinístico de governance executável. Phase 1 advisory permite onboarding gradual sem breaking nos canvases existentes; observability-only é decisão de design legítima (não falha)."
 		}]
 		rationale: "Critérios cobrem contorno (purpose), rastreabilidade (stakeholders, costs, communication refs), alinhamento econômico (incentive analysis, costsEliminated condicional), identidade operacional (archetypes, communication discriminada, governance), completude condicional (capability flags) e estado epistêmico (assumptions, open questions)."
 	}
@@ -494,8 +500,37 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 // ==============================
 
 #VerificationMetric: {
-	id:        string & =~"^[a-z][a-z0-9-]*$"
-	metric:    string & !=""
-	target:    string & !=""
+	id:     string & =~"^[a-z][a-z0-9-]*$"
+	metric: string & !=""
+	target: string & !=""
+
+	// Action a ser disparada quando metric breach target.
+	// Liga metric → escalation criterion no MESMO canvas.
+	// Link é UNIDIRECIONAL por design (metric → escalation): uma
+	// escalation pode ser acionada por múltiplas métricas; não há
+	// link reverso enforced no schema.
+	// Validação Phase 1 advisory: warn em tq-cv-14 quando declarado;
+	// ausência explícita NÃO é oversight — significa observability-only
+	// metric (signal sem escalation direta; exige avaliação contextual
+	// human-in-the-loop). Phase 2 ADR posterior pode promover a fail
+	// após backfill completo dos canvases existentes.
+	onBreach?: #MetricBreachAction
+
+	rationale: string & !=""
+}
+
+// Liga uma verificationMetric a uma escalationCriterion via id-ref.
+// escalationRef referencia #EscalationCriterion.id no governanceScope
+// do mesmo canvas (intra-canvas link, não cross-BC).
+// Compatibilidade semântica entre metric e escalation é responsabilidade
+// do design (validação manual Phase 1; potencial automação Phase 2 via
+// validation-prompt advisory que checa coerência metric ↔ action).
+#MetricBreachAction: {
+	escalationRef: string & =~"^[a-z][a-z0-9-]*$"
+
+	// Por que esta metric específica deve disparar esta escalation.
+	// Distinto do rationale do escalationCriterion (que justifica
+	// condição+ação); aqui justifica por que ESTA métrica é signal
+	// apropriado de breach desta escalation.
 	rationale: string & !=""
 }

@@ -51,6 +51,12 @@ package artifact_schemas
 } | {
 	kind: "directory-pair-coverage"
 	rule: #DirectoryPairCoverageRule
+} | {
+	kind: "at-least-one-block-present"
+	rule: #AtLeastOneBlockPresentRule
+} | {
+	kind: "domain-invariant"
+	rule: #DomainInvariantRule
 })
 
 _#StructuralCheckBase: {
@@ -119,9 +125,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -250,4 +256,95 @@ _#StructuralCheckBase: {
 	// estado válido (e.g., task-spec sem work-event = admission=defined
 	// per work-governance state machine).
 	bidirectional: bool | *false
+}
+
+// Rule shape para kind=at-least-one-block-present.
+// Verifica que o artefato sob validação contém pelo menos um dos
+// blocos listados em blockNames presente E não-vazio. Útil para
+// constraints "at-least-one-of-N" que CUE schema não consegue expressar
+// declarativamente sobre fields opcionais (limites de disjunção CUE
+// sobre fields opcionais). Cada blockName é caminho dot-separated para
+// field top-level OR aninhado. Empty list / single-name list rejeitados
+// (min 2): caso degenera para required-block kind existente. Bloco
+// "presente non-empty" significa: para listas, len >= 1; para optional
+// fields, valor não-ausente. Layered enforcement: schema valida CONTEÚDO
+// de elementos (string non-empty constraints); structural-check valida
+// EXISTÊNCIA do bloco como lista non-empty. Princípio canônico: quando
+// CUE não consegue expressar a regra, enforcement sobe para CI
+// structural-check — não vira convenção.
+#AtLeastOneBlockPresentRule: {
+	// Lista de caminhos dot-separated (top-level OR aninhado) cujo
+	// at-least-one deve estar presente non-empty. Min 2 nomes.
+	blockNames: [string & !="", string & !="", ...string & !=""]
+}
+
+// Rule shape para kind=domain-invariant.
+// Per adr-080: extends #StructuralCheck para enforcement de invariantes
+// semânticos do domain-model (não apenas estrutura filesystem).
+//
+// Conceito central: declaração de garantia + declaração explícita de
+// limite. Build-time + validation-time enforcement onde possível;
+// runtime-gap declarado canonicamente onde irreducible.
+//
+// Não é "polícia incompleta" — é "polícia honesta": cada invariant
+// declara o que É garantido + o que NÃO É garantido + onde está
+// enforcement do gap.
+//
+// Princípio: garantia + limite explícito (forma canônica de honesty
+// arquitetural). Sistema deixa de "fingir que prova o que não dá" e
+// passa a documentar canonicamente o escopo real de enforcement.
+//
+// Layered enforcement:
+// - schema CUE valida shape de cada invariant declaration
+// - structural-check runner valida invariantId existe em
+//   referenced domain-model (Phase 1+ runner work)
+// - validation-prompts (advisory) avaliam consistência semântica
+//   entre invariant + assertion + forbidden patterns
+// - runtime-gap.enforcedBy aponta para layer que cobre o gap
+//   (transactional outbox, db constraint, event processor, etc.)
+#DomainInvariantRule: {
+	// Reference ao invariant id no domain-model alvo (regex paralelo
+	// #InvariantRef do domain-model schema).
+	invariantId: string & =~"^inv-[a-z][a-z0-9-]+$"
+
+	// Forma lógica do invariant (mesma string usada em domain-model
+	// rule field). Opcional porque alguns invariants são puramente
+	// estruturais (cobertos por schema CUE) sem necessidade de
+	// expressão formal adicional.
+	assertion?: string & !=""
+
+	// Cobertura explícita: cada dimensão é booleana independente.
+	// At-least-one deve ser true (invariant que não tem nenhuma
+	// cobertura é decoração — flagged via tq-sc-XX).
+	coverage: {
+		// Verificável via schema CUE constraints + structural-check
+		// existing kinds (required-block, reference-exists, etc.).
+		buildTime: bool
+		// Verificável via validation-prompts advisory OR pre-commit
+		// hooks (linting, semantic consistency).
+		validationTime: bool
+		// Requer enforcement runtime (event log queries, mutation
+		// prevention, transactional guarantees) — fora do escopo
+		// build-time.
+		runtimeRequired: bool
+	}
+
+	// Declaração explícita de limite quando runtimeRequired=true.
+	// Required quando coverage.runtimeRequired==true; opcional caso
+	// contrário. Princípio: gap sem declaração explícita é
+	// silent-failure-by-construction.
+	runtimeGap?: {
+		// O que NÃO é garantido em build-time (escopo do gap).
+		description: string & !=""
+		// Onde o gap é (ou deve ser) coberto: layer/mecanismo
+		// canônico responsável pelo enforcement runtime.
+		enforcedBy: string & !=""
+	}
+
+	// Anti-patterns proibidos por construção semântica. Lista
+	// declarativa de comportamentos que violariam o invariant —
+	// usada por validation-prompts advisory + audit reviews.
+	// Opcional: alguns invariants estruturais não têm anti-patterns
+	// específicos além da própria assertion.
+	forbidden?: [...string & !=""]
 }

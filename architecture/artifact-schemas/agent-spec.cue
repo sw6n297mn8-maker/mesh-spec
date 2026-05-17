@@ -187,8 +187,20 @@ package artifact_schemas
 			test:        "auditTrail.requiredFields contém ao menos: timestamp, agent-id, action-code, input-summary, output-summary, decision-rationale, governance-version. Runner valida que _minimumAuditFields ⊆ requiredFields."
 			severity:    "fail"
 			rationale:   "Intermediário financeiro regulado requer reconstituição completa de decisões — audit trail sem campos mínimos é auditoria nominal."
+		}, {
+			id:          "tq-ag-14"
+			description: "MCM actions declaram todos os 5 predicates com refs válidas"
+			test:        "Para cada action com mutationExecutionClass='mechanically-compelled': mechanicallyCompelledPredicates está presente; invariantTriggerRef existe em invariants[] do mesmo BC (validado por runner cross-artifact); auditSignalEmitted existe em observability.signals[]; blastRadiusScope ∈ {single-dispatch | single-certification-entity | single-claim-entity}; mechanicallyDerivableFrom + noSemanticDiscretionRationale são non-empty. Conversamente: actions com mutationExecutionClass='standard' OR sem mutationExecutionClass não declaram mechanicallyCompelledPredicates."
+			severity:    "fail"
+			rationale:   "Per adr-088: MCM exception class como anti-drift defense exige 5-predicate completeness por construção. Sem schema enforcement, MCM vira convenção narrativa sujeita a erosão (execute-and-log creep). Schema é primeira camada defensiva; merit semantic (genuine triggering, mechanical-only) validado advisory."
+		}, {
+			id:          "tq-ag-15"
+			description: "MCM actions devem ter autonomyLevel='execute-and-log' (direção única)"
+			test:        "Para cada action com mutationExecutionClass='mechanically-compelled': autonomyLevel = 'execute-and-log'. Direção ONE-WAY apenas — tq-ag-15 NÃO requer que toda action com autonomyLevel='execute-and-log' tenha mutationExecutionClass='mechanically-compelled'. Outras pathways formais para execute-and-log mutation podem existir (e.g., trusted-internal mutations sob governance envelope clause) e NÃO são bloqueadas por este critério."
+			severity:    "fail"
+			rationale:   "Per adr-088 ajuste #2: MCM declaration formal ⇒ execute-and-log coerência obrigatória (MCM exception class é PRECISAMENTE o que permite execute-and-log via 5-predicate gate). Inverso intencionalmente NÃO enforced — preserva pathways formais alternativas para execute-and-log mutation governadas via autonomyLevel + envelope."
 		}]
-		rationale: "Critérios cobrem integridade referencial com domain model (tq-ag-01, tq-ag-02), alinhamento com canvas (tq-ag-03), verificabilidade de constraints (tq-ag-04), cobertura de observabilidade (tq-ag-05), eficiência de contexto (tq-ag-06), unicidade (tq-ag-07, tq-ag-08), ponte de governança (tq-ag-09), completude de escalation (tq-ag-10), classificação de input (tq-ag-11), coerência autonomia-constraints (tq-ag-12) e mínimo de audit trail (tq-ag-13)."
+		rationale: "Critérios cobrem integridade referencial com domain model (tq-ag-01, tq-ag-02), alinhamento com canvas (tq-ag-03), verificabilidade de constraints (tq-ag-04), cobertura de observabilidade (tq-ag-05), eficiência de contexto (tq-ag-06), unicidade (tq-ag-07, tq-ag-08), ponte de governança (tq-ag-09), completude de escalation (tq-ag-10), classificação de input (tq-ag-11), coerência autonomia-constraints (tq-ag-12), mínimo de audit trail (tq-ag-13) e formalização anti-drift de MCM exception class (tq-ag-14 5-predicate completeness + tq-ag-15 MCM ⇒ execute-and-log coerência one-way per adr-088)."
 	}
 }
 
@@ -319,11 +331,85 @@ package artifact_schemas
 
 	// O que muda após a ação ser executada.
 	postconditions?: [...#NonEmptyString]
+
+	// === MUTATION EXECUTION CLASS (per adr-088) ===
+	//
+	// Discriminador de mutation execution class. Aplicável apenas a
+	// actions com category="mutation"; demais categorias devem omitir
+	// (semântica indefinida fora de mutation).
+	//
+	// "standard": mutation SEM MCM exception class. Autonomia
+	// (autonomyLevel) e governance posture (envelope) governam o nível
+	// operacional. "standard" NÃO força propose-and-wait universalmente
+	// — é discriminador de classe, NÃO prescrição de autonomy level.
+	// Future formal pathways para execute-and-log mutation podem existir
+	// sob "standard" governadas via envelope.
+	//
+	// "mechanically-compelled": mutation eligible para execute-and-log
+	// per 5-predicate exception, declared via mechanicallyCompelled
+	// Predicates struct obrigatório. Tq-ag-15 enforça one-way direction:
+	// MCM ⇒ execute-and-log. NÃO o inverso (nem todo execute-and-log
+	// mutation é MCM).
+	mutationExecutionClass?: "standard" | "mechanically-compelled"
+
+	// Obrigatório quando mutationExecutionClass="mechanically-compelled".
+	// Declara os 5 MCM predicates canonical com evidência estrutural.
+	// Tq-ag-14 valida presence + ref validity.
+	mechanicallyCompelledPredicates?: #MechanicallyCompelledPredicates
+}
+
+// ==============================
+// MECHANICALLY-COMPELLED PREDICATES (per adr-088)
+// ==============================
+
+// 5-predicate canonical structure for MCM eligibility. Schema enforces
+// presence + ref validity; semantic merit (genuine triggering, true
+// mechanical-only) validada via advisory layer (governance envelope
+// metrics + future validation prompts).
+//
+// MCM exception class formaliza "execute-and-log mutation sob 5
+// predicates cumulativos" — anti-drift defense contra execute-and-log
+// creep onde mutations originalmente discretionary são reclassificadas
+// informalmente como mechanical.
+#MechanicallyCompelledPredicates: {
+	// P1 — Invariant-triggered: invariant guard que dispara mutation.
+	// Mutation só executa quando invariant condition holds; outside
+	// condition → action não-executável. Runner valida ref existe em
+	// invariants[] (tq-ag-14).
+	invariantTriggerRef: #InvariantRef
+
+	// P2 — Mechanically derivable: descreve input contract from which
+	// mutation semantics são computable sem judgment. Deve ser concreto
+	// (e.g., "vo-negative-capability-evidence.severity field value
+	// 'strong' mechanically triggers revocation per Phase 1.5.B
+	// Section C"), NÃO aspiracional ("agent uses judgment to
+	// determine..."). Semantic merit validado advisory.
+	mechanicallyDerivableFrom: #NonEmptyString
+
+	// P3 — Blast-radius bounded: declara escopo de mutação. Enumerable
+	// per canonical bounds — agentes não-canonical scopes (e.g.,
+	// "single-aggregate", "single-BC") deferred to future schema
+	// extension se evidence empirical justify.
+	blastRadiusScope: "single-dispatch" | "single-certification-entity" | "single-claim-entity"
+
+	// P4 — Audit-emitting: observability signal ref emitted by this
+	// action. Runner valida ref existe em observability.signals[]
+	// (tq-ag-14). Audit trail entry implícito via #AuditTrailSpec.
+	auditSignalEmitted: #ObservabilitySignalRef
+
+	// P5 — No semantic discretion: rationale concreto explicando why
+	// mutation é mechanical-only. Anti-pattern explicit: "agent
+	// evaluates...", "agent decides...", "based on context..." são
+	// semantic discretion markers — descrição deve usar "mechanically
+	// routes/emits/executes per declared rule". Semantic merit
+	// validado advisory.
+	noSemanticDiscretionRationale: #NonEmptyString
 }
 
 // Categorias de ação para auditoria e observabilidade.
 #ActionCategory:
-	"query" |          // Leitura sem efeito colateral
+	"query" |          // Leitura reativa pontual (requires explicit invocation)
+	"observation" |    // Continuous or event-driven surveillance that MAY trigger without explicit invocation; does not directly mutate domain state. Per ADR-089: observation actions MUST NOT require explicit external invocation to execute (trigger independence canonical).
 	"mutation" |       // Alteração de estado via command
 	"validation" |     // Verificação de invariante ou regra
 	"generation" |     // Geração de artefato (código, spec, documento)
@@ -424,6 +510,14 @@ package artifact_schemas
 
 	// Nível de severidade do sinal.
 	level: #SignalLevel
+
+	// Lista de campos do signal payload — declara contract para
+	// scope resolution em refs externos (e.g., #RegressionTrigger
+	// scopedBySignal em envelope governance per adr-075). Phase 0:
+	// list-of-string (presence validation only). Typed payloadSchema
+	// (PayloadType + map fieldName-to-type) deferred via def-013
+	// trigger 1 quando ≥2 envelopes adotarem scopedBySignal pattern.
+	payloadFields?: [#NonEmptyString, ...#NonEmptyString]
 }
 
 #SignalLevel:
@@ -470,3 +564,10 @@ package artifact_schemas
 
 #BoundedContextRef: string & =~"^[a-z][a-z0-9-]*$"
 #NonEmptyString:    string & !=""
+
+// Reference type para signal codes — typed alias permite future
+// extension (e.g., cross-validation contra agent-spec signals[].code
+// via runner) sem schema breaking change. Per adr-075 (Caminho D'
+// signal-as-contract): refs em envelope governance referenciam
+// signals via este typed ref para auditability.
+#ObservabilitySignalRef: string & =~"^sig-[a-z][a-z0-9-]*$"

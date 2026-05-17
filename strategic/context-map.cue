@@ -249,7 +249,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 
 	relationships: [
 
-		// --- A. Commitment Lifecycle (5) ---
+		// --- A. Commitment Lifecycle (6) ---
 		{
 			code:              "cmt-to-bdg"
 			source:            {kind: "bounded-context", context: "cmt"}
@@ -296,10 +296,23 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "INV publica InvoiceIssued; FCE consome para executar pagamento."
-			rationale:         "Spine do commitment lifecycle — fatura emitida precede liquidação financeira."
+			description:       "INV publica InvoiceIssued e InvoiceCancelled; FCE consome InvoiceIssued para executar pagamento e InvoiceCancelled para cancelar settlement pendente pré-liquidação."
+			rationale:         "Spine do commitment lifecycle — fatura emitida precede liquidação financeira; cancelamento dentro da janela fiscal precede potencial settlement, evitando pagamento de fatura cancelada. Pós-settle, cancelamento é correção financeira via DRC, não mutação INV."
 			communication: {type: "async"}
-			events: ["InvoiceIssued"]
+			events: ["InvoiceIssued", "InvoiceCancelled"]
+			flowRefs: ["commitment-lifecycle"]
+		},
+		{
+			code:              "cmt-to-inv"
+			source:            {kind: "bounded-context", context: "cmt"}
+			target:            {kind: "bounded-context", context: "inv"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "CMT publica CommitmentAccepted; INV consome via ACL para materializar projection cache local read-only de commitment terms (amount, currency, dueDate, parties, taxRegimeRef) — input determinístico para cômputo fiscal apply-only no momento de InvoiceIssued."
+			rationale:         "INV depende estruturalmente de commitment terms para materializar fatura (amount = f(commitmentTerms, verificationOutcome=approved)); declarar inbound async via projection cache preserva replay determinístico, elimina sync coupling e mantém INV sem query dependency. Paralelo cmt-to-tcm (TCM consome mesmo evento para projetar obrigação futura) e cmt-to-drc (DRC contextualiza disputa)."
+			communication: {type: "async"}
+			events: ["CommitmentAccepted"]
 			flowRefs: ["commitment-lifecycle"]
 		},
 		{
@@ -542,10 +555,10 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "conformist"
-			description:       "INV publica InvoiceIssued; ATO conforma para registrar lançamentos fiscais."
-			rationale:         "ATO conforma com eventos de INV sem tradução — linguagem fiscal é extensão direta da linguagem de faturamento."
+			description:       "INV publica InvoiceIssued e InvoiceCancelled; ATO conforma para registrar lançamentos fiscais e estornar lançamentos quando fatura é cancelada dentro da janela fiscal."
+			rationale:         "ATO conforma com eventos de INV sem tradução — linguagem fiscal é extensão direta da linguagem de faturamento; cancelamento dentro da janela exige estorno contábil correspondente. Cancelamento pós-janela é ajuste contábil ATO-owned, sem evento INV."
 			communication: {type: "async"}
-			events: ["InvoiceIssued"]
+			events: ["InvoiceIssued", "InvoiceCancelled"]
 		},
 		{
 			code:              "fce-to-ato"
@@ -710,7 +723,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "SSC publica decisão de sourcing e fornecedores selecionados; P2P consome para direcionar emissão de pedidos aos fornecedores aprovados."
 			rationale:         "Decisão estratégica de sourcing precede execução de compra. SSC seleciona fornecedor e condições; P2P executa o pedido sob essas condições. P2P traduz decisão de sourcing para linguagem de procurement via ACL."
 			communication: {type: "async"}
-			events: ["SourcingDecisionMade", "PreferredSupplierDesignated"]
+			events: ["SourcingDecisionMade", "PreferredSupplierDesignated", "StrategicAwardCompleted"]
 		},
 		{
 			code:              "ssc-to-ctr"
@@ -719,10 +732,10 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "SSC publica decisão de sourcing que fundamenta formalização de contrato-quadro; CTR consome para iniciar registro de termos."
-			rationale:         "Decisão de sourcing é gatilho para formalização contratual — contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P). CTR traduz decisão de sourcing para linguagem contratual via ACL."
+			description:       "SSC publica StrategicAwardCompleted (consumidor primário e obrigatório); CTR consome para iniciar registro de contrato-quadro. Conteúdo do award é input indicativo (não vinculante) — CTR formaliza com cláusulas próprias e pode divergir do expectedContractScope com aprovação supervisada."
+			rationale:         "Decisão de sourcing tipo strategic-award é gatilho para formalização contratual — contrato-quadro nasce de negociação estratégica (SSC), não de execução de compra (P2P). CTR traduz decisão de sourcing para linguagem contratual via ACL. SourcingDecisionMade (one-shot) e PreferredSupplierDesignated (recurring) NÃO disparam formalização — vão via ssc-to-p2p."
 			communication: {type: "async"}
-			events: ["SourcingDecisionMade"]
+			events: ["StrategicAwardCompleted"]
 		},
 		{
 			code:              "npm-to-ssc"

@@ -72,6 +72,28 @@ adr065: artifact_schemas.#ADR & {
 		    Rejeitada: identidade de policies cross-cutting JUSTIFICA
 		    subdomain entry — é dimensão estratégica, não apenas
 		    artefato técnico.
+
+		AMENDMENT 1 (post-commit, sessão 2026-05-06): schema renomeado
+		de #Policy → #PolicyRegistryEntry para resolver colisão homônima
+		no package artifact_schemas com #Policy de domain-model.cue
+		(event → command automation pré-existente). Unificação implícita
+		das duas definições homônimas no mesmo package exigia campos de
+		AMBAS em todas as instâncias domainModel.policies, quebrando
+		cue vet --concrete em todos os domain-models pré-existentes
+		(SSC/CMT/BDG). Detectado durante CI cue-validate failure no
+		PR #39 (WI-057 P2P bootstrap) — pre-existing condition em main
+		exposta por mudança de comportamento default em cue v0.16.0
+		(--concrete agora default). Rationale do rename: PLR é
+		registry-only per decision item 2; "#PolicyRegistryEntry"
+		reforça o intent (entry no registry, não engine de policy) e
+		separa do conceito legacy domain-model que precede esta ADR.
+		Sem instâncias existentes em domain/policies/ — rename mecânico
+		sem impacto downstream. Schema fields/constraints/_schema.location
+		idênticos pré-rename — apenas o identifier muda. Prose references
+		a "#Policy" em outros artefatos (plr.cue, def-009, self-reviews,
+		subagent-execution-log) permanecem grandfathered como historical
+		record da nomenclatura original; usage textual não causa colisão
+		CUE.
 		"""
 
 	decision: """
@@ -84,9 +106,10 @@ adr065: artifact_schemas.#ADR & {
 		    orchestration/saga, financial policy execution, agent
 		    autonomy policy, build-time validation).
 
-		(2) Criar architecture/artifact-schemas/policy.cue com #Policy
-		    schema MINIMAL: id + scope (bc-local|cross-bc) + class
-		    (regulatory|business|operational) + enforcement
+		(2) Criar architecture/artifact-schemas/policy.cue com
+		    #PolicyRegistryEntry schema MINIMAL (renomeado de #Policy
+		    per AMENDMENT 1 abaixo): id + scope (bc-local|cross-bc) +
+		    class (regulatory|business|operational) + enforcement
 		    ('external' literal-locked) + appliesTo + definition +
 		    owner + version + rationale. Sem engine. Sem execution.
 		    Sem orchestration. Schema enforce 'enforcement: external'
