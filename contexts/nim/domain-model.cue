@@ -626,19 +626,11 @@ domainModel: artifact_schemas.#DomainModel & {
 			]
 		},
 
-		// === Group C — Authority Topology Declaration (2) ===
-		{
-			code:        "cmd-declare-interpretability-class"
-			name:        "DeclareInterpretabilityClass"
-			description: "Declare InterpretabilityClass para authority-bearing artifact com payload obrigatório canonical (4 mandatory fields per Q3.1.A Group 3 ajuste)"
-			rationale:   "C7 + Q3.1.A Group 3 ajuste 'sem isso vira claim solto'; Critical cascade"
-			fields: [
-				{kind: "primitive", name:       "artifactId", type:               "string"},
-				{kind: "value-object-ref", name: "mechanismVersion", valueObjectRef: "vo-mechanism-version"},
-				{kind: "value-object-ref", name: "interpretabilityClass", valueObjectRef: "vo-interpretability-class"},
-				{kind: "value-object-ref", name: "tupleAuthorityBoundaryRef", valueObjectRef: "vo-tuple-authority-boundary"},
-			]
-		},
+		// === Group C — Authority Topology Declaration (1, per post-audit alignment fix) ===
+		// Note: cmd-declare-interpretability-class REMOVED — interpretability declaration
+		// é atomic emission obligation no handling de cada cmd-execute-X-mechanism (NÃO
+		// command separado per tq-dm-01 alignment); evt-interpretability-class-declared
+		// continua mandatory emitido pelos 6 mechanism aggregates per Q3.1.A Group 3 ajuste.
 		{
 			code:        "cmd-record-consumer-escape"
 			name:        "RecordConsumerEscape"
@@ -1507,6 +1499,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				"evt-objective-function-mutation-cooldown-violated",
 				"evt-semantic-hazard-violation-detected",
 				"evt-authority-boundary-violation-detected",
+				"evt-mechanism-gaming-detected",
+				"evt-pseudo-objectivity-collapse-detected",
+				"evt-lineage-discontinuity-detected",
 			]
 			protectsInvariants: [
 				"inv-five-tuple-mandatory",
@@ -1521,6 +1516,8 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-authority-chain-preserved",
 				"inv-provenance-non-erasure",
 				"inv-authority-boundary-violation-blocked",
+				"inv-gate-mandatory-admission",
+				"inv-tier-2-derivation-gated",
 			]
 			entities: [{
 				code:        "ent-scoring-execution-record"
@@ -1545,6 +1542,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				"vo-signal", "vo-provenance", "vo-confidence-class", "vo-mechanism-version",
 				"vo-mechanism-dimension", "vo-adversarial-resistance-class", "vo-mechanism-type",
 				"vo-tier-2-mechanism-artifact-substrate", "vo-weighting-lineage", "vo-lineage",
+				"vo-drift-class", "vo-mechanism-integrity-matrix",
 			]
 			lifecycle: {
 				initialState: "defined"
@@ -1605,6 +1603,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				"evt-substrate-invariant-violation-detected",
 				"evt-semantic-hazard-violation-detected",
 				"evt-authority-boundary-violation-detected",
+				"evt-mechanism-gaming-detected",
+				"evt-pseudo-objectivity-collapse-detected",
+				"evt-lineage-discontinuity-detected",
 			]
 			protectsInvariants: [
 				"inv-five-tuple-mandatory", "inv-interpretability-class-declared", "inv-escape-path-mandatory",
@@ -1612,12 +1613,14 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-adversarial-resistance-monotone", "inv-interpretability-monotone",
 				"inv-mechanism-gaming-detected", "inv-authority-chain-preserved",
 				"inv-provenance-non-erasure", "inv-authority-boundary-violation-blocked",
+				"inv-gate-mandatory-admission", "inv-tier-2-derivation-gated",
 			]
 			usesValueObjects: [
 				"vo-mechanism-artifact", "vo-tuple-authority-boundary", "vo-interpretability-class",
 				"vo-authority-surface", "vo-escape-path", "vo-signal", "vo-provenance",
 				"vo-confidence-class", "vo-mechanism-version", "vo-mechanism-type",
 				"vo-tier-2-mechanism-artifact-substrate", "vo-lineage",
+				"vo-drift-class", "vo-mechanism-integrity-matrix",
 			]
 			lifecycle: {
 				initialState: "defined"
@@ -1659,6 +1662,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				"evt-substrate-invariant-violation-detected",
 				"evt-semantic-hazard-violation-detected",
 				"evt-authority-boundary-violation-detected",
+				"evt-mechanism-gaming-detected",
+				"evt-pseudo-objectivity-collapse-detected",
+				"evt-lineage-discontinuity-detected",
 			]
 			protectsInvariants: [
 				"inv-five-tuple-mandatory", "inv-interpretability-class-declared", "inv-escape-path-mandatory",
@@ -1666,12 +1672,14 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-adversarial-resistance-monotone", "inv-interpretability-monotone",
 				"inv-mechanism-gaming-detected", "inv-authority-chain-preserved",
 				"inv-provenance-non-erasure", "inv-authority-boundary-violation-blocked",
+				"inv-gate-mandatory-admission", "inv-tier-2-derivation-gated",
 			]
 			usesValueObjects: [
 				"vo-mechanism-artifact", "vo-tuple-authority-boundary", "vo-interpretability-class",
 				"vo-authority-surface", "vo-escape-path", "vo-signal", "vo-provenance",
 				"vo-confidence-class", "vo-mechanism-version", "vo-mechanism-type",
 				"vo-tier-2-mechanism-artifact-substrate", "vo-lineage",
+				"vo-drift-class", "vo-mechanism-integrity-matrix",
 			]
 			lifecycle: {
 				initialState: "defined"
@@ -1713,6 +1721,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				"evt-substrate-invariant-violation-detected",
 				"evt-semantic-hazard-violation-detected",
 				"evt-authority-boundary-violation-detected",
+				"evt-mechanism-gaming-detected",
+				"evt-pseudo-objectivity-collapse-detected",
+				"evt-lineage-discontinuity-detected",
 			]
 			protectsInvariants: [
 				"inv-five-tuple-mandatory", "inv-interpretability-class-declared", "inv-escape-path-mandatory",
@@ -1720,12 +1731,14 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-adversarial-resistance-monotone", "inv-interpretability-monotone",
 				"inv-mechanism-gaming-detected", "inv-authority-chain-preserved",
 				"inv-provenance-non-erasure", "inv-authority-boundary-violation-blocked",
+				"inv-gate-mandatory-admission", "inv-tier-2-derivation-gated",
 			]
 			usesValueObjects: [
 				"vo-mechanism-artifact", "vo-tuple-authority-boundary", "vo-interpretability-class",
 				"vo-authority-surface", "vo-escape-path", "vo-signal", "vo-provenance",
 				"vo-confidence-class", "vo-mechanism-version", "vo-mechanism-type",
 				"vo-tier-2-mechanism-artifact-substrate", "vo-lineage",
+				"vo-drift-class", "vo-mechanism-integrity-matrix",
 			]
 			lifecycle: {
 				initialState: "defined"
@@ -1767,6 +1780,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				"evt-substrate-invariant-violation-detected",
 				"evt-semantic-hazard-violation-detected",
 				"evt-authority-boundary-violation-detected",
+				"evt-mechanism-gaming-detected",
+				"evt-pseudo-objectivity-collapse-detected",
+				"evt-lineage-discontinuity-detected",
 			]
 			protectsInvariants: [
 				"inv-five-tuple-mandatory", "inv-interpretability-class-declared", "inv-escape-path-mandatory",
@@ -1774,12 +1790,14 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-adversarial-resistance-monotone", "inv-interpretability-monotone",
 				"inv-mechanism-gaming-detected", "inv-authority-chain-preserved",
 				"inv-provenance-non-erasure", "inv-authority-boundary-violation-blocked",
+				"inv-gate-mandatory-admission", "inv-tier-2-derivation-gated",
 			]
 			usesValueObjects: [
 				"vo-mechanism-artifact", "vo-tuple-authority-boundary", "vo-interpretability-class",
 				"vo-authority-surface", "vo-escape-path", "vo-signal", "vo-provenance",
 				"vo-confidence-class", "vo-mechanism-version", "vo-mechanism-type",
 				"vo-tier-2-mechanism-artifact-substrate", "vo-lineage",
+				"vo-drift-class", "vo-mechanism-integrity-matrix",
 			]
 			lifecycle: {
 				initialState: "defined"
@@ -1821,6 +1839,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				"evt-substrate-invariant-violation-detected",
 				"evt-semantic-hazard-violation-detected",
 				"evt-authority-boundary-violation-detected",
+				"evt-mechanism-gaming-detected",
+				"evt-pseudo-objectivity-collapse-detected",
+				"evt-lineage-discontinuity-detected",
 			]
 			protectsInvariants: [
 				"inv-five-tuple-mandatory", "inv-interpretability-class-declared", "inv-escape-path-mandatory",
@@ -1829,6 +1850,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-governed-suggestion-strict-discipline",
 				"inv-mechanism-gaming-detected", "inv-authority-chain-preserved",
 				"inv-provenance-non-erasure", "inv-authority-boundary-violation-blocked",
+				"inv-gate-mandatory-admission", "inv-tier-2-derivation-gated",
 			]
 			usesValueObjects: [
 				"vo-mechanism-artifact", "vo-tuple-authority-boundary", "vo-interpretability-class",
@@ -1880,6 +1902,9 @@ domainModel: artifact_schemas.#DomainModel & {
 				"evt-objective-function-defined",
 				"evt-objective-function-updated",
 				"evt-objective-function-mutation-cooldown-violated",
+				"evt-implicit-policy-creep-detected",
+				"evt-objective-function-drift-detected",
+				"evt-authority-delegation-drift-detected",
 			]
 			protectsInvariants: [
 				"inv-mutation-requires-governance",
@@ -1913,6 +1938,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			}]
 			usesValueObjects: [
 				"vo-mutation-type", "vo-mechanism-version", "vo-tuple-authority-boundary", "vo-objective-function",
+				"vo-drift-class",
 			]
 			lifecycle: {
 				initialState: "governance-active"
@@ -2000,7 +2026,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-mechanism-legitimacy-capture-detected",
 				"inv-legitimacy-accumulation-bounded",
 			]
-			usesValueObjects: ["vo-loop-marker", "vo-tuple-authority-boundary"]
+			usesValueObjects: ["vo-loop-marker", "vo-tuple-authority-boundary", "vo-drift-class"]
 			lifecycle: {
 				initialState: "meta-control-active"
 				states: ["meta-control-active", "recursive-evaluation", "recursive-decision"]
@@ -2048,8 +2074,10 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-substrate-invariant-preservation",
 				"inv-tier-1-signal-schema-conformance",
 				"inv-tier-substrate-separation",
+				"inv-gate-mandatory-admission",
+				"inv-tier-2-derivation-gated",
 			]
-			usesValueObjects: ["vo-signal", "vo-tier-1-signal-substrate", "vo-provenance"]
+			usesValueObjects: ["vo-signal", "vo-tier-1-signal-substrate", "vo-provenance", "vo-mechanism-integrity-matrix"]
 			rationale: "Stateless aggregate per tq-dmg-07; ledger/registry de admitted Tier 1 signals canonical (justificativa ledger explícita)"
 		},
 		{
@@ -2066,9 +2094,12 @@ domainModel: artifact_schemas.#DomainModel & {
 				"inv-exogenous-quarantine",
 				"inv-tier-1-q-source-enumerated",
 				"inv-tier-substrate-separation",
+				"inv-gate-mandatory-admission",
+				"inv-tier-2-derivation-gated",
 			]
 			usesValueObjects: [
 				"vo-signal", "vo-tier-1-q-exogenous-signal-quarantine", "vo-exogenous-source-enum", "vo-provenance",
+				"vo-mechanism-integrity-matrix",
 			]
 			rationale: "Stateless aggregate per tq-dmg-07; ledger de quarantined exogenous signals; founder canonical preservada literal"
 		},
@@ -2083,7 +2114,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				type: {kind: "primitive", type: "string"}
 			}
 			handlesCommands: ["cmd-record-consumer-escape", "cmd-record-consumer-acknowledgment"]
-			emitsEvents: ["evt-escape-path-exercised", "evt-consumer-acknowledgment-recorded"]
+			emitsEvents: ["evt-escape-path-exercised", "evt-consumer-acknowledgment-recorded", "evt-lineage-discontinuity-detected"]
 			protectsInvariants: [
 				"inv-consumer-acknowledgment-non-approval",
 				"inv-lineage-propagation-continuous",

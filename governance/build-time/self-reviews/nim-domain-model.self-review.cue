@@ -13,7 +13,7 @@ nimDomainModel: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-17"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      3
 
 	status: "stable"
@@ -346,6 +346,169 @@ nimDomainModel: build_time.#SelfReviewReport & {
 			cue-validate (CI structural authority): local cue vet -c ./...
 			exit 0 verified pre-commit (após mechanical correction inv-5
 			→ inv-five); expectation GREEN post-push.
+			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Post-write tq-dm semantic alignment audit + correction round
+			(founder direction: "Eles estão alinhados com os guias de
+			produção e esquema?").
+
+			===========================================================
+			AUDIT FINDING — cue vet PASS ≠ tq-dm semantic PASS
+			===========================================================
+
+			Critical learning materialized: cue vet structural validation
+			(schema shape) NÃO cobre tq-dm-01..06 relational integrity
+			criteria. PG criteria são semantic-relational, enforced via
+			structural-checks pós-commit (architecture/structural-checks/)
+			que não existem ainda para nim-domain-model. CI cue-validate
+			pode passar enquanto tq-dm violations persistem silently —
+			structural-check missing é gap canonical de coverage.
+
+			===========================================================
+			9 VIOLATIONS + 2 WARNINGS DETECTED
+			===========================================================
+
+			tq-dm-01 violations (1):
+			- cmd-declare-interpretability-class handled by 0 aggregates
+			  (orphan — must be exactly 1)
+
+			tq-dm-02 violations (6 — events emitted por 0 aggregates):
+			- evt-mechanism-gaming-detected
+			- evt-pseudo-objectivity-collapse-detected
+			- evt-implicit-policy-creep-detected
+			- evt-objective-function-drift-detected
+			- evt-authority-delegation-drift-detected
+			- evt-lineage-discontinuity-detected
+
+			tq-dm-03 violations (2 — invariants protegidos por 0 aggregates):
+			- inv-gate-mandatory-admission
+			- inv-tier-2-derivation-gated
+
+			tq-dm-04 warnings (2 — VOs órfãos sem usesValueObjects):
+			- vo-drift-class
+			- vo-mechanism-integrity-matrix
+
+			Root cause: single-shot consolidation enumerou estes building
+			blocks em catalog mas omitiu em emitsEvents/protectsInvariants/
+			handlesCommands/usesValueObjects dos aggregates correspondentes.
+			6 mechanism aggregates seguiram template canonical com listas
+			idênticas que não cobriram drift detection events + gate-
+			mandatory invariants + drift/integrity-matrix VOs.
+
+			===========================================================
+			CORRECTIONS APPLIED (founder approved structural alignment)
+			===========================================================
+
+			Correção 1: cmd-declare-interpretability-class REMOVED do catálogo.
+			Founder canonical preserved: "interpretability declaration é
+			atomic emission obligation no handling de cada cmd-execute-X-
+			mechanism, NÃO command separado". evt-interpretability-class-
+			declared continua mandatory emitido pelos 6 mechanism aggregates
+			(commits = 17 total agora; era 18). Q3.1.A Group 3 ajuste
+			"payload obrigatório canonical" preservado: evt-interpretability-
+			class-declared mantém artifactId + mechanismVersion +
+			interpretabilityClass + tupleAuthorityBoundaryRef como
+			mandatory fields.
+
+			Correção 2-3: 6 drift detection events + lineage discontinuity
+			adicionados a emitsEvents:
+			- evt-mechanism-gaming-detected: 6 mechanism aggregates
+			- evt-pseudo-objectivity-collapse-detected: 6 mechanism aggregates
+			- evt-lineage-discontinuity-detected: 6 mechanism aggregates +
+			  agg-lineage-observation
+			- evt-implicit-policy-creep-detected: agg-mechanism-mutation-
+			  governance
+			- evt-objective-function-drift-detected: agg-mechanism-mutation-
+			  governance
+			- evt-authority-delegation-drift-detected: agg-mechanism-
+			  mutation-governance
+
+			Correção 4-5: 2 invariants adicionados a protectsInvariants:
+			- inv-gate-mandatory-admission: 6 mechanism aggregates + 2
+			  substrate aggregates (admission point + consumer protection)
+			- inv-tier-2-derivation-gated: 6 mechanism aggregates + 2
+			  substrate aggregates (Tier 2 derivation via Gate)
+
+			Correção 6-7: 2 VOs adicionados a usesValueObjects:
+			- vo-drift-class: 6 mechanism aggregates + 2 governance
+			  aggregates (drift events payload references)
+			- vo-mechanism-integrity-matrix: 6 mechanism aggregates + 2
+			  substrate aggregates (founder canonical "normative substrate
+			  consumed by Gate" → Gate orchestrates these 8 aggregates per
+			  svc-execution-gating)
+
+			===========================================================
+			RE-AUDIT POST-CORRECTION — PASS
+			===========================================================
+
+			cue vet -c ./...: exit 0
+			tq-dm-01 (commands handled exactly 1): PASS — 17 commands,
+			  zero orphans
+			tq-dm-02 (events emitted ≥1): PASS — 33 events, zero orphans
+			tq-dm-03 (invariants protected ≥1): PASS — 36 invariants, zero
+			  orphans
+			tq-dm-04 (VOs used ≥1): PASS — 25 VOs, zero unused
+			tq-dm-05 (policy refs valid): PASS (verified pre-correction)
+			tq-dm-06 (projection consumesEvents valid): PASS (verified pre-
+			  correction)
+
+			Counts finais:
+			- Commands: 17 (era 18; cmd-declare-interpretability-class removed)
+			- Events: 33 (unchanged)
+			- Invariants: 36 (unchanged)
+			- VOs: 25 (unchanged)
+			- Aggregates: 11 (unchanged)
+
+			===========================================================
+			ATOMIC EMISSION OBLIGATION REGISTERED (founder canonical
+			ajuste preserved literal)
+			===========================================================
+
+			Per founder ajuste explicitly preserved: "Remover cmd-declare-
+			interpretability-class do catálogo está correto se evt-
+			interpretability-class-declared continuar obrigatório no
+			handling de cada cmd-execute-X-mechanism. Registre no SRR que
+			a declaração é atomic emission obligation, não command separado."
+
+			Materialização operacional:
+			- evt-interpretability-class-declared é mandatory emission
+			  payload de cmd-execute-X-mechanism handling
+			- Atomic emission: emission of mechanism artifact + interpretability-
+			  class-declared event happens within single aggregate transaction
+			  (consistencyBoundary.guarantees: "Atomic interpretability
+			  class declaration with artifact")
+			- Inv-interpretability-class-declared continua Gate enforcement
+			- Payload obrigatório (artifactId + mechanismVersion +
+			  interpretabilityClass + tupleAuthorityBoundaryRef) preserved
+			  per Q3.1.A Group 3 ajuste
+
+			Atomic emission obligation canonical: NIM-canonical pattern.
+			Declaração de InterpretabilityClass é estructuralmente
+			inseparable de mechanism artifact emission. Command-separado
+			seria semantic drift permitindo emission sem class declaration —
+			constitutional regression risk per Section 4 SC-3-equivalent.
+
+			===========================================================
+			LESSON FOR FUTURE PHASES
+			===========================================================
+
+			Mechanical learning: single-shot consolidation requires explicit
+			post-write tq-dm audit. Schema cue vet PASS ≠ tq-dm semantic
+			PASS. Phase 4 (agent-spec) + Phase 5 (governance envelope) +
+			futuros BC bootstraps devem incluir post-write semantic
+			alignment audit canonical no protocolo.
+
+			Recommended structural-check para post-WI-045 closure:
+			architecture/structural-checks/nim-domain-model.cue
+			implementando tq-dm-01..06 + tq-dm-13 + tq-dm-17 como
+			reference-exists + same-artifact-consistency kinds (per adr-040
+			structural-check canonical types). Materialização defer per
+			Q3.1.C.6 + Q5.3 padrão (structural-check WI separado later).
 			"""
 	}]
 
