@@ -408,7 +408,8 @@ package artifact_schemas
 
 // Categorias de ação para auditoria e observabilidade.
 #ActionCategory:
-	"query" |          // Leitura sem efeito colateral
+	"query" |          // Leitura reativa pontual (requires explicit invocation)
+	"observation" |    // Continuous or event-driven surveillance that MAY trigger without explicit invocation; does not directly mutate domain state. Per ADR-089: observation actions MUST NOT require explicit external invocation to execute (trigger independence canonical).
 	"mutation" |       // Alteração de estado via command
 	"validation" |     // Verificação de invariante ou regra
 	"generation" |     // Geração de artefato (código, spec, documento)
