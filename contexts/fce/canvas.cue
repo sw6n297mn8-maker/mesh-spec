@@ -166,7 +166,7 @@ canvas: artifact_schemas.#Canvas & {
 			sourceContext: "rew"
 			event:         "CreditEligibilityDecided"
 			reaction:      "Materializa decisão do PrePaymentGuard — elegibilidade positiva autoriza progressão para hold/release; negativa bloqueia a fatura como inelegível até reavaliação."
-			description:   "REW é gate determinístico do pagamento (invariante: dinheiro não move sem decisão de risco). Loop bidirecional com fce-to-rew."
+			description:   "REW fornece input determinístico para o gate (invariante: dinheiro não move sem decisão de risco). Loop bidirecional com fce-to-rew."
 		}, {
 			type:          "event-consumer"
 			sourceContext: "bkr"
@@ -191,16 +191,16 @@ canvas: artifact_schemas.#Canvas & {
 			description: "Expõe estado canônico do pagamento para SCF reconciliar operações de antecipação. Hybrid em fce-to-scf: complementa o evento PaymentSettled com leitura point-in-time quando SCF precisa do estado fora da janela de evento."
 		}]
 		outbound: [{
-			type:        "event-publisher"
-			trigger:     "BankSettlementConfirmed recebido (BKR) — transição final da payment state machine para settled."
-			event:       "PaymentSettled"
-			consumers:   ["rew", "scf", "ato", "tcm"]
+			type:    "event-publisher"
+			trigger: "BankSettlementConfirmed recebido (BKR) — transição final da payment state machine para settled."
+			event:   "PaymentSettled"
+			consumers: ["rew", "scf", "ato", "tcm"]
 			description: "Sinal canônico de liquidação realizada. REW retroalimenta risco com comportamento de pagamento; SCF fecha operação de antecipação; ATO registra lançamento contábil em modo conformist; TCM converte projeção em posição realizada."
 		}, {
-			type:        "event-publisher"
-			trigger:     "Compromisso entra em default — pagamento não executado dentro do prazo após elegibilidade autorizada, ou settlement falhou em rail sem recuperação."
-			event:       "PaymentObligationDefaulted"
-			consumers:   ["rew"]
+			type:    "event-publisher"
+			trigger: "Compromisso entra em default — pagamento não executado dentro do prazo após elegibilidade autorizada, ou settlement falhou em rail sem recuperação."
+			event:   "PaymentObligationDefaulted"
+			consumers: ["rew"]
 			description: "Sinal de comportamento financeiro adverso para alimentar modelos de risco. Default deteriora score da contraparte cross-BC e pode informar decisões futuras de elegibilidade em REW."
 		}, {
 			type:            "command-invocation"
@@ -294,7 +294,7 @@ canvas: artifact_schemas.#Canvas & {
 		stakeholderRef:    "sh-05"
 		roleInContext:     "Operador primário do payment lifecycle — recebe eventos upstream (INV, REW, BKR, DRC), executa PrePaymentGuard, sequencia pagamentos sob TCM, escala decisões fora do envelope autônomo."
 		impactDescription: "Boundaries claras (gates determinísticos, autonomy envelope, escalation criteria) permitem operação 24/7 com auditabilidade. Agente não move dinheiro diretamente — propõe transições; gates determinísticos autorizam execução via infraestrutura bancária."
-		rationale:         "Agente IA é operador primário (ax-01). Em FCE — onde qualquer erro tem impacto monetário direto — boundaries explícitas são pré-condição de operação."
+		rationale:         "Agente IA é operador primário (ax-01). Em FCE — onde falhas operacionais têm impacto monetário direto — boundaries explícitas são pré-condição de operação."
 	}, {
 		stakeholderRef:    "sh-06"
 		roleInContext:     "Vetor adversarial canonical para modelagem defensiva — atacante econômico que explora janela settling↔settled, fracionamento, cancel-then-reissue laundering, ou coordena com sh-01/sh-02/sh-05 para induzir movimentos sem lastro."
@@ -380,11 +380,11 @@ canvas: artifact_schemas.#Canvas & {
 		}, {
 			stakeholderRef:            "sh-06"
 			participantType:           "adversário-econômico"
-			desiredBehavior:           "Sistema deve tornar exploração economicamente irracional — sh-06 abandona quando todo vetor R4+++ conhecido tem custo > benefício extraível."
+			desiredBehavior:           "Sistema deve tornar exploração economicamente irracional — sh-06 abandona quando vetores R4+++ conhecidos têm custo > benefício extraível."
 			correctOperationIncentive: "Residual: sh-06 desiste quando custos cumulativos de manipulação (detecção multi-camada + reputação cross-network + tipificação penal) excedem benefício pontual extraível por vetor."
 			manipulationVector:        "Vetores R4+++ específicos a FCE: (a) value concentration — concentrar pagamentos em valor logo abaixo de thresholds de escalação; (b) cancel-then-reissue laundering — usar InvoiceCancelled pré-settle + nova InvoiceIssued para confundir trilha de proveniência; (c) delay attack — induzir disputa fictícia em DRC para forçar hold prolongado em compromissos correlatos; (d) settling exploitation — atacar pagamentos durante janela settling para forçar timeout ou inconsistência."
 			manipulationCost:          "(a) detecção por agregação cross-período em REW; (b) ledger preserva proveniência cross-cancellation, vinculação CommitmentId torna laundering rastreável; (c) DRC tem custo próprio de abertura de disputa + reputational decay; (d) settling SLA com escalation + BKR como oracle independente. Combinações requerem coordenação multi-actor — sh-06 tipicamente isolado."
-			vsBenefit:                 "Benefício depende do vetor — valor extraível por cancel-then-reissue é limitado ao gap pré-detecção (horas a dias). Custo cumulativo: detecção multi-camada (REW agrega + ledger preserva + BKR confirma) + reputação cross-network degradada por design."
+			vsBenefit:                 "Benefício depende do vetor — valor extraível por cancel-then-reissue é limitado ao gap pré-detecção (horas a dias). Custo cumulativo: detecção multi-camada (REW agrega + ledger preserva + BKR confirma) + pode degradar reputação cross-network."
 			designResponse:            "Defesa em profundidade: ledger imutável com proveniência cross-cancellation; settling vs settled como estado de primeira classe; cross-BC analytics (REW + DRC + BDG + INV) para detectar padrões adversariais R4+++; escalation criteria com threshold dinâmico contra value concentration."
 			rationale:                 "FCE é alvo de alto valor (state-change financeiro direto). Modelagem explícita de sh-06 com designResponse para cada vetor R4+++ específico do BC torna defesa auditável — não premissa implícita."
 		}, {
@@ -568,7 +568,7 @@ canvas: artifact_schemas.#Canvas & {
 	}, {
 		id:     "value-concentration-detection-rate"
 		metric: "Percentual de InitiateBankTransfer cujo valor está em janela ±5% do threshold de autonomia"
-		target: "< 5% dos pagamentos por par sh-01↔sh-02 em janela de 30 dias"
+		target: "Target pendente de calibração após resolução de oq-fce-1 (threshold) e oq-fce-3 (REW detection); placeholder não-normativo até decisão formal."
 		onBreach: {
 			escalationRef: "value-concentration-pattern"
 			rationale:     "Concentração acima do baseline é sinal estatístico de fracionamento ou value gaming (vetor sh-01 + sh-06). Escalação suspende autonomia do par e dispara revisão por compliance."
@@ -600,8 +600,8 @@ canvas: artifact_schemas.#Canvas & {
 		primário porque opera o payment lifecycle sob gates determinísticos;
 		gateway como secundário porque PrePaymentGuard é fronteira de entrada
 		inviolável. Business decisions declaradas: bd-payment-invariant
-		(gate inviolável), bd-ledger-as-sot (FCE detém verdade financeira
-		contra a qual ATO/TCM/SCF reconciliam), bd-settled-after-bkr
+		(gate inviolável), bd-ledger-as-sot (FCE mantém o ledger financeiro
+		canônico contra o qual ATO/TCM/SCF reconciliam), bd-settled-after-bkr
 		(canonical settled apenas pós-BKR ACK), bd-post-settle-immutability
 		(correção pós-settle via DRC, não mutação retroativa). Governance
 		scope separa decisões determinísticas (autônomas) de decisões com
