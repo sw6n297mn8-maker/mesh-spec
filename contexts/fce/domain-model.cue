@@ -717,15 +717,15 @@ domainModel: artifact_schemas.#DomainModel & {
 			é responsabilidade de DRC, não retroage no FCE); defaulted e aborted são
 			branches terminais distintos do happy path com semântica clara para REW
 			(default deteriora score) e audit (abort preserva evidência de intent
-			sem movimento). 8 commands handled (incluindo cmd-handle-dispute-resolution
-			e cmd-resolve-prolonged-settling que operam como routers internos — não
-			disparam transição direta, despacham para cmd-abort-pre-settle /
-			cmd-mark-defaulted / cmd-confirm-settlement conforme outcome humano ou
-			da disputa). 7 transitions formalizando happy path + 2 branches default
-			+ 2 branches abort (apenas pre-settle = pré-emissão de InitiateBankTransfer:
-			pending e eligible; settling não tem branch abort porque dinheiro pode
-			já estar no rail — correção vira responsabilidade de DRC via
-			FinancialCompensationOrdered). 5 ACL events registrados em emitsEvents
+			sem movimento). 8 commands handled, sendo cmd-handle-dispute-resolution e
+			cmd-resolve-prolonged-settling router commands — não possuem transition
+			própria porque despacham deterministicamente para commands terminais do
+			lifecycle (cmd-abort-pre-settle / cmd-mark-defaulted / cmd-confirm-settlement)
+			conforme outcome humano ou da disputa. 7 transitions formalizando happy
+			path + 2 branches default + 2 branches abort (apenas pre-settle = pré-emissão
+			de InitiateBankTransfer: pending e eligible; settling não tem branch abort
+			porque dinheiro pode já estar no rail — correção vira responsabilidade de
+			DRC via FinancialCompensationOrdered). 5 ACL events registrados em emitsEvents
 			para satisfazer tq-dm-02 (mesmo trade-off documentado no cmt: semanticamente
 			são produzidos pela camada ACL, mas o aggregate registra no seu event
 			stream). PrePaymentGuard é gate interno do FCE — REW fornece input via
@@ -975,8 +975,19 @@ domainModel: artifact_schemas.#DomainModel & {
 		FCE — REW fornece input via CreditEligibilityDecided. inv-compensation-respects-drc-decision
 		formaliza disciplina de boundary: FCE não revisa compensações. Cross-BC state
 		dependency declarada em inv-payment-evidence-required (TCM via QueryCashAvailability).
-		Gap deferido Phase 0: wiring concreto de inv-financialization-atomicity (policy/service
-		SCF) aguarda evidência operacional; branches de failure em agg-financial-compensation
-		aguardam padrão observado.
+
+		Direções arquiteturais registradas (não modeladas em Phase 0):
+		- evt-ledger-event-recorded é candidato futuro a backbone observability/audit
+		  cross-BC — hoje consumido apenas por prj-financial-ledger, mas o spine financeiro
+		  implícito do sistema vive nesse evento; promoção exige ADR + evidência cross-BC.
+		- Ownership/locking semantics do bankTransferRef é gap arquitetural emergente.
+		  Hoje a disciplina vive implícita (aggregate possui a ref; policies roteiam por
+		  ownership; outro aggregate faz no-op auditável). Em escala/regulação tende a
+		  virar invariant explícita ("um bankTransferRef só pode pertencer a um único
+		  lifecycle ativo"). Registrado como próximo ponto estrutural natural.
+
+		Gaps deferred Phase 0: wiring concreto de inv-financialization-atomicity
+		(policy/service SCF) aguarda evidência operacional; branches de failure em
+		agg-financial-compensation aguardam padrão observado.
 		"""
 }
