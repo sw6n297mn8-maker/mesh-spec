@@ -1,4 +1,4 @@
-package design_principles
+package architecture
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 

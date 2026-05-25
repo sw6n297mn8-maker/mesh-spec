@@ -5,8 +5,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // singleton-coverage.cue — Trava de regressão para singletons declarados.
 // Per adr-090: gêmeo de sc-pg-01 (production-guide-coverage). Nasce verde
 // listando apenas singletons já existentes; cresce por change-on-touch.
-// agent-governance global entra na whitelist quando criado (pós-cutover,
-// fora do escopo de adr-090).
+// agent-governance global entra na whitelist no commit que cria o global
+// (architecture/agent-governance.cue), per adr-037 (governança em dois níveis).
 
 structuralChecks: "sc-sg-01": artifact_schemas.#StructuralCheck & {
 	id:           "sc-sg-01"
@@ -16,9 +16,11 @@ structuralChecks: "sc-sg-01": artifact_schemas.#StructuralCheck & {
 	kind:         "singleton-coverage"
 	rule: {
 		// Nasce verde: somente singletons que JÁ existem (shape exige ≥1).
-		// Adicionar agent-governance aqui quando o global for criado (adr-090,
-		// pós-cutover). Conjunto conservador — extensível por change-on-touch.
+		// agent-governance adicionado no mesmo commit que cria o global
+		// (architecture/agent-governance.cue), per adr-037. Conjunto extensível
+		// por change-on-touch.
 		requiredSingletons: [
+			"agent-governance",
 			"context-map",
 			"domain-definition",
 			"repo-structure",
