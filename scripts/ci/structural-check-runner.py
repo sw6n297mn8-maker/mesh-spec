@@ -9,11 +9,14 @@ Modo warn (default): reporta, exit 0. Modo reject: exit 1 se houver violação.
 Aquisição de dados via `cue`:
   - structuralChecks: cue export ./architecture/structural-checks/ -e structuralChecks
   - location de schema (campo OCULTO _schema.location): cue eval <dir-do-package> -e '#Def._schema.location'
-    (avalia o DIRETORIO do package, nao o arquivo unico, para resolver cross-refs same-package)
+    (avalia o DIRETORIO do package para resolver cross-refs same-package; varre
+     architecture/artifact-schemas/ E governance/build-time/)
   - scope/excluded: cue export ./governance/repo-structure.cue -e repoStructure.scope
 
-Cobre os 10 kinds do #StructuralCheck. fileClassification detecta orfaos
-(arquivo .cue em scope que nao casa com nenhum schema) e ambiguidade (>=2).
+Cobre os 10 kinds do #StructuralCheck. fileClassification: AMBIGUO (>=2 schemas)
+conta como violacao; unmatched (sem schema localizado) e INFO. Zonas governadas
+por work-governance (task-specs/work-events/projections) sao excluidas — nao tem
+schema localizado por design.
 
 Uso:
   structural-check-runner.py <repo-root> [--mode warn|reject]
@@ -37,25 +40,31 @@ def load_scope():
     if e or not d: return (["domain/","strategic/","contexts/","architecture/","governance/","ai-orchestration/"], ["cue.mod/",".git/",".github/","scripts/"])
     return (d.get("validated",[]), d.get("excluded",[]))
 
+SCHEMA_DIRS=["./architecture/artifact-schemas","./governance/build-time"]
 _loc_cache={}
 def schema_location(name):
     if name in _loc_cache: return _loc_cache[name]
-    f="./architecture/artifact-schemas/"+name+".cue"
     res=None
-    if os.path.isfile(f):
+    for d in SCHEMA_DIRS:
+        f=d+"/"+name+".cue"
+        if not os.path.isfile(f): continue
         m=re.search(r'^#([A-Za-z0-9_]+):', open(f).read(), re.M)
-        if m:
-            # eval o PACKAGE (dir), nao o arquivo unico, para resolver cross-refs same-package
-            d,e=cue_json(["eval","./architecture/artifact-schemas/","-e","#%s._schema.location"%m.group(1),"--out","json"])
-            res=None if e else d
+        if not m: continue
+        loc,e=cue_json(["eval",d,"-e","#%s._schema.location"%m.group(1),"--out","json"])
+        if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): res=loc; break
     _loc_cache[name]=res
     return res
 
 def all_schema_locations():
     out=[]
-    for f in sorted(glob.glob("./architecture/artifact-schemas/*.cue")):
-        loc=schema_location(os.path.basename(f)[:-4])
-        if loc and loc.get("canonicalPathRegex"): out.append((os.path.basename(f)[:-4],loc["canonicalPathRegex"]))
+    for d in SCHEMA_DIRS:
+        if not os.path.isdir(d): continue
+        for f in sorted(glob.glob(d+"/*.cue")):
+            txt=open(f).read()
+            if "_schema" not in txt: continue
+            for dn in re.findall(r'^#([A-Za-z0-9_]+):', txt, re.M):
+                loc,e=cue_json(["eval",d,"-e","#%s._schema.location"%dn,"--out","json"])
+                if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): out.append((dn,loc["canonicalPathRegex"]))
     return out
 
 def literal_path(rx):
@@ -216,6 +225,9 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "reference-exists":ev_reference_exists,"same-artifact-consistency":ev_same_artifact,
  "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant}
 
+# Zonas governadas por work-governance (work-governance.cue), nao por artifact-schema
+# localizado: nao sao classificaveis por canonicalPathRegex -> excluidas de orphan.
+GOVERNED_ELSEWHERE=("governance/build-time/task-specs/","governance/build-time/work-events/","governance/build-time/projections/")
 def file_classification(scope,excluded):
     locs=all_schema_locations(); orphan=[]; ambig=[]
     for d in scope:
@@ -226,6 +238,7 @@ def file_classification(scope,excluded):
                 if not f.endswith(".cue"): continue
                 p=os.path.relpath(os.path.join(dp,f),".")
                 if any(p.startswith(e.rstrip("/")) for e in excluded): continue
+                if any(p.startswith(g) for g in GOVERNED_ELSEWHERE): continue
                 ms=[n for n,rx in locs if re.match(rx,p)]
                 if len(ms)==0: orphan.append(p)
                 elif len(ms)>=2: ambig.append((p,ms))
@@ -243,11 +256,13 @@ def run(root,mode):
             for x in vs: print(f"    - {x}")
     scope,excluded=load_scope()
     orphan,ambig=file_classification(scope,excluded)
-    if orphan or ambig:
-        print(f"\n[fileClassification] (scope={scope})")
-        for o in orphan: print(f"    ORPHAN  {o}")
-        for p,ms in ambig: print(f"    AMBIG   {p} -> {ms}")
-        total+=len(orphan)+len(ambig)
+    if ambig:
+        print(f"\n[fileClassification] AMBIGUO (viola exclusive-match) — conta:")
+        for p,ms in ambig: print(f"    AMBIG  {p} -> {ms}")
+        total+=len(ambig)
+    if orphan:
+        print(f"\n[fileClassification] unmatched — sem artifact-schema localizado (INFO, nao conta): {len(orphan)}")
+        for o in orphan: print(f"    unmatched  {o}")
     if uncovered:
         print("\n[runner] kinds sem evaluator (ignorados):")
         for cid,k in uncovered: print(f"    {cid}: {k}")
