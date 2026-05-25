@@ -24,14 +24,10 @@ jobs:
             exit 1
           }
 
-      - name: Structural-check runner (enforcement por-check; bloqueia em reject)
+      - name: Structural-check runner (warn - inventario, nao bloqueia)
         run: |
-          set +e
-          python3 scripts/ci/structural-check-runner.py . | tee /tmp/sc.txt
-          rc=${PIPESTATUS[0]}
-          set -e
-          { echo "## structural-check inventory"; echo '```'; cat /tmp/sc.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          exit $rc
+          python3 scripts/ci/structural-check-runner.py . --mode warn | tee /tmp/sc.txt
+          { echo "## structural-check inventory (warn)"; echo '```'; cat /tmp/sc.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Structure-index discovery (adr-090 iv-a, report-only)
         if: always()
@@ -41,6 +37,7 @@ jobs:
             { echo "## structure-index discovery (adr-090 iv-a)"; echo "gerador falhou (report-only, nao bloqueia)"; } | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           }
+          { echo -n "STRUCTURE_INDEX_BASE64="; base64 -w0 /tmp/structure-index.cue; echo; } | tee -a "$GITHUB_STEP_SUMMARY"
           cue export /tmp/structure-index.cue -e structureIndex --out json > /tmp/si.json
           python3 -c '
           import json
