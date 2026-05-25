@@ -107,8 +107,12 @@ def wave_plan_create_paths():
                     wid = cur.get("id") or cur.get("workItemId")
                     if isinstance(out, list) and isinstance(wid, str):
                         for o in out:
-                            if isinstance(o, dict) and o.get("type") == "create" and isinstance(o.get("path"), str):
-                                res.setdefault(o["path"], wid)
+                            # #TaskOutput real usa o campo `artifact` (não `path`);
+                            # aceita ambos por robustez. type create == sera criado.
+                            if isinstance(o, dict) and o.get("type") == "create":
+                                ap = o.get("artifact") or o.get("path")
+                                if isinstance(ap, str):
+                                    res.setdefault(ap, wid)
                     stack.extend(cur.values())
                 elif isinstance(cur, list):
                     stack.extend(cur)
@@ -225,9 +229,10 @@ def self_test():
     # scope mínimo
     w("governance/repo-structure.cue",
       'package x\nrepoStructure:scope:{validated:["architecture/","governance/"],excluded:["cue.mod/",".git/",".github/","scripts/"]}\n')
-    # wave-plan sintético: cria architecture/beta.cue no WI-007
+    # wave-plan sintético (shape REAL: waves -> tasks -> outputs[].artifact):
+    # cria architecture/beta.cue no WI-007.
     w("governance/wave-plan.cue",
-      'package x\nwavePlan:workItems:[{id:"WI-007",outputs:[{type:"create",path:"architecture/beta.cue"}]}]\n')
+      'package x\nwavePlan: waves: "W001-x": tasks: [{id:"WI-007",outputs:[{type:"create",artifact:"architecture/beta.cue"}]}]\n')
     # self-exclusion: o proprio indice derivado existe na arvore e NAO pode
     # aparecer como orfao (senao auto-referencia quebra o sync byte-a-byte).
     w("governance/readme/structure-index.cue", "package readme\nstructureIndex: {}\n")
