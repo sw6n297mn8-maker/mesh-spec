@@ -28,3 +28,41 @@ jobs:
         run: |
           python3 scripts/ci/structural-check-runner.py . --mode warn | tee /tmp/sc.txt
           { echo "## structural-check inventory (warn)"; echo '```'; cat /tmp/sc.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Structure-index discovery (adr-090 iv-a, report-only)
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 scripts/ci/generate-structure-index.py . > /tmp/structure-index.cue || {
+            { echo "## structure-index discovery (adr-090 iv-a)"; echo "gerador falhou (report-only, nao bloqueia)"; } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+          cue export /tmp/structure-index.cue -e structureIndex --out json > /tmp/si.json
+          python3 -c '
+          import json
+          d = json.load(open("/tmp/si.json"))
+          sg = d["singletons"]; miss = d["missingSingletons"]; amb = d["ambiguous"]; un = d["unmatched"]
+          present = sum(1 for s in sg if s["present"])
+          L = []
+          L.append("## structure-index discovery (adr-090 iv-a) — report-only")
+          L.append("")
+          L.append("Indice DERIVADO de _schema.location + scan do filesystem (arvore viva do checkout). Diagnostico transitorio, nao gate.")
+          L.append("")
+          L.append("- singletons: %d declarados / %d presentes / %d ausentes" % (len(sg), present, len(miss)))
+          L.append("- collections: %d schemas" % len(d["collections"]))
+          L.append("- ambiguos (exclusive-match): %d %s" % (len(amb), "(saudavel)" if not amb else "(REVISAR)"))
+          L.append("- unmatched/orfaos (info, future-work): %d" % len(un))
+          if miss:
+              L.append(""); L.append("### Singletons ausentes (sem veredito, P10)")
+              L += ["- `%s` — %s" % (m["canonicalPath"], m["wavePlanStatus"]) for m in miss]
+          if amb:
+              L.append(""); L.append("### Ambiguos (>=2 schemas, viola exclusive-match)")
+              L += ["- `%s` -> %s" % (a["path"], a["schemas"]) for a in amb]
+          blob = json.dumps(d)
+          L.append(""); L.append("### Sanidade phantom (adr-095)")
+          L += ["- `%s`: %s" % (ph, "AINDA PRESENTE (revisar)" if ph in blob else "ausente do indice (ok)") for ph in ("universal-glossary.cue", "business-model.cue")]
+          if un:
+              L.append(""); L.append("### Orfaos — sem artifact-schema localizado (future-work)")
+              L += ["- `%s`" % o for o in un]
+          print("\n".join(L))
+          ' >> "$GITHUB_STEP_SUMMARY"
