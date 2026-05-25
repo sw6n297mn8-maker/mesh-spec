@@ -126,6 +126,27 @@ def annotate(path, loaded_ok, create_map):
     return "nao-contabilizado"
 
 
+# Anti-phantom (adr-090 componente 7): paths .cue CONCRETOS referenciados no
+# config autoral que NÃO resolvem (nem existem no disco, nem plannedIn no
+# wave-plan). Warn-first: surface como backlog no índice, não bloqueia.
+_PHANTOM_SCAN_FILES = ["governance/readme/config.cue"]
+_CONCRETE_PATH_RE = re.compile(
+    r'(?:domain|strategic|contexts|architecture|governance|ai-orchestration)/[A-Za-z0-9._/-]+\.cue')
+
+
+def phantom_candidates(create_map):
+    # Extração determinística: só paths concretos sob raiz real, sem {}/*/[]
+    # (o char-class já exclui placeholders/regex) e sem bare-name (exige raiz/).
+    # Resolve = existe no disco OU plannedIn (create_map). Demais = candidato.
+    refs = set()
+    for f in _PHANTOM_SCAN_FILES:
+        try:
+            refs.update(_CONCRETE_PATH_RE.findall(open(f).read()))
+        except OSError:
+            continue
+    return sorted(p for p in refs if not os.path.isfile(p) and p not in create_map)
+
+
 def build_index():
     locs = all_locations_full()
     scope, excluded = R.load_scope()
@@ -160,6 +181,7 @@ def build_index():
         "ambiguous": [{"path": p, "schemas": ms} for p, ms in ambiguous],
         "unmatched": unmatched,
         "missingSingletons": sorted(missing, key=lambda m: m["canonicalPath"]),
+        "phantomCandidates": phantom_candidates(create_map),
     }
 
 
@@ -209,6 +231,10 @@ def self_test():
     # self-exclusion: o proprio indice derivado existe na arvore e NAO pode
     # aparecer como orfao (senao auto-referencia quebra o sync byte-a-byte).
     w("governance/readme/structure-index.cue", "package readme\nstructureIndex: {}\n")
+    # anti-phantom: config com 1 ref que resolve (alpha existe), 1 plannedIn
+    # (beta no WI-007), 1 phantom (ghost), 1 template e 1 bare (ignorados).
+    w("governance/readme/config.cue",
+      'package readme\nconfig: x: "ver architecture/alpha.cue, architecture/beta.cue, architecture/ghost.cue; template contexts/{bc}/x.cue; bare foo.cue"\n')
 
     out = generate(d)
     idx = json.loads(out[out.index("{"):])
@@ -236,6 +262,7 @@ def self_test():
         and len(miss) == 1 and miss[0]["canonicalPath"] == "architecture/beta.cue"
         and miss[0]["wavePlanStatus"] == "agendado WI-007"
         and "governance/readme/structure-index.cue" not in idx["unmatched"]
+        and idx["phantomCandidates"] == ["architecture/ghost.cue"]
         and out.startswith("package readme\n")
         and round_trip
     )
