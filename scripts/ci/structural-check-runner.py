@@ -18,6 +18,9 @@ Cobre os 10 kinds do #StructuralCheck. fileClassification: AMBIGUO (>=2 schemas)
 conta como violacao; unmatched (sem schema localizado) e INFO. Zonas governadas
 por work-governance (task-specs/work-events/projections) sao excluidas.
 
+Resiliencia: cada evaluator roda isolado (try/except) — um check que estoura
+vira uma linha [ERROR] e NAO aborta o inventario (apropriado para warn-first).
+
 Uso:
   structural-check-runner.py <repo-root> [--mode warn|reject]
   structural-check-runner.py --self-test
@@ -180,8 +183,24 @@ def ev_reference_exists(rule,c):
         refs=refs if isinstance(refs,list) else [refs]
         ns=dotget(a,rule["refNamespace"]); keys=set(ns.keys()) if isinstance(ns,dict) else set()
         for r in refs:
+            if isinstance(r,(dict,list)): continue
             if r not in keys: v.append(f"{f}: ref '{r}' ({rule['sourcePath']}) ausente em {rule['refNamespace']}")
     return v
+
+def _idset(val):
+    # Normaliza um bloco (dict de defs, lista de strings, ou lista de dicts)
+    # para um set de identificadores hashaveis. Lista de dicts: usa
+    # id/code/name/key. Evita TypeError unhashable em set().
+    out=set()
+    if isinstance(val,dict): return set(val.keys())
+    if isinstance(val,str): return {val}
+    if isinstance(val,list):
+        for it in val:
+            if isinstance(it,str): out.add(it)
+            elif isinstance(it,dict):
+                for fld in ("id","code","name","key"):
+                    if isinstance(it.get(fld),str): out.add(it[fld]); break
+    return out
 
 def ev_same_artifact(rule,c):
     fs=files_for_at(c["artifactType"])
@@ -190,10 +209,8 @@ def ev_same_artifact(rule,c):
     for f in fs:
         a=load_artifact(f)
         if a is None: continue
-        ref=dotget(a,rule["referencingBlock"]); dfn=dotget(a,rule["definingBlock"])
-        refk=ref if isinstance(ref,list) else (list(ref.keys()) if isinstance(ref,dict) else [])
-        defk=set(dfn.keys()) if isinstance(dfn,dict) else (set(dfn) if isinstance(dfn,list) else set())
-        for k in refk:
+        refk=_idset(dotget(a,rule["referencingBlock"])); defk=_idset(dotget(a,rule["definingBlock"]))
+        for k in sorted(refk):
             if k not in defk: v.append(f"{f}: '{k}' ({rule['referencingBlock']}) ausente em {rule['definingBlock']}")
     return v
 
@@ -247,7 +264,12 @@ def run(root,mode):
     for cid,c in sorted(checks.items()):
         fn=EVAL.get(c["kind"])
         if not fn: uncovered.append((cid,c["kind"])); continue
-        vs=fn(c["rule"],c)
+        try:
+            vs=fn(c["rule"],c)
+        except Exception as ex:
+            total+=1
+            print(f"[ERROR] {cid} ({c['kind']}): avaliador falhou: {type(ex).__name__}: {ex}")
+            continue
         if vs:
             total+=len(vs); print(f"[{'WARN' if mode=='warn' else 'FAIL'}] {cid} ({c['kind']}): {c.get('title','')}")
             for x in vs: print(f"    - {x}")
@@ -280,8 +302,10 @@ def self_test():
     dp=ev_directory_pair(checks["sc-dp-01"]["rule"],checks["sc-dp-01"])
     sg=ev_singleton(checks["sc-sg-01"]["rule"],checks["sc-sg-01"])
     th=ev_required_block(checks["sc-th-01"]["rule"],checks["sc-th-01"])  # disjuncao+base-oculta deve RESOLVER
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"])
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th}")
+    # regressao unhashable: blocos como lista-de-dicts nao podem crashar _idset
+    idr = (_idset([{"id":"a"},{"code":"b"},"c"])=={"a","b","c"}) and (_idset({"x":1})=={"x"}) and (_idset(None)==set())
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr}")
     return 0 if ok else 1
 
 if __name__=="__main__":
