@@ -9,9 +9,10 @@ Modo warn (default): reporta, exit 0. Modo reject: exit 1 se houver violação.
 Aquisição de dados via `cue`:
   - structuralChecks: cue export ./architecture/structural-checks/ -e structuralChecks
   - location de schema (campo OCULTO _schema.location): cue eval <dir-do-package> -e '<Def>._schema.location'
-    (avalia o DIRETORIO do package; tenta TODOS os defs incl. _#Base oculto, pois o
-     location costuma viver na base e #Def principal e disjuncao; varre
-     architecture/artifact-schemas/ E governance/build-time/)
+    (avalia o DIRETORIO do package; tenta TODOS os defs incl. _#Base oculto E
+     campos ocultos minusculos como _xxxMeta, pois o location concreto pode
+     viver num campo oculto enquanto #Def principal so tem o constraint abstrato
+     ou e disjuncao; varre architecture/artifact-schemas/ E governance/build-time/)
   - scope/excluded: cue export ./governance/repo-structure.cue -e repoStructure.scope
 
 Cobre os 10 kinds do #StructuralCheck. fileClassification: AMBIGUO (>=2 schemas)
@@ -51,7 +52,7 @@ def schema_location(name):
     for d in SCHEMA_DIRS:
         f=d+"/"+name+".cue"
         if not os.path.isfile(f): continue
-        for dn in re.findall(r'^(_?#[A-Za-z0-9_]+):', open(f).read(), re.M):
+        for dn in re.findall(r'^((?:_#|#|_)[A-Za-z0-9_]+):', open(f).read(), re.M):
             loc,e=cue_json(["eval",d,"-e","%s._schema.location"%dn,"--out","json"])
             if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): res=loc; break
         if res: break
@@ -65,7 +66,7 @@ def all_schema_locations():
         for f in sorted(glob.glob(d+"/*.cue")):
             txt=open(f).read()
             if "_schema" not in txt: continue
-            for dn in re.findall(r'^(_?#[A-Za-z0-9_]+):', txt, re.M):
+            for dn in re.findall(r'^((?:_#|#|_)[A-Za-z0-9_]+):', txt, re.M):
                 loc,e=cue_json(["eval",d,"-e","%s._schema.location"%dn,"--out","json"])
                 if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): out.append((dn,loc["canonicalPathRegex"]))
     return out
@@ -295,6 +296,9 @@ def self_test():
     w("architecture/artifact-schemas/singleton.cue",'package artifact_schemas\n#S:{x:string,_schema:location:{canonicalPathRegex:"^global/thing\\\\.cue$",fileNameRegex:"^thing\\\\.cue$",cardinality:"singleton"}}\n')
     w("architecture/artifact-schemas/thing.cue",'package artifact_schemas\n#Thing:_#TB&({k:"x"}|{k:"y"})\n_#TB:{k:string,_schema:location:{canonicalPathRegex:"^things/[a-z]+\\\\.cue$",fileNameRegex:"^[a-z]+\\\\.cue$",cardinality:"collection"}}\n')
     w("architecture/structural-checks/c.cue",'package structural_checks\nstructuralChecks:{"sc-dp-01":{id:"sc-dp-01",title:"t",artifactType:"work-governance",description:"d",kind:"directory-pair-coverage",rule:{sourceGlob:"we/wi-*.cue",targetGlob:"ts/wi-*.cue",bidirectional:false},errorMessage:"e",rationale:"r"},"sc-sg-01":{id:"sc-sg-01",title:"t",artifactType:"artifact-schema",description:"d",kind:"singleton-coverage",rule:{requiredSingletons:["singleton"]},errorMessage:"e",rationale:"r"},"sc-th-01":{id:"sc-th-01",title:"t",artifactType:"thing",description:"d",kind:"required-block",rule:{blockName:"val"},errorMessage:"e",rationale:"r"}}\n')
+    # location concreto em campo oculto minusculo (_pgMeta), nao em _#Base —
+    # replica production-guide.cue (regressao sc-pg "nao resolve").
+    w("architecture/artifact-schemas/pg.cue",'package artifact_schemas\n#PG:{_schema:location:{canonicalPathRegex:string&!="",fileNameRegex:string&!="",cardinality:"singleton"|"collection",allowNested:bool|*false}}\n_pgMeta:{_schema:location:{canonicalPathRegex:"^pg/[a-z]+\\\\.cue$",fileNameRegex:"^[a-z]+\\\\.cue$",cardinality:"collection",allowNested:false}}\n')
     w("we/wi-1.cue","package we\n"); w("we/wi-9.cue","package we\n"); w("ts/wi-1.cue","package ts\n")
     w("global/thing.cue","package x\n"); w("things/good.cue",'package things\nt:{k:"x"}\n')
     os.chdir(d); _loc_cache.clear(); _art_cache.clear()
@@ -304,8 +308,11 @@ def self_test():
     th=ev_required_block(checks["sc-th-01"]["rule"],checks["sc-th-01"])  # disjuncao+base-oculta deve RESOLVER
     # regressao unhashable: blocos como lista-de-dicts nao podem crashar _idset
     idr = (_idset([{"id":"a"},{"code":"b"},"c"])=={"a","b","c"}) and (_idset({"x":1})=={"x"}) and (_idset(None)==set())
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr}")
+    # regressao campo-oculto-minusculo: location concreto em _pgMeta deve RESOLVER
+    pgloc=schema_location("pg")
+    hid = isinstance(pgloc,dict) and pgloc.get("canonicalPathRegex")=="^pg/[a-z]+\\.cue$"
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid}")
     return 0 if ok else 1
 
 if __name__=="__main__":
