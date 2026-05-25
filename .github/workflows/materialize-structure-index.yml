@@ -1,0 +1,29 @@
+name: materialize-structure-index
+
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cue-lang/setup-cue@v1.0.0
+        with:
+          version: v0.16.0
+
+      - name: Regenerate and auto-commit structure-index
+        run: |
+          python3 scripts/ci/generate-structure-index.py . > governance/readme/structure-index.cue
+          git add governance/readme/structure-index.cue
+          if git diff --cached --quiet; then
+            echo "structure-index.cue em sincronia; nada a commitar."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(ci): regenerate structure-index.cue (derivado, adr-090) [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "push falhou (provavel corrida); proxima run reconcilia"
