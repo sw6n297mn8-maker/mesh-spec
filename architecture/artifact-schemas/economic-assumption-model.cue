@@ -19,8 +19,8 @@ package artifact_schemas
 #EconomicAssumptionModel: {
 	_schema: {
 		location: {
-			canonicalPathRegex: "^strategic/economic-model/[a-z0-9-]+\\.cue$"
-			fileNameRegex:      "^[a-z0-9-]+\\.cue$"
+			canonicalPathRegex: "^strategic/economic-model/mesh-economic-assumptions\\.cue$"
+			fileNameRegex:      "^mesh-economic-assumptions\\.cue$"
 			description:        "Economic reality layer (Layer -1) — invariants of environment that constrain all BCs."
 			rationale: """
 				Defines truths about the economic environment that are NOT design decisions.
