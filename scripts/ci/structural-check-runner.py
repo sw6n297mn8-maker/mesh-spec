@@ -8,7 +8,8 @@ Modo warn (default): reporta, exit 0. Modo reject: exit 1 se houver violação.
 
 Aquisição de dados via `cue`:
   - structuralChecks: cue export ./architecture/structural-checks/ -e structuralChecks
-  - location de schema (campo OCULTO _schema.location): cue eval <file> -e '#Def._schema.location'
+  - location de schema (campo OCULTO _schema.location): cue eval <dir-do-package> -e '#Def._schema.location'
+    (avalia o DIRETORIO do package, nao o arquivo unico, para resolver cross-refs same-package)
   - scope/excluded: cue export ./governance/repo-structure.cue -e repoStructure.scope
 
 Cobre os 10 kinds do #StructuralCheck. fileClassification detecta orfaos
@@ -36,13 +37,19 @@ def load_scope():
     if e or not d: return (["domain/","strategic/","contexts/","architecture/","governance/","ai-orchestration/"], ["cue.mod/",".git/",".github/","scripts/"])
     return (d.get("validated",[]), d.get("excluded",[]))
 
+_loc_cache={}
 def schema_location(name):
+    if name in _loc_cache: return _loc_cache[name]
     f="./architecture/artifact-schemas/"+name+".cue"
-    if not os.path.isfile(f): return None
-    m=re.search(r'^#([A-Za-z0-9_]+):', open(f).read(), re.M)
-    if not m: return None
-    d,e=cue_json(["eval",f,"-e","#%s._schema.location"%m.group(1),"--out","json"])
-    return None if e else d
+    res=None
+    if os.path.isfile(f):
+        m=re.search(r'^#([A-Za-z0-9_]+):', open(f).read(), re.M)
+        if m:
+            # eval o PACKAGE (dir), nao o arquivo unico, para resolver cross-refs same-package
+            d,e=cue_json(["eval","./architecture/artifact-schemas/","-e","#%s._schema.location"%m.group(1),"--out","json"])
+            res=None if e else d
+    _loc_cache[name]=res
+    return res
 
 def all_schema_locations():
     out=[]
@@ -74,10 +81,13 @@ def files_for_at(at):
     if not loc or not loc.get("canonicalPathRegex"): return None
     return files_matching(loc["canonicalPathRegex"])
 
+_art_cache={}
 def load_artifact(path):
+    if path in _art_cache: return _art_cache[path]
     d,e=cue_json(["export",path,"--out","json"])
-    if e: return None
-    return list(d.values())[0] if isinstance(d,dict) and len(d)==1 else d
+    res=None if e else (list(d.values())[0] if isinstance(d,dict) and len(d)==1 else d)
+    _art_cache[path]=res
+    return res
 
 def dotget(o,path):
     cur=o
@@ -252,7 +262,7 @@ def self_test():
     w("architecture/structural-checks/c.cue",'package structural_checks\nstructuralChecks:{"sc-dp-01":{id:"sc-dp-01",title:"t",artifactType:"work-governance",description:"d",kind:"directory-pair-coverage",rule:{sourceGlob:"we/wi-*.cue",targetGlob:"ts/wi-*.cue",bidirectional:false},errorMessage:"e",rationale:"r"},"sc-sg-01":{id:"sc-sg-01",title:"t",artifactType:"artifact-schema",description:"d",kind:"singleton-coverage",rule:{requiredSingletons:["singleton"]},errorMessage:"e",rationale:"r"}}\n')
     w("we/wi-1.cue","package we\n"); w("we/wi-9.cue","package we\n"); w("ts/wi-1.cue","package ts\n")
     w("global/thing.cue","package x\n")
-    os.chdir(d)
+    os.chdir(d); _loc_cache.clear(); _art_cache.clear()
     checks=load_checks()
     dp=ev_directory_pair(checks["sc-dp-01"]["rule"],checks["sc-dp-01"])
     sg=ev_singleton(checks["sc-sg-01"]["rule"],checks["sc-sg-01"])
