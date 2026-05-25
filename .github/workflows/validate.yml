@@ -71,34 +71,3 @@ jobs:
               L += ["- `%s`" % o for o in un]
           print("\n".join(L))
           ' | tee -a "$GITHUB_STEP_SUMMARY"
-
-  materialize-structure-index:
-    if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-
-      - name: Install CUE
-        uses: cue-lang/setup-cue@v1.0.0
-        with:
-          version: v0.16.0
-
-      - name: Regenera + auto-commita structure-index (derivado, adr-090)
-        run: |
-          python3 scripts/ci/generate-structure-index.py . > governance/readme/structure-index.cue
-          git add governance/readme/structure-index.cue
-          if git diff --cached --quiet; then
-            echo "structure-index.cue em sincronia; nada a commitar."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore(ci): regenerate structure-index.cue (derivado, adr-090) [skip ci]"
-          git pull --rebase origin "${{ github.ref_name }}" \
-            && git push origin "HEAD:${{ github.ref_name }}" \
-            || echo "push falhou (provavel corrida com outra sessao); proxima run reconcilia"
