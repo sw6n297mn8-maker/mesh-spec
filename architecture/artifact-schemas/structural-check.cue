@@ -223,6 +223,13 @@ _#StructuralCheckBase: {
 // Cross-file reference checking de id (vs path), regex pattern
 // matching de campo, e iteration nested permanecem fora — registrados
 // como def-002 e def-003 respectivamente.
+//
+// Filtro + polaridade (adr-090 follow-on; self-review deletion records):
+// filterField/filterValue restringem a avaliação às instâncias cujo
+// campo == valor (e.g., recordType == "artifact-review"); mustExist
+// inverte a asserção quando false (o path DEVE NÃO existir, e.g.,
+// SRRs de deleção). Ambos opcionais; default preserva o comportamento
+// original (avalia todas as instâncias, path DEVE existir).
 #FilesystemPathExistsRule: {
 	// Dot-path do campo no artefato sob validação contendo o path
 	// (ou lista de paths) a verificar. Apenas single-level lists ou
@@ -231,6 +238,13 @@ _#StructuralCheckBase: {
 	// true: sourcePath aponta para list of strings (runner itera);
 	// false (default): sourcePath aponta para single string.
 	isList: bool | *false
+	// Filtro opcional: avalia apenas instâncias onde o campo
+	// filterField é igual a filterValue. Ausente => avalia todas.
+	filterField?: string & !=""
+	filterValue?: string & !=""
+	// true (default): o path DEVE existir. false: o path DEVE NÃO
+	// existir (asserção invertida — e.g., registros de deleção).
+	mustExist: bool | *true
 }
 
 // Rule shape para kind=directory-pair-coverage.

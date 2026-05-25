@@ -162,14 +162,19 @@ def ev_at_least_one(rule,c):
 def ev_fs_path_exists(rule,c):
     fs=files_for_at(c["artifactType"])
     if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    ff=rule.get("filterField"); fv=rule.get("filterValue"); must=rule.get("mustExist",True)
     v=[]
     for f in fs:
         a=load_artifact(f)
         if a is None: continue
+        if ff is not None and dotget(a,ff)!=fv: continue
         val=dotget(a,rule["sourcePath"])
         if val is None: continue
         for p in (val if (rule.get("isList") and isinstance(val,list)) else [val]):
-            if isinstance(p,str) and not os.path.exists(p): v.append(f"{f}: {rule['sourcePath']} -> '{p}' inexistente")
+            if not isinstance(p,str): continue
+            ex=os.path.exists(p)
+            if must and not ex: v.append(f"{f}: {rule['sourcePath']} -> '{p}' inexistente")
+            elif (not must) and ex: v.append(f"{f}: {rule['sourcePath']} -> '{p}' existe (recordType=delecao exige ausencia)")
     return v
 
 def ev_reference_exists(rule,c):
@@ -301,6 +306,12 @@ def self_test():
     w("architecture/artifact-schemas/pg.cue",'package artifact_schemas\n#PG:{_schema:location:{canonicalPathRegex:string&!="",fileNameRegex:string&!="",cardinality:"singleton"|"collection",allowNested:bool|*false}}\n_pgMeta:{_schema:location:{canonicalPathRegex:"^pg/[a-z]+\\\\.cue$",fileNameRegex:"^[a-z]+\\\\.cue$",cardinality:"collection",allowNested:false}}\n')
     w("we/wi-1.cue","package we\n"); w("we/wi-9.cue","package we\n"); w("ts/wi-1.cue","package ts\n")
     w("global/thing.cue","package x\n"); w("things/good.cue",'package things\nt:{k:"x"}\n')
+    # filesystem-path-exists com filterField/mustExist (recordType: review exige existir; delecao exige ausencia)
+    w("architecture/artifact-schemas/rec.cue",'package artifact_schemas\n#Rec:{recordType:string,target:string,_schema:location:{canonicalPathRegex:"^recs/[a-z0-9-]+\\\\.cue$",fileNameRegex:"^[a-z0-9-]+\\\\.cue$",cardinality:"collection",allowNested:false}}\n')
+    w("architecture/structural-checks/rec.cue",'package structural_checks\nstructuralChecks:{"sc-rec-01":{id:"sc-rec-01",title:"t",artifactType:"rec",description:"d",kind:"filesystem-path-exists",rule:{sourcePath:"target",isList:false,filterField:"recordType",filterValue:"artifact-review"},errorMessage:"e",rationale:"r"},"sc-rec-03":{id:"sc-rec-03",title:"t",artifactType:"rec",description:"d",kind:"filesystem-path-exists",rule:{sourcePath:"target",filterField:"recordType",filterValue:"artifact-deletion",mustExist:false},errorMessage:"e",rationale:"r"}}\n')
+    w("recs/a.cue",'package recs\nra:{recordType:"artifact-review",target:"recs/a.cue"}\n')
+    w("recs/b.cue",'package recs\nrb:{recordType:"artifact-deletion",target:"recs/zzz.cue"}\n')
+    w("recs/c.cue",'package recs\nrc:{recordType:"artifact-deletion",target:"recs/a.cue"}\n')
     os.chdir(d); _loc_cache.clear(); _art_cache.clear()
     checks=load_checks()
     dp=ev_directory_pair(checks["sc-dp-01"]["rule"],checks["sc-dp-01"])
@@ -311,8 +322,12 @@ def self_test():
     # regressao campo-oculto-minusculo: location concreto em _pgMeta deve RESOLVER
     pgloc=schema_location("pg")
     hid = isinstance(pgloc,dict) and pgloc.get("canonicalPathRegex")=="^pg/[a-z]+\\.cue$"
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid}")
+    # filterField/mustExist: review com path existente nao dispara; delecao com path existente dispara
+    fre=ev_fs_path_exists(checks["sc-rec-01"]["rule"],checks["sc-rec-01"])
+    fde=ev_fs_path_exists(checks["sc-rec-03"]["rule"],checks["sc-rec-03"])
+    fil = (fre==[]) and (fde==["recs/c.cue: target -> 'recs/a.cue' existe (recordType=delecao exige ausencia)"])
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde}")
     return 0 if ok else 1
 
 if __name__=="__main__":
