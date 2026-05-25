@@ -4,7 +4,13 @@ structural-check-runner — avaliador determinístico dos structural-checks (adr
 
 Executa as regras declaradas em architecture/structural-checks/*.cue contra o
 estado do repositório. Determinístico (P10): nenhum julgamento interpretativo.
-Modo warn (default): reporta, exit 0. Modo reject: exit 1 se houver violação.
+
+Enforcement por check (adr-096 + adr-097): cada #StructuralCheck declara
+enforcement ("warn" default | "reject"). Exit 1 sse houver violação em check
+com enforcement efetivo "reject" (blocking_total > 0); senão exit 0.
+--mode é override global: default (sem flag) respeita check.enforcement;
+--mode warn força tudo report-only; --mode reject força tudo blocking
+(discovery runs e testes locais).
 
 Aquisição de dados via `cue`:
   - structuralChecks: cue export ./architecture/structural-checks/ -e structuralChecks
@@ -312,35 +318,52 @@ def file_classification(scope,excluded):
                 elif len(ms)>=2: ambig.append((p,ms))
     return orphan,ambig
 
+def effective_enforcement(check, mode):
+    # mode override global (adr-097): warn força tudo report-only; reject força
+    # tudo blocking; default (None) respeita o enforcement declarado no check.
+    if mode == "warn":   return "warn"
+    if mode == "reject": return "reject"
+    return check.get("enforcement", "warn")
+
 def run(root,mode):
     os.chdir(root)
-    checks=load_checks(); total=0; uncovered=[]
+    checks=load_checks(); total=0; blocking=0; uncovered=[]
     for cid,c in sorted(checks.items()):
         fn=EVAL.get(c["kind"])
         if not fn: uncovered.append((cid,c["kind"])); continue
+        enf=effective_enforcement(c,mode)
         try:
             vs=fn(c["rule"],c)
         except Exception as ex:
+            # crash de avaliador é bug do runner, não violação de artefato:
+            # conta em total (visibilidade), bloqueia só sob --mode reject global.
             total+=1
+            if mode=="reject": blocking+=1
             print(f"[ERROR] {cid} ({c['kind']}): avaliador falhou: {type(ex).__name__}: {ex}")
             continue
         if vs:
-            total+=len(vs); print(f"[{'WARN' if mode=='warn' else 'FAIL'}] {cid} ({c['kind']}): {c.get('title','')}")
+            total+=len(vs)
+            if enf=="reject": blocking+=len(vs)
+            print(f"[{'FAIL' if enf=='reject' else 'WARN'}] {cid} ({c['kind']}, enforcement={enf}): {c.get('title','')}")
             for x in vs: print(f"    - {x}")
     scope,excluded=load_scope()
     orphan,ambig=file_classification(scope,excluded)
     if ambig:
+        # adr-090 declara ambíguo→reject; promoção a blocking-por-default é
+        # follow-up (built-in, não check com enforcement). Bloqueia só sob
+        # --mode reject global por ora; conta sempre em total.
         print(f"\n[fileClassification] AMBIGUO (viola exclusive-match) — conta:")
         for p,ms in ambig: print(f"    AMBIG  {p} -> {ms}")
         total+=len(ambig)
+        if mode=="reject": blocking+=len(ambig)
     if orphan:
         print(f"\n[fileClassification] unmatched — sem artifact-schema localizado (INFO, nao conta): {len(orphan)}")
         for o in orphan: print(f"    unmatched  {o}")
     if uncovered:
         print("\n[runner] kinds sem evaluator (ignorados):")
         for cid,k in uncovered: print(f"    {cid}: {k}")
-    print(f"\nTOTAL: {total} violacao(oes) [modo={mode}]")
-    return total
+    print(f"\nTOTAL: {total} violacao(oes); {blocking} bloqueante(s) [modo={mode}]")
+    return total,blocking
 
 def self_test():
     d=tempfile.mkdtemp()
@@ -388,6 +411,10 @@ def self_test():
 
 if __name__=="__main__":
     if "--self-test" in sys.argv: sys.exit(self_test())
-    root=sys.argv[1]; mode="reject" if "--mode" in sys.argv and sys.argv[sys.argv.index("--mode")+1]=="reject" else "warn"
-    total=run(root,mode)
-    sys.exit(1 if (mode=="reject" and total) else 0)
+    root=sys.argv[1]
+    mode="default"
+    if "--mode" in sys.argv:
+        v=sys.argv[sys.argv.index("--mode")+1]
+        if v in ("warn","reject"): mode=v
+    total,blocking=run(root,mode)
+    sys.exit(1 if blocking else 0)

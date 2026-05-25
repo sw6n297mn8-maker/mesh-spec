@@ -24,10 +24,14 @@ jobs:
             exit 1
           }
 
-      - name: Structural-check runner (warn - inventario, nao bloqueia)
+      - name: Structural-check runner (enforcement por-check; bloqueia em reject)
         run: |
-          python3 scripts/ci/structural-check-runner.py . --mode warn | tee /tmp/sc.txt
-          { echo "## structural-check inventory (warn)"; echo '```'; cat /tmp/sc.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          python3 scripts/ci/structural-check-runner.py . | tee /tmp/sc.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          { echo "## structural-check inventory"; echo '```'; cat /tmp/sc.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
 
       - name: Structure-index discovery (adr-090 iv-a, report-only)
         if: always()

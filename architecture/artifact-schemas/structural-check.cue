@@ -96,6 +96,16 @@ _#StructuralCheckBase: {
 
 	rationale: string & !=""
 
+	// Nível de enforcement do check no Build-Time Structural Check
+	// Orchestrator (adr-096 + adr-097). Default "warn": o check é avaliado
+	// e reportado, mas não bloqueia o CI. "reject": uma violação falha o
+	// build. Promoção warn→reject é decisão por-check ("catraca"), born-warn:
+	// todo check nasce não-bloqueante e só é promovido quando comprovadamente
+	// verde e de alto valor. O override global --mode do runner sobrepõe este
+	// campo (warn força tudo report-only; reject força tudo blocking) para
+	// discovery runs e testes locais.
+	enforcement: *"warn" | "reject"
+
 	_schema: {
 		location: {
 			canonicalPathRegex: "^architecture/structural-checks/[a-z0-9-]+\\.cue$"

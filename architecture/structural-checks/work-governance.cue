@@ -17,6 +17,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 structuralChecks: "sc-wg-01": artifact_schemas.#StructuralCheck & {
 	id:           "sc-wg-01"
 	title:        "work-event exige task-spec correspondente"
+
+	// Promovido a gate bloqueante per adr-097: verde pós-backfill D7
+	// (wi-072..085), determinístico, baixo risco, e guarda exatamente a classe
+	// de drift do bug WI-033/D7. Primeiro check da "catraca" warn→reject.
+	enforcement: "reject"
+
 	artifactType: "work-governance"
 	description:  "Para cada arquivo wi-NNN em governance/build-time/work-events/, arquivo wi-NNN correspondente DEVE existir em governance/build-time/task-specs/. Direção source-to-target only: work-event sem task-spec = inconsistência referencial (admission state inválido per work-governance state machine — work-event implica task-spec proposed/approved). Reverse direction (task-spec sem work-event) é estado válido admission=defined; bidirectional=false respeita essa assimetria."
 	kind:         "directory-pair-coverage"
