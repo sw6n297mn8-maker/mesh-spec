@@ -312,10 +312,9 @@ config: artifact_schemas.#ReadmeConfig & {
 			// ── Domain (Layer 0) ──
 			{
 				path:    "domain/"
-				purpose: "Layer 0 da espec: identidade do domínio (tese, outcomes, flywheel, glossário universal, atores)."
+				purpose: "Layer 0 da espec: identidade do domínio (tese, outcomes, flywheel, atores)."
 				conventions: [
 					"domain-definition.cue é a tese da empresa; outros artefatos de domain/ referenciam.",
-					"universal-glossary.cue contém termos cross-context; glossários locais vivem em contexts/{bc}/ubiquitous-language.cue.",
 				]
 				rationale: "Identidade do domínio vive em layer separada porque muda em ritmo diferente do design tático — estabilizar tese antes de decompor em BCs."
 			},
@@ -538,11 +537,11 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			| Nível | Nome | Localização primária |
 			|---|---|---|
-			| 1 | Visão / Propósito do domínio | domain/domain-definition.cue, domain/business-model.cue |
+			| 1 | Visão / Propósito do domínio | domain/domain-definition.cue |
 			| 2 | Subdomínios | strategic/subdomains/ |
 			| 3 | Bounded Contexts | contexts/{bc-code}/canvas.cue |
 			| 4 | Context Map | strategic/context-map.cue |
-			| 5 | Ubiquitous Language | domain/universal-glossary.cue (global) + contexts/{bc-code}/ubiquitous-language.cue (local) |
+			| 5 | Ubiquitous Language | contexts/{bc-code}/ubiquitous-language.cue (local) |
 			| 6 | EventStorming | Absorvido nos artefatos derivados: commands/, events/, policies.cue, state-models.cue |
 			| 7 | Capabilities / Invariantes | contexts/{bc-code}/invariants.cue (assertions formais + rationale) |
 			| 8 | Aggregates / Entities / VOs | contexts/{bc-code}/domain-model.cue |
@@ -752,7 +751,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			- Arquivos de event: `{substantivo}-{particípio}.cue` — ex: `commitment-approved.cue`.
 			- Arquivos de ADR: `{nnn}-{slug}.cue` — ex: `001-postgres-per-module.cue`.
 			- Arquivos de schema (CUE): `{nome-do-tipo}.cue` — ex: `commitment-created-event.cue`.
-			- Arquivos de glossário: `ubiquitous-language.cue` por BC, `domain/universal-glossary.cue` global.
+			- Arquivos de glossário: `ubiquitous-language.cue` por BC.
 			- Arquivos de workflow: `{nome-do-processo}.cue` — ex: `commitment-fulfillment-flow.cue`.
 			- Arquivos de migration: `{event-slug}-v{N}-to-v{N+1}.cue` — ex: `commitment-created-v1-to-v2.cue`.
 			- Arquivos de agente: `{agent-slug}.cue` — ex: `scoring-agent.cue`.
@@ -789,7 +788,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			1. Criar repositório mesh-spec com estrutura de diretórios vazia + `README.md` raiz.
 			2. Criar `architecture/artifact-schemas/` — schemas de validação para todos os tipos de artefato (`#Canvas`, `#Command`, `#Event`, etc.).
 			3. Criar `architecture/design-principles.cue` — 13 princípios de design em 5 grupos (`#Foundation`, `#StructuralInvariants`, `#DesignPhilosophy`, `#SystemNature`, `#Governance`). Precede `domain/` porque `domain-definition.cue` referencia os princípios.
-			4. Criar `domain/` — `domain-definition.cue`, `business-model.cue`, `universal-glossary.cue`.
+			4. Criar `domain/` — `domain-definition.cue`.
 			5. Criar `strategic/` — subdomínios em `.cue`, `context-map.cue`, `informational-flywheel.cue`.
 			6. Criar `contexts/cmt/` — primeiro BC (Economic Commitment Lifecycle, Minimum Economic Loop).
 			7. Criar `architecture/` (restante) — ADRs globais em `.cue`, `agent-universal-principles.cue`, C4, shared schemas (incluindo `assertion-schema.cue` com rationale, `agent-interaction-envelope.cue`, `spec-gap-event.cue`), error taxonomy global, `testing-strategy.cue`.
