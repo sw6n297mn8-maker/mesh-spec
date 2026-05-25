@@ -75,6 +75,11 @@ repoStructure: artifact_schemas.#RepoStructure & {
 			source:    "governance/readme/config.cue"
 			generator: "cue export ./governance/readme -e output --out text"
 			rationale: "README.md é exceção P2 (markdown) materializada como derivado integral. Source é config.cue (instância de #ReadmeConfig); template fixo em governance/readme/output.cue completa o pipeline. Sync validado por scripts/ci/check-readme-coevolution.sh per ADR-051."
+		}, {
+			path:      "governance/readme/structure-index.cue"
+			source:    "_schema.location (architecture/artifact-schemas + governance/build-time) + scan do filesystem (repoStructure.scope)"
+			generator: "python3 scripts/ci/generate-structure-index.py ."
+			rationale: "Índice estrutural derivado (adr-090 componente 1): a estrutura schema-governada do repo é derivada de cada _schema.location + scan do filesystem, não autorada. Materializado e mantido em sync pelo workflow .github/workflows/materialize-structure-index.yml (auto-commit do github-actions[bot] quando difere). O gerador faz self-exclusão do próprio índice, evitando auto-referência. Consumo pelo config.cue e virada do sync em gate ficam para o passo (v) do cutover."
 		}]
 		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. Per ADR-051, README.md migrou de derivação parcial por blockId para derivação full-file; campo blockId permanece no schema como extensão opcional para casos futuros, atualmente sem consumer."
 	}
@@ -112,8 +117,6 @@ repoStructure: artifact_schemas.#RepoStructure & {
 				"Aplicar fileClassification.policy.mapping para determinar ação do CI",
 			]
 
-			// Eixo A: categorias de classificação.
-			// Observações do mundo — não carregam ação.
 			categories: {
 				"outside-scope": {
 					description: "Arquivo fora de scope.validated ou em scope.excluded."
@@ -132,8 +135,6 @@ repoStructure: artifact_schemas.#RepoStructure & {
 				}
 			}
 
-			// Eixo B: política de resposta por categoria.
-			// Mutável independentemente das categorias.
 			policy: {
 				mapping: {
 					"outside-scope":                     "ignore"
