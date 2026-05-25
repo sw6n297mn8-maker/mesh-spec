@@ -9,6 +9,9 @@ ntf_primary_agent_deletion: build_time.#SelfReviewReport & {
 	artifactSchemaPath: "architecture/artifact-schemas/agent-spec.cue"
 	artifactType:       "agent-spec"
 
+	recordType:      "artifact-deletion"
+	deletionContext: "Removido no reset corretivo (PR #43): BC NTF descontinuado; primary-agent deletado junto com o contexto. Strategic intent preservado em strategic/subdomains/ntf.cue."
+
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-21"

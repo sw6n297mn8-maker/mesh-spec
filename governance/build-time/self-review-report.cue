@@ -16,10 +16,17 @@ import (
 //   2. len(roundDetails) == roundsExecuted (validado pelo CI)
 //   3. stable → último round failCount == 0 (validado pelo CI)
 //   4. stable + roundsExecuted == 1 → singleRoundRationale obrigatório
+//   5. recordType == artifact-deletion → deletionContext obrigatório
 //
 // Padrão da união discriminada: mesmo de #ADR (status↔supersededBy).
 // Extensão: stable subdivide-se em >=2 rounds (sem exigência extra)
 // e == 1 round (singleRoundRationale obrigatório).
+//
+// recordType (adr-090 follow-on): distingue review de artefato vivo
+// (artifact-review, default) de registro de remoção intencional
+// (artifact-deletion). sc-srr-01 exige que artifactPath exista para
+// review; sc-srr-03 exige que NÃO exista para deletion. deletionContext
+// é obrigatório na deleção e explica a remoção (audit trail append-only).
 
 #SelfReviewStatus: "stable" | "max-rounds-reached"
 
@@ -76,6 +83,20 @@ _#SelfReviewReportBase: {
 	maxRounds:      int & >=1
 
 	status: #SelfReviewStatus
+
+	// Classe do registro. artifact-review (default): revisão de artefato
+	// vivo — sc-srr-01 exige que artifactPath exista. artifact-deletion:
+	// registro de remoção intencional — sc-srr-03 exige que artifactPath
+	// NÃO exista, e deletionContext explica a remoção.
+	recordType: *"artifact-review" | "artifact-deletion"
+
+	// Obrigatório quando recordType == "artifact-deletion": explica o
+	// contexto da remoção (mantém o audit trail append-only honesto).
+	// Classe semântica distinta de summary — não reaproveitar.
+	deletionContext?: string & !=""
+	if recordType == "artifact-deletion" {
+		deletionContext: string & !=""
+	}
 
 	roundDetails: [#RoundSummary, ...#RoundSummary] & list.MinItems(1)
 
