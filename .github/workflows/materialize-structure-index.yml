@@ -1,6 +1,8 @@
 name: materialize-structure-index
 
-on: push
+on:
+  push:
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -26,4 +28,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(ci): regenerate structure-index.cue (derivado, adr-090) [skip ci]"
-          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "push falhou (provavel corrida); proxima run reconcilia"
+          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "push falhou (provavel corrida ou permissao); proxima run reconcilia"
