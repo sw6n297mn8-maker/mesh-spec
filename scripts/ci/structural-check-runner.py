@@ -8,15 +8,15 @@ Modo warn (default): reporta, exit 0. Modo reject: exit 1 se houver violação.
 
 Aquisição de dados via `cue`:
   - structuralChecks: cue export ./architecture/structural-checks/ -e structuralChecks
-  - location de schema (campo OCULTO _schema.location): cue eval <dir-do-package> -e '#Def._schema.location'
-    (avalia o DIRETORIO do package para resolver cross-refs same-package; varre
+  - location de schema (campo OCULTO _schema.location): cue eval <dir-do-package> -e '<Def>._schema.location'
+    (avalia o DIRETORIO do package; tenta TODOS os defs incl. _#Base oculto, pois o
+     location costuma viver na base e #Def principal e disjuncao; varre
      architecture/artifact-schemas/ E governance/build-time/)
   - scope/excluded: cue export ./governance/repo-structure.cue -e repoStructure.scope
 
 Cobre os 10 kinds do #StructuralCheck. fileClassification: AMBIGUO (>=2 schemas)
 conta como violacao; unmatched (sem schema localizado) e INFO. Zonas governadas
-por work-governance (task-specs/work-events/projections) sao excluidas — nao tem
-schema localizado por design.
+por work-governance (task-specs/work-events/projections) sao excluidas.
 
 Uso:
   structural-check-runner.py <repo-root> [--mode warn|reject]
@@ -48,10 +48,10 @@ def schema_location(name):
     for d in SCHEMA_DIRS:
         f=d+"/"+name+".cue"
         if not os.path.isfile(f): continue
-        m=re.search(r'^#([A-Za-z0-9_]+):', open(f).read(), re.M)
-        if not m: continue
-        loc,e=cue_json(["eval",d,"-e","#%s._schema.location"%m.group(1),"--out","json"])
-        if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): res=loc; break
+        for dn in re.findall(r'^(_?#[A-Za-z0-9_]+):', open(f).read(), re.M):
+            loc,e=cue_json(["eval",d,"-e","%s._schema.location"%dn,"--out","json"])
+            if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): res=loc; break
+        if res: break
     _loc_cache[name]=res
     return res
 
@@ -62,8 +62,8 @@ def all_schema_locations():
         for f in sorted(glob.glob(d+"/*.cue")):
             txt=open(f).read()
             if "_schema" not in txt: continue
-            for dn in re.findall(r'^#([A-Za-z0-9_]+):', txt, re.M):
-                loc,e=cue_json(["eval",d,"-e","#%s._schema.location"%dn,"--out","json"])
+            for dn in re.findall(r'^(_?#[A-Za-z0-9_]+):', txt, re.M):
+                loc,e=cue_json(["eval",d,"-e","%s._schema.location"%dn,"--out","json"])
                 if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): out.append((dn,loc["canonicalPathRegex"]))
     return out
 
@@ -105,7 +105,6 @@ def dotget(o,path):
         else: return None
     return cur
 
-# ---- per-kind evaluators: (rule, check) -> [violation str] ----
 def ev_directory_pair(rule,c):
     v=[]
     for p in sorted(glob.glob(rule["sourceGlob"])):
@@ -225,8 +224,6 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "reference-exists":ev_reference_exists,"same-artifact-consistency":ev_same_artifact,
  "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant}
 
-# Zonas governadas por work-governance (work-governance.cue), nao por artifact-schema
-# localizado: nao sao classificaveis por canonicalPathRegex -> excluidas de orphan.
 GOVERNED_ELSEWHERE=("governance/build-time/task-specs/","governance/build-time/work-events/","governance/build-time/projections/")
 def file_classification(scope,excluded):
     locs=all_schema_locations(); orphan=[]; ambig=[]
@@ -274,15 +271,17 @@ def self_test():
     def w(p,s):
         fp=os.path.join(d,p); os.makedirs(os.path.dirname(fp),exist_ok=True); open(fp,"w").write(s)
     w("architecture/artifact-schemas/singleton.cue",'package artifact_schemas\n#S:{x:string,_schema:location:{canonicalPathRegex:"^global/thing\\\\.cue$",fileNameRegex:"^thing\\\\.cue$",cardinality:"singleton"}}\n')
-    w("architecture/structural-checks/c.cue",'package structural_checks\nstructuralChecks:{"sc-dp-01":{id:"sc-dp-01",title:"t",artifactType:"work-governance",description:"d",kind:"directory-pair-coverage",rule:{sourceGlob:"we/wi-*.cue",targetGlob:"ts/wi-*.cue",bidirectional:false},errorMessage:"e",rationale:"r"},"sc-sg-01":{id:"sc-sg-01",title:"t",artifactType:"artifact-schema",description:"d",kind:"singleton-coverage",rule:{requiredSingletons:["singleton"]},errorMessage:"e",rationale:"r"}}\n')
+    w("architecture/artifact-schemas/thing.cue",'package artifact_schemas\n#Thing:_#TB&({k:"x"}|{k:"y"})\n_#TB:{k:string,_schema:location:{canonicalPathRegex:"^things/[a-z]+\\\\.cue$",fileNameRegex:"^[a-z]+\\\\.cue$",cardinality:"collection"}}\n')
+    w("architecture/structural-checks/c.cue",'package structural_checks\nstructuralChecks:{"sc-dp-01":{id:"sc-dp-01",title:"t",artifactType:"work-governance",description:"d",kind:"directory-pair-coverage",rule:{sourceGlob:"we/wi-*.cue",targetGlob:"ts/wi-*.cue",bidirectional:false},errorMessage:"e",rationale:"r"},"sc-sg-01":{id:"sc-sg-01",title:"t",artifactType:"artifact-schema",description:"d",kind:"singleton-coverage",rule:{requiredSingletons:["singleton"]},errorMessage:"e",rationale:"r"},"sc-th-01":{id:"sc-th-01",title:"t",artifactType:"thing",description:"d",kind:"required-block",rule:{blockName:"val"},errorMessage:"e",rationale:"r"}}\n')
     w("we/wi-1.cue","package we\n"); w("we/wi-9.cue","package we\n"); w("ts/wi-1.cue","package ts\n")
-    w("global/thing.cue","package x\n")
+    w("global/thing.cue","package x\n"); w("things/good.cue",'package things\nt:{k:"x"}\n')
     os.chdir(d); _loc_cache.clear(); _art_cache.clear()
     checks=load_checks()
     dp=ev_directory_pair(checks["sc-dp-01"]["rule"],checks["sc-dp-01"])
     sg=ev_singleton(checks["sc-sg-01"]["rule"],checks["sc-sg-01"])
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[])
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg}")
+    th=ev_required_block(checks["sc-th-01"]["rule"],checks["sc-th-01"])  # disjuncao+base-oculta deve RESOLVER
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"])
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th}")
     return 0 if ok else 1
 
 if __name__=="__main__":
