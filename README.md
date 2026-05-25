@@ -35,7 +35,7 @@ mesh-spec é o repositório de especificação do sistema Mesh. Todo artefato qu
 | `contexts/idc/` | Bounded Context Identity & Data Governance: identidade de participantes e governança de dados pessoais (LGPD, integridade criptográfica). | Event log com integridade criptográfica end-to-end.<br>Dados pessoais governados por políticas declaradas aqui; outros BCs consultam, não redefinem. |
 | `contexts/npm/` | Bounded Context Network Participant Management: cadastro e lifecycle de participantes da rede Mesh. | Participante é entidade cross-BC; idc governa identidade, npm governa papel na rede.<br>Onboarding e offboarding são workflows próprios deste BC. |
 | `contexts/npm/agents/` | Specs e governance envelopes dos agentes do BC Network Participant Management. | Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.<br>Specs conformam com architecture/artifact-schemas/agent-spec.cue.<br>Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue. |
-| `domain/` | Layer 0 da espec: identidade do domínio (tese, outcomes, flywheel, glossário universal, atores). | domain-definition.cue é a tese da empresa; outros artefatos de domain/ referenciam.<br>universal-glossary.cue contém termos cross-context; glossários locais vivem em contexts/{bc}/ubiquitous-language.cue. |
+| `domain/` | Layer 0 da espec: identidade do domínio (tese, outcomes, flywheel, atores). | domain-definition.cue é a tese da empresa; outros artefatos de domain/ referenciam. |
 | `governance/` | Layer 4 da espec: governança e qualidade (estrutura do repo, princípios operacionais, protocolos). | repo-structure.cue e repo-principles.cue são top-level do diretório.<br>Protocolos (self-review, wave-plan, red-team, audit) vivem aqui.<br>Configuração source-of-truth de CLAUDE.md e README.md em subdiretórios dedicados. |
 | `governance/build-time/` | Especificações de build-time: work governance, quality-gate, self-review, task-specs. | Schemas de protocolo em arquivos top-level do diretório.<br>self-reviews/ e task-specs/ são containers de instâncias — schemas correspondentes em architecture/artifact-schemas/.<br>work-graph.cue e projections/ derivam de eventos; nunca editados manualmente. |
 | `governance/build-time/projections/` | Read models derivados do event stream de work governance. | Um arquivo por projection; nome reflete o read model materializado.<br>Conteúdo é derivado de work-events/ e nunca editado manualmente.<br>Formato e integridade são governados pelos artefatos de build-time correspondentes. |
@@ -118,11 +118,11 @@ Tabela de tradução entre os níveis clássicos de DDD e onde cada conceito viv
 
 | Nível | Nome | Localização primária |
 |---|---|---|
-| 1 | Visão / Propósito do domínio | domain/domain-definition.cue, domain/business-model.cue |
+| 1 | Visão / Propósito do domínio | domain/domain-definition.cue |
 | 2 | Subdomínios | strategic/subdomains/ |
 | 3 | Bounded Contexts | contexts/{bc-code}/canvas.cue |
 | 4 | Context Map | strategic/context-map.cue |
-| 5 | Ubiquitous Language | domain/universal-glossary.cue (global) + contexts/{bc-code}/ubiquitous-language.cue (local) |
+| 5 | Ubiquitous Language | contexts/{bc-code}/ubiquitous-language.cue (local) |
 | 6 | EventStorming | Absorvido nos artefatos derivados: commands/, events/, policies.cue, state-models.cue |
 | 7 | Capabilities / Invariantes | contexts/{bc-code}/invariants.cue (assertions formais + rationale) |
 | 8 | Aggregates / Entities / VOs | contexts/{bc-code}/domain-model.cue |
@@ -314,7 +314,7 @@ Nomes de arquivo e diretório em inglês (exceto termos de domínio já canoniza
 - Arquivos de event: `{substantivo}-{particípio}.cue` — ex: `commitment-approved.cue`.
 - Arquivos de ADR: `{nnn}-{slug}.cue` — ex: `001-postgres-per-module.cue`.
 - Arquivos de schema (CUE): `{nome-do-tipo}.cue` — ex: `commitment-created-event.cue`.
-- Arquivos de glossário: `ubiquitous-language.cue` por BC, `domain/universal-glossary.cue` global.
+- Arquivos de glossário: `ubiquitous-language.cue` por BC.
 - Arquivos de workflow: `{nome-do-processo}.cue` — ex: `commitment-fulfillment-flow.cue`.
 - Arquivos de migration: `{event-slug}-v{N}-to-v{N+1}.cue` — ex: `commitment-created-v1-to-v2.cue`.
 - Arquivos de agente: `{agent-slug}.cue` — ex: `scoring-agent.cue`.
@@ -347,7 +347,7 @@ Ordem sugerida para bootstrap de um repositório de especificação do zero. Ord
 1. Criar repositório mesh-spec com estrutura de diretórios vazia + `README.md` raiz.
 2. Criar `architecture/artifact-schemas/` — schemas de validação para todos os tipos de artefato (`#Canvas`, `#Command`, `#Event`, etc.).
 3. Criar `architecture/design-principles.cue` — 13 princípios de design em 5 grupos (`#Foundation`, `#StructuralInvariants`, `#DesignPhilosophy`, `#SystemNature`, `#Governance`). Precede `domain/` porque `domain-definition.cue` referencia os princípios.
-4. Criar `domain/` — `domain-definition.cue`, `business-model.cue`, `universal-glossary.cue`.
+4. Criar `domain/` — `domain-definition.cue`.
 5. Criar `strategic/` — subdomínios em `.cue`, `context-map.cue`, `informational-flywheel.cue`.
 6. Criar `contexts/cmt/` — primeiro BC (Economic Commitment Lifecycle, Minimum Economic Loop).
 7. Criar `architecture/` (restante) — ADRs globais em `.cue`, `agent-universal-principles.cue`, C4, shared schemas (incluindo `assertion-schema.cue` com rationale, `agent-interaction-envelope.cue`, `spec-gap-event.cue`), error taxonomy global, `testing-strategy.cue`.
