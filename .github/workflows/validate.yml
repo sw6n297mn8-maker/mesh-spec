@@ -34,7 +34,7 @@ jobs:
         continue-on-error: true
         run: |
           python3 scripts/ci/generate-structure-index.py . > /tmp/structure-index.cue || {
-            { echo "## structure-index discovery (adr-090 iv-a)"; echo "gerador falhou (report-only, nao bloqueia)"; } >> "$GITHUB_STEP_SUMMARY"
+            { echo "## structure-index discovery (adr-090 iv-a)"; echo "gerador falhou (report-only, nao bloqueia)"; } | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           }
           cue export /tmp/structure-index.cue -e structureIndex --out json > /tmp/si.json
@@ -65,4 +65,4 @@ jobs:
               L.append(""); L.append("### Orfaos — sem artifact-schema localizado (future-work)")
               L += ["- `%s`" % o for o in un]
           print("\n".join(L))
-          ' >> "$GITHUB_STEP_SUMMARY"
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
