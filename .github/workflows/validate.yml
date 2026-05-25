@@ -23,3 +23,8 @@ jobs:
             echo "::error::CLAUDE.md foi editado diretamente. Edite governance/claude/config.cue e regenere com: cue export ./governance/claude -e output --out text > CLAUDE.md"
             exit 1
           }
+
+      - name: Structural-check runner (warn - inventario, nao bloqueia)
+        run: |
+          python3 scripts/ci/structural-check-runner.py . --mode warn | tee /tmp/sc.txt
+          { echo "## structural-check inventory (warn)"; echo '```'; cat /tmp/sc.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
