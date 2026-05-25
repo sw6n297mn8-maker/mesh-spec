@@ -39,6 +39,13 @@ def _load_runner():
 R = _load_runner()
 
 
+# Artefatos DERIVADOS gerados por este pipeline: nao se auto-classificam. Sem
+# isto, commitar o proprio structure-index.cue o tornaria um orfao #21 na
+# regeneracao seguinte (auto-referencia), quebrando o derived-artifact-sync.
+# Analogo a README.md/CLAUDE.md ja estarem em scope.excluded.
+DERIVED_ARTIFACTS = {"governance/readme/structure-index.cue"}
+
+
 def all_locations_full():
     # Fonte UNICA: reusa o extrator do runner (fast path cue eval + fallback
     # textual p/ defs nao-concretos como #Subdomain). Sem duplicar a logica.
@@ -61,6 +68,8 @@ def classify(locs, scope, excluded):
                 if not f.endswith(".cue"):
                     continue
                 p = os.path.relpath(os.path.join(dp, f), ".")
+                if p in DERIVED_ARTIFACTS:
+                    continue
                 if any(p.startswith(e.rstrip("/")) for e in excluded):
                     continue
                 if any(p.startswith(g) for g in R.GOVERNED_ELSEWHERE):
@@ -197,6 +206,9 @@ def self_test():
     # wave-plan sintético: cria architecture/beta.cue no WI-007
     w("governance/wave-plan.cue",
       'package x\nwavePlan:workItems:[{id:"WI-007",outputs:[{type:"create",path:"architecture/beta.cue"}]}]\n')
+    # self-exclusion: o proprio indice derivado existe na arvore e NAO pode
+    # aparecer como orfao (senao auto-referencia quebra o sync byte-a-byte).
+    w("governance/readme/structure-index.cue", "package readme\nstructureIndex: {}\n")
 
     out = generate(d)
     idx = json.loads(out[out.index("{"):])
@@ -223,6 +235,7 @@ def self_test():
         and idx["ambiguous"] == []
         and len(miss) == 1 and miss[0]["canonicalPath"] == "architecture/beta.cue"
         and miss[0]["wavePlanStatus"] == "agendado WI-007"
+        and "governance/readme/structure-index.cue" not in idx["unmatched"]
         and out.startswith("package readme\n")
         and round_trip
     )
