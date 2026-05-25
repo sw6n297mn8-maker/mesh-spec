@@ -21,6 +21,9 @@ package artifact_schemas
 //   - directory-pair-coverage (adr-064) — motivado por bug WI-033
 //     (work-event sem task-spec); kind reusável para outros pairs
 //     de diretórios futuros.
+//   - singleton-coverage (adr-090) — gêmeo de production-guide-coverage;
+//     presença de singletons declarados (whitelist), motivado pela
+//     derivação de estrutura que SURFACE singletons ausentes.
 //
 // Discriminação por kind segue o padrão de #ADR (união discriminada
 // status↔supersededBy): cada kind exige um shape específico de rule.
@@ -57,6 +60,9 @@ package artifact_schemas
 } | {
 	kind: "domain-invariant"
 	rule: #DomainInvariantRule
+} | {
+	kind: "singleton-coverage"
+	rule: #SingletonCoverageRule
 })
 
 _#StructuralCheckBase: {
@@ -125,9 +131,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -347,4 +353,24 @@ _#StructuralCheckBase: {
 	// Opcional: alguns invariants estruturais não têm anti-patterns
 	// específicos além da própria assertion.
 	forbidden?: [...string & !=""]
+}
+
+// Rule shape para kind=singleton-coverage.
+// Per adr-090: gêmeo de production-guide-coverage. Verifica que para cada
+// nome em requiredSingletons, o schema homônimo em
+// architecture/artifact-schemas/<nome>.cue declara
+// _schema.location.cardinality == "singleton" com canonicalPathRegex
+// literal-âncora, e que o arquivo nesse path existe.
+//
+// Whitelist explícita (não auto-discovery) — WIP-safe: só singletons
+// listados são exigidos; cresce por change-on-touch quando o singleton
+// passa a existir (nasce verde, igual production-guide-coverage).
+// Presença pura — NÃO resolve referências cross-file (def-002 permanece
+// deferido). Singletons com canonicalPathRegex não-literal estão fora de
+// escopo V1: o gerador self-check falha alto em vez de adivinhar o path.
+#SingletonCoverageRule: {
+	// Lista explícita de nomes de schemas singleton cujo arquivo
+	// (resolvido do canonicalPathRegex literal) deve existir.
+	// Whitelist — nasce verde, cresce por change-on-touch.
+	requiredSingletons: [string & !="", ...string & !=""]
 }
