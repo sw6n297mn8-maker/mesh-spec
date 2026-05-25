@@ -40,21 +40,9 @@ R = _load_runner()
 
 
 def all_locations_full():
-    """Como R.all_schema_locations, mas preserva cardinality (necessária para o
-    diff assimétrico). Mesma extração; um campo a mais. Ordenado por defName."""
-    out = []
-    for d in R.SCHEMA_DIRS:
-        if not os.path.isdir(d):
-            continue
-        for f in sorted(glob.glob(d + "/*.cue")):
-            txt = open(f).read()
-            if "_schema" not in txt:
-                continue
-            for dn in re.findall(r'^((?:_#|#|_)[A-Za-z0-9_]+):', txt, re.M):
-                loc, e = R.cue_json(["eval", d, "-e", "%s._schema.location" % dn, "--out", "json"])
-                if not e and isinstance(loc, dict) and loc.get("canonicalPathRegex"):
-                    out.append((dn, loc["canonicalPathRegex"], loc.get("cardinality", "")))
-    return sorted(out)
+    # Fonte UNICA: reusa o extrator do runner (fast path cue eval + fallback
+    # textual p/ defs nao-concretos como #Subdomain). Sem duplicar a logica.
+    return R.all_locations_full()
 
 
 def classify(locs, scope, excluded):

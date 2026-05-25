@@ -45,6 +45,49 @@ def load_scope():
     return (d.get("validated",[]), d.get("excluded",[]))
 
 SCHEMA_DIRS=["./architecture/artifact-schemas","./governance/build-time"]
+
+def _cue_unescape(s):
+    # String CUE double-quoted -> valor literal. Cobre os escapes usados em
+    # canonicalPathRegex (\\ -> \, \" -> ", ...). Necessario quando a location
+    # vem da extracao TEXTUAL (forma source) e nao do cue eval (forma avaliada).
+    out=[]; i=0; mp={"\\":"\\",'"':'"',"/":"/","n":"\n","t":"\t","r":"\r"}
+    while i<len(s):
+        if s[i]=="\\" and i+1<len(s): out.append(mp.get(s[i+1],s[i+1])); i+=2
+        else: out.append(s[i]); i+=1
+    return "".join(out)
+
+def _def_body(txt,dn):
+    # Fatia ESTRITA do corpo do #Def alvo: do seu inicio (col 0) ate o proximo
+    # def top-level (col 0) ou EOF. Impede capturar _schema.location de OUTRO
+    # def no mesmo arquivo (ex.: agent-governance.cue = Global + Envelope).
+    m=re.search(r'(?m)^'+re.escape(dn)+r'\s*:', txt)
+    if not m: return None
+    nxt=re.search(r'(?m)^(?:_#|#|_)[A-Za-z0-9_]+\s*:', txt[m.end():])
+    return txt[m.start():m.end()+nxt.start()] if nxt else txt[m.start():]
+
+def _textual_location(txt,dn):
+    # Fallback p/ defs NAO-concretos (ex.: #Subdomain tem disjuncao aberta) onde
+    # cue eval/export/def estouram. Le canonicalPathRegex + cardinality do corpo
+    # do def, com unescape CUE. Determinista; escopo limitado ao bloco do def.
+    body=_def_body(txt,dn)
+    if not body: return None
+    mr=re.search(r'canonicalPathRegex:\s*"((?:[^"\\]|\\.)*)"', body)
+    if not mr: return None
+    loc={"canonicalPathRegex":_cue_unescape(mr.group(1))}
+    mc=re.search(r'cardinality:\s*"([a-z-]+)"', body)
+    if mc: loc["cardinality"]=mc.group(1)
+    mf=re.search(r'fileNameRegex:\s*"((?:[^"\\]|\\.)*)"', body)
+    if mf: loc["fileNameRegex"]=_cue_unescape(mf.group(1))
+    return loc
+
+def extract_location(d,dn,txt):
+    # Fonte UNICA da extracao de location (runner + gerador). Fast path: cue eval
+    # (forma avaliada). Fallback: extracao textual quando o def e nao-concreto e
+    # o eval estoura — robustez a defs com disjuncao aberta (nao alterar o schema).
+    loc,e=cue_json(["eval",d,"-e","%s._schema.location"%dn,"--out","json"])
+    if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): return loc
+    return _textual_location(txt,dn)
+
 _loc_cache={}
 def schema_location(name):
     if name in _loc_cache: return _loc_cache[name]
@@ -52,14 +95,16 @@ def schema_location(name):
     for d in SCHEMA_DIRS:
         f=d+"/"+name+".cue"
         if not os.path.isfile(f): continue
-        for dn in re.findall(r'^((?:_#|#|_)[A-Za-z0-9_]+):', open(f).read(), re.M):
-            loc,e=cue_json(["eval",d,"-e","%s._schema.location"%dn,"--out","json"])
-            if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): res=loc; break
+        txt=open(f).read()
+        for dn in re.findall(r'^((?:_#|#|_)[A-Za-z0-9_]+):', txt, re.M):
+            loc=extract_location(d,dn,txt)
+            if loc and loc.get("canonicalPathRegex"): res=loc; break
         if res: break
     _loc_cache[name]=res
     return res
 
-def all_schema_locations():
+def all_locations_full():
+    # (defName, canonicalPathRegex, cardinality). Base compartilhada com o gerador.
     out=[]
     for d in SCHEMA_DIRS:
         if not os.path.isdir(d): continue
@@ -67,9 +112,12 @@ def all_schema_locations():
             txt=open(f).read()
             if "_schema" not in txt: continue
             for dn in re.findall(r'^((?:_#|#|_)[A-Za-z0-9_]+):', txt, re.M):
-                loc,e=cue_json(["eval",d,"-e","%s._schema.location"%dn,"--out","json"])
-                if not e and isinstance(loc,dict) and loc.get("canonicalPathRegex"): out.append((dn,loc["canonicalPathRegex"]))
-    return out
+                loc=extract_location(d,dn,txt)
+                if loc and loc.get("canonicalPathRegex"): out.append((dn,loc["canonicalPathRegex"],loc.get("cardinality","")))
+    return sorted(out)
+
+def all_schema_locations():
+    return [(n,rx) for n,rx,c in all_locations_full()]
 
 def literal_path(rx):
     if not (rx.startswith("^") and rx.endswith("$")): return None
@@ -312,6 +360,10 @@ def self_test():
     w("recs/a.cue",'package recs\nra:{recordType:"artifact-review",target:"recs/a.cue"}\n')
     w("recs/b.cue",'package recs\nrb:{recordType:"artifact-deletion",target:"recs/zzz.cue"}\n')
     w("recs/c.cue",'package recs\nrc:{recordType:"artifact-deletion",target:"recs/a.cue"}\n')
+    # regressao non-concreto: def com disjuncao ABERTA (sem default) e _schema
+    # DENTRO dele (padrao #Subdomain). cue eval estoura; a location so resolve
+    # via fallback textual. Segundo def no MESMO arquivo p/ checar escopo do slice.
+    w("architecture/artifact-schemas/sub.cue",'package artifact_schemas\n#Sub:{kind:"a"|"b"|"c"\n_schema:location:{canonicalPathRegex:"^strat/subs/[a-z]+\\\\.cue$",fileNameRegex:"^[a-z]+\\\\.cue$",cardinality:"collection"}}\n#SubRef:string&=~"^x-[a-z]+$"\n')
     os.chdir(d); _loc_cache.clear(); _art_cache.clear()
     checks=load_checks()
     dp=ev_directory_pair(checks["sc-dp-01"]["rule"],checks["sc-dp-01"])
@@ -326,8 +378,12 @@ def self_test():
     fre=ev_fs_path_exists(checks["sc-rec-01"]["rule"],checks["sc-rec-01"])
     fde=ev_fs_path_exists(checks["sc-rec-03"]["rule"],checks["sc-rec-03"])
     fil = (fre==[]) and (fde==["recs/c.cue: target -> 'recs/a.cue' existe (recordType=delecao exige ausencia)"])
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde}")
+    # non-concreto: location de #Sub deve resolver via fallback textual (cue eval
+    # estoura), com regex na forma AVALIADA (\. e nao \\.) e cardinality correta.
+    ncloc=schema_location("sub")
+    nc = isinstance(ncloc,dict) and ncloc.get("canonicalPathRegex")==r"^strat/subs/[a-z]+\.cue$" and ncloc.get("cardinality")=="collection"
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} ncloc={ncloc}")
     return 0 if ok else 1
 
 if __name__=="__main__":
