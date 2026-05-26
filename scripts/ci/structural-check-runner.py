@@ -10,6 +10,12 @@ enforcement ("warn" default | "reject"). Exit 1 sse houver violação em check
 com enforcement efetivo "reject" (blocking_total > 0); senão exit 0.
 --mode é override global: default (sem flag) respeita check.enforcement;
 --mode warn força tudo report-only; --mode reject força tudo blocking
+
+Meta-cobertura (adr-099/101): além dos checks declarados, dois built-ins
+de fileClassification + os meta-checks sc-meta-01 (evaluator-coverage) e
+sc-meta-02 (structural-check-coverage) garantem COBERTURA da camada de
+fiscalização — todo kind tem evaluator, todo tipo governado tem check ou
+isenção registrada. Ambos promovidos a reject (adr-101).
 (discovery runs e testes locais).
 
 Aquisição de dados via `cue`:
