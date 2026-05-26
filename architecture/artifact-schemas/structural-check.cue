@@ -78,6 +78,9 @@ package artifact_schemas
 } | {
 	kind: "filesystem-declared-coverage"
 	rule: #FilesystemDeclaredCoverageRule
+} | {
+	kind: "scoped-cross-file-id-exists"
+	rule: #ScopedCrossFileIdExistsRule
 })
 
 _#StructuralCheckBase: {
@@ -156,9 +159,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -499,5 +502,35 @@ _#StructuralCheckBase: {
 	targetGlob: string & !=""
 	// Path do conjunto declarado em cada arquivo-alvo (travessia "[]" /
 	// aninhamento). Ex.: "contexts[].context".
+	targetIdPath: string & !=""
+}
+
+// Rule shape para kind=scoped-cross-file-id-exists (def-019, adr-105).
+// Gêmeo GUARDADO do cross-file-id-exists: itera items de uma lista no
+// artefato-fonte e checa refs cross-file SÓ nos items cujos guardFields todos
+// resolvem para entidade materializada (guardPresenceGlob). Items com algum
+// guard não-materializado são forward-declarations (roadmap) e ficam FORA do
+// check — evita falso-positivo para entidades planejadas. Caso motivador:
+// events de relationships do context-map só são checados quando ambos os
+// endpoints (BCs) têm domain-model no disco (built↔built).
+#ScopedCrossFileIdExistsRule: {
+	// Path da lista de items a iterar no artefato-fonte. Ex.: "relationships".
+	itemsPath: string & !=""
+	// Campos de cada item cujos valores devem TODOS resolver para entidade
+	// presente (guardPresenceGlob) para o item entrar no escopo do check.
+	// Ex.: ["source.context", "target.context"].
+	guardFields: [string & !="", ...string & !=""]
+	// Glob de presença: o "*" é substituído pelo valor de cada guardField; o
+	// item só é checado se TODOS os globs resultantes casarem ≥1 arquivo.
+	// Ex.: "contexts/*/domain-model.cue".
+	guardPresenceGlob: string & !=""
+	// Campo de cada item in-scope cujos valores (lista) são as refs a verificar.
+	// Ex.: "events".
+	refField: string & !=""
+	// Glob dos arquivos-alvo que contêm os ids válidos. Ex.:
+	// "contexts/*/domain-model.cue".
+	targetGlob: string & !=""
+	// Path do conjunto válido em cada arquivo-alvo (travessia "[]"/aninhamento).
+	// Ex.: "events[].name".
 	targetIdPath: string & !=""
 }

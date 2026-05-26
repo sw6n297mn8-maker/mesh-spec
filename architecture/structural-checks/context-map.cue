@@ -82,4 +82,22 @@ structuralChecks: {
 		rationale:    "adr-103: fecha o 'mapas discordam com o disco' do audit na direção real e born-green (disco→map). adr-098 garante que os .cue do BC casem schema; este check garante que o BC seja reconhecido pelo mapa global."
 		enforcement: "warn"
 	}
+	"sc-cm-06": artifact_schemas.#StructuralCheck & {
+		id:           "sc-cm-06"
+		title:        "Events de relationship built↔built existem no domain-model do produtor"
+		artifactType: "context-map"
+		description:  "Para cada relationship cujos source.context E target.context têm domain-model no disco (BC construído), todo event em events[] existe em algum contexts/*/domain-model.cue events[].name. Relationship tocando BC planejado é forward-declaration e fica fora (allowance). Resolve def-019 sobre a base canônica do adr-104."
+		kind:         "scoped-cross-file-id-exists"
+		rule: {
+			itemsPath:         "relationships"
+			guardFields: ["source.context", "target.context"]
+			guardPresenceGlob: "contexts/*/domain-model.cue"
+			refField:          "events"
+			targetGlob:        "contexts/*/domain-model.cue"
+			targetIdPath:      "events[].name"
+		}
+		errorMessage: "context-map: relationship built↔built referencia event '{ref}' que não existe em nenhum contexts/*/domain-model.cue events[].name. Corrija o nome (vocabulário canônico per adr-104) ou defina o event no domain-model do BC produtor."
+		rationale:    "def-019 (adr-105): events são linguagem ubíqua entre BCs; um event trocado entre BCs construídos que não existe no domain-model do produtor é drift de contrato. Allowance built↔built evita falso-positivo de BC planejado (forward-declaration). cue vet valida formato de string, não existência cross-file."
+		enforcement: "warn"
+	}
 }
