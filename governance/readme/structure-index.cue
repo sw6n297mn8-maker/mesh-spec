@@ -110,7 +110,8 @@ structureIndex: {
 				"architecture/adrs/adr-101-coverage-triage-and-promote-meta-checks.cue",
 				"architecture/adrs/adr-102-cross-file-id-exists-kind.cue",
 				"architecture/adrs/adr-103-filesystem-declared-coverage-kind.cue",
-				"architecture/adrs/adr-104-canonical-event-vocabulary.cue"
+				"architecture/adrs/adr-104-canonical-event-vocabulary.cue",
+				"architecture/adrs/adr-105-scoped-cross-file-id-exists-kind.cue"
 			],
 			"schema": "#ADRBase"
 		},

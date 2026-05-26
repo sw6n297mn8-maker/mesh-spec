@@ -374,6 +374,35 @@ def ev_filesystem_declared_coverage(rule,c):
             v.append("%s: '%s' nao declarado em %s (%s)" % (p,cid,rule["targetGlob"],rule["targetIdPath"]))
     return v
 
+def ev_scoped_cross_file_id_exists(rule,c):
+    # def-019/adr-105: itera itemsPath; checa refField (cross-file vs targetGlob/
+    # targetIdPath) SO nos items cujos guardFields todos resolvem para entidade
+    # presente (guardPresenceGlob com * = valor do guard). Items com guard
+    # nao-materializado = forward-declaration (roadmap), ficam fora.
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    ns=set()
+    for tf in sorted(glob.glob(rule["targetGlob"])):
+        t=load_artifact(tf)
+        if t is None: continue
+        ns.update(x for x in _resolve_multi(t,rule["targetIdPath"]) if isinstance(x,(str,int)))
+    gp=rule["guardPresenceGlob"]; gfields=rule["guardFields"]; rf=rule["refField"]
+    v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        items=dotget(a,rule["itemsPath"])
+        if not isinstance(items,list): continue
+        for it in items:
+            if not isinstance(it,dict): continue
+            inscope=all(isinstance(dotget(it,gf),str) and glob.glob(gp.replace("*",dotget(it,gf))) for gf in gfields)
+            if not inscope: continue
+            refs=it.get(rf,[]); refs=refs if isinstance(refs,list) else [refs]
+            for r in refs:
+                if isinstance(r,(str,int)) and r not in ns:
+                    v.append("%s: ref '%s' (%s, item in-scope por %s) ausente em %s (%s)" % (f,r,rf,gfields,rule["targetGlob"],rule["targetIdPath"]))
+    return v
+
 def ev_evaluator_coverage(rule,c):
     # M1 (adr-099): todo kind DECLARADO no enum #StructuralCheckKind + todo kind
     # USADO por algum check tem evaluator em EVAL. Cartaz sem fiscal => finding.
@@ -410,7 +439,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "evaluator-coverage":ev_evaluator_coverage,"structural-check-coverage":ev_sc_coverage,
  "local-field-reference-integrity":ev_local_field_reference_integrity,
  "cross-file-id-exists":ev_cross_file_id_exists,
- "filesystem-declared-coverage":ev_filesystem_declared_coverage}
+ "filesystem-declared-coverage":ev_filesystem_declared_coverage,
+ "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +

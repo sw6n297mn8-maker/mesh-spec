@@ -70,5 +70,6 @@ def019: artifact_schemas.#DeferredDecision & {
 		reason: "Pré-requisito é canonização do vocabulário de events (decisão de domínio: nome canônico + convenção única + reconciliar context-map↔domain-models), não machine-evaluable. Founder revisita ao fazer a canonização — então autora o check cross-file-id-exists contra domain-model.events[].name."
 	}]
 
-	status: "open"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-105-scoped-cross-file-id-exists-kind.cue"
 }
