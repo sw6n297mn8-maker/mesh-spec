@@ -465,18 +465,7 @@ structureIndex: {
 	],
 	"generator": "scripts/ci/generate-structure-index.py",
 	"missingSingletons": [],
-	"phantomCandidates": [
-		"ai-orchestration/agent-lifecycle.cue",
-		"architecture/compensation-patterns.cue",
-		"architecture/event-evolution.cue",
-		"architecture/infrastructure.cue",
-		"architecture/observability-strategy.cue",
-		"architecture/testing-strategy.cue",
-		"governance/red-team-protocol.cue",
-		"governance/spec-gap-protocol.cue",
-		"governance/validation-protocol.cue",
-		"strategic/informational-flywheel.cue"
-	],
+	"phantomCandidates": [],
 	"singletons": [
 		{
 			"canonicalPath": "ai-orchestration/agent-instructions/task-templates.cue",
