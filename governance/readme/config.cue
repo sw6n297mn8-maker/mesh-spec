@@ -166,6 +166,16 @@ config: artifact_schemas.#ReadmeConfig & {
 				rationale: "Workflows cross-context não pertencem a nenhum BC individual; alocar em architecture/ preserva ownership distribuído dos BCs."
 			},
 			{
+				path:    "architecture/deferred-decisions/"
+				purpose: "Deferimentos conscientes governados: decisões explícitas de não resolver agora, com trade-off articulado e condição codificada de revisita (per adr-062)."
+				conventions: [
+					"Nome no formato def-NNN-slug.cue com numeração contínua e incremental.",
+					"Conformam com architecture/artifact-schemas/deferred-decision.cue.",
+					"Status inicial open; lifecycle avaliado por scripts/ci/evaluate-deferred-triggers.sh (runner não muta arquivos).",
+				]
+				rationale: "Separar deferimento consciente de prose 'Known gaps' em ADRs e de WIs rotineiros torna a dívida deliberada rastreável e sujeita a trigger — evita virar dumping ground de débito técnico genérico."
+			},
+			{
 				path:    "architecture/lenses/"
 				purpose: "Lenses analíticas: protocolos de raciocínio para domínios especializados (economia, segurança, crédito, AI)."
 				conventions: [
@@ -238,10 +248,48 @@ config: artifact_schemas.#ReadmeConfig & {
 				path:    "contexts/"
 				purpose: "Layer 2 da espec: bounded contexts autocontidos, cada um um pacote completo."
 				conventions: [
-					"Um subdiretório por BC, nome lowercase de 3 letras (cmt, ctr, idc, npm).",
+					"Um subdiretório por BC, nome lowercase de 3 letras (ex.: cmt, ssc, bkr).",
 					"Cada BC contém canvas, invariants, commands, events, workflows e demais artefatos declarados em governance/bounded-context-completeness.cue.",
 				]
 				rationale: "Autocontenção do BC é o que permite paralelizar trabalho entre agentes — dependências cross-BC passam por contratos explícitos em strategic/context-map.cue."
+			},
+			{
+				path:    "contexts/bdg/"
+				purpose: "Bounded Context Budget & Approval: verifica cobertura orçamentária de compromissos formalizados em CMT e emite o gate canônico de aprovação que habilita a progressão do commitment lifecycle."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Isolar o gate orçamentário em BC próprio evita que ele fique diluído entre CMT (formalização) e a execução financeira — owner único do estado de comprometimento orçamentário e das regras de alçada."
+			},
+			{
+				path:    "contexts/bdg/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Budget & Approval."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/bkr/"
+				purpose: "Bounded Context Banking Rails & Settlement: executa liquidação física via rails bancários (Pix/SPI, TED/STR, boleto/SILOC, SWIFT quando aplicável) sob autorização upstream; boundary entre a Mesh e o sistema financeiro regulado pelo Bacen."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Liquidação física toca regulação Bacen/SPB e responsabilidade jurídica de instituição autorizada; BC dedicado isola o boundary regulado da lógica financeira proprietária da Mesh — BKR não decide mérito econômico."
+			},
+			{
+				path:    "contexts/bkr/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Banking Rails & Settlement."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			{
 				path:    "contexts/cmt/"
@@ -282,6 +330,25 @@ config: artifact_schemas.#ReadmeConfig & {
 				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			{
+				path:    "contexts/dlv/"
+				purpose: "Bounded Context Delivery & Verification: verifica execução operacional contra critérios versionados acordados em CMT e decide deterministicamente a suficiência de evidência para progressão econômica."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Verificação determinística de evidência é responsabilidade distinta da formalização (CMT) e da execução; BC próprio mantém critérios versionados e decisões idempotentes/replay-able auditáveis."
+			},
+			{
+				path:    "contexts/dlv/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Delivery & Verification."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
 				path:    "contexts/idc/"
 				purpose: "Bounded Context Identity & Data Governance: identidade de participantes e governança de dados pessoais (LGPD, integridade criptográfica)."
 				conventions: [
@@ -289,6 +356,35 @@ config: artifact_schemas.#ReadmeConfig & {
 					"Dados pessoais governados por políticas declaradas aqui; outros BCs consultam, não redefinem.",
 				]
 				rationale: "Identidade e conformidade regulatória são responsabilidades que tangenciam todos os BCs; BC dedicado evita dispersão de lógica sensível."
+			},
+			{
+				path:    "contexts/idc/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Identity & Data Governance."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/inv/"
+				purpose: "Bounded Context Invoicing: materializa a obrigação de faturamento (InvoiceIssued) e o direito creditório associado (ReceivableMaterialized) a partir de DeliveryVerified, aplicando regime fiscal regulado de forma determinística."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "A linguagem fiscal (NF-e, CFOP, alíquotas, retenções) tem regulação tributária própria e cadência distinta; separar de DLV/FCE/ATO/SCF evita acoplar regime fiscal ao fluxo operacional."
+			},
+			{
+				path:    "contexts/inv/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Invoicing."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			{
 				path:    "contexts/npm/"
@@ -308,6 +404,63 @@ config: artifact_schemas.#ReadmeConfig & {
 					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
 				]
 				rationale: "Container de instâncias: mesmo padrão dos demais BCs — localização por bounded context preserva autonomia operacional sem perder uniformidade estrutural."
+			},
+			{
+				path:    "contexts/p2p/"
+				purpose: "Bounded Context Procure-to-Pay: emite Purchase Orders sob autoridade de sourcing pré-existente e faz hand-off da demanda formalizada para CMT — gateway entre decisão de sourcing (SSC) e formalização de compromisso."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Sem PO canônico vinculado a authority válida, a demanda flui fora da rede e o porquê da compra se perde; o BC gateway preserva o registro da decisão na formalização."
+			},
+			{
+				path:    "contexts/p2p/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Procure-to-Pay."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/rew/"
+				purpose: "Bounded Context Risk Engine & Risk Observability: centraliza avaliação de risco e elegibilidade como camada derivada da operação verificada da rede, consolidando sinais para BCs consumidores como SCF, CMT e outros definidos no context-map."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Centralizar risco evita que cada BC consumidor implemente lógica local e gere score fragmentado; REW existe como função dos dados operacionais verificados, não como motor independente."
+			},
+			{
+				path:    "contexts/rew/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Risk Engine & Risk Observability."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/ssc/"
+				purpose: "Bounded Context Strategic Sourcing & Category: decide qual fornecedor atende qual categoria de demanda aplicando regras determinísticas a sinais estruturados (elegibilidade NPM, RFQ, respostas de fornecedores) — início do macrofluxo Mesh."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Sem decisão de sourcing canônica a escolha de fornecedor acontece fora da rede e o dado mais valioso (como e por que um fornecedor foi escolhido) se perde; o BC ancora o início do macrofluxo."
+			},
+			{
+				path:    "contexts/ssc/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Strategic Sourcing & Category."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			// ── Domain (Layer 0) ──
 			{
