@@ -50,7 +50,12 @@ repoStructure: artifact_schemas.#RepoStructure & {
 			"SESSION-CONTEXT.md",
 			"scripts/",
 		]
-		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md), impostos por plataforma (.github/, .gitignore, etc.), ou tooling operacional de CI (scripts/). scripts/ está fora da classificação por artifact schemas, mas continua sujeito às convenções gerais do repositório. CLAUDE.md é adicionalmente governado por derivedArtifacts — sync validado na phase derived-artifact-sync."
+		schemaExemptZones: [
+			"governance/build-time/",
+			"governance/claude/",
+			"architecture/conventions/",
+		]
+		rationale: "Arquivos em excluded são exceções P2 (README.md, CLAUDE.md), impostos por plataforma (.github/, .gitignore, etc.), ou tooling operacional de CI (scripts/). scripts/ está fora da classificação por artifact schemas, mas continua sujeito às convenções gerais do repositório. CLAUDE.md é adicionalmente governado por derivedArtifacts — sync validado na phase derived-artifact-sync. schemaExemptZones (adr-098) são zonas engine/config governadas por cue vet + checks próprios, mas fora da classificação por artifact-schema-instance: governance/build-time/ (engine de work-governance + config de build-time, subsume task-specs/work-events/projections), governance/claude/ (subsistema de renderização do CLAUDE.md) e architecture/conventions/ (documentos de convenção, não tipos instanciáveis)."
 	}
 
 	pathSegments: {

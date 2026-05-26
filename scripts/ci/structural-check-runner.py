@@ -301,9 +301,64 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "reference-exists":ev_reference_exists,"same-artifact-consistency":ev_same_artifact,
  "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant}
 
-GOVERNED_ELSEWHERE=("governance/build-time/task-specs/","governance/build-time/work-events/","governance/build-time/projections/")
+# adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
+# fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +
+# derivedArtifacts (targets .cue + deriver-templates). Substitui o antigo
+# GOVERNED_ELSEWHERE hardcoded (subsumido por governance/build-time/).
+_exempt_cache={}
+def exempt_zones():
+    if "v" in _exempt_cache: return _exempt_cache["v"]
+    d,e=cue_json(["export","./governance/repo-structure.cue","-e","repoStructure.scope.schemaExemptZones","--out","json"])
+    _exempt_cache["v"]=d if (not e and isinstance(d,list)) else []
+    return _exempt_cache["v"]
+
+# Fallback se o export do registry falhar: evita que o proprio indice derivado
+# reapareca como orfao (auto-referencia).
+_DERIVED_FALLBACK={"governance/readme/structure-index.cue"}
+_derived_cache={}
+def derived_template_paths():
+    if "v" in _derived_cache: return _derived_cache["v"]
+    out=set(_DERIVED_FALLBACK)
+    d,e=cue_json(["export","./governance/repo-structure.cue","-e","repoStructure.derivedArtifacts.artifacts","--out","json"])
+    if not e and isinstance(d,list):
+        for a in d:
+            if not isinstance(a,dict): continue
+            p=a.get("path","")
+            if isinstance(p,str) and p.endswith(".cue"): out.add(p)
+            # deriver-template: o .cue que define o campo exportado pelo generator
+            # (ex.: `cue export ./governance/readme -e output` -> readme/output.cue).
+            g=a.get("generator","")
+            m=re.search(r'cue export \./(\S+) -e (\w+)',g) if isinstance(g,str) else None
+            if m:
+                dirp,field=m.group(1),m.group(2)
+                for f in glob.glob(dirp+"/*.cue"):
+                    try: t=open(f).read()
+                    except OSError: continue
+                    if re.search(r'(?m)^'+re.escape(field)+r'\s*:',t): out.add(os.path.relpath(f,"."))
+    _derived_cache["v"]=out
+    return out
+
+_TYPEDEF_RE=re.compile(r'(?m)^(?:#|_#)[A-Za-z0-9_]+\s*:')
+def is_type_definition_file(path):
+    # adr-098: .cue com def top-level (# ou _#) e arquivo de definicao de
+    # tipo/schema, nao instancia — fora da classificacao de instancia.
+    try: t=open(path).read()
+    except OSError: return False
+    return bool(_TYPEDEF_RE.search(t))
+
+def classification_skip(p,excluded,exempt,derived):
+    # adr-098: predicado UNICO compartilhado entre runner e gerador (mapas
+    # alinhados). Pula excluded (P2/plataforma/tooling), zonas engine/config,
+    # derivados+templates registrados e type-definition files.
+    if any(p.startswith(x.rstrip("/")) for x in excluded): return True
+    if any(p.startswith(z.rstrip("/")) for z in exempt): return True
+    if p in derived: return True
+    if is_type_definition_file(p): return True
+    return False
+
 def file_classification(scope,excluded):
-    locs=all_schema_locations(); orphan=[]; ambig=[]
+    locs=all_schema_locations(); exempt=exempt_zones(); derived=derived_template_paths()
+    orphan=[]; ambig=[]
     for d in scope:
         d=d.rstrip("/")
         if not os.path.isdir(d): continue
@@ -311,8 +366,7 @@ def file_classification(scope,excluded):
             for f in fs:
                 if not f.endswith(".cue"): continue
                 p=os.path.relpath(os.path.join(dp,f),".")
-                if any(p.startswith(e.rstrip("/")) for e in excluded): continue
-                if any(p.startswith(g) for g in GOVERNED_ELSEWHERE): continue
+                if classification_skip(p,excluded,exempt,derived): continue
                 ms=[n for n,rx in locs if re.match(rx,p)]
                 if len(ms)==0: orphan.append(p)
                 elif len(ms)>=2: ambig.append((p,ms))
@@ -357,8 +411,14 @@ def run(root,mode):
         total+=len(ambig)
         if mode=="reject": blocking+=len(ambig)
     if orphan:
-        print(f"\n[fileClassification] unmatched — sem artifact-schema localizado (INFO, nao conta): {len(orphan)}")
-        for o in orphan: print(f"    unmatched  {o}")
+        # adr-098: orfao promovido de INFO/non-counting para enforcement "reject"
+        # (def-018 resolvido). Built-in do fileClassification, simetrico ao
+        # enforcement por-check do adr-097: default/reject bloqueiam; --mode warn forca warn.
+        oenf=effective_enforcement({"enforcement":"reject"},mode)
+        print(f"\n[{'FAIL' if oenf=='reject' else 'WARN'}] fileClassification: {len(orphan)} orfao(s) sem artifact-schema (enforcement={oenf}):")
+        for o in orphan: print(f"    orphan  {o}")
+        total+=len(orphan)
+        if oenf=="reject": blocking+=len(orphan)
     if uncovered:
         print("\n[runner] kinds sem evaluator (ignorados):")
         for cid,k in uncovered: print(f"    {cid}: {k}")
