@@ -24,44 +24,48 @@ def019EventsBcCrossFileCheck: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			def-019 defere o check cross-file events↔BC per adr-103. Aprovado pelo
-			founder.
+			def-019 defere o check cross-file events↔BC. Diagnóstico AFIADO após
+			investigação posterior a adr-103. Aprovado pelo founder.
 
 			Conformancia #DeferredDecision:
-			- description: PASS (autorar cross-file-id-exists para events do context-map).
-			- deferralRationale: PASS (custo evitado = gate cheio de falso-positivo;
-			  investigação adr-103 mostrou events não materializados, sem fonte
-			  canônica de id; BankSettlementConfirmed inexistente).
-			- triggerCalibrationRationale: PASS (articula POR QUE manual-review e não
-			  file-exists — events materializam por BC, sem path único nem convenção
-			  canônica de id; manual-review é articulado, não preguiça per adr-062).
+			- description: PASS (autorar cross-file-id-exists para events do context-map
+			  contra domain-model.events[].name).
+			- deferralRationale: PASS — CORRIGIDO: events ESTÃO materializados
+			  (domain-model.events[]); o bloqueio real é VOCABULÁRIO inconsistente entre
+			  artefatos (context-map PascalCase vs domain-models misturando PascalCase e
+			  prosa-com-espaços; nomes divergem: IdentityVerificationCompleted vs
+			  IdentityVerified). Mesmo built↔built, 7/16 não casam por nome. Gatear agora
+			  = ruído, não sinal.
+			- triggerCalibrationRationale: PASS (manual-review porque o pré-requisito é
+			  canonização de vocabulário — decisão de domínio, não machine-evaluable).
 			- originatingArtifacts: PASS (adr-103 + adr-102).
-			- costOfDeferral: severity low + blastRadius cross-artifact, não-cumulativo
-			  (events são roadmap, não contrato ativo).
+			- costOfDeferral: severity low + blastRadius cross-artifact, não-cumulativo.
 			- triggers: 1 manual-review com reason. status open.
 
 			Anti-catch-all (adr-062): deferimento genuíno com trade-off articulado e
-			condição de revisita (materialização de events). Não é WI rotineiro,
-			tension nem bug travestido — é decisão de NÃO gatear até a precondição
-			(events estruturados) existir.
+			condição de revisita (canonização do vocabulário de events). O achado em si
+			(vocabulário inconsistente) é drift real do audit, endereçável por domínio.
 
-			Verificacao: cue vet ./... EXIT 0.
+			Verificacao: cue vet ./... EXIT 0; protótipo (refs context-map vs
+			domain-model.events[].name) → 34/44 não casam por nome; built↔built 7/16,
+			todos por divergência de nome (não ausência) — confirma o diagnóstico.
 			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		def-019: deferimento consciente do check events↔BC até os events
-		materializarem como artefato estruturado com fonte canônica de id. Trigger
-		manual-review articulado (sem path único machine-evaluable). Conforma
-		#DeferredDecision; sem findings fail/warn.
+		def-019: deferimento consciente do check events↔BC. Diagnóstico corrigido —
+		events ESTÃO materializados (domain-model.events[]); o bloqueio é vocabulário
+		de events inconsistente entre context-map e domain-models (convenções e nomes
+		divergem). Pré-requisito = canonização de vocabulário (domínio), não kind nem
+		materialização. Trigger manual-review. Conforma #DeferredDecision; sem findings.
 		"""
 
 	singleRoundRationale: """
-		Uma rodada basta: deferred-decision de registro de trade-off + trigger, cuja
-		premissa (events não materializados) foi verificada empiricamente em adr-103
-		e cuja estrutura conforma #DeferredDecision (cue vet 0). Sem espaco de decisao
-		aberto a red-team.
+		Uma rodada basta: deferred-decision de registro de trade-off + trigger, cujo
+		diagnóstico (vocabulário de events inconsistente) foi verificado empiricamente
+		por protótipo e cuja estrutura conforma #DeferredDecision (cue vet 0). Sem
+		espaco de decisao aberto a red-team.
 		"""
 }
