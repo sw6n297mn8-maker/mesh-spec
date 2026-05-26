@@ -33,8 +33,9 @@ structuralChecks: {
 			// isenção registrada com rationale, em 3 categorias:
 			//  (P)  shape via cue vet adequado / maquinaria engine (zona adr-098) —
 			//       sem refs cross-artifact a verificar, ou já coberto por outro gate;
-			//  (def-002) check referencial CROSS-FILE justificado, mas exige o kind
-			//       cross-file-id-exists ainda deferido (def-002);
+			//  (def-002) bucket cross-file: o kind cross-file-id-exists JÁ existe
+			//       (adr-102 resolveu def-002); o check específico de cada tipo é
+			//       autorado incrementalmente — a isenção vale até o check existir;
 			//  (follow-on) check expressável agora (intra-arquivo via adr-100, ou
 			//       path-existence) mas adiado para este pass focar em zerar+promover.
 			exemptTypes: [
@@ -56,14 +57,14 @@ structuralChecks: {
 				{type: "glossary", rationale: "(P) Glossário por BC; termos auto-contidos; shape via cue vet."},
 				{type: "api-spec", rationale: "(P) Presença de api.yaml já coberta por sc-cv-02 (conditional-file-presence); o schema em si é shape via cue vet."},
 				{type: "agent-governance", rationale: "(P) Envelope de governança de agente; limites/autoridade declarativos (shape via cue vet); refs a artefatos do BC seriam cross-file (def-002)."},
-				{type: "cross-context-flow", rationale: "(def-002) Passos referenciam BCs/events de outros arquivos; check referencial exige cross-file-id-exists."},
-				{type: "subdomain", rationale: "(def-002) Refs a subdomínio-pai e BCs em outros arquivos; exige cross-file-id-exists."},
-				{type: "domain-definition", rationale: "(def-002) Refs a subdomínios/atores em outros arquivos; exige cross-file-id-exists."},
-				{type: "stakeholder-map", rationale: "(def-002) Refs a stakeholders/contextos cross-file; exige cross-file-id-exists."},
-				{type: "agent-spec", rationale: "(def-002) Refs a commands/events/capabilities do BC (outros arquivos); exige cross-file-id-exists."},
-				{type: "service-contract", rationale: "(def-002) Refs a events/operations de outros arquivos; exige cross-file-id-exists."},
-				{type: "economic-mechanism-model", rationale: "(def-002) Refs a premissas/mecanismos cross-file; exige cross-file-id-exists."},
-				{type: "policy", rationale: "(def-002) Trigger refs a events de BCs (outros arquivos); exige cross-file-id-exists."},
+				{type: "cross-context-flow", rationale: "(def-002) Passos referenciam BCs/events de outros arquivos; check referencial o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
+				{type: "subdomain", rationale: "(def-002) Refs a subdomínio-pai e BCs em outros arquivos; o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
+				{type: "domain-definition", rationale: "(def-002) Refs a subdomínios/atores em outros arquivos; o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
+				{type: "stakeholder-map", rationale: "(def-002) Refs a stakeholders/contextos cross-file; o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
+				{type: "agent-spec", rationale: "(def-002) Refs a commands/events/capabilities do BC (outros arquivos); o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
+				{type: "service-contract", rationale: "(def-002) Refs a events/operations de outros arquivos; o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
+				{type: "economic-mechanism-model", rationale: "(def-002) Refs a premissas/mecanismos cross-file; o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
+				{type: "policy", rationale: "(def-002) Trigger refs a events de BCs (outros arquivos); o kind cross-file-id-exists já existe (adr-102); check específico autorado incrementalmente."},
 				{type: "wave-plan", rationale: "(follow-on) Integridade de dependsOn (WI→WI) é expressável intra-arquivo via local-field-reference-integrity (adr-100); autoria adiada para focar este pass em zerar+promover."},
 				{type: "deferred-decision", rationale: "(follow-on) originatingArtifacts/resolvedBy são #OriginRef (path .cue OU session:); verificação de path exige filesystem-path-exists com discriminação de session: — enhancement futuro."},
 				{type: "adopted-artifacts", rationale: "(follow-on) artifacts[].artifact são paths em lista-de-structs; exige iteração nested em filesystem-path-exists (não suportada em V1) — enhancement futuro."},

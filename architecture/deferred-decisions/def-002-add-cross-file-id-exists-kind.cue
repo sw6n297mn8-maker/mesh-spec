@@ -91,5 +91,6 @@ deferredDecisions: "def-002": artifact_schemas.#DeferredDecision & {
 		reason: "Founder pode priorizar adição do kind antes de recurrence threshold materializar — e.g., quando 3º caso concreto aparece em WI futuro com prose de demanda."
 	}]
 
-	status: "open"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-102-cross-file-id-exists-kind.cue"
 }

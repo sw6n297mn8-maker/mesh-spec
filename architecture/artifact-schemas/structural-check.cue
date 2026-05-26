@@ -72,6 +72,9 @@ package artifact_schemas
 } | {
 	kind: "local-field-reference-integrity"
 	rule: #LocalFieldReferenceIntegrityRule
+} | {
+	kind: "cross-file-id-exists"
+	rule: #CrossFileIdExistsRule
 })
 
 _#StructuralCheckBase: {
@@ -150,9 +153,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -453,4 +456,25 @@ _#StructuralCheckBase: {
 	// Path do conjunto de valores VÁLIDOS (namespace) no MESMO artefato.
 	// Ex.: "contexts[].context".
 	namespacePath: string & !=""
+}
+
+// Rule shape para kind=cross-file-id-exists (def-002, adr-102).
+// Integridade referencial CROSS-FILE: todo valor em referencePath (no
+// artefato-fonte) deve existir no namespace montado a partir de OUTROS
+// arquivos (targetGlob + targetIdPath). Gêmeo cross-file do
+// local-field-reference-integrity (adr-100, intra-arquivo). O kind é
+// GENÉRICO; checks específicos são autorados incrementalmente conforme o
+// caso concreto materializa — esta capacidade não cobre, por si só, todas
+// as referências cross-file do repositório.
+#CrossFileIdExistsRule: {
+	// Path dos valores de REFERÊNCIA no artefato-fonte (travessia "[]" /
+	// aninhamento "." como em #LocalFieldReferenceIntegrityRule).
+	// Ex.: "relatedADR".
+	referencePath: string & !=""
+	// Glob dos arquivos-alvo que contêm os ids válidos. Ex.:
+	// "architecture/adrs/*.cue".
+	targetGlob: string & !=""
+	// Path do id em cada arquivo-alvo (já desempacotado o top-level singleton,
+	// como load_artifact faz). Ex.: "id".
+	targetIdPath: string & !=""
 }
