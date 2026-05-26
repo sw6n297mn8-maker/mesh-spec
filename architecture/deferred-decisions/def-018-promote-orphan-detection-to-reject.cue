@@ -53,5 +53,6 @@ def018: artifact_schemas.#DeferredDecision & {
 		{kind: "adjacent-need", condition: {kind: "file-exists", path: "architecture/artifact-schemas/shared-types.cue"}},
 	]
 
-	status: "open"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-098-engine-config-zones-orphan-reject.cue"
 }

@@ -54,11 +54,14 @@ def all_locations_full():
 
 def classify(locs, scope, excluded):
     """Anda a árvore validada e classifica cada .cue (exclusive-match). Mesma
-    lógica de R.file_classification, mas também emite o bucket `matched`
-    (schema -> [paths])."""
+    lógica de R.file_classification (predicado compartilhado R.classification_skip
+    — adr-098: zonas engine/config + derivados/templates + type-definition files),
+    mas também emite o bucket `matched` (schema -> [paths])."""
     matched = {}      # defName -> [paths]
     ambiguous = []    # (path, [defNames])
     unmatched = []    # paths sem schema
+    exempt = R.exempt_zones()
+    derived = R.derived_template_paths() | DERIVED_ARTIFACTS
     for d in scope:
         d = d.rstrip("/")
         if not os.path.isdir(d):
@@ -68,11 +71,7 @@ def classify(locs, scope, excluded):
                 if not f.endswith(".cue"):
                     continue
                 p = os.path.relpath(os.path.join(dp, f), ".")
-                if p in DERIVED_ARTIFACTS:
-                    continue
-                if any(p.startswith(e.rstrip("/")) for e in excluded):
-                    continue
-                if any(p.startswith(g) for g in R.GOVERNED_ELSEWHERE):
+                if R.classification_skip(p, excluded, exempt, derived):
                     continue
                 ms = [dn for dn, rx, _ in locs if re.match(rx, p)]
                 if len(ms) == 0:

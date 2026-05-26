@@ -71,6 +71,13 @@ package artifact_schemas
 #Scope: {
 	validated: [...string & !=""]
 	excluded:  [...string & !=""]
+
+	// Zonas engine/config (adr-098): prefixos DENTRO de validated (cue vet
+	// aplica) mas FORA do regime de classificação por artifact-schema-instance —
+	// maquinaria de governança/build-time, não tipos de artefato instanciáveis.
+	// Opcional (default ausente = []); aditivo a repos sem o conceito.
+	schemaExemptZones?: [...string & !=""]
+
 	rationale: string & !=""
 }
 

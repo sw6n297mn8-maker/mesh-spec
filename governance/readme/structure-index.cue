@@ -103,7 +103,8 @@ structureIndex: {
 				"architecture/adrs/adr-094-schematize-shared-types.cue",
 				"architecture/adrs/adr-095-remove-phantom-domain-artifacts.cue",
 				"architecture/adrs/adr-096-build-time-structural-check-orchestrator.cue",
-				"architecture/adrs/adr-097-per-check-enforcement-and-promote-sc-wg-01.cue"
+				"architecture/adrs/adr-097-per-check-enforcement-and-promote-sc-wg-01.cue",
+				"architecture/adrs/adr-098-engine-config-zones-orphan-reject.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -239,7 +240,6 @@ structureIndex: {
 				"contexts/bkr/domain-model.cue",
 				"contexts/cmt/domain-model.cue",
 				"contexts/ctr/domain-model.cue",
-				"contexts/dlv/domain-model.cue",
 				"contexts/idc/domain-model.cue",
 				"contexts/inv/domain-model.cue",
 				"contexts/npm/domain-model.cue",
@@ -285,10 +285,7 @@ structureIndex: {
 		},
 		{
 			"canonicalPathRegex": "^architecture/shared-types/[a-z0-9-]+\\.cue$",
-			"files": [
-				"architecture/shared-types/strategic-classification.cue",
-				"architecture/shared-types/vertical-applicability.cue"
-			],
+			"files": [],
 			"schema": "#SharedTypes"
 		},
 		{
@@ -410,37 +407,7 @@ structureIndex: {
 		{
 			"canonicalPathRegex": "^architecture/artifact-schemas/[a-z0-9-]+\\.cue$",
 			"files": [
-				"architecture/artifact-schemas/adopted-artifacts.cue",
-				"architecture/artifact-schemas/adr.cue",
-				"architecture/artifact-schemas/agent-governance.cue",
-				"architecture/artifact-schemas/agent-spec.cue",
-				"architecture/artifact-schemas/api-spec.cue",
-				"architecture/artifact-schemas/artifact-schema.cue",
-				"architecture/artifact-schemas/canvas.cue",
-				"architecture/artifact-schemas/context-map.cue",
-				"architecture/artifact-schemas/cross-context-flow.cue",
-				"architecture/artifact-schemas/deferred-decision.cue",
-				"architecture/artifact-schemas/design-principles.cue",
-				"architecture/artifact-schemas/domain-definition.cue",
-				"architecture/artifact-schemas/domain-model.cue",
-				"architecture/artifact-schemas/economic-assumption-model.cue",
-				"architecture/artifact-schemas/economic-mechanism-model.cue",
-				"architecture/artifact-schemas/glossary.cue",
-				"architecture/artifact-schemas/lens.cue",
-				"architecture/artifact-schemas/policy.cue",
-				"architecture/artifact-schemas/production-guide.cue",
-				"architecture/artifact-schemas/quality-criteria.cue",
-				"architecture/artifact-schemas/readme-config.cue",
-				"architecture/artifact-schemas/repo-structure.cue",
-				"architecture/artifact-schemas/service-contract.cue",
-				"architecture/artifact-schemas/shared-types.cue",
-				"architecture/artifact-schemas/stakeholder-map.cue",
-				"architecture/artifact-schemas/structural-check.cue",
-				"architecture/artifact-schemas/subdomain.cue",
-				"architecture/artifact-schemas/task-template.cue",
-				"architecture/artifact-schemas/tension-entry.cue",
-				"architecture/artifact-schemas/validation-prompt.cue",
-				"architecture/artifact-schemas/wave-plan.cue"
+				"architecture/artifact-schemas/artifact-schema.cue"
 			],
 			"schema": "_artifactSchemaMeta"
 		},
@@ -539,26 +506,5 @@ structureIndex: {
 		}
 	],
 	"source": "_schema.location (artifact-schemas + build-time) + filesystem scan (scope.validated)",
-	"unmatched": [
-		"architecture/conventions/api-spec-convention.cue",
-		"governance/bounded-context-completeness.cue",
-		"governance/build-time/authoring-policy.cue",
-		"governance/build-time/claim-expiration-validation.cue",
-		"governance/build-time/command-rights.cue",
-		"governance/build-time/completion-gates.cue",
-		"governance/build-time/event-validation.cue",
-		"governance/build-time/projection-drift.cue",
-		"governance/build-time/quality-gate.cue",
-		"governance/build-time/self-review-report.cue",
-		"governance/build-time/subagent-execution-log.cue",
-		"governance/build-time/task-governance.cue",
-		"governance/build-time/validation-findings-w001.cue",
-		"governance/build-time/work-governance.cue",
-		"governance/build-time/work-graph.cue",
-		"governance/claude/config.cue",
-		"governance/claude/output.cue",
-		"governance/claude/schema.cue",
-		"governance/readme/output.cue",
-		"governance/repo-principles.cue"
-	]
+	"unmatched": []
 }
