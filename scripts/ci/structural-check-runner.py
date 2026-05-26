@@ -295,11 +295,40 @@ def ev_domain_invariant(rule,c):
         if isinstance(invs,dict) and inv in invs: return []
     return [f"invariantId '{inv}' nao encontrado em contexts/*/domain-model.cue"]
 
+def ev_evaluator_coverage(rule,c):
+    # M1 (adr-099): todo kind DECLARADO no enum #StructuralCheckKind + todo kind
+    # USADO por algum check tem evaluator em EVAL. Cartaz sem fiscal => finding.
+    declared=set()
+    p=rule.get("checkSchemaPath","architecture/artifact-schemas/structural-check.cue")
+    try:
+        m=re.search(r'#StructuralCheckKind:\s*(.+)',open(p).read())
+        if m: declared={x for x in re.findall(r'"([a-z-]+)"',m.group(1))}
+    except OSError: pass
+    used={cc.get("kind") for cc in load_checks().values() if isinstance(cc,dict)}
+    miss=sorted(k for k in (declared|used) if k and k not in EVAL)
+    return ["kind '%s' declarado/usado sem evaluator em EVAL (cartaz sem fiscal)" % k for k in miss]
+
+def ev_sc_coverage(rule,c):
+    # M2 (adr-099): tipos governados DERIVADOS dos _schema.location (basenames dos
+    # schemas que governam instancias), nao autorados. Coberto = existe check com
+    # artifactType == basename. Isencoes registradas (com rationale) saem.
+    governed=set()
+    for d in SCHEMA_DIRS:
+        for f in glob.glob(d+"/*.cue"):
+            try: t=open(f).read()
+            except OSError: continue
+            if "_schema" in t: governed.add(os.path.basename(f)[:-4])
+    covered={cc.get("artifactType") for cc in load_checks().values() if isinstance(cc,dict)}
+    exempt={e.get("type") for e in rule.get("exemptTypes",[]) if isinstance(e,dict)}
+    miss=sorted(governed-covered-exempt)
+    return ["tipo '%s' governado sem structural-check (so cue vet + gate de orfao)" % t for t in miss]
+
 EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_singleton,
  "production-guide-coverage":ev_pg_coverage,"required-block":ev_required_block,
  "at-least-one-block-present":ev_at_least_one,"filesystem-path-exists":ev_fs_path_exists,
  "reference-exists":ev_reference_exists,"same-artifact-consistency":ev_same_artifact,
- "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant}
+ "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant,
+ "evaluator-coverage":ev_evaluator_coverage,"structural-check-coverage":ev_sc_coverage}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +

@@ -63,6 +63,12 @@ package artifact_schemas
 } | {
 	kind: "singleton-coverage"
 	rule: #SingletonCoverageRule
+} | {
+	kind: "evaluator-coverage"
+	rule: #EvaluatorCoverageRule
+} | {
+	kind: "structural-check-coverage"
+	rule: #StructuralCheckCoverageRule
 })
 
 _#StructuralCheckBase: {
@@ -141,9 +147,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -397,4 +403,32 @@ _#StructuralCheckBase: {
 	// (resolvido do canonicalPathRegex literal) deve existir.
 	// Whitelist — nasce verde, cresce por change-on-touch.
 	requiredSingletons: [string & !="", ...string & !=""]
+}
+
+// Rule shape para kind=evaluator-coverage (M1, adr-099 — meta-cobertura).
+// Self-asserção do runner: todo kind DECLARADO no enum #StructuralCheckKind
+// (lido de checkSchemaPath) e todo kind USADO por algum check tem evaluator
+// registrado em EVAL. Sem isenção — declarar regra sem robô (cartaz sem
+// fiscal) é sempre erro. Fecha o "rule→robot" da camada de fiscalização.
+#EvaluatorCoverageRule: {
+	// Schema cujo enum #StructuralCheckKind define os kinds que exigem
+	// evaluator. O runner cruza (enum ∪ kinds-usados) contra EVAL.
+	checkSchemaPath: string & !="" | *"architecture/artifact-schemas/structural-check.cue"
+}
+
+// Rule shape para kind=structural-check-coverage (M2, adr-099 — meta-cobertura).
+// O conjunto de tipos governados é DERIVADO dos _schema.location (basenames dos
+// schemas que governam instâncias), não autorado — diferente do
+// production-guide-coverage, cuja whitelist coveredSchemas pode envelhecer.
+// Tipo "coberto" = existe ≥1 structural-check com artifactType correspondente.
+// exemptTypes registra, com rationale, os tipos adequadamente cobertos só por
+// cue vet + gate de órfão (sem check comportamental) — ausência de check vira
+// decisão revisada, nunca acidente.
+#StructuralCheckCoverageRule: {
+	exemptTypes: [...{
+		// Nome do tipo governado (basename do schema) isento.
+		type: string & !=""
+		// Por que este tipo não exige structural-check comportamental.
+		rationale: string & !=""
+	}]
 }
