@@ -71,7 +71,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		// --- PUBLISHED (cross-BC; BD14 atomic emit; BD10 categorical payload) ---
 		{
 			code:        "evt-delivery-verified"
-			name:        "Delivery Verified"
+			name:        "DeliveryVerified"
 			description: "Verification atinge state terminal verified. Cross-BC published event consumido por INV (faturamento gate), REW (qualidade-de-execução signal), NIM (mecanismos design signal), DRC (post-verification dispute context per BD8 within finality window). Payload categórico determinístico per BD10 (NO scoring fields)."
 			rationale:   "Terminal event canonical do happy path DLV. Hard binding cross-BC: INV consume como precondition de invoice issuance; REW como input categórico para credit scoring (BD10 boundary preserved); NIM como signal para mechanism design; DRC como contexto pós-verification."
 			visibility:  "published"
@@ -111,7 +111,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		// --- INTERNAL (DLV-only; NÃO publicados cross-BC per BD4) ---
 		{
 			code:        "evt-evidence-recorded"
-			name:        "Evidence Recorded"
+			name:        "EvidenceRecorded"
 			description: "EvidenceRecord entity criada via RecordEvidence command OR EvidenceCommitted LOG ACL consumption. Marker de aggregate creation per BD4 ingestion-evaluation-separation. INTERNAL — NÃO publicado cross-BC (visibility=internal per BD4)."
 			rationale:   "Marker de Verification aggregate creation com EvidenceRecord embedded; trigger interno de evaluation eligibility. Phase 0 evaluation requer cmd-evaluate-verification subsequent (sync). Phase 1+ eventual evaluation policy poderia consumir este event."
 			visibility:  "internal"

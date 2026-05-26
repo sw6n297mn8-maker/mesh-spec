@@ -379,7 +379,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "NPM publica eventos de ciclo de vida de participantes; REW consome para alimentar modelos de risco."
 			rationale:         "Comportamento de participantes é input para avaliação de risco. REW traduz para linguagem de risco via ACL."
 			communication: {type: "async"}
-			events: ["NetworkParticipantOnboarded", "NetworkParticipantStatusChanged"]
+			events: ["ParticipantQualified", "ParticipantSuspended", "ParticipantTerminated", "ParticipantReactivated"]
 		},
 		{
 			code:              "dlv-to-rew"
@@ -442,7 +442,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "NPM publica dados de participantes; NIM consome para modelar topologia e comportamento de rede."
 			rationale:         "Dados de participantes são input fundamental para inteligência de rede."
 			communication: {type: "async"}
-			events: ["NetworkParticipantOnboarded", "NetworkParticipantStatusChanged"]
+			events: ["ParticipantQualified", "ParticipantSuspended", "ParticipantTerminated", "ParticipantReactivated"]
 		},
 		{
 			code:              "fce-to-rew"
@@ -470,9 +470,9 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			downstreamPattern: "anti-corruption-layer"
 			publishedLanguage: "Risk score and eligibility model"
 			description:       "REW publica alertas de risco e resolução de alertas via published language; CMT consome para sinalizar e limpar sinalização de compromissos existentes com contraparte sob risco."
-			rationale:         "REW retroalimenta CMT com sinalização de deterioração e resolução de risco em compromissos ativos. Par simétrico: CounterpartyRiskAlertRaised → flag at-risk, CounterpartyRiskAlertCleared → clear risk flag."
+			rationale:         "REW retroalimenta CMT com sinalização de deterioração e resolução de risco em compromissos ativos. Par simétrico: RiskAlertRaised → flag at-risk, RiskAlertResolved → clear risk flag."
 			communication: {type: "async"}
-			events: ["CounterpartyRiskAlertRaised", "CounterpartyRiskAlertCleared"]
+			events: ["RiskAlertRaised", "RiskAlertResolved"]
 		},
 
 		// --- D. Financial Products & Execution (5) ---
@@ -596,7 +596,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "NGR e NPM operam em parceria: NGR direciona crescimento, NPM gerencia ciclo de vida de participantes adquiridos."
 			rationale:         "Relação simétrica — ambos influenciam mutuamente. NGR não é upstream de NPM nem vice-versa; co-evoluem. Partnership não implica shared model nem shared ownership — cada BC mantém linguagem e invariantes próprias."
 			communication: {type: "async"}
-			events: ["NetworkGrowthTargetDefined", "NetworkParticipantOnboarded"]
+			events: ["NetworkGrowthTargetDefined", "ParticipantQualified"]
 		},
 
 		// --- G. Contract Management (3) ---
@@ -747,7 +747,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "NPM publica eventos de qualificação de participantes e expõe status; SSC consome como input para decisão de sourcing."
 			rationale:         "Sourcing estratégico depende de qualificação de participantes — fornecedor não qualificado não entra no pool de sourcing. Hybrid porque SSC consulta status sincronamente durante processo de cotação e reage assincronamente a mudanças de status."
 			communication: {type: "hybrid"}
-			events: ["NetworkParticipantStatusChanged"]
+			events: ["ParticipantSuspended", "ParticipantTerminated", "ParticipantReactivated"]
 			queries: ["QueryParticipantStatus"]
 		},
 
@@ -880,7 +880,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "IDC fornece identidade verificável e evidências base de verificação de identidade; NPM consome como pré-condição para onboarding e qualificação de participantes."
 			rationale:         "Identidade verificável é pré-condição de onboarding — NPM não qualifica sem identidade. Relação semanticamente diferenciada: NPM depende de verificação de identidade de forma distinta dos demais BCs que consomem autenticação genérica. ACL porque NPM traduz resultado de verificação para linguagem de qualificação de participante. Compliance material (KYC/AML) é responsabilidade de NPM — IDC fornece apenas a verificação de identidade base."
 			communication: {type: "hybrid"}
-			events: ["IdentityVerificationCompleted"]
+			events: ["IdentityVerified"]
 			queries: ["QueryIdentityVerificationStatus"]
 		},
 	]
