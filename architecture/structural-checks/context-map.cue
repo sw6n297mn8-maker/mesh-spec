@@ -67,4 +67,19 @@ structuralChecks: {
 		rationale:    "adr-100: ownership de subdomínio atribuída a um BC inexistente é drift referencial — o subdomínio ficaria sem dono real."
 		enforcement: "warn"
 	}
+	"sc-cm-05": artifact_schemas.#StructuralCheck & {
+		id:           "sc-cm-05"
+		title:        "Todo diretório de BC no disco está declarado no context-map"
+		artifactType: "context-map"
+		description:  "Todo diretório contexts/{bc}/ no filesystem está declarado em context-map.contexts[].context. Pega o drift 'BC criado no disco sem declaração no mapa'. Direção segura (disco→map): NÃO exige o inverso — o context-map declara a topologia-alvo (25 BCs) e pode estar à frente do disco (BCs planejados), o que é roadmap e não drift."
+		kind:         "filesystem-declared-coverage"
+		rule: {
+			pathGlob:     "contexts/*/"
+			targetGlob:   "strategic/context-map.cue"
+			targetIdPath: "contexts[].context"
+		}
+		errorMessage: "context-map: diretório de BC '{id}' existe no disco (contexts/{id}/) mas não está declarado em contexts[].context. Declare o BC no context-map ou remova o diretório."
+		rationale:    "adr-103: fecha o 'mapas discordam com o disco' do audit na direção real e born-green (disco→map). adr-098 garante que os .cue do BC casem schema; este check garante que o BC seja reconhecido pelo mapa global."
+		enforcement: "warn"
+	}
 }

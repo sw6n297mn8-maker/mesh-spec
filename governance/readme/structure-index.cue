@@ -108,7 +108,8 @@ structureIndex: {
 				"architecture/adrs/adr-099-meta-coverage-layer.cue",
 				"architecture/adrs/adr-100-local-field-reference-integrity-kind.cue",
 				"architecture/adrs/adr-101-coverage-triage-and-promote-meta-checks.cue",
-				"architecture/adrs/adr-102-cross-file-id-exists-kind.cue"
+				"architecture/adrs/adr-102-cross-file-id-exists-kind.cue",
+				"architecture/adrs/adr-103-filesystem-declared-coverage-kind.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -382,7 +383,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-015-task-output-temporality-metadata.cue",
 				"architecture/deferred-decisions/def-016-cross-bc-decision-attestation-enforcement.cue",
 				"architecture/deferred-decisions/def-017-deletion-srr-script-handling.cue",
-				"architecture/deferred-decisions/def-018-promote-orphan-detection-to-reject.cue"
+				"architecture/deferred-decisions/def-018-promote-orphan-detection-to-reject.cue",
+				"architecture/deferred-decisions/def-019-events-bc-cross-file-check.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
