@@ -1,0 +1,34 @@
+name: oneshot-wi128
+
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - uses: cue-lang/setup-cue@v1.0.0
+        with:
+          version: v0.16.0
+
+      - name: Apply WI-128 one-shot (insere no wave-plan + SRR, commita)
+        run: |
+          set -e
+          python3 scripts/ci/_apply_wi128_oneshot.py
+          git add governance/wave-plan.cue governance/build-time/self-reviews/wave-plan-wi-128-shared-schemas.self-review.cue
+          if git diff --cached --quiet; then
+            echo "nada a commitar (idempotente)."
+            exit 0
+          fi
+          cue vet ./...
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(adr-090): WI-128 planeja shared-schemas (plannedIn) + SRR (one-shot)"
+          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "push falhou (corrida); proxima run reconcilia"
