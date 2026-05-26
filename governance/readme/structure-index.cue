@@ -105,7 +105,8 @@ structureIndex: {
 				"architecture/adrs/adr-096-build-time-structural-check-orchestrator.cue",
 				"architecture/adrs/adr-097-per-check-enforcement-and-promote-sc-wg-01.cue",
 				"architecture/adrs/adr-098-engine-config-zones-orphan-reject.cue",
-				"architecture/adrs/adr-099-meta-coverage-layer.cue"
+				"architecture/adrs/adr-099-meta-coverage-layer.cue",
+				"architecture/adrs/adr-100-local-field-reference-integrity-kind.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -390,6 +391,7 @@ structureIndex: {
 				"architecture/structural-checks/bdg-domain-model.cue",
 				"architecture/structural-checks/canvas.cue",
 				"architecture/structural-checks/cmt-domain-model.cue",
+				"architecture/structural-checks/context-map.cue",
 				"architecture/structural-checks/ctr-domain-model.cue",
 				"architecture/structural-checks/deferred-decision.cue",
 				"architecture/structural-checks/dlv-domain-model.cue",

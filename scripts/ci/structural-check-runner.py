@@ -295,6 +295,40 @@ def ev_domain_invariant(rule,c):
         if isinstance(invs,dict) and inv in invs: return []
     return [f"invariantId '{inv}' nao encontrado em contexts/*/domain-model.cue"]
 
+def _resolve_multi(obj,path):
+    # adr-100: resolve um path multi-valor. Segmento "x[]" itera os elementos
+    # de uma lista OU os valores de um dict; segmento "x" acessa o campo. Retorna
+    # a lista achatada de folhas (None descartado). Travessia intra-arquivo.
+    cur=[obj]
+    for seg in path.split("."):
+        it=seg.endswith("[]"); key=seg[:-2] if it else seg
+        nxt=[]
+        for o in cur:
+            if not isinstance(o,dict) or key not in o: continue
+            val=o[key]
+            if it:
+                if isinstance(val,list): nxt.extend(val)
+                elif isinstance(val,dict): nxt.extend(val.values())
+            else:
+                nxt.append(val)
+        cur=nxt
+    return [x for x in cur if x is not None]
+
+def ev_local_field_reference_integrity(rule,c):
+    # adr-100: todo valor em referencePath existe no conjunto namespacePath, no
+    # MESMO arquivo. Intra-arquivo (distinto do cross-file-id-exists, def-002).
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        ns={x for x in _resolve_multi(a,rule["namespacePath"]) if isinstance(x,(str,int))}
+        for r in _resolve_multi(a,rule["referencePath"]):
+            if isinstance(r,(str,int)) and r not in ns:
+                v.append("%s: ref '%s' (%s) ausente em %s" % (f,r,rule["referencePath"],rule["namespacePath"]))
+    return v
+
 def ev_evaluator_coverage(rule,c):
     # M1 (adr-099): todo kind DECLARADO no enum #StructuralCheckKind + todo kind
     # USADO por algum check tem evaluator em EVAL. Cartaz sem fiscal => finding.
@@ -328,7 +362,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "at-least-one-block-present":ev_at_least_one,"filesystem-path-exists":ev_fs_path_exists,
  "reference-exists":ev_reference_exists,"same-artifact-consistency":ev_same_artifact,
  "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant,
- "evaluator-coverage":ev_evaluator_coverage,"structural-check-coverage":ev_sc_coverage}
+ "evaluator-coverage":ev_evaluator_coverage,"structural-check-coverage":ev_sc_coverage,
+ "local-field-reference-integrity":ev_local_field_reference_integrity}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +
