@@ -107,7 +107,8 @@ structureIndex: {
 				"architecture/adrs/adr-098-engine-config-zones-orphan-reject.cue",
 				"architecture/adrs/adr-099-meta-coverage-layer.cue",
 				"architecture/adrs/adr-100-local-field-reference-integrity-kind.cue",
-				"architecture/adrs/adr-101-coverage-triage-and-promote-meta-checks.cue"
+				"architecture/adrs/adr-101-coverage-triage-and-promote-meta-checks.cue",
+				"architecture/adrs/adr-102-cross-file-id-exists-kind.cue"
 			],
 			"schema": "#ADRBase"
 		},

@@ -335,6 +335,26 @@ def ev_local_field_reference_integrity(rule,c):
                 v.append("%s: ref '%s' (%s) ausente em %s" % (f,r,rule["referencePath"],rule["namespacePath"]))
     return v
 
+def ev_cross_file_id_exists(rule,c):
+    # def-002/adr-102: todo valor em referencePath (artefato-fonte) existe no
+    # namespace montado de OUTROS arquivos (targetGlob + targetIdPath). Gemeo
+    # cross-file do local-field-reference-integrity (adr-100, intra-arquivo).
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    ns=set()
+    for tf in sorted(glob.glob(rule["targetGlob"])):
+        t=load_artifact(tf)
+        if t is None: continue
+        ns.update(x for x in _resolve_multi(t,rule["targetIdPath"]) if isinstance(x,(str,int)))
+    v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        for r in _resolve_multi(a,rule["referencePath"]):
+            if isinstance(r,(str,int)) and r not in ns:
+                v.append("%s: ref '%s' (%s) ausente no namespace cross-file %s (%s)" % (f,r,rule["referencePath"],rule["targetGlob"],rule["targetIdPath"]))
+    return v
+
 def ev_evaluator_coverage(rule,c):
     # M1 (adr-099): todo kind DECLARADO no enum #StructuralCheckKind + todo kind
     # USADO por algum check tem evaluator em EVAL. Cartaz sem fiscal => finding.
@@ -369,7 +389,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "reference-exists":ev_reference_exists,"same-artifact-consistency":ev_same_artifact,
  "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant,
  "evaluator-coverage":ev_evaluator_coverage,"structural-check-coverage":ev_sc_coverage,
- "local-field-reference-integrity":ev_local_field_reference_integrity}
+ "local-field-reference-integrity":ev_local_field_reference_integrity,
+ "cross-file-id-exists":ev_cross_file_id_exists}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +
