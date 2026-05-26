@@ -214,7 +214,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-alert-raised"
-			name:        "Risk Alert Raised"
+			name:        "RiskAlertRaised"
 			description: "Alert raised por: eligibility-denied, signal-corruption, adversarial-pattern, policy-violation, OR model-drift. Alert é OBSERVABILITY artifact — sinaliza condição para review humano. Dedupe key (evaluationId, alertCategory) — múltiplos triggers para mesma combinação NÃO criam novos alerts (inv-rew-alert-dedupe). Alert binding ao evaluationId é IMUTÁVEL (inv-rew-alert-evaluation-binding-immutability)."
 			rationale:   "Alert sem dedupe = ruído → sistema ignorado (founder Phase 3 insight). Alert ≠ decision: decision categórica; alert flag de condição para review. errorClassEliminated: 'decision and alert conflated causing review fatigue' + 'repeated alerts for same condition causing alert fatigue'."
 			visibility:  "published"
@@ -250,7 +250,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-alert-resolved"
-			name:        "Risk Alert Resolved (with reason)"
+			name:        "RiskAlertResolved"
 			description: "Alert resolved com performedBy + actorAuthority + resolutionReason obrigatórios. Resolve IRREVERSÍVEL (inv-rew-alert-lifecycle); reabertura PROIBIDA — alert resolved gera novo alert se condição recorre (preserva append-only event log)."
 			rationale:   "Resolution trail é auditable evidence. resolutionReason via vo-decision-reason permite categorization (false-positive, manual-override, escalated, etc.). errorClassEliminated: 'alert closure without auditable rationale'."
 			visibility:  "published"
