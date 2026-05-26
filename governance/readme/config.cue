@@ -541,7 +541,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			| 2 | Subdomínios | strategic/subdomains/ |
 			| 3 | Bounded Contexts | contexts/{bc-code}/canvas.cue |
 			| 4 | Context Map | strategic/context-map.cue |
-			| 5 | Ubiquitous Language | contexts/{bc-code}/ubiquitous-language.cue (local) |
+			| 5 | Ubiquitous Language | contexts/{bc-code}/glossary.cue (local) |
 			| 6 | EventStorming | Absorvido nos artefatos derivados: commands/, events/, policies.cue, state-models.cue |
 			| 7 | Capabilities / Invariantes | contexts/{bc-code}/invariants.cue (assertions formais + rationale) |
 			| 8 | Aggregates / Entities / VOs | contexts/{bc-code}/domain-model.cue |
@@ -751,7 +751,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			- Arquivos de event: `{substantivo}-{particípio}.cue` — ex: `commitment-approved.cue`.
 			- Arquivos de ADR: `{nnn}-{slug}.cue` — ex: `001-postgres-per-module.cue`.
 			- Arquivos de schema (CUE): `{nome-do-tipo}.cue` — ex: `commitment-created-event.cue`.
-			- Arquivos de glossário: `ubiquitous-language.cue` por BC.
+			- Arquivos de glossário: `glossary.cue` por BC.
 			- Arquivos de workflow: `{nome-do-processo}.cue` — ex: `commitment-fulfillment-flow.cue`.
 			- Arquivos de migration: `{event-slug}-v{N}-to-v{N+1}.cue` — ex: `commitment-created-v1-to-v2.cue`.
 			- Arquivos de agente: `{agent-slug}.cue` — ex: `scoring-agent.cue`.
@@ -769,7 +769,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			Em alto nível, completude cobre sete dimensões:
 
-			1. **Identidade.** `canvas.cue` com propósito, capabilities, classificação, custos de transação eliminados e incentive analysis. `context-dependencies.cue` derivado de `context-map.cue`. `ubiquitous-language.cue` local.
+			1. **Identidade.** `canvas.cue` com propósito, capabilities, classificação, custos de transação eliminados e incentive analysis. `context-dependencies.cue` derivado de `context-map.cue`. `glossary.cue` local.
 			2. **Modelo de domínio.** `domain-model.cue`, `invariants.cue` (ao menos uma assertion formal por aggregate), `state-models.cue` para aggregates com lifecycle.
 			3. **Contratos.** Todo command em `commands/{cmd}.cue` com pré/pós-condições e `invariant_refs`. Todo event em `events/{event}.cue` com schema CUE, envelope CloudEvents e lista de consumidores. `schemas/` com as 8 famílias ContractGate aplicáveis. `interaction-contracts.cue` se o BC consome eventos de outros BCs.
 			4. **Aplicação.** `policies.cue` com trigger/condition/action formal. `projections.cue` com read models. `ports.cue` com interfaces do domínio. `workflows/` com steps, compensation e timeouts formais.
