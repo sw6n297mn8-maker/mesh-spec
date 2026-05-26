@@ -548,23 +548,23 @@ config: artifact_schemas.#ReadmeConfig & {
 			| 9 | Contratos e Tipos | contexts/{bc-code}/schemas/*.cue, api.yaml, async-api.yaml, architecture/shared-schemas/ |
 			| 10 | Ports & Adapters | contexts/{bc-code}/ports.cue, adapters.cue |
 			| 11 | Aplicação / Workflows | contexts/{bc-code}/workflows/*.cue + architecture/cross-context-workflows/ |
-			| 12 | Infra | architecture/infrastructure.cue, database-strategy.cue, security.cue |
+			| 12 | Infra | infraestrutura (planejado), database-strategy.cue, security.cue |
 			| — | Agentes de domínio | contexts/{bc-code}/agents/{agent}.cue + {agent}.governance.cue + architecture/agent-governance.cue (global) |
 			| — | Contratos de consumo inter-BC | contexts/{bc-code}/schemas/interaction-contracts.cue + architecture/shared-schemas/agent-interaction-envelope.cue |
 			| — | Incentive analysis | contexts/{bc-code}/canvas.cue (seção obrigatória do canvas) |
-			| — | Threat modeling | contexts/{bc-code}/threat-model.cue + governance/red-team-protocol.cue |
-			| — | Acumulação informacional | strategic/informational-flywheel.cue |
+			| — | Threat modeling | contexts/{bc-code}/threat-model.cue + protocolo de red-team (planejado) |
+			| — | Acumulação informacional | flywheel informacional (planejado) |
 			| — | Decision log de agentes | architecture/shared-schemas/agent-decision-record.cue |
 			| — | Assertion schema | architecture/shared-schemas/assertion-schema.cue (gramática formal com rationale) |
-			| — | Ciclo de aprendizado | governance/spec-gap-protocol.cue + architecture/shared-schemas/spec-gap-event.cue |
+			| — | Ciclo de aprendizado | protocolo de spec-gap (planejado) + architecture/shared-schemas/spec-gap-event.cue |
 			| — | Autorização do repo | Três tiers (Read/Propose/Decide) documentados neste README |
 			| — | Governança | governance/ |
 			| — | Configuração do agente | governance/claude/ (config.cue → CLAUDE.md derivado) |
 			| — | Orquestração de IA | ai-orchestration/ (retrieval com prioridades, lifecycle, instructions) |
-			| — | Testabilidade | contexts/{bc-code}/test-specs.cue + architecture/testing-strategy.cue + governance/validation-protocol.cue |
-			| — | Observabilidade | contexts/{bc-code}/observability.cue + architecture/observability-strategy.cue |
-			| — | Evolução de eventos | contexts/{bc-code}/schemas/_migrations/ + architecture/event-evolution.cue |
-			| — | Recovery / Compensation | contexts/{bc-code}/failure-modes.cue + workflows/*.cue + architecture/compensation-patterns.cue |
+			| — | Testabilidade | contexts/{bc-code}/test-specs.cue + estratégia de testes global (planejada) + protocolo de validação (planejado) |
+			| — | Observabilidade | contexts/{bc-code}/observability.cue + estratégia de observabilidade global (planejada) |
+			| — | Evolução de eventos | contexts/{bc-code}/schemas/_migrations/ + regras de evolução de eventos (planejado) |
+			| — | Recovery / Compensation | contexts/{bc-code}/failure-modes.cue + workflows/*.cue + patterns de compensação globais (planejado) |
 			| — | Artifact schemas | architecture/artifact-schemas/ (schemas de validação para tipos de artefato) |
 			| — | Design principles | architecture/design-principles.cue (13 princípios do sistema) |
 
@@ -648,7 +648,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			interaction-contracts  → contract tests (emissor sem campos obrigatórios → rejeição)
 			```
 
-			Cada BC documenta suas regras de geração em `test-specs.cue`. A estratégia global — incluindo como o assertion schema funciona e como geradores consomem estrutura formal — vive em `architecture/testing-strategy.cue`. O protocolo de execução — quando rodar, que cobertura mínima, como validar antes de merge — vive em `governance/validation-protocol.cue`.
+			Cada BC documenta suas regras de geração em `test-specs.cue`. A estratégia global — incluindo como o assertion schema funciona e como geradores consomem estrutura formal — será definida na estratégia de testes global (planejada). O protocolo de execução — quando rodar, que cobertura mínima, como validar antes de merge — será definido no protocolo de validação (planejado).
 			"""#
 		rationale: "Testes-a-partir-da-spec é a proposta de valor central para sistemas AI-operated; sem explicitar o mapeamento artefato → tipo de teste, a geração fica implícita e não auditável."
 	}, {
@@ -680,7 +680,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			Decisões de agentes de domínio são registradas com schema tipado (`architecture/shared-schemas/agent-decision-record.cue`): inputs, política aplicada, output, confiança, timestamp. Todo BC que possui agentes de domínio emite decision records como parte do contrato de observabilidade.
 
-			A estratégia global — naming conventions de métricas, níveis de log obrigatórios, SLOs por tier de BC — vive em `architecture/observability-strategy.cue`. O contrato local por BC é o `.cue` que pode ser validado: se o código de um BC não emite uma métrica declarada no contrato, o CI falha.
+			A estratégia global — naming conventions de métricas, níveis de log obrigatórios, SLOs por tier de BC — será definida na estratégia de observabilidade global (planejada). O contrato local por BC é o `.cue` que pode ser validado: se o código de um BC não emite uma métrica declarada no contrato, o CI falha.
 			"""#
 		rationale: "Observabilidade como contrato (não infraestrutura) é virada conceitual em sistemas AI-operated; explicitar o contrato torna validável a correspondência código ↔ telemetria emitida."
 	}, {
@@ -696,7 +696,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			3. **Decisão humana.** O founder ou CODEOWNERS (tier Decide) revisa e decide se a spec precisa evoluir, como e quando.
 
-			O protocolo completo — critérios de emissão, SLA de triagem, formato da proposta, mecanismo de priorização — vive em `governance/spec-gap-protocol.cue`.
+			O protocolo completo — critérios de emissão, SLA de triagem, formato da proposta, mecanismo de priorização — será definido no protocolo de spec-gap (planejado).
 			"""#
 		rationale: "Autoridade unidirecional spec→runtime criaria gargalo de governança; o ciclo de aprendizado formaliza o canal reverso sem diluir autoridade — humano continua decidindo."
 	}, {
@@ -708,9 +708,9 @@ config: artifact_schemas.#ReadmeConfig & {
 			2. O upcaster — a transformação de v1 para v2 — é definido em `schemas/_migrations/commitment-created-v1-to-v2.cue`.
 			3. Consumidores que ainda esperam v1 continuam recebendo v1 até migrarem, porque o sistema mantém compatibilidade backward por pelo menos uma versão.
 
-			As regras globais — quantas versões são mantidas em paralelo, quando uma versão é aposentada, como consumidores são notificados de deprecação — vivem em `architecture/event-evolution.cue`. Os upcasters concretos vivem dentro do BC que produz o evento.
+			As regras globais — quantas versões são mantidas em paralelo, quando uma versão é aposentada, como consumidores são notificados de deprecação — serão definidas nas regras globais de evolução de eventos (planejado). Os upcasters concretos vivem dentro do BC que produz o evento.
 
-			**Recovery e compensation em workflows.** Para um sistema financeiro, falha em saga é safety-critical. `contexts/{bc-code}/workflows/*.cue` documenta a compensation de cada workflow individual como estrutura formal, mas os patterns globais que governam como toda saga se comporta sob falha vivem em `architecture/compensation-patterns.cue`.
+			**Recovery e compensation em workflows.** Para um sistema financeiro, falha em saga é safety-critical. `contexts/{bc-code}/workflows/*.cue` documenta a compensation de cada workflow individual como estrutura formal, mas os patterns globais que governam como toda saga se comporta sob falha serão definidos nos patterns de compensação globais (planejado).
 
 			Esse artefato cobre: idempotência como requisito universal (reprocessar nunca duplica), compensation como evento (não como rollback — append-only), dead letter como escalação (não como descarte), timeout com semântica de negócio (não apenas técnico), e escalação humana como último recurso com critérios explícitos de quando acionar. Cada `workflow.cue` referencia quais patterns aplica e documenta seus failure modes específicos em `failure-modes.cue`.
 			"""#
@@ -724,7 +724,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			A responsabilidade é separada em duas camadas. **Spec** define prioridades de injeção por tipo de tarefa em `retrieval-patterns.cue`. Artefatos `critical` — invariants, state-models, schemas do command — são sempre injetados integralmente. Artefatos `important` — policies, error-taxonomy, anti-patterns — se o orçamento permitir. Artefatos `supplementary` — golden-examples, observability, coding-conventions — apenas se sobrar espaço. **Orquestrador** (mesh-runtime) computa dinamicamente token estimates, summaries sob demanda e degradação controlada. Quando omite ou resume, registra no contexto do agente — o agente sabe que opera com contexto parcial e pode sinalizar incerteza.
 
-			**Ciclo de vida do agente de desenvolvimento.** Prompt-templates em `ai-orchestration/agent-instructions/` especificam tarefas atômicas, mas agentes operam em ciclos: `receive-task → load-context → plan → implement → self-validate → submit → respond-to-review`. O ciclo completo vive em `ai-orchestration/agent-lifecycle.cue` e cobre:
+			**Ciclo de vida do agente de desenvolvimento.** Prompt-templates em `ai-orchestration/agent-instructions/` especificam tarefas atômicas, mas agentes operam em ciclos: `receive-task → load-context → plan → implement → self-validate → submit → respond-to-review`. O ciclo completo (planejado) cobre:
 
 			1. **Receive task.** Task description com escopo e critérios de aceitação.
 			2. **Load context.** `retrieval-patterns.cue` determina quais artefatos injetar; orquestrador computa budget e aplica degradação. O agente sabe quais artefatos foram resumidos ou omitidos.
