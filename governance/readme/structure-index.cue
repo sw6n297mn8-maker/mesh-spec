@@ -104,7 +104,8 @@ structureIndex: {
 				"architecture/adrs/adr-095-remove-phantom-domain-artifacts.cue",
 				"architecture/adrs/adr-096-build-time-structural-check-orchestrator.cue",
 				"architecture/adrs/adr-097-per-check-enforcement-and-promote-sc-wg-01.cue",
-				"architecture/adrs/adr-098-engine-config-zones-orphan-reject.cue"
+				"architecture/adrs/adr-098-engine-config-zones-orphan-reject.cue",
+				"architecture/adrs/adr-099-meta-coverage-layer.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -393,6 +394,7 @@ structureIndex: {
 				"architecture/structural-checks/deferred-decision.cue",
 				"architecture/structural-checks/dlv-domain-model.cue",
 				"architecture/structural-checks/inv-domain-model.cue",
+				"architecture/structural-checks/meta-coverage.cue",
 				"architecture/structural-checks/p2p-domain-model.cue",
 				"architecture/structural-checks/production-guide.cue",
 				"architecture/structural-checks/rew-domain-model.cue",
