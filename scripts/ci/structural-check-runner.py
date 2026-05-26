@@ -355,6 +355,25 @@ def ev_cross_file_id_exists(rule,c):
                 v.append("%s: ref '%s' (%s) ausente no namespace cross-file %s (%s)" % (f,r,rule["referencePath"],rule["targetGlob"],rule["targetIdPath"]))
     return v
 
+def ev_filesystem_declared_coverage(rule,c):
+    # adr-103: enumera paths (pathGlob); cada id (glob_capture do segmento "*")
+    # deve estar DECLARADO em targetGlob/targetIdPath. Inverso do
+    # cross-file-id-exists; direcao segura (nao exige o inverso, entao itens
+    # declarados-mas-nao-materializados = roadmap nao geram falso-positivo).
+    ns=set()
+    for tf in sorted(glob.glob(rule["targetGlob"])):
+        t=load_artifact(tf)
+        if t is None: continue
+        ns.update(x for x in _resolve_multi(t,rule["targetIdPath"]) if isinstance(x,(str,int)))
+    v=[]
+    for p in sorted(glob.glob(rule["pathGlob"])):
+        cid=glob_capture(rule["pathGlob"],p)
+        if cid is None: continue
+        cid=cid.rstrip("/")
+        if cid and cid not in ns:
+            v.append("%s: '%s' nao declarado em %s (%s)" % (p,cid,rule["targetGlob"],rule["targetIdPath"]))
+    return v
+
 def ev_evaluator_coverage(rule,c):
     # M1 (adr-099): todo kind DECLARADO no enum #StructuralCheckKind + todo kind
     # USADO por algum check tem evaluator em EVAL. Cartaz sem fiscal => finding.
@@ -390,7 +409,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "conditional-file-presence":ev_conditional,"domain-invariant":ev_domain_invariant,
  "evaluator-coverage":ev_evaluator_coverage,"structural-check-coverage":ev_sc_coverage,
  "local-field-reference-integrity":ev_local_field_reference_integrity,
- "cross-file-id-exists":ev_cross_file_id_exists}
+ "cross-file-id-exists":ev_cross_file_id_exists,
+ "filesystem-declared-coverage":ev_filesystem_declared_coverage}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +

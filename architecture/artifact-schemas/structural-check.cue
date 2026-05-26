@@ -75,6 +75,9 @@ package artifact_schemas
 } | {
 	kind: "cross-file-id-exists"
 	rule: #CrossFileIdExistsRule
+} | {
+	kind: "filesystem-declared-coverage"
+	rule: #FilesystemDeclaredCoverageRule
 })
 
 _#StructuralCheckBase: {
@@ -153,9 +156,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -476,5 +479,25 @@ _#StructuralCheckBase: {
 	targetGlob: string & !=""
 	// Path do id em cada arquivo-alvo (já desempacotado o top-level singleton,
 	// como load_artifact faz). Ex.: "id".
+	targetIdPath: string & !=""
+}
+
+// Rule shape para kind=filesystem-declared-coverage (adr-103).
+// Inverso do cross-file-id-exists: ENUMERA paths no filesystem (pathGlob) e
+// exige que cada um esteja DECLARADO num campo de artefato (targetGlob +
+// targetIdPath). Pega o drift "entidade existe no disco mas não consta no
+// mapa/registro autoral" — e.g., diretório de BC sem declaração em
+// context-map.contexts[].context. Direção segura: NÃO exige o inverso (o
+// artefato pode declarar entidades ainda não materializadas no disco —
+// roadmap/planejado), então não gera falso-positivo para itens planejados.
+#FilesystemDeclaredCoverageRule: {
+	// Glob de paths a enumerar no filesystem. O segmento "*" captura o id
+	// (via glob_capture). Ex.: "contexts/*/".
+	pathGlob: string & !=""
+	// Glob do(s) arquivo(s) que declaram os ids válidos. Ex.:
+	// "strategic/context-map.cue".
+	targetGlob: string & !=""
+	// Path do conjunto declarado em cada arquivo-alvo (travessia "[]" /
+	// aninhamento). Ex.: "contexts[].context".
 	targetIdPath: string & !=""
 }
