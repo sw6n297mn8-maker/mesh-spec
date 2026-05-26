@@ -69,6 +69,9 @@ package artifact_schemas
 } | {
 	kind: "structural-check-coverage"
 	rule: #StructuralCheckCoverageRule
+} | {
+	kind: "local-field-reference-integrity"
+	rule: #LocalFieldReferenceIntegrityRule
 })
 
 _#StructuralCheckBase: {
@@ -147,9 +150,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -431,4 +434,23 @@ _#StructuralCheckBase: {
 		// Por que este tipo não exige structural-check comportamental.
 		rationale: string & !=""
 	}]
+}
+
+// Rule shape para kind=local-field-reference-integrity (adr-100).
+// Integridade referencial INTRA-arquivo: todo valor em referencePath deve
+// existir no conjunto de valores em namespacePath, AMBOS no mesmo artefato.
+// "local-" no nome é deliberado — distingue do futuro cross-file-id-exists
+// (def-002), que resolve referências ENTRE arquivos. Generaliza
+// reference-exists/same-artifact-consistency: os paths atravessam listas e
+// dicts (segmento terminando em "[]" itera elementos da lista OU valores do
+// dict) e acessam campos aninhados (".campo"), permitindo refs em posições
+// que o _idset rígido (só id/code/name/key) não alcança — e.g.,
+// relationships[].source.context, relationships[].reverseRelationshipId.
+#LocalFieldReferenceIntegrityRule: {
+	// Path dos valores de REFERÊNCIA. "[]" itera lista/dict-values; "."
+	// acessa campo aninhado. Ex.: "relationships[].source.context".
+	referencePath: string & !=""
+	// Path do conjunto de valores VÁLIDOS (namespace) no MESMO artefato.
+	// Ex.: "contexts[].context".
+	namespacePath: string & !=""
 }
