@@ -130,3 +130,5 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+# re-trigger CI apos ambiente idle (no-op de logica)
