@@ -9,6 +9,9 @@ nim_glossary_deletion: build_time.#SelfReviewReport & {
 	artifactSchemaPath: "architecture/artifact-schemas/glossary.cue"
 	artifactType:       "glossary"
 
+	recordType:      "artifact-deletion"
+	deletionContext: "Removido no reset corretivo (PR #43): BC NIM descontinuado; glossary deletado junto com o contexto. Strategic intent preservado em strategic/subdomains/nim.cue."
+
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-21"

@@ -590,6 +590,29 @@ wavePlan: artifact_schemas.#WavePlan & {
 					Criticality medium — automatiza P8 derivation; NÃO modifica source-of-truth (work-events
 					permanecem canonical); reversível.
 					"""
+			}, {
+				id:         "WI-128"
+				title:      "Planejar a autoria dos shared-schemas base (envelopes de interacao/decisao de agentes, assertion, spec-gap, ion-rules)"
+				tshirtSize: "M"
+				dependsOn: []
+				semanticPrerequisites: ["Framework de artifact-schemas estabelecido (WI-001 e relacionados)"]
+				outputs: [{
+					artifact: "architecture/shared-schemas/agent-interaction-envelope.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/shared-schemas/agent-decision-record.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/shared-schemas/assertion-schema.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/shared-schemas/spec-gap-event.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/shared-schemas/ion-rules.cue"
+					type:     "create"
+				}]
+				rationale: "Planeja a autoria dos shared-schemas referenciados na narrativa do config (infraestrutura de interacao/decisao de agentes). Dir ja reservado por stub; este WI registra a intencao (plannedIn), removendo os 5 paths de phantomCandidates. O desenho de cada schema fica para a execucao do WI."
 			}]
 		}
 

@@ -166,6 +166,16 @@ config: artifact_schemas.#ReadmeConfig & {
 				rationale: "Workflows cross-context não pertencem a nenhum BC individual; alocar em architecture/ preserva ownership distribuído dos BCs."
 			},
 			{
+				path:    "architecture/deferred-decisions/"
+				purpose: "Deferimentos conscientes governados: decisões explícitas de não resolver agora, com trade-off articulado e condição codificada de revisita (per adr-062)."
+				conventions: [
+					"Nome no formato def-NNN-slug.cue com numeração contínua e incremental.",
+					"Conformam com architecture/artifact-schemas/deferred-decision.cue.",
+					"Status inicial open; lifecycle avaliado por scripts/ci/evaluate-deferred-triggers.sh (runner não muta arquivos).",
+				]
+				rationale: "Separar deferimento consciente de prose 'Known gaps' em ADRs e de WIs rotineiros torna a dívida deliberada rastreável e sujeita a trigger — evita virar dumping ground de débito técnico genérico."
+			},
+			{
 				path:    "architecture/lenses/"
 				purpose: "Lenses analíticas: protocolos de raciocínio para domínios especializados (economia, segurança, crédito, AI)."
 				conventions: [
@@ -238,10 +248,48 @@ config: artifact_schemas.#ReadmeConfig & {
 				path:    "contexts/"
 				purpose: "Layer 2 da espec: bounded contexts autocontidos, cada um um pacote completo."
 				conventions: [
-					"Um subdiretório por BC, nome lowercase de 3 letras (cmt, ctr, idc, npm).",
+					"Um subdiretório por BC, nome lowercase de 3 letras (ex.: cmt, ssc, bkr).",
 					"Cada BC contém canvas, invariants, commands, events, workflows e demais artefatos declarados em governance/bounded-context-completeness.cue.",
 				]
 				rationale: "Autocontenção do BC é o que permite paralelizar trabalho entre agentes — dependências cross-BC passam por contratos explícitos em strategic/context-map.cue."
+			},
+			{
+				path:    "contexts/bdg/"
+				purpose: "Bounded Context Budget & Approval: verifica cobertura orçamentária de compromissos formalizados em CMT e emite o gate canônico de aprovação que habilita a progressão do commitment lifecycle."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Isolar o gate orçamentário em BC próprio evita que ele fique diluído entre CMT (formalização) e a execução financeira — owner único do estado de comprometimento orçamentário e das regras de alçada."
+			},
+			{
+				path:    "contexts/bdg/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Budget & Approval."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/bkr/"
+				purpose: "Bounded Context Banking Rails & Settlement: executa liquidação física via rails bancários (Pix/SPI, TED/STR, boleto/SILOC, SWIFT quando aplicável) sob autorização upstream; boundary entre a Mesh e o sistema financeiro regulado pelo Bacen."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Liquidação física toca regulação Bacen/SPB e responsabilidade jurídica de instituição autorizada; BC dedicado isola o boundary regulado da lógica financeira proprietária da Mesh — BKR não decide mérito econômico."
+			},
+			{
+				path:    "contexts/bkr/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Banking Rails & Settlement."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			{
 				path:    "contexts/cmt/"
@@ -282,6 +330,25 @@ config: artifact_schemas.#ReadmeConfig & {
 				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			{
+				path:    "contexts/dlv/"
+				purpose: "Bounded Context Delivery & Verification: verifica execução operacional contra critérios versionados acordados em CMT e decide deterministicamente a suficiência de evidência para progressão econômica."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Verificação determinística de evidência é responsabilidade distinta da formalização (CMT) e da execução; BC próprio mantém critérios versionados e decisões idempotentes/replay-able auditáveis."
+			},
+			{
+				path:    "contexts/dlv/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Delivery & Verification."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
 				path:    "contexts/idc/"
 				purpose: "Bounded Context Identity & Data Governance: identidade de participantes e governança de dados pessoais (LGPD, integridade criptográfica)."
 				conventions: [
@@ -289,6 +356,35 @@ config: artifact_schemas.#ReadmeConfig & {
 					"Dados pessoais governados por políticas declaradas aqui; outros BCs consultam, não redefinem.",
 				]
 				rationale: "Identidade e conformidade regulatória são responsabilidades que tangenciam todos os BCs; BC dedicado evita dispersão de lógica sensível."
+			},
+			{
+				path:    "contexts/idc/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Identity & Data Governance."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/inv/"
+				purpose: "Bounded Context Invoicing: materializa a obrigação de faturamento (InvoiceIssued) e o direito creditório associado (ReceivableMaterialized) a partir de DeliveryVerified, aplicando regime fiscal regulado de forma determinística."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "A linguagem fiscal (NF-e, CFOP, alíquotas, retenções) tem regulação tributária própria e cadência distinta; separar de DLV/FCE/ATO/SCF evita acoplar regime fiscal ao fluxo operacional."
+			},
+			{
+				path:    "contexts/inv/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Invoicing."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 			},
 			{
 				path:    "contexts/npm/"
@@ -309,13 +405,69 @@ config: artifact_schemas.#ReadmeConfig & {
 				]
 				rationale: "Container de instâncias: mesmo padrão dos demais BCs — localização por bounded context preserva autonomia operacional sem perder uniformidade estrutural."
 			},
+			{
+				path:    "contexts/p2p/"
+				purpose: "Bounded Context Procure-to-Pay: emite Purchase Orders sob autoridade de sourcing pré-existente e faz hand-off da demanda formalizada para CMT — gateway entre decisão de sourcing (SSC) e formalização de compromisso."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Sem PO canônico vinculado a authority válida, a demanda flui fora da rede e o porquê da compra se perde; o BC gateway preserva o registro da decisão na formalização."
+			},
+			{
+				path:    "contexts/p2p/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Procure-to-Pay."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/rew/"
+				purpose: "Bounded Context Risk Engine & Risk Observability: centraliza avaliação de risco e elegibilidade como camada derivada da operação verificada da rede, consolidando sinais para BCs consumidores como SCF, CMT e outros definidos no context-map."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Centralizar risco evita que cada BC consumidor implemente lógica local e gere score fragmentado; REW existe como função dos dados operacionais verificados, não como motor independente."
+			},
+			{
+				path:    "contexts/rew/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Risk Engine & Risk Observability."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
+			{
+				path:    "contexts/ssc/"
+				purpose: "Bounded Context Strategic Sourcing & Category: decide qual fornecedor atende qual categoria de demanda aplicando regras determinísticas a sinais estruturados (elegibilidade NPM, RFQ, respostas de fornecedores) — início do macrofluxo Mesh."
+				conventions: [
+					"canvas.cue é a porta de entrada do BC; leitura obrigatória antes de alterar artefato interno.",
+					"Eventos deste BC são consumidos por contratos declarados em strategic/context-map.cue.",
+				]
+				rationale: "Sem decisão de sourcing canônica a escolha de fornecedor acontece fora da rede e o dado mais valioso (como e por que um fornecedor foi escolhido) se perde; o BC ancora o início do macrofluxo."
+			},
+			{
+				path:    "contexts/ssc/agents/"
+				purpose: "Specs e governance envelopes dos agentes do BC Strategic Sourcing & Category."
+				conventions: [
+					"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+					"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+					"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue.",
+				]
+				rationale: "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+			},
 			// ── Domain (Layer 0) ──
 			{
 				path:    "domain/"
-				purpose: "Layer 0 da espec: identidade do domínio (tese, outcomes, flywheel, glossário universal, atores)."
+				purpose: "Layer 0 da espec: identidade do domínio (tese, outcomes, flywheel, atores)."
 				conventions: [
 					"domain-definition.cue é a tese da empresa; outros artefatos de domain/ referenciam.",
-					"universal-glossary.cue contém termos cross-context; glossários locais vivem em contexts/{bc}/ubiquitous-language.cue.",
 				]
 				rationale: "Identidade do domínio vive em layer separada porque muda em ritmo diferente do design tático — estabilizar tese antes de decompor em BCs."
 			},
@@ -538,34 +690,34 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			| Nível | Nome | Localização primária |
 			|---|---|---|
-			| 1 | Visão / Propósito do domínio | domain/domain-definition.cue, domain/business-model.cue |
+			| 1 | Visão / Propósito do domínio | domain/domain-definition.cue |
 			| 2 | Subdomínios | strategic/subdomains/ |
 			| 3 | Bounded Contexts | contexts/{bc-code}/canvas.cue |
 			| 4 | Context Map | strategic/context-map.cue |
-			| 5 | Ubiquitous Language | domain/universal-glossary.cue (global) + contexts/{bc-code}/ubiquitous-language.cue (local) |
+			| 5 | Ubiquitous Language | contexts/{bc-code}/glossary.cue (local) |
 			| 6 | EventStorming | Absorvido nos artefatos derivados: commands/, events/, policies.cue, state-models.cue |
 			| 7 | Capabilities / Invariantes | contexts/{bc-code}/invariants.cue (assertions formais + rationale) |
 			| 8 | Aggregates / Entities / VOs | contexts/{bc-code}/domain-model.cue |
 			| 9 | Contratos e Tipos | contexts/{bc-code}/schemas/*.cue, api.yaml, async-api.yaml, architecture/shared-schemas/ |
 			| 10 | Ports & Adapters | contexts/{bc-code}/ports.cue, adapters.cue |
 			| 11 | Aplicação / Workflows | contexts/{bc-code}/workflows/*.cue + architecture/cross-context-workflows/ |
-			| 12 | Infra | architecture/infrastructure.cue, database-strategy.cue, security.cue |
+			| 12 | Infra | infraestrutura (planejado), database-strategy.cue, security.cue |
 			| — | Agentes de domínio | contexts/{bc-code}/agents/{agent}.cue + {agent}.governance.cue + architecture/agent-governance.cue (global) |
 			| — | Contratos de consumo inter-BC | contexts/{bc-code}/schemas/interaction-contracts.cue + architecture/shared-schemas/agent-interaction-envelope.cue |
 			| — | Incentive analysis | contexts/{bc-code}/canvas.cue (seção obrigatória do canvas) |
-			| — | Threat modeling | contexts/{bc-code}/threat-model.cue + governance/red-team-protocol.cue |
-			| — | Acumulação informacional | strategic/informational-flywheel.cue |
+			| — | Threat modeling | contexts/{bc-code}/threat-model.cue + protocolo de red-team (planejado) |
+			| — | Acumulação informacional | flywheel informacional (planejado) |
 			| — | Decision log de agentes | architecture/shared-schemas/agent-decision-record.cue |
 			| — | Assertion schema | architecture/shared-schemas/assertion-schema.cue (gramática formal com rationale) |
-			| — | Ciclo de aprendizado | governance/spec-gap-protocol.cue + architecture/shared-schemas/spec-gap-event.cue |
+			| — | Ciclo de aprendizado | protocolo de spec-gap (planejado) + architecture/shared-schemas/spec-gap-event.cue |
 			| — | Autorização do repo | Três tiers (Read/Propose/Decide) documentados neste README |
 			| — | Governança | governance/ |
 			| — | Configuração do agente | governance/claude/ (config.cue → CLAUDE.md derivado) |
 			| — | Orquestração de IA | ai-orchestration/ (retrieval com prioridades, lifecycle, instructions) |
-			| — | Testabilidade | contexts/{bc-code}/test-specs.cue + architecture/testing-strategy.cue + governance/validation-protocol.cue |
-			| — | Observabilidade | contexts/{bc-code}/observability.cue + architecture/observability-strategy.cue |
-			| — | Evolução de eventos | contexts/{bc-code}/schemas/_migrations/ + architecture/event-evolution.cue |
-			| — | Recovery / Compensation | contexts/{bc-code}/failure-modes.cue + workflows/*.cue + architecture/compensation-patterns.cue |
+			| — | Testabilidade | contexts/{bc-code}/test-specs.cue + estratégia de testes global (planejada) + protocolo de validação (planejado) |
+			| — | Observabilidade | contexts/{bc-code}/observability.cue + estratégia de observabilidade global (planejada) |
+			| — | Evolução de eventos | contexts/{bc-code}/schemas/_migrations/ + regras de evolução de eventos (planejado) |
+			| — | Recovery / Compensation | contexts/{bc-code}/failure-modes.cue + workflows/*.cue + patterns de compensação globais (planejado) |
 			| — | Artifact schemas | architecture/artifact-schemas/ (schemas de validação para tipos de artefato) |
 			| — | Design principles | architecture/design-principles.cue (13 princípios do sistema) |
 
@@ -649,7 +801,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			interaction-contracts  → contract tests (emissor sem campos obrigatórios → rejeição)
 			```
 
-			Cada BC documenta suas regras de geração em `test-specs.cue`. A estratégia global — incluindo como o assertion schema funciona e como geradores consomem estrutura formal — vive em `architecture/testing-strategy.cue`. O protocolo de execução — quando rodar, que cobertura mínima, como validar antes de merge — vive em `governance/validation-protocol.cue`.
+			Cada BC documenta suas regras de geração em `test-specs.cue`. A estratégia global — incluindo como o assertion schema funciona e como geradores consomem estrutura formal — será definida na estratégia de testes global (planejada). O protocolo de execução — quando rodar, que cobertura mínima, como validar antes de merge — será definido no protocolo de validação (planejado).
 			"""#
 		rationale: "Testes-a-partir-da-spec é a proposta de valor central para sistemas AI-operated; sem explicitar o mapeamento artefato → tipo de teste, a geração fica implícita e não auditável."
 	}, {
@@ -681,7 +833,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			Decisões de agentes de domínio são registradas com schema tipado (`architecture/shared-schemas/agent-decision-record.cue`): inputs, política aplicada, output, confiança, timestamp. Todo BC que possui agentes de domínio emite decision records como parte do contrato de observabilidade.
 
-			A estratégia global — naming conventions de métricas, níveis de log obrigatórios, SLOs por tier de BC — vive em `architecture/observability-strategy.cue`. O contrato local por BC é o `.cue` que pode ser validado: se o código de um BC não emite uma métrica declarada no contrato, o CI falha.
+			A estratégia global — naming conventions de métricas, níveis de log obrigatórios, SLOs por tier de BC — será definida na estratégia de observabilidade global (planejada). O contrato local por BC é o `.cue` que pode ser validado: se o código de um BC não emite uma métrica declarada no contrato, o CI falha.
 			"""#
 		rationale: "Observabilidade como contrato (não infraestrutura) é virada conceitual em sistemas AI-operated; explicitar o contrato torna validável a correspondência código ↔ telemetria emitida."
 	}, {
@@ -697,7 +849,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			3. **Decisão humana.** O founder ou CODEOWNERS (tier Decide) revisa e decide se a spec precisa evoluir, como e quando.
 
-			O protocolo completo — critérios de emissão, SLA de triagem, formato da proposta, mecanismo de priorização — vive em `governance/spec-gap-protocol.cue`.
+			O protocolo completo — critérios de emissão, SLA de triagem, formato da proposta, mecanismo de priorização — será definido no protocolo de spec-gap (planejado).
 			"""#
 		rationale: "Autoridade unidirecional spec→runtime criaria gargalo de governança; o ciclo de aprendizado formaliza o canal reverso sem diluir autoridade — humano continua decidindo."
 	}, {
@@ -709,9 +861,9 @@ config: artifact_schemas.#ReadmeConfig & {
 			2. O upcaster — a transformação de v1 para v2 — é definido em `schemas/_migrations/commitment-created-v1-to-v2.cue`.
 			3. Consumidores que ainda esperam v1 continuam recebendo v1 até migrarem, porque o sistema mantém compatibilidade backward por pelo menos uma versão.
 
-			As regras globais — quantas versões são mantidas em paralelo, quando uma versão é aposentada, como consumidores são notificados de deprecação — vivem em `architecture/event-evolution.cue`. Os upcasters concretos vivem dentro do BC que produz o evento.
+			As regras globais — quantas versões são mantidas em paralelo, quando uma versão é aposentada, como consumidores são notificados de deprecação — serão definidas nas regras globais de evolução de eventos (planejado). Os upcasters concretos vivem dentro do BC que produz o evento.
 
-			**Recovery e compensation em workflows.** Para um sistema financeiro, falha em saga é safety-critical. `contexts/{bc-code}/workflows/*.cue` documenta a compensation de cada workflow individual como estrutura formal, mas os patterns globais que governam como toda saga se comporta sob falha vivem em `architecture/compensation-patterns.cue`.
+			**Recovery e compensation em workflows.** Para um sistema financeiro, falha em saga é safety-critical. `contexts/{bc-code}/workflows/*.cue` documenta a compensation de cada workflow individual como estrutura formal, mas os patterns globais que governam como toda saga se comporta sob falha serão definidos nos patterns de compensação globais (planejado).
 
 			Esse artefato cobre: idempotência como requisito universal (reprocessar nunca duplica), compensation como evento (não como rollback — append-only), dead letter como escalação (não como descarte), timeout com semântica de negócio (não apenas técnico), e escalação humana como último recurso com critérios explícitos de quando acionar. Cada `workflow.cue` referencia quais patterns aplica e documenta seus failure modes específicos em `failure-modes.cue`.
 			"""#
@@ -725,7 +877,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			A responsabilidade é separada em duas camadas. **Spec** define prioridades de injeção por tipo de tarefa em `retrieval-patterns.cue`. Artefatos `critical` — invariants, state-models, schemas do command — são sempre injetados integralmente. Artefatos `important` — policies, error-taxonomy, anti-patterns — se o orçamento permitir. Artefatos `supplementary` — golden-examples, observability, coding-conventions — apenas se sobrar espaço. **Orquestrador** (mesh-runtime) computa dinamicamente token estimates, summaries sob demanda e degradação controlada. Quando omite ou resume, registra no contexto do agente — o agente sabe que opera com contexto parcial e pode sinalizar incerteza.
 
-			**Ciclo de vida do agente de desenvolvimento.** Prompt-templates em `ai-orchestration/agent-instructions/` especificam tarefas atômicas, mas agentes operam em ciclos: `receive-task → load-context → plan → implement → self-validate → submit → respond-to-review`. O ciclo completo vive em `ai-orchestration/agent-lifecycle.cue` e cobre:
+			**Ciclo de vida do agente de desenvolvimento.** Prompt-templates em `ai-orchestration/agent-instructions/` especificam tarefas atômicas, mas agentes operam em ciclos: `receive-task → load-context → plan → implement → self-validate → submit → respond-to-review`. O ciclo completo (planejado) cobre:
 
 			1. **Receive task.** Task description com escopo e critérios de aceitação.
 			2. **Load context.** `retrieval-patterns.cue` determina quais artefatos injetar; orquestrador computa budget e aplica degradação. O agente sabe quais artefatos foram resumidos ou omitidos.
@@ -752,7 +904,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			- Arquivos de event: `{substantivo}-{particípio}.cue` — ex: `commitment-approved.cue`.
 			- Arquivos de ADR: `{nnn}-{slug}.cue` — ex: `001-postgres-per-module.cue`.
 			- Arquivos de schema (CUE): `{nome-do-tipo}.cue` — ex: `commitment-created-event.cue`.
-			- Arquivos de glossário: `ubiquitous-language.cue` por BC, `domain/universal-glossary.cue` global.
+			- Arquivos de glossário: `glossary.cue` por BC.
 			- Arquivos de workflow: `{nome-do-processo}.cue` — ex: `commitment-fulfillment-flow.cue`.
 			- Arquivos de migration: `{event-slug}-v{N}-to-v{N+1}.cue` — ex: `commitment-created-v1-to-v2.cue`.
 			- Arquivos de agente: `{agent-slug}.cue` — ex: `scoring-agent.cue`.
@@ -770,7 +922,7 @@ config: artifact_schemas.#ReadmeConfig & {
 
 			Em alto nível, completude cobre sete dimensões:
 
-			1. **Identidade.** `canvas.cue` com propósito, capabilities, classificação, custos de transação eliminados e incentive analysis. `context-dependencies.cue` derivado de `context-map.cue`. `ubiquitous-language.cue` local.
+			1. **Identidade.** `canvas.cue` com propósito, capabilities, classificação, custos de transação eliminados e incentive analysis. `context-dependencies.cue` derivado de `context-map.cue`. `glossary.cue` local.
 			2. **Modelo de domínio.** `domain-model.cue`, `invariants.cue` (ao menos uma assertion formal por aggregate), `state-models.cue` para aggregates com lifecycle.
 			3. **Contratos.** Todo command em `commands/{cmd}.cue` com pré/pós-condições e `invariant_refs`. Todo event em `events/{event}.cue` com schema CUE, envelope CloudEvents e lista de consumidores. `schemas/` com as 8 famílias ContractGate aplicáveis. `interaction-contracts.cue` se o BC consome eventos de outros BCs.
 			4. **Aplicação.** `policies.cue` com trigger/condition/action formal. `projections.cue` com read models. `ports.cue` com interfaces do domínio. `workflows/` com steps, compensation e timeouts formais.
@@ -789,7 +941,7 @@ config: artifact_schemas.#ReadmeConfig & {
 			1. Criar repositório mesh-spec com estrutura de diretórios vazia + `README.md` raiz.
 			2. Criar `architecture/artifact-schemas/` — schemas de validação para todos os tipos de artefato (`#Canvas`, `#Command`, `#Event`, etc.).
 			3. Criar `architecture/design-principles.cue` — 13 princípios de design em 5 grupos (`#Foundation`, `#StructuralInvariants`, `#DesignPhilosophy`, `#SystemNature`, `#Governance`). Precede `domain/` porque `domain-definition.cue` referencia os princípios.
-			4. Criar `domain/` — `domain-definition.cue`, `business-model.cue`, `universal-glossary.cue`.
+			4. Criar `domain/` — `domain-definition.cue`.
 			5. Criar `strategic/` — subdomínios em `.cue`, `context-map.cue`, `informational-flywheel.cue`.
 			6. Criar `contexts/cmt/` — primeiro BC (Economic Commitment Lifecycle, Minimum Economic Loop).
 			7. Criar `architecture/` (restante) — ADRs globais em `.cue`, `agent-universal-principles.cue`, C4, shared schemas (incluindo `assertion-schema.cue` com rationale, `agent-interaction-envelope.cue`, `spec-gap-event.cue`), error taxonomy global, `testing-strategy.cue`.

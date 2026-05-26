@@ -21,6 +21,9 @@ package artifact_schemas
 //   - directory-pair-coverage (adr-064) — motivado por bug WI-033
 //     (work-event sem task-spec); kind reusável para outros pairs
 //     de diretórios futuros.
+//   - singleton-coverage (adr-090) — gêmeo de production-guide-coverage;
+//     presença de singletons declarados (whitelist), motivado pela
+//     derivação de estrutura que SURFACE singletons ausentes.
 //
 // Discriminação por kind segue o padrão de #ADR (união discriminada
 // status↔supersededBy): cada kind exige um shape específico de rule.
@@ -57,6 +60,9 @@ package artifact_schemas
 } | {
 	kind: "domain-invariant"
 	rule: #DomainInvariantRule
+} | {
+	kind: "singleton-coverage"
+	rule: #SingletonCoverageRule
 })
 
 _#StructuralCheckBase: {
@@ -89,6 +95,16 @@ _#StructuralCheckBase: {
 	errorMessage: string & !=""
 
 	rationale: string & !=""
+
+	// Nível de enforcement do check no Build-Time Structural Check
+	// Orchestrator (adr-096 + adr-097). Default "warn": o check é avaliado
+	// e reportado, mas não bloqueia o CI. "reject": uma violação falha o
+	// build. Promoção warn→reject é decisão por-check ("catraca"), born-warn:
+	// todo check nasce não-bloqueante e só é promovido quando comprovadamente
+	// verde e de alto valor. O override global --mode do runner sobrepõe este
+	// campo (warn força tudo report-only; reject força tudo blocking) para
+	// discovery runs e testes locais.
+	enforcement: *"warn" | "reject"
 
 	_schema: {
 		location: {
@@ -125,9 +141,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -217,6 +233,13 @@ _#StructuralCheckBase: {
 // Cross-file reference checking de id (vs path), regex pattern
 // matching de campo, e iteration nested permanecem fora — registrados
 // como def-002 e def-003 respectivamente.
+//
+// Filtro + polaridade (adr-090 follow-on; self-review deletion records):
+// filterField/filterValue restringem a avaliação às instâncias cujo
+// campo == valor (e.g., recordType == "artifact-review"); mustExist
+// inverte a asserção quando false (o path DEVE NÃO existir, e.g.,
+// SRRs de deleção). Ambos opcionais; default preserva o comportamento
+// original (avalia todas as instâncias, path DEVE existir).
 #FilesystemPathExistsRule: {
 	// Dot-path do campo no artefato sob validação contendo o path
 	// (ou lista de paths) a verificar. Apenas single-level lists ou
@@ -225,6 +248,13 @@ _#StructuralCheckBase: {
 	// true: sourcePath aponta para list of strings (runner itera);
 	// false (default): sourcePath aponta para single string.
 	isList: bool | *false
+	// Filtro opcional: avalia apenas instâncias onde o campo
+	// filterField é igual a filterValue. Ausente => avalia todas.
+	filterField?: string & !=""
+	filterValue?: string & !=""
+	// true (default): o path DEVE existir. false: o path DEVE NÃO
+	// existir (asserção invertida — e.g., registros de deleção).
+	mustExist: bool | *true
 }
 
 // Rule shape para kind=directory-pair-coverage.
@@ -347,4 +377,24 @@ _#StructuralCheckBase: {
 	// Opcional: alguns invariants estruturais não têm anti-patterns
 	// específicos além da própria assertion.
 	forbidden?: [...string & !=""]
+}
+
+// Rule shape para kind=singleton-coverage.
+// Per adr-090: gêmeo de production-guide-coverage. Verifica que para cada
+// nome em requiredSingletons, o schema homônimo em
+// architecture/artifact-schemas/<nome>.cue declara
+// _schema.location.cardinality == "singleton" com canonicalPathRegex
+// literal-âncora, e que o arquivo nesse path existe.
+//
+// Whitelist explícita (não auto-discovery) — WIP-safe: só singletons
+// listados são exigidos; cresce por change-on-touch quando o singleton
+// passa a existir (nasce verde, igual production-guide-coverage).
+// Presença pura — NÃO resolve referências cross-file (def-002 permanece
+// deferido). Singletons com canonicalPathRegex não-literal estão fora de
+// escopo V1: o gerador self-check falha alto em vez de adivinhar o path.
+#SingletonCoverageRule: {
+	// Lista explícita de nomes de schemas singleton cujo arquivo
+	// (resolvido do canonicalPathRegex literal) deve existir.
+	// Whitelist — nasce verde, cresce por change-on-touch.
+	requiredSingletons: [string & !="", ...string & !=""]
 }

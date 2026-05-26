@@ -9,6 +9,9 @@ fce_canvas_deletion: build_time.#SelfReviewReport & {
 	artifactSchemaPath: "architecture/artifact-schemas/canvas.cue"
 	artifactType:       "canvas"
 
+	recordType:      "artifact-deletion"
+	deletionContext: "Removido no reset corretivo (PR #43): BC FCE descontinuado; canvas deletado junto com o contexto. Strategic intent preservado em strategic/subdomains/fce.cue."
+
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
 	generatedAt:     "2026-05-21"

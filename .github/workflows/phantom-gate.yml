@@ -1,0 +1,22 @@
+name: phantom-gate
+
+on: [push, pull_request]
+
+jobs:
+  phantom-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cue-lang/setup-cue@v1.0.0
+        with:
+          version: v0.16.0
+
+      - name: Anti-phantom gate (adr-090 c7, reject)
+        run: |
+          set -e
+          python3 scripts/ci/generate-structure-index.py . > /tmp/si.cue
+          cue export /tmp/si.cue -e structureIndex.phantomCandidates --out json > /tmp/ph.json
+          n=$(python3 -c "import json;print(len(json.load(open('/tmp/ph.json'))))")
+          { echo "## anti-phantom gate (adr-090 c7, reject)"; if [ "$n" -gt 0 ]; then echo "FALHA: $n path(s) .cue concretos referenciados no config nao resolvem (nem existem no disco, nem plannedIn no wave-plan):"; python3 -c "import json;[print('- '+p) for p in json.load(open('/tmp/ph.json'))]"; echo; echo "Conserte: remova/reescreva o path no config (vira narrativa), OU registre-o como output type=create num WI do wave-plan (plannedIn)."; else echo "OK: phantomCandidates vazio — nenhum phantom referenciado."; fi; } | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$n" -eq 0 ]
