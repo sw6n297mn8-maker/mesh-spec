@@ -19,5 +19,5 @@ structuralChecks: "sc-sv-01": artifact_schemas.#StructuralCheck & {
 	}
 	errorMessage: "service-contract: boundedContextRef não corresponde a nenhum context declarado em context-map.contexts[].context. Declare o BC no context-map ou corrija o ref."
 	rationale:    "adr-106: um service-contract pertence a um BC; se o BC dono não está declarado no mapa global, o contrato é órfão de topologia. Born-green (ctr declarado)."
-	enforcement: "warn"
+	enforcement: "reject"
 }

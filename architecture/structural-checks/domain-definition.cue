@@ -20,7 +20,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-definition: designPrinciplesRef aponta para path inexistente. Corrija o path ou crie o arquivo de princípios referenciado."
 		rationale:    "adr-106: o domain-definition ancora a tese do domínio nos princípios; um ref quebrado desconecta a âncora. Born-green (architecture/design-principles.cue existe)."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 	"sc-dd-02": artifact_schemas.#StructuralCheck & {
 		id:           "sc-dd-02"
@@ -34,6 +34,6 @@ structuralChecks: {
 		}
 		errorMessage: "domain-definition: stakeholderMapRef aponta para path inexistente. Corrija o path ou crie o stakeholder-map referenciado."
 		rationale:    "adr-106: domain-definition referencia o stakeholder-map por path; ref quebrado é drift cross-file. Born-green (domain/stakeholder-map.cue existe)."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 }

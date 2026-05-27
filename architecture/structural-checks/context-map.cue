@@ -23,7 +23,7 @@ structuralChecks: {
 		}
 		errorMessage: "context-map: relationship cujo source.context '{ref}' não está declarado em contexts[].context. Declare o context ou corrija o endpoint."
 		rationale:    "adr-100: o context-map foi o drift original do audit. Relationship com endpoint para BC inexistente é inconsistência referencial silenciosa que o cue vet (shape) não pega."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 	"sc-cm-02": artifact_schemas.#StructuralCheck & {
 		id:           "sc-cm-02"
@@ -37,7 +37,7 @@ structuralChecks: {
 		}
 		errorMessage: "context-map: relationship cujo target.context '{ref}' não está declarado em contexts[].context. Declare o context ou corrija o endpoint."
 		rationale:    "adr-100: gêmeo de sc-cm-01 — integridade do endpoint downstream da relationship."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 	"sc-cm-03": artifact_schemas.#StructuralCheck & {
 		id:           "sc-cm-03"
@@ -51,7 +51,7 @@ structuralChecks: {
 		}
 		errorMessage: "context-map: reverseRelationshipId '{ref}' não corresponde a nenhum relationships[].code. O ponteiro de relação reversa está quebrado."
 		rationale:    "adr-100: bidirecionalidade declarada via reverseRelationshipId só é coerente se o code referenciado existir — cue vet valida o formato, não a existência."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 	"sc-cm-04": artifact_schemas.#StructuralCheck & {
 		id:           "sc-cm-04"
@@ -65,7 +65,7 @@ structuralChecks: {
 		}
 		errorMessage: "context-map: subdomainOwnership cujo ownerContext '{ref}' não está declarado em contexts[].context. Declare o context ou corrija o owner."
 		rationale:    "adr-100: ownership de subdomínio atribuída a um BC inexistente é drift referencial — o subdomínio ficaria sem dono real."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 	"sc-cm-05": artifact_schemas.#StructuralCheck & {
 		id:           "sc-cm-05"
@@ -80,7 +80,7 @@ structuralChecks: {
 		}
 		errorMessage: "context-map: diretório de BC '{id}' existe no disco (contexts/{id}/) mas não está declarado em contexts[].context. Declare o BC no context-map ou remova o diretório."
 		rationale:    "adr-103: fecha o 'mapas discordam com o disco' do audit na direção real e born-green (disco→map). adr-098 garante que os .cue do BC casem schema; este check garante que o BC seja reconhecido pelo mapa global."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 	"sc-cm-06": artifact_schemas.#StructuralCheck & {
 		id:           "sc-cm-06"
@@ -98,6 +98,6 @@ structuralChecks: {
 		}
 		errorMessage: "context-map: relationship built↔built referencia event '{ref}' que não existe em nenhum contexts/*/domain-model.cue events[].name. Corrija o nome (vocabulário canônico per adr-104) ou defina o event no domain-model do BC produtor."
 		rationale:    "def-019 (adr-105): events são linguagem ubíqua entre BCs; um event trocado entre BCs construídos que não existe no domain-model do produtor é drift de contrato. Allowance built↔built evita falso-positivo de BC planejado (forward-declaration). cue vet valida formato de string, não existência cross-file."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 }
