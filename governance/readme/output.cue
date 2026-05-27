@@ -21,6 +21,10 @@ _tmpl: #"""
 
 	## Estrutura do Repositório
 
+	```
+	{{.treeAscii}}
+	```
+
 	| Pasta | Propósito | Convenções |
 	|---|---|---|
 	{{- range .tree.entries}}
@@ -42,4 +46,13 @@ _tmpl: #"""
 	{{- end}}
 	"""#
 
-output: template.Execute(_tmpl, config)
+// _data combina os campos de config (#ReadmeConfig, fechado) com treeAscii
+// (irmão, vindo de tree-generated.cue) num struct aberto para o template.
+// Alias _treeAsciiTop evita auto-referência do campo treeAscii dentro de _data.
+_treeAsciiTop: treeAscii
+_data: {
+	for k, v in config {(k): v}
+	treeAscii: _treeAsciiTop
+}
+
+output: template.Execute(_tmpl, _data)

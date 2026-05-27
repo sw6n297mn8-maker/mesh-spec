@@ -41,6 +41,7 @@ repoStructure: artifact_schemas.#RepoStructure & {
 			"cue.mod/",
 			".git/",
 			".github/",
+			".claude/",
 			".gitignore",
 			"LICENSE",
 			"CODEOWNERS",
@@ -85,6 +86,11 @@ repoStructure: artifact_schemas.#RepoStructure & {
 			source:    "_schema.location (architecture/artifact-schemas + governance/build-time) + scan do filesystem (repoStructure.scope)"
 			generator: "python3 scripts/ci/generate-structure-index.py ."
 			rationale: "Índice estrutural derivado (adr-090 componente 1): a estrutura schema-governada do repo é derivada de cada _schema.location + scan do filesystem, não autorada. Materializado e mantido em sync pelo workflow .github/workflows/materialize-structure-index.yml (auto-commit do github-actions[bot] quando difere). O gerador faz self-exclusão do próprio índice, evitando auto-referência. Consumo pelo config.cue e virada do sync em gate ficam para o passo (v) do cutover."
+		}, {
+			path:      "governance/readme/tree-generated.cue"
+			source:    "_meta.cue (#DirectoryMeta) por diretório + scan do filesystem (repoStructure.scope)"
+			generator: "python3 scripts/ci/generate-repo-tree.py ."
+			rationale: "Árvore do repositório derivada (adr-115): treeAscii + treeEntries são derivados dos _meta.cue por diretório + scan do filesystem, não autorados. O gerador faz self-exclusão do próprio artefato. Consumido por governance/readme/config.cue (tree.entries) e renderizado no README."
 		}]
 		rationale: "Registro explícito de artefatos derivados permite CI validar sync automaticamente. Per ADR-051, README.md migrou de derivação parcial por blockId para derivação full-file; campo blockId permanece no schema como extensão opcional para casos futuros, atualmente sem consumer."
 	}
