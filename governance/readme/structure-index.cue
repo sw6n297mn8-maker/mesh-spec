@@ -119,7 +119,8 @@ structureIndex: {
 				"architecture/adrs/adr-110-gate-liveness-m3.cue",
 				"architecture/adrs/adr-111-economic-mechanism-crossfile-check.cue",
 				"architecture/adrs/adr-112-cross-context-flow-crossfile-check.cue",
-				"architecture/adrs/adr-113-agent-spec-domain-model-crossfile-check.cue"
+				"architecture/adrs/adr-113-agent-spec-domain-model-crossfile-check.cue",
+				"architecture/adrs/adr-114-promote-crossfile-checks-to-reject.cue"
 			],
 			"schema": "#ADRBase"
 		},
