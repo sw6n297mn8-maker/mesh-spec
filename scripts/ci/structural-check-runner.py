@@ -474,7 +474,10 @@ def ev_sc_coverage(rule,c):
         for f in glob.glob(d+"/*.cue"):
             try: t=open(f).read()
             except OSError: continue
-            if "_schema" in t: governed.add(os.path.basename(f)[:-4])
+            # Declaração `_schema:` (não substring solta: package names como
+            # 'artifact_schemas' contêm '_schema' e dariam falso-positivo p/
+            # arquivos como _meta.cue — adr-115).
+            if re.search(r"(?m)^\s*_schema:", t): governed.add(os.path.basename(f)[:-4])
     covered={cc.get("artifactType") for cc in load_checks().values() if isinstance(cc,dict)}
     exempt={e.get("type") for e in rule.get("exemptTypes",[]) if isinstance(e,dict)}
     miss=sorted(governed-covered-exempt)

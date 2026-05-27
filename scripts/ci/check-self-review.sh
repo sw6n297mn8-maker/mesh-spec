@@ -37,6 +37,7 @@ changed_files="$(git diff --name-only origin/main...HEAD)"
 artifact_type_for_path() {
   local path="$1"
   case "$path" in
+    */_meta.cue)                                            echo "" ;;
     architecture/adrs/*.cue)                                echo "adr" ;;
     architecture/artifact-schemas/*.cue)                    echo "artifact-schema" ;;
     architecture/lenses/*.cue)                              echo "lens" ;;
