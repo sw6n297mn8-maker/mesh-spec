@@ -1,0 +1,52 @@
+name: ci-liveness
+
+# Guarda INDEPENDENTE da liveness do gate (adr-110). Roda num workflow SEPARADO
+# do validate.yml: assegura que validate.yml de fato invoca o structural-check
+# runner em modo bloqueante (default, exit propagado), não neutralizado.
+#
+# Raiz de confiança: este guard quebra parcialmente o paradoxo "o runner não
+# pode provar a própria invocação" — o guarda vive fora do guardado. NÃO é
+# absoluto (este workflow também poderia ser removido); a trava final é o
+# required-status-check no branch-protection do repo (config de admin). Ver
+# adr-110.
+
+on: [push, pull_request]
+
+jobs:
+  ci-liveness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assert validate.yml invokes the structural-check runner in blocking form
+        run: |
+          set -euo pipefail
+          V=.github/workflows/validate.yml
+          fail=0
+          assert() { # <descrição> <cmd...>
+            local desc="$1"; shift
+            if "$@"; then :; else echo "::error::ci-liveness: $desc"; fail=1; fi
+          }
+
+          # (1) invoca o runner em modo default (arg '.', sem --mode warn forçado)
+          assert "validate.yml não invoca 'structural-check-runner.py .' (modo default)" \
+            grep -qE 'structural-check-runner\.py +\.' "$V"
+          # (2) NÃO força warn (que tornaria tudo report-only)
+          if grep -qE 'structural-check-runner\.py.*--mode +warn' "$V"; then
+            echo "::error::ci-liveness: runner invocado com --mode warn (gates neutralizados)"; fail=1
+          fi
+          # (3) exit propagado pelo pipe (PIPESTATUS) e pelo step (exit \$rc)
+          assert "validate.yml não captura PIPESTATUS do runner (exit do pipe mascarado)" \
+            grep -q 'PIPESTATUS' "$V"
+          assert "validate.yml não propaga o exit code do runner (exit \$rc)" \
+            grep -qE 'exit +\$rc' "$V"
+          # (4) exit do runner não engolido por '|| true'
+          if grep -qE 'structural-check-runner\.py[^|]*\|\| *true' "$V"; then
+            echo "::error::ci-liveness: exit do runner engolido por '|| true'"; fail=1
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo "FALHA: a invocação do structural-check runner no validate.yml drift-ou da forma bloqueante (adr-110). O gate determinístico pode estar neutralizado."
+            exit 1
+          fi
+          echo "OK: validate.yml invoca o runner em modo default/bloqueante com exit propagado."
