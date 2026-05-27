@@ -81,6 +81,9 @@ package artifact_schemas
 } | {
 	kind: "scoped-cross-file-id-exists"
 	rule: #ScopedCrossFileIdExistsRule
+} | {
+	kind: "regex-pattern-match"
+	rule: #RegexPatternMatchRule
 })
 
 _#StructuralCheckBase: {
@@ -159,9 +162,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -513,6 +516,23 @@ _#StructuralCheckBase: {
 // check — evita falso-positivo para entidades planejadas. Caso motivador:
 // events de relationships do context-map só são checados quando ambos os
 // endpoints (BCs) têm domain-model no disco (built↔built).
+// Rule shape para kind=regex-pattern-match (def-003, adr-107).
+// Verifica que todo valor em valuePath (no artefato sob validação) conforma a
+// regex pattern. valuePath usa travessia "[]"/aninhamento (como
+// _resolve_multi). Per adr-041: kind narrow para validação de convenção de
+// formato que cue vet (constraint de schema) não impõe — e.g., convenção de
+// nome (PascalCase) sobre um campo livre. NÃO resolve referências cross-file
+// (cross-file-id-exists) nem deriva pattern de outro schema (extensão futura).
+#RegexPatternMatchRule: {
+	// Path dos valores a validar contra pattern (travessia "[]"/aninhamento).
+	// Ex.: "events[].name".
+	valuePath: string & !=""
+	// Regex (sintaxe RE2/Go-Python compatível) que cada valor deve casar
+	// (re.match — ancorar com ^...$ quando full-match for desejado).
+	// Ex.: "^[A-Z][A-Za-z0-9]*$".
+	pattern: string & !=""
+}
+
 #ScopedCrossFileIdExistsRule: {
 	// Path da lista de items a iterar no artefato-fonte. Ex.: "relationships".
 	itemsPath: string & !=""
