@@ -47,6 +47,7 @@ structuralChecks: {
 				{type: "validation-findings-w001", rationale: "(P) Registro de findings de uma wave (build-time, zona adr-098); dado declarativo, shape via cue vet."},
 				{type: "quality-criteria", rationale: "(P) Fragmento de meta-schema (critérios tq-*) embutido em outros schemas; sem instâncias com refs próprias."},
 				{type: "readme-config", rationale: "(P) Config do README; consistência já guardada por check-readme-coevolution.sh (tree.entries↔disco↔README), não por structural-check."},
+				{type: "directory-meta", rationale: "(P) Metadata de diretório (adr-115); consistência (canonicalPath==path real, sync da árvore derivada) guardada pelo gerador determinístico generate-repo-tree.py + gate de órfão, não por structural-check próprio. Simétrico ao readme-config."},
 				{type: "repo-structure", rationale: "(P) Config singleton de escopo/derivados; drift de scope/derived aparece nos próprios gates (órfão, coevolution), não exige check próprio."},
 				{type: "design-principles", rationale: "(P) Princípios P0–P12 em prosa declarativa; sem refs cross-artifact verificáveis; shape via cue vet."},
 				{type: "shared-types", rationale: "(P) Biblioteca de tipos compartilhados; é definição consumida por outros schemas, sem instâncias a referenciar."},
