@@ -84,6 +84,9 @@ package artifact_schemas
 } | {
 	kind: "regex-pattern-match"
 	rule: #RegexPatternMatchRule
+} | {
+	kind: "instance-scoped-cross-file-id-exists"
+	rule: #InstanceScopedCrossFileIdExistsRule
 })
 
 _#StructuralCheckBase: {
@@ -162,9 +165,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -553,4 +556,33 @@ _#StructuralCheckBase: {
 	// Path do conjunto válido em cada arquivo-alvo (travessia "[]"/aninhamento).
 	// Ex.: "events[].name".
 	targetIdPath: string & !=""
+}
+
+// Rule shape para kind=instance-scoped-cross-file-id-exists (adr-113).
+// Variante do cross-file-id-exists em que o namespace de ids válidos NÃO é a
+// união global de um glob, mas o arquivo-alvo DERIVADO POR INSTÂNCIA: o valor
+// de scopeField (na própria instância-fonte) é substituído em
+// targetGlobTemplate ("{scope}") para produzir o glob do alvo daquela
+// instância. Isso impõe escopo least-privilege — a ref tem de existir no alvo
+// do PRÓPRIO escopo (e.g., agent-spec referenciando building block do seu
+// próprio BC), não em qualquer alvo da união. targetIdPaths é uma LISTA (a
+// união dos ids válidos vem de múltiplos paths no arquivo-alvo, e.g. códigos de
+// aggregates/commands/events/... no domain-model). Caso motivador: agent-spec
+// operationalScope/domainModelRefs → domain-model do BoundedContext do agente.
+// Alvo de escopo ausente no disco é violação (instância referencia escopo
+// inexistente), não allowance — distinto do guardado scoped-cross-file-id-exists.
+#InstanceScopedCrossFileIdExistsRule: {
+	// Paths dos valores de REFERÊNCIA na instância-fonte (travessia
+	// "[]"/aninhamento; lista — refs de múltiplos campos são unidas).
+	// Ex.: ["operationalScope.commands[]", "actions[].domainModelRefs[]"].
+	referencePaths: [string & !="", ...string & !=""]
+	// Campo da instância-fonte cujo valor (string) identifica o escopo,
+	// substituído em targetGlobTemplate. Ex.: "boundedContextRef".
+	scopeField: string & !=""
+	// Template do glob do arquivo-alvo; "{scope}" é substituído pelo valor de
+	// scopeField. Ex.: "contexts/{scope}/domain-model.cue".
+	targetGlobTemplate: string & =~"\\{scope\\}"
+	// Paths do(s) conjunto(s) de ids válidos no arquivo-alvo (lista — união).
+	// Ex.: ["aggregates[].code", "commands[].code", "events[].code"].
+	targetIdPaths: [string & !="", ...string & !=""]
 }
