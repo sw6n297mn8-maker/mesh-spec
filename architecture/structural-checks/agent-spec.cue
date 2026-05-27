@@ -7,7 +7,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // o domain-model do SEU PRÓPRIO BoundedContext (boundedContextRef); todo
 // building block referenciado em operationalScope/actions[].domainModelRefs
 // deve existir como code no domain-model daquele BC — escopo least-privilege
-// (tq-ag-01/tq-ag-02). Born-warn, born-green (verificado: 309 refs nos 12
+// (tq-ag-01/tq-ag-02). Born-green; promovido a reject (adr-114). (verificado: 309 refs nos 12
 // agentes, 0 não-resolvidas). Resolve def-002 para agent-spec: a premissa de
 // risco de vocabulário/materialização (como events/def-019) NÃO se aplica —
 // são codes internos (agg-/cmd-/evt-/inv-/prj-/vo-/ent-/svc-/mod-/pol-/qry-)
@@ -47,6 +47,6 @@ structuralChecks: {
 		}
 		errorMessage: "agent-spec: ref de domain model '{ref}' não existe no domain-model do BC '{scope}' (contexts/{scope}/domain-model.cue). Corrija o ref, declare o building block no domain-model, ou ajuste o boundedContextRef do agente."
 		rationale:    "adr-113: o agent declara responsabilidade sobre building blocks do seu BC (tq-ag-01/tq-ag-02 least-privilege); um ref a um building block inexistente no domain-model do próprio BC é responsabilidade fantasma ou vazamento cross-BC. Escopo per-instância (não união global) impõe que a ref pertença ao BC do agente — distinto do cross-file-id-exists global."
-		enforcement: "warn"
+		enforcement: "reject"
 	}
 }
