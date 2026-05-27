@@ -40,5 +40,5 @@ structuralChecks: "sc-te-02": artifact_schemas.#StructuralCheck & {
 	}
 	errorMessage: "tension entry contém relatedADR apontando para id de ADR que não existe em architecture/adrs/. Corrija o id ou crie o ADR referenciado."
 	rationale:    "def-002 (adr-102): primeiro check do kind cross-file-id-exists — caso born-green nomeado no def-002. cue vet valida o formato (adr-NNN), não a existência semântica cross-file; este check fecha esse gap para relatedADR."
-	enforcement: "warn"
+	enforcement: "reject"
 }
