@@ -116,7 +116,8 @@ structureIndex: {
 				"architecture/adrs/adr-107-regex-pattern-match-kind.cue",
 				"architecture/adrs/adr-108-normalize-event-names-promote-sc-ev-01.cue",
 				"architecture/adrs/adr-109-promote-green-checks-to-reject.cue",
-				"architecture/adrs/adr-110-gate-liveness-m3.cue"
+				"architecture/adrs/adr-110-gate-liveness-m3.cue",
+				"architecture/adrs/adr-111-economic-mechanism-crossfile-check.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -409,6 +410,7 @@ structureIndex: {
 				"architecture/structural-checks/dlv-domain-model.cue",
 				"architecture/structural-checks/domain-definition.cue",
 				"architecture/structural-checks/domain-model-event-convention.cue",
+				"architecture/structural-checks/economic-mechanism-model.cue",
 				"architecture/structural-checks/inv-domain-model.cue",
 				"architecture/structural-checks/meta-coverage.cue",
 				"architecture/structural-checks/p2p-domain-model.cue",
