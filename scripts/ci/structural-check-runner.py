@@ -403,6 +403,39 @@ def ev_scoped_cross_file_id_exists(rule,c):
                     v.append("%s: ref '%s' (%s, item in-scope por %s) ausente em %s (%s)" % (f,r,rf,gfields,rule["targetGlob"],rule["targetIdPath"]))
     return v
 
+def ev_instance_scoped_cross_file_id_exists(rule,c):
+    # adr-113: para cada instancia, o namespace de ids validos vem do arquivo
+    # DERIVADO de scopeField (substituido em targetGlobTemplate via {scope}),
+    # nao da uniao global. Toda ref em referencePaths deve existir nesse
+    # namespace per-instancia (uniao de targetIdPaths). Escopo least-privilege:
+    # ref resolve no PROPRIO escopo (e.g. BC do agente), nao em qualquer alvo.
+    # Alvo de escopo ausente no disco = violacao (escopo fantasma).
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    tmpl=rule["targetGlobTemplate"]; sf=rule["scopeField"]
+    v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        scope=dotget(a,sf)
+        if not isinstance(scope,str):
+            v.append("%s: scopeField '%s' ausente ou nao-string" % (f,sf)); continue
+        tglob=tmpl.replace("{scope}",scope)
+        tfiles=sorted(glob.glob(tglob))
+        if not tfiles:
+            v.append("%s: alvo de escopo '%s' (%s) nao existe no disco" % (f,scope,tglob)); continue
+        ns=set()
+        for tf in tfiles:
+            t=load_artifact(tf)
+            if t is None: continue
+            for tip in rule["targetIdPaths"]:
+                ns.update(x for x in _resolve_multi(t,tip) if isinstance(x,(str,int)))
+        for rp in rule["referencePaths"]:
+            for r in _resolve_multi(a,rp):
+                if isinstance(r,(str,int)) and r not in ns:
+                    v.append("%s: ref '%s' (%s) ausente no alvo do escopo '%s' (%s)" % (f,r,rp,scope,tglob))
+    return v
+
 def ev_regex_pattern_match(rule,c):
     # def-003/adr-107: todo valor em valuePath (no artefato) casa a regex pattern.
     # Convencao de formato que cue vet (schema constraint) nao impoe.
@@ -457,7 +490,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "cross-file-id-exists":ev_cross_file_id_exists,
  "filesystem-declared-coverage":ev_filesystem_declared_coverage,
  "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists,
- "regex-pattern-match":ev_regex_pattern_match}
+ "regex-pattern-match":ev_regex_pattern_match,
+ "instance-scoped-cross-file-id-exists":ev_instance_scoped_cross_file_id_exists}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +
@@ -605,6 +639,15 @@ def self_test():
     # DENTRO dele (padrao #Subdomain). cue eval estoura; a location so resolve
     # via fallback textual. Segundo def no MESMO arquivo p/ checar escopo do slice.
     w("architecture/artifact-schemas/sub.cue",'package artifact_schemas\n#Sub:{kind:"a"|"b"|"c"\n_schema:location:{canonicalPathRegex:"^strat/subs/[a-z]+\\\\.cue$",fileNameRegex:"^[a-z]+\\\\.cue$",cardinality:"collection"}}\n#SubRef:string&=~"^x-[a-z]+$"\n')
+    # instance-scoped-cross-file-id-exists (adr-113): ref resolve no alvo
+    # DERIVADO de scopeField (ctx/{bc}/dm.cue), nao na uniao global. x resolve
+    # (born-green); y referencia c-9 ausente no SEU dm (born-red).
+    w("architecture/artifact-schemas/ag.cue",'package artifact_schemas\n#Ag:{bc:string,_schema:location:{canonicalPathRegex:"^ctx/[a-z]+/ag\\\\.cue$",fileNameRegex:"^ag\\\\.cue$",cardinality:"collection",allowNested:false}}\n')
+    w("architecture/structural-checks/ag.cue",'package structural_checks\nstructuralChecks:{"sc-ag-99":{id:"sc-ag-99",title:"t",artifactType:"ag",description:"d",kind:"instance-scoped-cross-file-id-exists",rule:{referencePaths:["scope.refs[]"],scopeField:"bc",targetGlobTemplate:"ctx/{scope}/dm.cue",targetIdPaths:["codes[].code"]},errorMessage:"e",rationale:"r"}}\n')
+    w("ctx/x/ag.cue",'package ag\nag:{bc:"x",scope:{refs:["c-1","c-2"]}}\n')
+    w("ctx/y/ag.cue",'package ag\nag:{bc:"y",scope:{refs:["c-9"]}}\n')
+    w("ctx/x/dm.cue",'package dm\ndm:{codes:[{code:"c-1"},{code:"c-2"}]}\n')
+    w("ctx/y/dm.cue",'package dm\ndm:{codes:[{code:"c-1"}]}\n')
     os.chdir(d); _loc_cache.clear(); _art_cache.clear()
     checks=load_checks()
     dp=ev_directory_pair(checks["sc-dp-01"]["rule"],checks["sc-dp-01"])
@@ -623,8 +666,11 @@ def self_test():
     # estoura), com regex na forma AVALIADA (\. e nao \\.) e cardinality correta.
     ncloc=schema_location("sub")
     nc = isinstance(ncloc,dict) and ncloc.get("canonicalPathRegex")==r"^strat/subs/[a-z]+\.cue$" and ncloc.get("cardinality")=="collection"
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} ncloc={ncloc}")
+    # instance-scoped: x resolve (own dm tem c-1,c-2); y nao (c-9 ausente no SEU dm).
+    isc=ev_instance_scoped_cross_file_id_exists(checks["sc-ag-99"]["rule"],checks["sc-ag-99"])
+    iscok = (isc==["ctx/y/ag.cue: ref 'c-9' (scope.refs[]) ausente no alvo do escopo 'y' (ctx/y/dm.cue)"])
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc}")
     return 0 if ok else 1
 
 if __name__=="__main__":

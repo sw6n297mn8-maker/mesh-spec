@@ -118,7 +118,8 @@ structureIndex: {
 				"architecture/adrs/adr-109-promote-green-checks-to-reject.cue",
 				"architecture/adrs/adr-110-gate-liveness-m3.cue",
 				"architecture/adrs/adr-111-economic-mechanism-crossfile-check.cue",
-				"architecture/adrs/adr-112-cross-context-flow-crossfile-check.cue"
+				"architecture/adrs/adr-112-cross-context-flow-crossfile-check.cue",
+				"architecture/adrs/adr-113-agent-spec-domain-model-crossfile-check.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -403,6 +404,7 @@ structureIndex: {
 			"canonicalPathRegex": "^architecture/structural-checks/[a-z0-9-]+\\.cue$",
 			"files": [
 				"architecture/structural-checks/adr.cue",
+				"architecture/structural-checks/agent-spec.cue",
 				"architecture/structural-checks/bdg-domain-model.cue",
 				"architecture/structural-checks/canvas.cue",
 				"architecture/structural-checks/cmt-domain-model.cue",
