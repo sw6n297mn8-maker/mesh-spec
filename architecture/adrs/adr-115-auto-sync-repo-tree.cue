@@ -112,6 +112,7 @@ adr115: artifact_schemas.#ADR & {
 		"architecture/structural-checks/meta-coverage.cue",
 		"scripts/ci/structural-check-runner.py",
 		"scripts/ci/check-self-review.sh",
+		"governance/repo-structure.cue",
 	]
 
 	plannedOutputs: [
