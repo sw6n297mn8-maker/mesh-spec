@@ -83,10 +83,11 @@ def collect_metas():
                 # tq-dm-04 (WARN): purpose não enumera arquivos .cue.
                 if ".cue" in purpose:
                     warnings.append("tq-dm-04 WARN: %s purpose contém '.cue'" % p)
+                conv = m.get("conventions", [])
                 all_m[cp] = {
                     "path":        cp,
                     "purpose":     purpose,
-                    "conventions": [],
+                    "conventions": conv if isinstance(conv, list) else [],
                     "rationale":   rationale,
                 }
     return sorted(all_m.values(), key=lambda m: m["path"]), warnings

@@ -41,6 +41,7 @@ repoStructure: artifact_schemas.#RepoStructure & {
 			"cue.mod/",
 			".git/",
 			".github/",
+			".claude/",
 			".gitignore",
 			"LICENSE",
 			"CODEOWNERS",

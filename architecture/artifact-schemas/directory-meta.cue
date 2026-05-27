@@ -33,6 +33,11 @@ import (
 	purpose:       string & strings.MinRunes(20) & strings.MaxRunes(200)
 	rationale?:    string & strings.MinRunes(20)
 
+	// conventions: regras/observações específicas do diretório, renderizadas
+	// na tabela do README (#DirectoryNote.conventions). Lista possivelmente
+	// vazia. Migradas do config.cue para co-localização (adr-115).
+	conventions?: [...string & !=""]
+
 	_qualityCriteria: #QualityCriteria & {
 		criteria: [{
 			id:          "tq-dm-01"
