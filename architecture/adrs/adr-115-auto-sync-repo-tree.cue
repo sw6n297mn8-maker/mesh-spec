@@ -119,6 +119,7 @@ adr115: artifact_schemas.#ADR & {
 		"architecture/artifact-schemas/directory-meta.cue",
 		"scripts/ci/generate-repo-tree.py",
 		"governance/readme/tree-generated.cue",
+		".github/workflows/materialize-repo-tree.yml",
 	]
 
 	principlesApplied: [
