@@ -120,7 +120,8 @@ structureIndex: {
 				"architecture/adrs/adr-111-economic-mechanism-crossfile-check.cue",
 				"architecture/adrs/adr-112-cross-context-flow-crossfile-check.cue",
 				"architecture/adrs/adr-113-agent-spec-domain-model-crossfile-check.cue",
-				"architecture/adrs/adr-114-promote-crossfile-checks-to-reject.cue"
+				"architecture/adrs/adr-114-promote-crossfile-checks-to-reject.cue",
+				"architecture/adrs/adr-115-auto-sync-repo-tree.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -248,6 +249,11 @@ structureIndex: {
 				"architecture/cross-context-workflows/commitment-lifecycle.cue"
 			],
 			"schema": "#CrossContextFlow"
+		},
+		{
+			"canonicalPathRegex": "^([a-z0-9][a-z0-9-]*/)*meta\\.cue$",
+			"files": [],
+			"schema": "#DirectoryMeta"
 		},
 		{
 			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/domain-model\\.cue$",
