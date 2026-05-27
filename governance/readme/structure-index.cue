@@ -117,7 +117,8 @@ structureIndex: {
 				"architecture/adrs/adr-108-normalize-event-names-promote-sc-ev-01.cue",
 				"architecture/adrs/adr-109-promote-green-checks-to-reject.cue",
 				"architecture/adrs/adr-110-gate-liveness-m3.cue",
-				"architecture/adrs/adr-111-economic-mechanism-crossfile-check.cue"
+				"architecture/adrs/adr-111-economic-mechanism-crossfile-check.cue",
+				"architecture/adrs/adr-112-cross-context-flow-crossfile-check.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -393,7 +394,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-017-deletion-srr-script-handling.cue",
 				"architecture/deferred-decisions/def-018-promote-orphan-detection-to-reject.cue",
 				"architecture/deferred-decisions/def-019-events-bc-cross-file-check.cue",
-				"architecture/deferred-decisions/def-020-bcc-completeness-gate.cue"
+				"architecture/deferred-decisions/def-020-bcc-completeness-gate.cue",
+				"architecture/deferred-decisions/def-021-cross-context-flow-integration-events.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
@@ -405,6 +407,7 @@ structureIndex: {
 				"architecture/structural-checks/canvas.cue",
 				"architecture/structural-checks/cmt-domain-model.cue",
 				"architecture/structural-checks/context-map.cue",
+				"architecture/structural-checks/cross-context-flow.cue",
 				"architecture/structural-checks/ctr-domain-model.cue",
 				"architecture/structural-checks/deferred-decision.cue",
 				"architecture/structural-checks/dlv-domain-model.cue",

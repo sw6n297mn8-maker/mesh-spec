@@ -57,7 +57,6 @@ structuralChecks: {
 				{type: "glossary", rationale: "(P) Glossário por BC; termos auto-contidos; shape via cue vet."},
 				{type: "api-spec", rationale: "(P) Presença de api.yaml já coberta por sc-cv-02 (conditional-file-presence); o schema em si é shape via cue vet."},
 				{type: "agent-governance", rationale: "(P) Envelope de governança de agente; limites/autoridade declarativos (shape via cue vet); refs a artefatos do BC seriam cross-file (def-002)."},
-				{type: "cross-context-flow", rationale: "(def-002) phases[] referenciam ownerContext/ownerSubdomain (checáveis born-green) + integrationEvents (risco vocabulário, como events def-019). Autorar a parte ownerContext/ownerSubdomain e deferir integrationEvents. Sub-pass futuro."},
 				{type: "subdomain", rationale: "(P) Sem ref cross-file: campos são code/definition/name/type, auto-contidos; shape via cue vet adequado. (Categoria def-002 anterior estava incorreta — não há ref a verificar.)"},
 				{type: "stakeholder-map", rationale: "(P) Sem ref cross-file: stakeholders[] são auto-contidos (code/name/type/description/role); shape via cue vet. (Categoria def-002 anterior estava incorreta.)"},
 				{type: "agent-spec", rationale: "(def-002) agent-spec referencia commands/events/capabilities do BC; o kind existe (adr-102/105) mas o check tem o mesmo risco de vocabulário/materialização dos events (def-019) — autorar após canonizar commands/capabilities. Sub-pass futuro."},
