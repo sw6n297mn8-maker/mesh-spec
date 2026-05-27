@@ -3,9 +3,9 @@
 generate-repo-tree — gerador determinístico da árvore do repositório (adr-115).
 
 Filesystem é source of truth da estrutura. Cada diretório governado carrega um
-meta.cue (#DirectoryMeta: canonicalPath + purpose). Este gerador caminha o
-filesystem por meta.cue, lê canonicalPath/purpose/rationale, valida:
-  - tq-dm-01 (FAIL): canonicalPath == path real do diretório onde o meta.cue
+_meta.cue (#DirectoryMeta: canonicalPath + purpose). Este gerador caminha o
+filesystem por _meta.cue, lê canonicalPath/purpose/rationale, valida:
+  - tq-dm-01 (FAIL): canonicalPath == path real do diretório onde o _meta.cue
     reside. Divergência bloqueia a regeneração.
   - tq-dm-04 (WARN): purpose não contém substring '.cue' (não enumera arquivos).
 E emite governance/readme/tree-generated.cue com:
@@ -27,8 +27,8 @@ import json, os, re, sys, tempfile, importlib.util
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 ROOT_NAME = "mesh-spec"
-DEFAULT_RATIONALE = "Diretório governado declarado em meta.cue local (adr-115)."
-# Artefato DERIVADO gerado por este pipeline: não tem meta.cue próprio e não
+DEFAULT_RATIONALE = "Diretório governado declarado em _meta.cue local (adr-115)."
+# Artefato DERIVADO gerado por este pipeline: não tem _meta.cue próprio e não
 # entra na árvore (análogo ao self-exclude de generate-structure-index.py).
 DERIVED_ARTIFACTS = {"governance/readme/tree-generated.cue"}
 
@@ -46,50 +46,55 @@ R = _load_runner()
 
 
 def collect_metas():
-    """Caminha scope.validated por meta.cue; lê e valida cada um.
+    """Caminha scope.validated por _meta.cue; lê e valida cada um.
 
-    Retorna (metas, warnings). Levanta SystemExit em FAIL (tq-dm-01 ou meta.cue
+    Retorna (metas, warnings). Levanta SystemExit em FAIL (tq-dm-01 ou _meta.cue
     ilegível) — o gerador é gate: estrutura inconsistente não deve gerar árvore."""
     scope, _excluded = R.load_scope()
-    metas, warnings, seen = [], [], set()
+    all_m, warnings = {}, []
     for d in scope:
         d = d.rstrip("/")
         if not os.path.isdir(d):
             continue
         for dp, _, fs in os.walk(d):
-            if "meta.cue" not in fs:
+            if "_meta.cue" not in fs:
                 continue
-            p = os.path.relpath(os.path.join(dp, "meta.cue"), ".")
+            p = os.path.relpath(os.path.join(dp, "_meta.cue"), ".")
+            # meta é um mapa keyed pelo path; export de um único arquivo traz
+            # apenas a(s) chave(s) declarada(s) nele.
             obj, e = R.cue_json(["export", p, "-e", "meta", "--out", "json"])
             if e or not isinstance(obj, dict):
                 raise SystemExit("erro ao ler %s: %s" % (p, e))
-            cp = obj.get("canonicalPath", "")
-            purpose = obj.get("purpose", "")
-            rationale = obj.get("rationale", "") or DEFAULT_RATIONALE
             real = os.path.relpath(dp, ".")
-            # tq-dm-01 (FAIL): path declarado == path real.
-            if cp != real:
-                raise SystemExit(
-                    "tq-dm-01 FAIL: %s canonicalPath=%r != path real %r" % (p, cp, real))
-            if cp in seen:
-                raise SystemExit("canonicalPath duplicado: %r" % cp)
-            seen.add(cp)
-            # tq-dm-04 (WARN): purpose não enumera arquivos .cue.
-            if ".cue" in purpose:
-                warnings.append("tq-dm-04 WARN: %s purpose contém '.cue'" % p)
-            metas.append({
-                "path":        cp,
-                "purpose":     purpose,
-                "conventions": [],
-                "rationale":   rationale,
-            })
-    metas.sort(key=lambda m: m["path"])
-    return metas, warnings
+            for key, m in obj.items():
+                cp = m.get("canonicalPath", "")
+                purpose = m.get("purpose", "")
+                rationale = m.get("rationale", "") or DEFAULT_RATIONALE
+                # tq-dm-01 (FAIL): chave == canonicalPath == path real do dir.
+                if cp != real or key != cp:
+                    raise SystemExit(
+                        "tq-dm-01 FAIL: %s key=%r canonicalPath=%r path real=%r" % (p, key, cp, real))
+                # tq-dm-02 (FAIL): purpose com substância controlada (20-200 runes).
+                if not (20 <= len(purpose) <= 200):
+                    raise SystemExit(
+                        "tq-dm-02 FAIL: %s purpose len=%d fora [20,200]" % (p, len(purpose)))
+                if cp in all_m:
+                    raise SystemExit("canonicalPath duplicado: %r" % cp)
+                # tq-dm-04 (WARN): purpose não enumera arquivos .cue.
+                if ".cue" in purpose:
+                    warnings.append("tq-dm-04 WARN: %s purpose contém '.cue'" % p)
+                all_m[cp] = {
+                    "path":        cp,
+                    "purpose":     purpose,
+                    "conventions": [],
+                    "rationale":   rationale,
+                }
+    return sorted(all_m.values(), key=lambda m: m["path"]), warnings
 
 
 def render_ascii(metas):
     """Renderiza a árvore ASCII a partir dos paths governados. Diretórios
-    intermediários sem meta.cue aparecem como nó estrutural sem comentário."""
+    intermediários sem _meta.cue aparecem como nó estrutural sem comentário."""
     purpose_by_path = {m["path"]: m["purpose"] for m in metas}
     tree = {}
     for m in metas:
@@ -126,7 +131,7 @@ def emit(metas, ascii_tree):
     return (
         "package readme\n\n"
         "// tree-generated.cue — DERIVADO. Gerado por scripts/ci/generate-repo-tree.py\n"
-        "// a partir dos meta.cue (#DirectoryMeta) por diretório + scan do filesystem.\n"
+        "// a partir dos _meta.cue (#DirectoryMeta) por diretório + scan do filesystem.\n"
         "// NÃO editar à mão; regenerar via 'make sync-readme' (ou o gerador direto). (adr-115)\n"
         "//\n"
         "// treeAscii vive fora de config.tree porque #ReadmeConfig não declara campo\n"
@@ -157,19 +162,19 @@ def self_test():
     w("governance/repo-structure.cue",
       'package x\nrepoStructure:scope:{validated:["architecture/","governance/"],'
       'excluded:["cue.mod/",".git/",".github/","scripts/"]}\n')
-    # meta.cue sintéticos (schema-less: o gerador só lê o valor concreto `meta`).
-    # Dois níveis em architecture/ + um em governance/. purposes >= 20 runes.
-    w("architecture/meta.cue",
-      'package x\nmeta:{canonicalPath:"architecture",purpose:"Camada transversal de'
-      ' governanca tecnica do repositorio (sintetico de teste)."}\n')
-    w("architecture/adrs/meta.cue",
-      'package x\nmeta:{canonicalPath:"architecture/adrs",purpose:"Architecture'
-      ' Decision Records numerados do sistema (sintetico de teste).",'
+    # _meta.cue sintéticos (mapa keyed pelo path, schema-less). Dois níveis em
+    # architecture/ + um em governance/. purposes entre 20 e 200 runes.
+    w("architecture/_meta.cue",
+      'package x\nmeta:"architecture":{canonicalPath:"architecture",purpose:"Camada'
+      ' transversal de governanca tecnica do repositorio (sintetico de teste)."}\n')
+    w("architecture/adrs/_meta.cue",
+      'package x\nmeta:"architecture/adrs":{canonicalPath:"architecture/adrs",'
+      'purpose:"Architecture Decision Records numerados do sistema (sintetico).",'
       'rationale:"Diretorio proprio para decisoes cross-cutting (teste)."}\n')
-    w("governance/meta.cue",
-      'package x\nmeta:{canonicalPath:"governance",purpose:"Camada operacional de'
-      ' governanca do repositorio (sintetico de teste)."}\n')
-    # Artefato derivado já presente: NÃO deve quebrar (não tem meta.cue).
+    w("governance/_meta.cue",
+      'package x\nmeta:"governance":{canonicalPath:"governance",purpose:"Camada'
+      ' operacional de governanca do repositorio (sintetico de teste)."}\n')
+    # Artefato derivado já presente: NÃO deve quebrar (não tem _meta.cue).
     w("governance/readme/tree-generated.cue", "package readme\ntreeEntries: []\n")
 
     out = generate(d)

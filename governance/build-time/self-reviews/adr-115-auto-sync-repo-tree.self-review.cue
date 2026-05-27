@@ -24,7 +24,7 @@ adr115AutoSyncRepoTree: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			Self-review do adr-115 (auto-sync da árvore do repositório via meta.cue por
+			Self-review do adr-115 (auto-sync da árvore do repositório via _meta.cue por
 			diretório). Plano e número (115) aprovados pelo founder antes da escrita;
 			escopo full-parity com auster adr-028 adaptado à stack Python da mesh.
 
@@ -34,7 +34,7 @@ adr115AutoSyncRepoTree: build_time.#SelfReviewReport & {
 			tq-adr-01: três alternativas registradas em context com motivo de rejeição
 			(B lista-central-renderizada; C síntese-por-doc-comment; A escolhida).
 			tq-adr-02: reversibility "medium" (reverter exige restaurar lista central +
-			remover meta.cue dos dirs — esforço moderado, sem dados persistidos) +
+			remover _meta.cue dos dirs — esforço moderado, sem dados persistidos) +
 			blastRadius "repo-wide" (geração do README + artefato em dirs de todo o repo)
 			— consistentes com a decisão real. tq-adr-03/04: affectedArtifacts (config.cue,
 			output.cue, meta-coverage.cue) são paths reais; plannedOutputs lista os novos
@@ -47,7 +47,7 @@ adr115AutoSyncRepoTree: build_time.#SelfReviewReport & {
 			(c) Verificação empírica antes da proposta: cue vet ./architecture/... EXIT 0;
 			structural-check-runner → 0 bloqueantes (sc-meta-02 resolvido pela isenção; só
 			os 21 warns pré-existentes sc-cv-02/03 permanecem). A decisão registra o pattern
-			e o schema base; rollout de meta.cue/gerador/migração segue em commits da feature.
+			e o schema base; rollout de _meta.cue/gerador/migração segue em commits da feature.
 			"""
 	}]
 

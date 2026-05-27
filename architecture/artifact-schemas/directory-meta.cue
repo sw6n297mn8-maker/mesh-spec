@@ -6,14 +6,20 @@ import (
 
 // directory-meta.cue — Schema para metadata de diretório governado.
 //
-// Cada diretório governado em mesh-spec carrega um arquivo meta.cue
-// instanciando #DirectoryMeta. Schema declarado por adr-115 (adota o
-// pattern de auster-spec adr-028).
+// Cada diretório governado em mesh-spec carrega um arquivo _meta.cue. Schema
+// declarado por adr-115 (adota o pattern de auster-spec adr-028, adaptado).
 //
-// Filesystem é source of truth da estrutura do repositório. canonicalPath
-// é self-declared e validado pelo gerador (scripts/ci/generate-repo-tree.py)
-// contra o path real onde o meta.cue reside — divergência indica copy-paste
-// ou diretório renomeado sem update do meta.cue.
+// Adaptações à stack da mesh (ver adr-115): (a) nome _meta.cue (prefixo _)
+// para não casar os canonicalPathRegex dos schemas de instância do diretório,
+// que exigem filename iniciando em [a-z0-9]; (b) o _meta.cue declara `meta`
+// como mapa keyed pelo path, em forma plana SEM importar este schema — evita
+// ciclo de import (artifact_schemas importa shared_types) e colisão de campo
+// quando subdir compartilha o package do pai. A conformância a #DirectoryMeta
+// é validada pelo gerador (P10), não por unificação CUE.
+//
+// Filesystem é source of truth da estrutura. canonicalPath é self-declared e
+// validado pelo gerador (scripts/ci/generate-repo-tree.py) contra o path real
+// onde o _meta.cue reside — divergência indica copy-paste ou rename sem update.
 //
 // purpose é a descrição em uma frase do diretório, renderizada no README e
 // em governance/readme/tree-generated.cue (derivado). Faixa 20-200 runes
@@ -21,9 +27,6 @@ import (
 //
 // rationale é opcional. Quando presente, registra por que o diretório existe
 // (complementar ao purpose, que descreve o que ele é).
-//
-// Auto-referencial: este artifact-schema é ele próprio uma instância de tipo
-// schema e satisfaz os meta-critérios de artifact-schema.cue.
 
 #DirectoryMeta: {
 	canonicalPath: string & !=""
@@ -61,10 +64,10 @@ import (
 
 	_schema: {
 		location: {
-			canonicalPathRegex: "^([a-z0-9][a-z0-9-]*/)*meta\\.cue$"
-			fileNameRegex:      "^meta\\.cue$"
+			canonicalPathRegex: "^([a-z0-9][a-z0-9-]*/)*_meta\\.cue$"
+			fileNameRegex:      "^_meta\\.cue$"
 			description:        "Metadata de diretório governado: descrição canônica (purpose) do diretório, source da árvore derivada do README."
-			rationale:          "Vive em cada diretório governado (não em lista central) para que a descrição resida junto do que ela descreve — localização canônica única (P0). Consumido pelo gerador determinístico que emite a árvore derivada."
+			rationale:          "Nome _meta.cue (prefixo _) para não casar os canonicalPathRegex dos schemas de instância do diretório (agent-spec, lens, subdomain, etc.), que exigem filename iniciando em [a-z0-9]. Vive em cada diretório governado (não em lista central) — localização canônica única (P0); consumido pelo gerador determinístico."
 			cardinality:        "collection"
 			allowNested:        true
 		}

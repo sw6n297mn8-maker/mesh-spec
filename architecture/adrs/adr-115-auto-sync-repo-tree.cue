@@ -43,16 +43,28 @@ adr115: artifact_schemas.#ADR & {
 
 	decision: """
 		Filesystem é source of truth da estrutura do repositório. Cada diretório
-		governado contém um meta.cue instanciando #DirectoryMeta (architecture/
-		artifact-schemas/directory-meta.cue, criado por esta decisão) com no mínimo:
+		governado contém um _meta.cue (architecture/artifact-schemas/directory-meta.cue
+		declara o tipo #DirectoryMeta, criado por esta decisão) declarando um campo
+		`meta` como mapa keyed pelo path, com no mínimo:
 		- canonicalPath: path declarado, validado contra o path real do arquivo.
 		- purpose: descrição em uma frase (20-200 runes).
 
+		Duas adaptações à stack da mesh (vs auster):
+		- Nome _meta.cue (prefixo _): os canonicalPathRegex dos schemas de instância
+		  (agent-spec, lens, subdomain, etc.) exigem filename iniciando em [a-z0-9];
+		  "meta.cue" casaria todos e geraria classificação ambígua. "_meta.cue" não
+		  casa nenhum, classificando só como directory-meta.
+		- Forma de mapa plana, SEM importar o schema: artifact_schemas importa
+		  shared_types (e é amplamente importado), então um _meta.cue importando o
+		  schema criaria ciclo; e subdirs que compartilham o package do pai (ex:
+		  contexts/*/agents) colidiriam no campo `meta`. O mapa keyed pelo path resolve
+		  ambos. A validação contra #DirectoryMeta é feita pelo gerador (P10).
+
 		Um gerador determinístico (scripts/ci/generate-repo-tree.py) caminha o
-		filesystem, lê cada meta.cue, valida canonicalPath == path real (tq-dm-01) e
-		purpose sem substring '.cue' (tq-dm-04), e emite governance/readme/
-		tree-generated.cue (bloco ASCII treeAscii + entries) com header explícito de
-		artefato derivado.
+		filesystem, lê cada _meta.cue, valida canonicalPath == path real (tq-dm-01),
+		purpose 20-200 runes (tq-dm-02) e sem substring '.cue' (tq-dm-04), e emite
+		governance/readme/tree-generated.cue (bloco ASCII treeAscii + entries) com
+		header explícito de artefato derivado.
 
 		governance/readme/config.cue passa a importar tree-generated.cue e remove as
 		entries inline; governance/readme/output.cue renderiza o bloco ASCII antes da
@@ -60,8 +72,13 @@ adr115: artifact_schemas.#ADR & {
 		é guardada pelo próprio gerador determinístico; directory-meta é registrado como
 		isento em meta-coverage.exemptTypes (sc-meta-02), simétrico ao readme-config
 		(cuja consistência é guardada por check-readme-coevolution.sh, não por
-		structural-check). A orphan-detection passa a reconhecer meta.cue como instância
+		structural-check). A orphan-detection passa a reconhecer _meta.cue como instância
 		classificada (via canonicalPathRegex do schema), não órfão.
+
+		Correção pontual no structural-check-runner.py: o detector de "arquivo de
+		schema" (sc-meta-02) usava substring "_schema" — falso-positivo para _meta.cue
+		em architecture/artifact-schemas (package artifact_schemas contém "_schema").
+		Trocado por regex de declaração `^\\s*_schema:`.
 
 		Esta decisão registra o pattern e cria o schema base; o rollout dos meta.cue,
 		do gerador, do check e da migração do config.cue é executado em commits
@@ -76,7 +93,7 @@ adr115: artifact_schemas.#ADR & {
 		deterministic falha se o derivado estiver fora de sync; (4) paridade estrutural
 		com auster-spec/tekton-spec, facilitando adoção cruzada de tooling.
 
-		Negativas: (1) introduz um meta.cue em cada diretório governado (~40 arquivos),
+		Negativas: (1) introduz um _meta.cue em cada diretório governado (56 arquivos),
 		criados uma vez reusando as descrições já existentes no config.cue; (2) um
 		gerador novo a manter (mitigado por reuso da infra Python determinística e
 		--self-test); (3) a orphan-detection precisa reconhecer meta.cue — tratado pela
@@ -93,6 +110,7 @@ adr115: artifact_schemas.#ADR & {
 		"governance/readme/config.cue",
 		"governance/readme/output.cue",
 		"architecture/structural-checks/meta-coverage.cue",
+		"scripts/ci/structural-check-runner.py",
 	]
 
 	plannedOutputs: [
