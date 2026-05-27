@@ -86,5 +86,6 @@ deferredDecisions: "def-003": artifact_schemas.#DeferredDecision & {
 		reason: "Founder pode priorizar adição do kind antes de recurrence threshold materializar — e.g., quando 3º+ caso concreto aparece em WI futuro com prose explícita de demanda por regex-pattern-match."
 	}]
 
-	status: "open"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-107-regex-pattern-match-kind.cue"
 }

@@ -403,6 +403,22 @@ def ev_scoped_cross_file_id_exists(rule,c):
                     v.append("%s: ref '%s' (%s, item in-scope por %s) ausente em %s (%s)" % (f,r,rf,gfields,rule["targetGlob"],rule["targetIdPath"]))
     return v
 
+def ev_regex_pattern_match(rule,c):
+    # def-003/adr-107: todo valor em valuePath (no artefato) casa a regex pattern.
+    # Convencao de formato que cue vet (schema constraint) nao impoe.
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    try: pat=re.compile(rule["pattern"])
+    except re.error as e: return [f"(pattern invalido: {e})"]
+    v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        for x in _resolve_multi(a,rule["valuePath"]):
+            if isinstance(x,str) and not pat.match(x):
+                v.append("%s: valor '%s' (%s) nao casa pattern %s" % (f,x,rule["valuePath"],rule["pattern"]))
+    return v
+
 def ev_evaluator_coverage(rule,c):
     # M1 (adr-099): todo kind DECLARADO no enum #StructuralCheckKind + todo kind
     # USADO por algum check tem evaluator em EVAL. Cartaz sem fiscal => finding.
@@ -440,7 +456,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "local-field-reference-integrity":ev_local_field_reference_integrity,
  "cross-file-id-exists":ev_cross_file_id_exists,
  "filesystem-declared-coverage":ev_filesystem_declared_coverage,
- "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists}
+ "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists,
+ "regex-pattern-match":ev_regex_pattern_match}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +
