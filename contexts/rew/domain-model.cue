@@ -101,7 +101,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	events: [
 		{
 			code:        "evt-signal-received"
-			name:        "Signal Received from Upstream BC (via ACL)"
+			name:        "SignalReceivedFromUpstreamBC"
 			description: "Signal interpretado por upstream BC (NPM/DLV/NIM/FCE) INGESTADO em REW via ACL. Idempotency split crítico: (signalId, sourceContext) é IDENTITY (idempotency key); signalHash é INTEGRITY VALIDATION (não identity). Same identity + same hash → ignored. Same identity + different hash → triggera evt-signal-corruption-detected. causationKind/causationRef discriminados porque nem todo upstream tem eventId (batch ingestion, polling, backfill, manual import) — forçar causalidade inexistente cria mentira estrutural."
 			rationale:   "'Received' (REW) vs 'observed' (upstream) — observação pertence ao upstream, ingestão pertence ao REW (founder Phase 3 insight). Idempotency split (identity vs integrity) elimina classe de bug onde upstream mutation passa undetected. errorClassEliminated: 'signal corruption silently accepted as new signal' + 'forced causality on causation-less signals'."
 			visibility:  "internal"
@@ -117,7 +117,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-signal-corruption-detected"
-			name:        "Signal Corruption Detected (hash mismatch on same identity)"
+			name:        "SignalCorruptionDetected"
 			description: "Same (signalId, sourceContext) recebido com signalHash DIFERENTE do snapshot original. DECISÃO DETERMINÍSTICA REW (Opção A founder-recommended): incoming signal é DESCARTADO automaticamente; original snapshot PRESERVADO (immutability per inv-rew-signal-traceability); alert crítico raised; review humano decide próxima ação (manual re-ingest com NEW signalId, OR mark adversarial, OR escalate). REW NÃO classifica causa (mutation/corruption/adversarial) — delega a review via alert. Manual re-ingestion corrigida exige NEW signalId (não pode reusar identity do corrupted attempt)."
 			rationale:   "Detectar corrupção sem decidir o que fazer = meia arquitetura (founder Phase 3 insight). Comportamento determinístico (discard + alert) preserva inv-rew-signal-traceability + inv-rew-deterministic-replay incólumes. Alternative (accept as suspect) introduziria estado ambíguo destruindo replay determinism. errorClassEliminated: 'upstream mutation passing undetected as legitimate update' + 'ambiguous handling of corrupted signal causing decision history mutation'."
 			visibility:  "published"
@@ -136,7 +136,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-computed"
-			name:        "Risk Evaluation Computed (internal — not yet published)"
+			name:        "RiskEvaluationComputed"
 			description: "Evaluation calculation finalizada internamente. Computed ≠ Emitted (founder insight 'decidir ≠ publicar'). Split permite: shadow mode (compute sem emit), retry (re-emit sem recompute), failure isolation (compute success ≠ emit success). signalSnapshotIds carrega lista de signalIds capturados — replay determinístico inviável sem inputs explícitos. parentEvaluationId opcional referencia evaluation predecessora no lineage tree (chain de superseding); empty quando evaluation root."
 			rationale:   "Sem inputs explícitos, não existe explicação — só resultado (founder Phase 3 insight). Split compute/emit elimina classe de bug: failure de emission gerando duplicate compute on retry. parentEvaluationId materializa lineage navegável — sem lineage, histórico vira lista, não estrutura. errorClassEliminated: 'compute and emit conflated as single atomic event causing replay corruption' + 'evaluation history without traversable lineage'."
 			visibility:  "internal"
@@ -160,7 +160,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-emitted"
-			name:        "Risk Evaluation Emitted (published cross-BC)"
+			name:        "RiskEvaluationEmitted"
 			description: "Evaluation publicada cross-BC para consumers (CMT, FCE, SCF). evaluationId IDENTITY anchor; eventId varia per re-emission (network retry), evaluationId NÃO. Consumer dedupe via evaluationId. Alinhamento com canvas RiskScoreEmitted + EligibilityEmitted: Phase 3 design evolved para evaluation atômica unificando score + eligibility + confidence em fact único; canvas alignment debt tracked para commit posterior."
 			rationale:   "Public contract event. Founder insight: 'evento pode duplicar; decisão não pode' — evaluationId stable identity garante consumers nunca contam decision 2× por retry de emission. errorClassEliminated: 'consumer treating retried emission as new evaluation'."
 			visibility:  "published"
@@ -180,7 +180,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-superseded"
-			name:        "Risk Evaluation Superseded (explicit replacement)"
+			name:        "RiskEvaluationSuperseded"
 			description: "Substituição EXPLÍCITA via cmd-supersede-risk-evaluation. REW NUNCA supersede automaticamente (inv-rew-explicit-supersede-only). supersedeReason via vo-decision-reason obrigatório. Concurrency rule garantida: race conditions e last-write-wins ELIMINADAS por design — evaluation history é append-only fact log."
 			rationale:   "Substituição sem razão = corrupção silenciosa (founder Phase 3 insight). Superseding é decisão histórica (≠ active state read-rule). errorClassEliminated: 'implicit supersede causing decision history corruption' + 'concurrent signals causing non-deterministic supersession'."
 			visibility:  "published"
@@ -197,7 +197,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-marked-stale"
-			name:        "Risk Evaluation Marked Stale (relevant signal arrived)"
+			name:        "RiskEvaluationMarkedStale"
 			description: "Evaluation marcada STALE AUTOMATICAMENTE porque novo signal relevante chegou. Stale ≠ Superseded: stale signal arrived; evaluation continua VÁLIDA mas FLAGGED para review/refresh (não é decisão). Supersede separado (explicit-only). Causation: pol-mark-stale-on-relevant-signal triggered por evt-signal-received quando signal.context match evaluation.applicableContext per RiskPolicy.stalenessTriggerCriteria. Boundedness: NO MÁXIMO 1 evt-marked-stale por evaluation por window (inv-rew-event-emission-boundedness)."
 			rationale:   "Supersede decide; staleness sinaliza (founder Phase 3 insight — o mais importante de S4). Sem staleness tracking, evaluation envelhece silenciosamente. Staleness automática (policy-driven) preserva append-only history enquanto torna freshness observable. errorClassEliminated: 'evaluation aging silently — consumer using stale decision without awareness'."
 			visibility:  "published"
@@ -233,7 +233,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-alert-acknowledged"
-			name:        "Risk Alert Acknowledged (by authorized actor)"
+			name:        "RiskAlertAcknowledged"
 			description: "Acknowledge ≠ Resolve: ack indica 'estou ciente'; resolve indica 'avaliei e tomei ação'. performedBy + actorAuthority obrigatórios — quem fez ≠ quem podia fazer. Authority validation enforced em sc-rew-command-authority-binding (S7) — critical alert → ack só por supervisor+."
 			rationale:   "Quem fez ≠ quem podia fazer (founder Phase 3 insight). actorAuthority enum declara explicitamente classe de actor; structural-check enforça authority minimum per alert category. errorClassEliminated: 'ack by unauthorized actor bypassing escalation'."
 			visibility:  "internal"
@@ -268,7 +268,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-model-activated"
-			name:        "Risk Model Version Activated"
+			name:        "RiskModelVersionActivated"
 			description: "Model version promovida a active status. Cross-BC observability — consumers calibram CI/score interpretation. Authority elevada exigida (supervisor+) per sc-rew-command-authority-binding (S7)."
 			rationale:   "errorClassEliminated: 'model version drift undetected by consumers'."
 			visibility:  "published"
@@ -285,7 +285,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-model-deprecated"
-			name:        "Risk Model Version Deprecated"
+			name:        "RiskModelVersionDeprecated"
 			description: "Model version marcada deprecated com reason. Mesma disciplina de supersede: substituição sem razão = corrupção silenciosa."
 			rationale:   "errorClassEliminated: 'silent model deprecation causing consumer confusion'."
 			visibility:  "published"
@@ -303,7 +303,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-policy-activated"
-			name:        "Risk Policy Version Activated"
+			name:        "RiskPolicyVersionActivated"
 			description: "Policy version promovida a active status. Cross-BC observability."
 			rationale:   "errorClassEliminated: 'policy version drift undetected by consumers'."
 			visibility:  "published"
@@ -320,7 +320,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-policy-deprecated"
-			name:        "Risk Policy Version Deprecated"
+			name:        "RiskPolicyVersionDeprecated"
 			description: "Policy version marcada deprecated com reason."
 			rationale:   "errorClassEliminated: 'silent policy deprecation'."
 			visibility:  "published"
@@ -338,7 +338,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-emit-failed"
-			name:        "Risk Evaluation Emit Failed (ABORT — não cria evaluation válida)"
+			name:        "RiskEvaluationEmitFailed"
 			description: "Emit failure após retry exhaustion (RiskPolicy.emitTimeoutSeconds default 30s). ABORT EXPLÍCITO — evaluation NÃO entra em projection, NÃO participa de active rule, NÃO pode ser target de cmd-supersede. Permanece em event log como FACT histórico (audit trail) mas NÃO é evaluation válida no domínio. Evaluation = emitted by definition; nem todo cálculo deve virar estado."
 			rationale:   "Retry sem dono = retry inexistente + nem todo cálculo deve virar estado (founder Phase 3 insights). emit-failed preserva audit trail sem inflar lifecycle states. errorClassEliminated: 'computed evaluation invisible OR becoming spurious lifecycle state post-crash-pre-emit'."
 			visibility:  "published"
@@ -356,7 +356,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-signal-rejected"
-			name:        "Signal Rejected at ACL boundary (validation failed)"
+			name:        "SignalRejectedAtACLBoundary"
 			description: "Signal incoming reprovado em ACL validation (per inv-rew-signal-validation-before-ingestion). NUNCA drop silent — ambiguity em boundary = bug futuro. originalSignalRef preserva ref para investigação upstream; rejectionReason articula categoria de falha. Rejected signal NUNCA entra no domínio: NÃO triggers staleness, alert, OR evaluation pipeline."
 			rationale:   "Boundary não declarado vira superfície de ataque + ambiguidade em boundary = bug futuro (founder Phase 3 insights). errorClassEliminated: 'malformed signal silently dropped causing missing audit trail + debugging blind spots'."
 			visibility:  "published"
@@ -374,7 +374,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-emit-superseded-by-newer"
-			name:        "Emit Superseded by Newer Evaluation (NÃO failure — successor exists)"
+			name:        "RiskEvaluationEmitSuperseded"
 			description: "Emit handler detectou newer evaluation E_other para mesmo scope com emittedAt > THIS.computedAt. THIS NÃO entra em lifecycle — mas ≠ failure. successorEvaluationId reference permite consumer USAR E_other em vez de retry. Distinção semântica vs evt-risk-evaluation-emit-failed: failure = sistema não conseguiu computar; obsolescence = sistema computou mas newer reality já existe (FAILURE ≠ OBSOLESCENCE — founder War Game 2 insight). successor chain bounded por inv-rew-successor-chain-bounded (default N=3 hops consumer-side)."
 			rationale:   "Consumer originador recebe successorEvaluationId reference em vez de simples failure — pode adopt successor OR re-request com fresh inputs. Evita false negative semântico + consumer retry loop indefinido. errorClassEliminated: 'consumer retry loop on obsolescence misclassified as failure'."
 			visibility:  "published"

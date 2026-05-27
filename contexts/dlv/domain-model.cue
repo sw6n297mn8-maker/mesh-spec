@@ -89,7 +89,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-delivery-rejected"
-			name:        "Delivery Rejected"
+			name:        "DeliveryRejected"
 			description: "Verification atinge state terminal rejected. Cross-BC published event mesmo conjunto de consumers que DeliveryVerified com semantics distintas: INV bloqueia invoice path; REW signal negativo para scoring; NIM signal para mechanism design (e.g., padrões sustained de rejection sinalizam criteria evolution need); DRC entry point IMEDIATO de dispute Phase 0 per BD8. reasonCode + retryPath MANDATORY per BD13 (silent rejection proibido)."
 			rationale:   "Terminal event canonical do rejection path DLV. Mandatory reasonCode + retryPath fornece accountability + actionable contract com sh-02 fornecedor (retry path determinístico via mapping table per BD13)."
 			visibility:  "published"
@@ -125,7 +125,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-exception-entered"
-			name:        "Exception Entered"
+			name:        "ExceptionEntered"
 			description: "Verification transiciona de evaluating para exception-pending state. Marca primeiro entry em exceptionHistory per BD6. INTERNAL — exception states são internos a DLV (NÃO publicados cross-BC; expostos apenas via QueryVerificationStatus query-surface internal-consumers-only)."
 			rationale:   "Trigger de timer 14d mandatory transition (BD6). Inicia tracking de exceptionHistory append-only. Estado intermediário internal preserva contract público limpo (apenas terminal events cross-BC)."
 			visibility:  "internal"
@@ -138,7 +138,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-exception-extended"
-			name:        "Exception Extended"
+			name:        "ExceptionExtended"
 			description: "Extension de timer aplicada via supervisedDecision extend-exception-window (BD6). Adiciona entry em exceptionHistory; cumulative duration cap 30d TOTAL desde primeiro entry preservado por construção. INTERNAL."
 			rationale:   "Trigger de extension cumulativa bounded por construção (BD6 cap absoluto). exceptionHistory append-only preserva granularidade temporal + actor + justification per audit."
 			visibility:  "internal"
@@ -152,7 +152,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-exception-resolved"
-			name:        "Exception Resolved"
+			name:        "ExceptionResolved"
 			description: "Verification transiciona de exception-pending para terminal (verified | rejected) — humano resolveu OU timer fired auto-rejection per BD6 fail-safe. Marca último entry em exceptionHistory com resolvedAt + resolution. INTERNAL — terminal event público correspondente é DeliveryVerified | DeliveryRejected emitido atomicamente."
 			rationale:   "Marker de exception lifecycle closure. Distinct de DeliveryVerified | DeliveryRejected: aquele é cross-BC public (BD14 atomic emit); este é DLV-internal tracking de exception transition (paralelo + atomic)."
 			visibility:  "internal"
@@ -167,7 +167,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-supersession-applied"
-			name:        "Supersession Applied"
+			name:        "SupersessionApplied"
 			description: "Linkage de supersession aplicada per BD5: evidenceRef-N+1 supersedes evidenceRef-N para mesmo commitmentRef. Trigger de nova Verification aggregate creation com nova IdempotencyIdentity (commitmentRef, evidenceRef-N+1). INTERNAL — public correspondence é nova DeliveryVerified | DeliveryRejected da nova evaluation."
 			rationale:   "Marker de supersession lineage explícita. Trigger primário: EvidenceSuperseded LOG event consumed via ACL (Policy pol-supersession-applied-handler — Part 3); fallback: DLV ordering canonical eventLogOffset em ausência de LOG event (BD5 robust-against-failure-of-adjacent-BC)."
 			visibility:  "internal"

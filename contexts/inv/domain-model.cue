@@ -60,7 +60,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	events: [
 		{
 			code:        "evt-invoice-issued"
-			name:        "Invoice Issued"
+			name:        "InvoiceIssued"
 			description: "Fatura formalmente emitida sob identity (commitmentRef, evidenceRef). Evento canônico que declara nascimento de obrigação fiscal a partir de DeliveryVerified status=approved + commitmentTerms projection consistente. Append-only no event log; INV não muta nem re-emite. Consumido cross-BC por FCE (settle pagamento) e ATO (lançamento fiscal — pattern conformist)."
 			rationale:   "Contrato semântico público da rede materializando BD7 atomic-dual-emission (par com ReceivableMaterialized). Payload mínimo categórico defende anti-payload-bloat (sem paymentMethod/paymentSchedule/accountRef = FCE concerns; sem riskScore/eligibility = REW/SCF concerns; sem rationale fiscal interpretativo = ATO concern). Append-only é invariante operacional — cancellation gera evento separado, nunca mutação retroativa."
 			visibility:  "published"
@@ -76,7 +76,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-receivable-materialized"
-			name:        "Receivable Materialized"
+			name:        "ReceivableMaterialized"
 			description: "Direito creditório passível de transferência materializado atomicamente com InvoiceIssued (mesma transação, primitive infra). amount idêntico ao Invoice por construção (BD7 conservation). Materialização ocorre SEMPRE que Invoice é emitida — não depende de elegibilidade, scoring ou decisão financeira externa. Consumido cross-BC por SCF para originar produtos financeiros sobre lastro verificado."
 			rationale:   "Contrato semântico público para SCF separado de InvoiceIssued (BD7 dual emission atomic) preservando contract independence — SCF liga em ReceivableMaterialized sem acoplar-se a fiscalDocRef/regimeVersion (concerns INV/ATO). INV não determina transferibilidade nem condições de cessão; apenas materializa o direito creditório. SCF decide se, como e sob quais condições ocorre a transferência."
 			visibility:  "published"
@@ -90,7 +90,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-invoice-cancelled"
-			name:        "Invoice Cancelled"
+			name:        "InvoiceCancelled"
 			description: "Cancellation INV-owned dentro de janela fiscal regulada (G3 explicit-event-only — sem soft-delete, sem overwrite, sem re-emissão silenciosa). Append-only no event log. Consumido cross-BC contextualmente: FCE pode ignorar pós-settle (correção é DRC scope); ATO sempre processa (estornar lançamento fiscal); outros BCs decidem conforme própria responsabilidade."
 			rationale:   "Único path INV-owned de mutação pós-issued, com escopo regulamentado (janela fiscal). Fora-da-janela escala para DRC/ATO via supervisedDecision. reasonCode é string (não enum no type) — taxonomia de razões pertence a policy/regime/adapter layer, não ao núcleo do domínio (varia por jurisdição/regime)."
 			visibility:  "published"
