@@ -111,7 +111,8 @@ structureIndex: {
 				"architecture/adrs/adr-102-cross-file-id-exists-kind.cue",
 				"architecture/adrs/adr-103-filesystem-declared-coverage-kind.cue",
 				"architecture/adrs/adr-104-canonical-event-vocabulary.cue",
-				"architecture/adrs/adr-105-scoped-cross-file-id-exists-kind.cue"
+				"architecture/adrs/adr-105-scoped-cross-file-id-exists-kind.cue",
+				"architecture/adrs/adr-106-reduce-crossfile-exemption-bucket.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -401,12 +402,14 @@ structureIndex: {
 				"architecture/structural-checks/ctr-domain-model.cue",
 				"architecture/structural-checks/deferred-decision.cue",
 				"architecture/structural-checks/dlv-domain-model.cue",
+				"architecture/structural-checks/domain-definition.cue",
 				"architecture/structural-checks/inv-domain-model.cue",
 				"architecture/structural-checks/meta-coverage.cue",
 				"architecture/structural-checks/p2p-domain-model.cue",
 				"architecture/structural-checks/production-guide.cue",
 				"architecture/structural-checks/rew-domain-model.cue",
 				"architecture/structural-checks/self-review-report.cue",
+				"architecture/structural-checks/service-contract.cue",
 				"architecture/structural-checks/singleton-coverage.cue",
 				"architecture/structural-checks/ssc-domain-model.cue",
 				"architecture/structural-checks/tension-entry.cue",
