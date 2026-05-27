@@ -113,7 +113,8 @@ structureIndex: {
 				"architecture/adrs/adr-104-canonical-event-vocabulary.cue",
 				"architecture/adrs/adr-105-scoped-cross-file-id-exists-kind.cue",
 				"architecture/adrs/adr-106-reduce-crossfile-exemption-bucket.cue",
-				"architecture/adrs/adr-107-regex-pattern-match-kind.cue"
+				"architecture/adrs/adr-107-regex-pattern-match-kind.cue",
+				"architecture/adrs/adr-108-normalize-event-names-promote-sc-ev-01.cue"
 			],
 			"schema": "#ADRBase"
 		},
