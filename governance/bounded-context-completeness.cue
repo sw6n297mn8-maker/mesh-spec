@@ -63,10 +63,10 @@ bcCompleteness: {
 
 	rules: [
 		{
-			artifactType:   "ubiquitous-language"
+			artifactType:   "glossary"
 			condition:      "true"
 			presencePolicy: "required"
-			rationale:      "Linguagem ubíqua é o contrato semântico do BC."
+			rationale:      "Glossário (glossary.cue) é o contrato de linguagem ubíqua do BC. (artifactType alinhado ao tipo canônico glossary; antes referenciava o nome stale ubiquitous-language.)"
 		},
 		{
 			artifactType:   "invariants"
