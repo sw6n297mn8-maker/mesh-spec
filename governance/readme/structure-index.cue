@@ -454,7 +454,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-018-promote-orphan-detection-to-reject.cue",
 				"architecture/deferred-decisions/def-019-events-bc-cross-file-check.cue",
 				"architecture/deferred-decisions/def-020-bcc-completeness-gate.cue",
-				"architecture/deferred-decisions/def-021-cross-context-flow-integration-events.cue"
+				"architecture/deferred-decisions/def-021-cross-context-flow-integration-events.cue",
+				"architecture/deferred-decisions/def-022-consolidate-event-envelope-money.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
