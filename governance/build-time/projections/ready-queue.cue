@@ -10,10 +10,10 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 18 candidato(s) prontos para claim.
+// 19 candidato(s) prontos para claim.
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-08T19:05:16Z"
+	rebuiltAt: "2026-05-28T18:24:41Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
@@ -90,6 +90,12 @@ readyQueueProjection: {
 		taskId:        "WI-058"
 		version:       1
 		title:         "Criar artefatos de domínio para Platform & Infrastructure Services (PLT)"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "medium"
+	}, {
+		taskId:        "WI-059"
+		version:       1
+		title:         "Criar artefatos de domínio para Supply Chain Finance (SCF)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {

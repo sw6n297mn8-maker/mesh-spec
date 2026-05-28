@@ -6,7 +6,20 @@ def022: artifact_schemas.#DeferredDecision & {
 	id:     "def-022"
 	title:  "Consolidar envelope + Money inline em architecture/shared-schemas/ quando 2º BC do slice precisar"
 	date:   "2026-05-28"
-	status: "open"
+	status: "resolved"
+
+	// Resolução: envelope CONSOLIDADO em architecture/shared-schemas/envelope.cue.
+	// Money NÃO consolidado — DLV não usa; consumo de Money permanece 1-BC (CMT).
+	// Recorte gerou novo deferimento def-025 (Money pendente de 2º consumidor real).
+	// Refactors em CMT/DLV são consequência da resolução, não o resolvedBy canônico
+	// (#OriginRef é singular per schema).
+	triggeredAt: "2026-05-28"
+	triggeredCondition: """
+		contexts/dlv/schemas/events.cue criado por WI-130 (PR #75) — materialização
+		do 2º consumidor real do envelope CloudEvents-like subset, condição
+		machine-evaluable do trigger adjacent-need (file-exists).
+		"""
+	resolvedBy: "architecture/shared-schemas/envelope.cue"
 
 	description: """
 		WI-129 autora contexts/cmt/schemas/events.cue com envelope (CloudEvents-like

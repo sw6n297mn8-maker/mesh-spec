@@ -1,21 +1,28 @@
 package dlv
 
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared_schemas"
+
 // schemas/events.cue — Payload schemas para os 7 eventos do BC DLV.
 //
-// Per WI-130, espelha o pattern do CMT (envelope CloudEvents-like subset
-// inline + opaque refs cross-BC). source mesh://contexts/dlv; types
-// mesh.dlv.<event-name>.v1. envelopeVersion=mesh-1 — IDÊNTICO ao do CMT;
-// criação deste arquivo dispara o trigger do def-022 (consolidar envelope
-// em architecture/shared-schemas/ agora que há 2º consumidor real).
-// Decisão pendente do founder: consolidar APENAS envelope (DLV não usa
-// Money); Money adiado até INV ou outro 2º consumidor real.
+// Per WI-130, espelha o pattern do CMT (opaque refs cross-BC + envelope
+// CloudEvents-like subset). source mesh://contexts/dlv; types
+// mesh.dlv.<event-name>.v1.
+//
+// Envelope CONSOLIDADO em architecture/shared-schemas/envelope.cue per
+// def-022 (resolved em 2026-05-28 — este arquivo, criado por WI-130, foi
+// o 2º consumidor real que disparou o trigger). Aqui só alias local —
+// VER COMENTÁRIO NO ALIAS abaixo sobre proibição de override local.
+//
+// Money NÃO foi consolidado (DLV não usa); aguarda 2º consumidor real
+// via def-025.
 //
 // DLV usa integer para timestamps de DOMÍNIO (decidedAt, finalityAt,
 // recordedAt, etc.) — diferente do CMT (RFC3339 strings). O envelope.time
-// mantém RFC3339 (consistência cross-BC no momento de publicação); só os
-// data.* internos usam integer per design do DLV. UNIDADE (ms vs s) NÃO é
-// declarada no domain-model — assumindo ms por padrão de mercado; quando
-// o domain-model formalizar, este mirror precisa revisita.
+// continua RFC3339 (consistência cross-BC no momento de publicação,
+// garantida pelo shape compartilhado); só os data.* internos usam integer
+// per design do DLV. UNIDADE (ms vs s) NÃO é declarada no domain-model —
+// assumindo ms por padrão de mercado; quando o domain-model formalizar,
+// este mirror precisa revisita.
 //
 // TODO/domain-gap (NÃO É SÓ ESTILO — É GAP DE FIDELIDADE):
 // Os value-objects do DLV são wrappers {value} no domain-model sem TYPE
@@ -32,16 +39,20 @@ package dlv
 // Mirror revisita quando domain-model declarar os types reais. Refs
 // cross-BC (CommitmentRef → owned by CMT) são opaque por design.
 
-// ── Envelope (CloudEvents-like subset, IDÊNTICO ao CMT — gatilha def-022) ──
-#Envelope: {
-	id:              string & !=""
-	source:          string & =~"^mesh://contexts/[a-z][a-z0-9-]*$"
-	type:            string & !=""
-	envelopeVersion: "mesh-1"
-	time:            string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
-	dataschema?:     string
-	...
-}
+// ── Alias para shared_schemas ──
+//
+// ATENÇÃO: este alias é apenas renomeio local — NÃO é ponto de extensão.
+// Adicionar overrides locais aqui (e.g., `#Envelope:
+// shared_schemas.#Envelope & { customField: ... }`) produz drift silencioso
+// vs outros BCs e quebra a consolidação cross-BC. Qualquer divergência
+// local deve virar tension-entry + revisita cross-BC antes — ver disciplina
+// de fronteira em architecture/shared-schemas/envelope.cue.
+//
+// DLV NÃO aliasa #RFC3339Timestamp porque os timestamps de DOMÍNIO são
+// integer (epoch ms); envelope.time é RFC3339 mas vem direto do shape
+// compartilhado, sem uso adicional local.
+
+#Envelope: shared_schemas.#Envelope
 
 // ── Opaque refs cross-BC ──
 #CommitmentRef: string & !=""  // owned by CMT (equivalente ao vo-commitment-id lá)
