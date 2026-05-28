@@ -501,6 +501,7 @@ structureIndex: {
 				"architecture/production-guides/adr.cue",
 				"architecture/production-guides/agent-governance.cue",
 				"architecture/production-guides/agent-spec.cue",
+				"architecture/production-guides/asyncapi-spec.cue",
 				"architecture/production-guides/canvas.cue",
 				"architecture/production-guides/deferred-decision.cue",
 				"architecture/production-guides/domain-model.cue",
