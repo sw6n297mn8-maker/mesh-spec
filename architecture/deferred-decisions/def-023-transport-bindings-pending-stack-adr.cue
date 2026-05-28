@@ -45,7 +45,6 @@ def023: artifact_schemas.#DeferredDecision & {
 
 	originatingArtifacts: [
 		"architecture/production-guides/asyncapi-spec.cue",
-		"contexts/cmt/async-api.yaml",
 	]
 
 	costOfDeferral: {
