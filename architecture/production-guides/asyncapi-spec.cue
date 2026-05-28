@@ -26,6 +26,18 @@ asyncapiSpecGuide: artifact_schemas.#ProductionGuide & {
 			"Channel naming convention: padrão 'mesh.<bc-code>.<event-name>.v1' (kebab event-name + sufixo de versão); a versão no nome do canal evita ambiguidade quando v2 coexistir.",
 			"Quais events deste BC são publicados externamente: usar strategic/context-map.cue relationships como fonte; events sem relationship ficam de fora do async-api.yaml.",
 		]
+		gapPolicy: "Gaps em events ↔ context-map (event sem relationship que parece publicação) → registrar em openQuestions do arquivo, NÃO inventar publicação. Gaps em transport (sem ADR de stack) → omitir bindings + abrir tension-entry/def-XXX rastreável. Gaps em mirror JSON Schema ↔ CUE → revisão humana é a defesa hoje (não há gerador automático)."
+	}
+
+	finalValidation: {
+		steps: [
+			"Rodar cue vet ./contexts/<bc>/... para garantir que schemas/events.cue referenciado em x-mesh-cue-ref é válido.",
+			"Cross-check cobertura: para cada event de domain-model.cue publicado em context-map relationships, existe channel correspondente em async-api.yaml.",
+			"Cross-check fidelidade: cada components/schemas/<MessageName> tem x-mesh-cue-ref apontando pro CUE source canônico; campos do JSON Schema espelham o CUE event type (revisão humana).",
+			"Validar naming: todos channels seguem 'mesh.<bc-code>.<event-name>.v<N>'; nenhuma operação 'subscribe' presente.",
+			"Confirmar bindings: presentes E coerentes com ADR de transport, OU ausentes E gap registrado em tension-entry/def-XXX.",
+			"Submeter ao founder para aprovação antes de commit.",
+		]
 	}
 
 	workOrder: ["info-header", "channels", "messages", "components-schemas", "bindings-or-deferred"]
