@@ -1,0 +1,182 @@
+asyncapi: '2.6.0'
+
+info:
+  title: Commitment Management async surface
+  version: 0.1.0
+  description: >
+    Superfície assíncrona publicada pelo BC Commitment Management.
+    Source canônica de identidade: contexts/cmt/canvas.cue.
+    Bindings e servers ausentes por design — ver
+    architecture/deferred-decisions/def-023.
+
+tags:
+  - name: mesh
+    description: bc=cmt
+
+channels:
+  mesh.cmt.commitment-accepted.v1:
+    description: >
+      Canal versionado para o evento CommitmentAccepted — aceite bilateral do
+      compromisso. Consumidores descobertos via strategic/context-map.cue,
+      relationships com source.context=cmt.
+    publish:
+      operationId: publishCommitmentAccepted
+      message:
+        $ref: '#/components/messages/CommitmentAccepted'
+
+  mesh.cmt.commitment-state-changed.v1:
+    description: >
+      Canal versionado para o evento CommitmentStateChanged — transição de
+      estado do agregado commitment. Consumidores descobertos via
+      strategic/context-map.cue, relationships com source.context=cmt.
+    publish:
+      operationId: publishCommitmentStateChanged
+      message:
+        $ref: '#/components/messages/CommitmentStateChanged'
+
+components:
+  messages:
+    CommitmentAccepted:
+      name: CommitmentAccepted
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CommitmentAccepted'
+
+    CommitmentStateChanged:
+      name: CommitmentStateChanged
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CommitmentStateChanged'
+
+  schemas:
+    CommitmentAccepted:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentAccepted'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/cmt
+        type:
+          type: string
+          const: mesh.cmt.commitment-accepted.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/cmt/schemas/events.cue#CommitmentAccepted
+        data:
+          type: object
+          required: [commitmentId, parties, contractTermsRef, scope, acceptedAt]
+          properties:
+            commitmentId:
+              type: string
+              minLength: 1
+            parties:
+              type: object
+              required: [proposer, counterparty]
+              properties:
+                proposer:
+                  type: string
+                  minLength: 1
+                  description: owned by NPM
+                counterparty:
+                  type: string
+                  minLength: 1
+                  description: owned by NPM
+            contractTermsRef:
+              type: object
+              required: [contractTermsId, validatedAt]
+              properties:
+                contractTermsId:
+                  type: string
+                  minLength: 1
+                  description: owned by CTR
+                validatedAt:
+                  type: string
+                  format: date-time
+                  pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+            scope:
+              type: object
+              required: [description, value, end]
+              properties:
+                description:
+                  type: string
+                  minLength: 1
+                value:
+                  type: object
+                  required: [amount, currency]
+                  properties:
+                    amount:
+                      type: integer
+                      minimum: 0
+                    currency:
+                      type: string
+                      pattern: '^[A-Z]{3}$'
+                end:
+                  type: string
+                  format: date
+                  pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+            acceptedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    CommitmentStateChanged:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentStateChanged'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/cmt
+        type:
+          type: string
+          const: mesh.cmt.commitment-state-changed.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/cmt/schemas/events.cue#CommitmentStateChanged
+        data:
+          type: object
+          required: [commitmentId, previousState, newState, reason]
+          properties:
+            commitmentId:
+              type: string
+              minLength: 1
+            previousState:
+              type: string
+              enum: [proposed, accepted, at-risk, suspended, cancelled]
+            newState:
+              type: string
+              enum: [proposed, accepted, at-risk, suspended, cancelled]
+            reason:
+              type: object
+              required: [causeType, originContext, description]
+              properties:
+                causeType:
+                  type: string
+                  minLength: 1
+                originContext:
+                  type: string
+                  minLength: 1
+                description:
+                  type: string
+                  minLength: 1
