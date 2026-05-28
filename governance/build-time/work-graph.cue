@@ -143,6 +143,10 @@ workGraph: {
 		phaseId:   "p5-bc-domain-bootstrap"
 		rationale: "BCs generic: capabilities transversais. 3 BCs: BKR, NTF, STR. Menor prioridade — shape mais estável, menor risco de redesign."
 	}, #Group & {
+		id:        "g7-interaction-surfaces"
+		phaseId:   "p5-bc-domain-bootstrap"
+		rationale: "Superfícies de interação (events.cue + api/async-api) derivadas do domain-model dos BCs do slice CMT/DLV/INV. Camada de contratos e tipos — posterior ao bootstrap de domínio do mesmo BC."
+	}, #Group & {
 		id:        "g8-discovery-and-method"
 		phaseId:   "p6-strategic-completion"
 		rationale: "W002 — BC discovery method, volatility analysis, splits/merges governance, event storming canonical schema + golden example."
@@ -939,5 +943,29 @@ workGraph: {
 		]
 		phaseId: "p9-stack-definition"
 		groupId: "g11-stack-adrs"
+	},
+
+	// ============================================================
+	// Phase p5 (g7-interaction-surfaces): superfícies do slice CMT/DLV/INV
+	// (WI-129..131). Backfill — admitidos/executados antes de wiring no grafo.
+	// WI-129 dependsOn [] (prereqs CMT domain-model + shared-schemas são
+	// baseline anterior ao slice); WI-130←129 (coerência de envelope); WI-131←
+	// 130 (consome DeliveryVerified).
+	// ============================================================
+	#ExecutionDependency & {
+		taskId:    "WI-129"
+		dependsOn: []
+		phaseId:   "p5-bc-domain-bootstrap"
+		groupId:   "g7-interaction-surfaces"
+	}, #ExecutionDependency & {
+		taskId: "WI-130"
+		dependsOn: [{taskId: "WI-129", version: 1}]
+		phaseId: "p5-bc-domain-bootstrap"
+		groupId: "g7-interaction-surfaces"
+	}, #ExecutionDependency & {
+		taskId: "WI-131"
+		dependsOn: [{taskId: "WI-130", version: 1}]
+		phaseId: "p5-bc-domain-bootstrap"
+		groupId: "g7-interaction-surfaces"
 	}]
 }
