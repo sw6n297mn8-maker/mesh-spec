@@ -83,7 +83,7 @@ package cmt
 // ──────── Events ────────
 //
 // Cada evento estende #Envelope com `type` literal e `data` concretamente
-// tipado. visibility (internal/external) anotado por comentário; a publicação
+// tipado. A publicação
 // cross-BC é governada por contracts/strategic/context-map.cue, não por
 // presença/ausência do payload aqui.
 
