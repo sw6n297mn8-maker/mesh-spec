@@ -9,9 +9,14 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // materializou o 2º consumidor real). Aqui só aliases locais — VER COMENTÁRIO
 // NO ALIAS abaixo sobre proibição de override local.
 //
-// Money continua inline aqui (DLV não usa; aguardando 2º consumidor real
-// — provavelmente INV, possivelmente antes em BDG/BKR — via def-025
-// recortado do def-022 quando consolidação cross-BC executou só envelope).
+// Money consolidado em architecture/shared-schemas/money.cue per def-025
+// (resolved em 2026-05-28 quando WI-131 materializou o 2º consumidor real
+// com SHAPE DIVERGENTE — INV declarou decimal-string audit-grade vs CMT
+// inline int centavos). Resolução escolheu lado INV; CMT migrou. Aqui só
+// alias local — VER COMENTÁRIO NO ALIAS abaixo. amount agora é decimal-
+// string não-negativo; producers anteriormente emitindo int centavos (100
+// para 1,00) devem emitir string decimal ("1.00"). Phase 0 sem consumers
+// reais; migration é lossless.
 //
 // Refs cross-BC (RiskLevel, ParticipantId, ContractTermsId, PurchaseOrderRef,
 // DisputeRef, DisputeResolution) são opaque por design — não importamos
@@ -32,15 +37,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 
 #Envelope:         shared_schemas.#Envelope
 #RFC3339Timestamp: shared_schemas.#RFC3339Timestamp
-
-// ── Money (inline per def-025; recortado do def-022) ──
-//
-// amount em centavos (int) para precisão exata; currency ISO 4217.
-
-#Money: {
-	amount:   int & >=0
-	currency: string & =~"^[A-Z]{3}$"
-}
+#Money:            shared_schemas.#Money
 
 // ── CommitmentScope (inline; ver TODO/domain-gap no topo) ──
 

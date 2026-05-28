@@ -7,10 +7,10 @@ info:
     Superfície assíncrona publicada pelo BC Invoicing (INV). Source canônica
     de identidade: contexts/inv/canvas.cue. Bindings e servers ausentes por
     design — ver architecture/deferred-decisions/def-023.
-    Money serializado como decimal-string não-negativo (divergente do CMT
-    int centavos por exigência fiscal/audit-grade) — ver
-    architecture/deferred-decisions/def-025 e header de
-    contexts/inv/schemas/events.cue.
+    Money serializado como decimal-string não-negativo (canonical per
+    def-025 resolved em 2026-05-28; INV foi o sinal empírico que motivou
+    a escolha pelo lado audit-grade fiscal vs CMT int centavos) — ver
+    architecture/shared-schemas/money.cue.
 
 tags:
   - name: mesh
@@ -116,8 +116,12 @@ components:
               properties:
                 amount:
                   type: string
-                  pattern: '^[0-9]+(\.[0-9]+)?$'
-                  description: decimal-string não-negativo (audit-grade); divergente do CMT int centavos — ver def-025
+                  pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+                  description: >
+                    decimal-string não-negativo (audit-grade,
+                    currency-agnostic); shape canônico per def-025
+                    resolved em 2026-05-28 — ver
+                    architecture/shared-schemas/money.cue.
                 currency:
                   type: string
                   pattern: '^[A-Z]{3}$'
@@ -180,8 +184,12 @@ components:
               properties:
                 amount:
                   type: string
-                  pattern: '^[0-9]+(\.[0-9]+)?$'
-                  description: decimal-string não-negativo (audit-grade); divergente do CMT int centavos — ver def-025
+                  pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+                  description: >
+                    decimal-string não-negativo (audit-grade,
+                    currency-agnostic); shape canônico per def-025
+                    resolved em 2026-05-28 — ver
+                    architecture/shared-schemas/money.cue.
                 currency:
                   type: string
                   pattern: '^[A-Z]{3}$'

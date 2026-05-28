@@ -21,24 +21,17 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // audit). DLV usa integer epoch para timestamps de DOMÍNIO de delivery
 // telemetry; INV NÃO segue DLV nesse ponto.
 //
-// ── MONEY: DIVERGÊNCIA INTENCIONAL vs CMT (evidência empírica para def-025) ──
+// ── MONEY: CONSOLIDADO em shared-schemas per def-025 (resolved 2026-05-28) ──
 //
-// Domain-model do INV declara amount como `decimal`. Representação concreta
-// JSON-safe: string com regex (preserva precisão arbitrary; JSON Numbers
-// perdem precisão >2^53). CMT escolheu int em centavos (escala global).
-// INV escolhe decimal-string (audit-grade, jurisdiction-aware minor-units).
-//
-// Esta divergência é DELIBERADA, não acidente. def-022 consolidou apenas
-// envelope; def-025 (criado em 2026-05-28) deferiu Money até 2º consumidor
-// real. INV é esse 2º consumidor. AGORA def-025 ganha sinal mais rico para
-// resolver: não é só "2 BCs usam Money", é "2 BCs usam Money com SHAPES
-// INCOMPATÍVEIS por razões legítimas". Antes de qualquer shared Money em
-// architecture/shared-schemas/money.cue, def-025 precisa comparar:
-//   - CMT: amount: int & >=0 (centavos)
-//   - INV: amount: #DecimalString & =~"^[0-9]+(\\.[0-9]+)?$" (decimal não-negativo)
-// e decidir representação canônica (provavelmente decimal-string vence por
-// jurisdiction-awareness; CMT migraria com lossless conversion centavos
-// → decimal). Mas a decisão é arquitetural, não inferível só da divergência.
+// Domain-model do INV declara amount como `decimal`. Decisão de def-025
+// (resolved): decimal-string vence como Money canônico por audit-grade
+// fiscal + currency-agnostic minor-units (vs CMT int centavos hard-coded
+// 2-decimal). INV foi exatamente o sinal empírico que motivou a escolha;
+// CMT migrou. Regex strict canônico: `^(0|[1-9][0-9]*)(\.[0-9]+)?$`
+// (proíbe leading zeros) — ver architecture/shared-schemas/money.cue.
+// INV usa via alias local; aliases #Money + #DecimalString preservados
+// para manter shape de exportação local (consumers do package inv viam
+// esses símbolos pré-consolidação).
 //
 // ── TIMESTAMPS SEMÂNTICOS (TODO/domain-gap — não é contrato canônico ainda) ──
 //
@@ -91,20 +84,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 
 #Envelope:         shared_schemas.#Envelope
 #RFC3339Timestamp: shared_schemas.#RFC3339Timestamp
-
-// ── DecimalString + Money (inline per def-025; ver header sobre divergência vs CMT) ──
-//
-// #DecimalString: arbitrary-precision decimal serializado como string JSON-safe.
-// Não-negativo por construção do regex (sem `-?`). Amounts negativos, se
-// existirem em outro contexto (credit note, adjustment, compensation), são
-// modelados como eventos próprios, NÃO como Money negativo silencioso.
-
-#DecimalString: string & =~"^[0-9]+(\\.[0-9]+)?$"
-
-#Money: {
-	amount:   #DecimalString
-	currency: string & =~"^[A-Z]{3}$"
-}
+#Money:            shared_schemas.#Money
+#DecimalString:    shared_schemas.#DecimalString
 
 // ── Opaque refs cross-BC (owners listados) ──
 

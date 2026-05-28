@@ -116,8 +116,13 @@ components:
                   required: [amount, currency]
                   properties:
                     amount:
-                      type: integer
-                      minimum: 0
+                      type: string
+                      pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+                      description: >
+                        decimal-string não-negativo (audit-grade,
+                        currency-agnostic); shape canônico per def-025
+                        resolved em 2026-05-28 — ver
+                        architecture/shared-schemas/money.cue.
                     currency:
                       type: string
                       pattern: '^[A-Z]{3}$'

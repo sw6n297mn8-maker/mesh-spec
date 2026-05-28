@@ -2,11 +2,63 @@ package deferred_decisions
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
+// ── RESOLUÇÃO (2026-05-28) ──
+//
+// Trigger primário disparou: contexts/inv/schemas/events.cue materializado por
+// WI-131 (PR #77 mergeado em 2026-05-28). Crucialmente, INV não trouxe apenas
+// um 2º consumidor — trouxe um SHAPE DIVERGENTE do que CMT havia escolhido
+// inline. Sinal empírico mais rico que o trigger projetava:
+//   - CMT: amount: int & >=0 (centavos integer, escala 2-decimal hard-coded)
+//   - INV: amount: string regex `^[0-9]+(\.[0-9]+)?$` (decimal-string não-
+//          negativo, audit-grade fiscal, currency-agnostic)
+//
+// Decisão (founder, pós-3-ciclos de red team): adotar lado INV (decimal-
+// string) como Money canônico. Justificativa hierárquica:
+//   1. Audit fiscal NÃO TOLERA precision loss — restrição mais forte que
+//      "aritmética nativa mais simples" do lado int.
+//   2. Currency-agnostic minor-units — int centavos quebra para JPY
+//      (0-decimal), BHD/JOD (3-decimal), cripto (até 18+). decimal-string
+//      é regime-independent.
+//   3. CMT migration é mecânica + lossless: events ainda não shippedaram
+//      em produção real (Phase 0); zero consumer externo afetado.
+//   4. Aritmética CUE-nativa do lado int NÃO é loss real — operações Money
+//      são em adapter/handler code, não em schema.
+//
+// Sub-decisões aplicadas na resolução:
+//   - S1 (escala): NÃO normalizada por design. "0" e "0.00" ambos válidos.
+//     Producer's choice; canonical form NÃO é parte do contrato Money.
+//   - S2 (regex strict): leading zeros proibidos no integer part
+//     (`^(0|[1-9][0-9]*)(\.[0-9]+)?$`). Reduz divergência cross-producer.
+//   - S3 (Currency helper): #Currency: =~"^[A-Z]{3}$" isolado em money.cue
+//     para reuso futuro (FX rates, regime defaults, etc.) sem refactor.
+//   - S4 (CommitmentScope): NÃO promovida; é decisão CMT-domain, fora do
+//     escopo desta resolução Money-shape.
+//   - S5 (negativos): proibidos; credit note/refund/adjustment via eventos
+//     próprios, não Money negativo silencioso.
+//   - S6 (anti-stealth-extension): comentário forte em money.cue contra
+//     scale/unitOfMeasure/exchangeRate locais — mesmo regime do envelope.
+//
+// resolvedBy aponta para money.cue (canônica per #OriginRef singular);
+// refactors em CMT/INV (events.cue + async-api.yaml) são CONSEQUÊNCIA da
+// resolução, não o resolvedBy canônico.
+
 def025: artifact_schemas.#DeferredDecision & {
 	id:     "def-025"
 	title:  "Consolidar Money inline em architecture/shared-schemas/ quando 2º BC do slice usar"
 	date:   "2026-05-28"
-	status: "open"
+	status: "resolved"
+
+	triggeredAt: "2026-05-28"
+	triggeredCondition: """
+		contexts/inv/schemas/events.cue criado por WI-131 (PR #77 mergeado em
+		2026-05-28) — materialização do 2º consumidor real de Money, condição
+		machine-evaluable do trigger primário adjacent-need (file-exists).
+		Sinal empírico foi mais rico que o trigger projetava: INV não só consumiu
+		Money mas declarou shape DIVERGENTE de CMT (int centavos vs decimal-
+		string). Resolução escolheu lado INV (decimal-string) como canônico per
+		audit-grade fiscal + currency-agnostic minor-units; CMT migrou.
+		"""
+	resolvedBy: "architecture/shared-schemas/money.cue"
 
 	description: """
 		Recorte do def-022: a consolidação cross-BC só executou #Envelope porque DLV
