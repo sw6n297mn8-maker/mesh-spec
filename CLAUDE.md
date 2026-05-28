@@ -6,7 +6,10 @@ Comunicação em português brasileiro. Termos técnicos (DDD, CUE, CloudEvents)
 
 ## Modelo de Operação
 
-O agente opera via conversa no Claude Code: propõe conteúdo no chat, o founder aprova, o agente escreve o arquivo e commita na branch ativa. Não cria branches nem PRs — gestão de branches é responsabilidade do usuário. O founder é a única autoridade de aprovação. O modelo de 3 tiers (Read/Propose/Decide) do README governa o cenário futuro com múltiplos agentes — este CLAUDE.md governa o agente atual.
+O agente opera via conversa no Claude Code, num ambiente web efêmero baseado em PR. Há dois modos de escrita, por classe de mudança:
+	1. Semântica/estrutural (schemas, ADRs, domain-model, canvas, invariantes, eventos, comandos, design-principles, protocolos de governança, task-specs): o agente propõe o conteúdo no chat e espera aprovação explícita do founder antes de escrever (ver "Proposta Antes de Implementar").
+	2. Derivada/mecânica (artefatos regenerados — README, CLAUDE.md, structure-index, tree-generated; scripts, workflows e hooks de CI que não alterem política de governança ou enforcement; correções mecânicas necessárias para restaurar cue vet sem alterar semântica): o agente pode escrever, criar branch e abrir PR draft diretamente para revisão, sem ciclo de proposta prévia.
+	Na dúvida sobre a classe, tratar como semântica (propor no chat). O founder é a única autoridade de aprovação e merge — o agente não faz merge sem instrução explícita. O modelo de 3 tiers (Read/Propose/Decide) do README governa o cenário futuro com múltiplos agentes; este CLAUDE.md governa o agente atual.
 
 Axiomas operacionais (domain/domain-definition.cue seção foundingPrinciples.axioms) são hipóteses estratégicas, não verdades absolutas. Aplique-os como diretriz padrão.
 Quando uma decisão concreta tensionar um axioma — a melhor solução aparente contradiz o axioma — não ignore silenciosamente:
@@ -40,6 +43,8 @@ Nunca escrever, criar, alterar ou deletar qualquer arquivo no repositório diret
 3. Só então escrever no arquivo.
 
 Correções de sintaxe CUE detectadas por `cue vet` (token faltando, vírgula, parêntese) não exigem novo ciclo de proposta — o agente corrige, mostra a correção, e prossegue. Mudanças estruturais (adicionar/remover campos, alterar tipos, renomear) sempre exigem proposta.
+
+Esta seção aplica-se à classe semântica/estrutural (ver Modelo de Operação). Mudanças derivadas/mecânicas seguem via PR draft sem proposta prévia.
 
 ## Incerteza
 

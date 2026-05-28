@@ -17,7 +17,10 @@ config: #AgentConfig & {
 			title:           "Modelo de Operação"
 			canonicalSource: "self"
 			content: #"""
-				O agente opera via conversa no Claude Code: propõe conteúdo no chat, o founder aprova, o agente escreve o arquivo e commita na branch ativa. Não cria branches nem PRs — gestão de branches é responsabilidade do usuário. O founder é a única autoridade de aprovação. O modelo de 3 tiers (Read/Propose/Decide) do README governa o cenário futuro com múltiplos agentes — este CLAUDE.md governa o agente atual.
+				O agente opera via conversa no Claude Code, num ambiente web efêmero baseado em PR. Há dois modos de escrita, por classe de mudança:
+					1. Semântica/estrutural (schemas, ADRs, domain-model, canvas, invariantes, eventos, comandos, design-principles, protocolos de governança, task-specs): o agente propõe o conteúdo no chat e espera aprovação explícita do founder antes de escrever (ver "Proposta Antes de Implementar").
+					2. Derivada/mecânica (artefatos regenerados — README, CLAUDE.md, structure-index, tree-generated; scripts, workflows e hooks de CI que não alterem política de governança ou enforcement; correções mecânicas necessárias para restaurar cue vet sem alterar semântica): o agente pode escrever, criar branch e abrir PR draft diretamente para revisão, sem ciclo de proposta prévia.
+					Na dúvida sobre a classe, tratar como semântica (propor no chat). O founder é a única autoridade de aprovação e merge — o agente não faz merge sem instrução explícita. O modelo de 3 tiers (Read/Propose/Decide) do README governa o cenário futuro com múltiplos agentes; este CLAUDE.md governa o agente atual.
 
 				Axiomas operacionais (domain/domain-definition.cue seção foundingPrinciples.axioms) são hipóteses estratégicas, não verdades absolutas. Aplique-os como diretriz padrão.
 				Quando uma decisão concreta tensionar um axioma — a melhor solução aparente contradiz o axioma — não ignore silenciosamente:
@@ -25,7 +28,7 @@ config: #AgentConfig & {
 				2. No tension-log: criar arquivo em architecture/tension-log/ conforme o schema architecture/artifact-schemas/tension-entry.cue, com id incremental.
 				3. No output: sinalizar com a tag [TENSÃO: ax-XX].
 				"""#
-			rationale: "Modo atual difere dos 3 tiers do README; regra explícita evita conflito. Sem instrução sobre tensões, o agente trata axiomas como regras absolutas ou os ignora silenciosamente. Registro em três camadas garante visibilidade imediata (output), contexto local (rationale) e padrão acumulado (tension-log)."
+			rationale: "Ambiente web é baseado em PR; o modo antigo ('agente não cria branches/PRs') não refletia a realidade operacional (adr-116). O split por classe preserva o controle do founder onde importa (semântica) e remove atrito onde não importa (derivado/mecânico); default conservador 'na dúvida, semântica' evita erosão gradual do controle. Sem instrução sobre tensões, o agente trata axiomas como regras absolutas ou os ignora silenciosamente; registro em três camadas garante visibilidade (output), contexto local (rationale) e padrão acumulado (tension-log)."
 		},
 		{
 			title:           "Escopo"
@@ -63,6 +66,8 @@ config: #AgentConfig & {
 				3. Só então escrever no arquivo.
 
 				Correções de sintaxe CUE detectadas por `cue vet` (token faltando, vírgula, parêntese) não exigem novo ciclo de proposta — o agente corrige, mostra a correção, e prossegue. Mudanças estruturais (adicionar/remover campos, alterar tipos, renomear) sempre exigem proposta.
+
+				Esta seção aplica-se à classe semântica/estrutural (ver Modelo de Operação). Mudanças derivadas/mecânicas seguem via PR draft sem proposta prévia.
 				"""#
 			rationale: "Ciclo de aprovação humana protege contra qualquer escrita não revisada. A regra cobre todo tipo de arquivo — não apenas artefatos formais — porque qualquer conteúdo commitado no repo se torna parte do histórico permanente."
 		},

@@ -121,7 +121,8 @@ structureIndex: {
 				"architecture/adrs/adr-112-cross-context-flow-crossfile-check.cue",
 				"architecture/adrs/adr-113-agent-spec-domain-model-crossfile-check.cue",
 				"architecture/adrs/adr-114-promote-crossfile-checks-to-reject.cue",
-				"architecture/adrs/adr-115-auto-sync-repo-tree.cue"
+				"architecture/adrs/adr-115-auto-sync-repo-tree.cue",
+				"architecture/adrs/adr-116-hybrid-operating-model.cue"
 			],
 			"schema": "#ADRBase"
 		},
