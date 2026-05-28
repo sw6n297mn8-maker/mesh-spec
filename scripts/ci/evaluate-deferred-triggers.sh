@@ -6,10 +6,15 @@ set -euo pipefail
 #
 # Estratégia:
 #   1. cue export do package deferred_decisions → JSON com todas instâncias
-#   2. Para cada def-XXX com status=open, avalia cada trigger por kind
-#   3. Triggers que disparam emitem GitHub Action annotations (::warning::)
+#   2. Discovery dual-source: legacy keyed-object (deferredDecisions: "def-NNN":
+#      {...} — usado em defs ≤ def-017) + top-level keys (defXXX — usado em
+#      defs ≥ def-018). Ver bloco "Dual-source discovery" abaixo. Filesystem
+#      sanity check garante que nenhum def-NNN-*.cue fique invisível por
+#      discovery drift futura.
+#   3. Para cada def-XXX com status=open, avalia cada trigger por kind
+#   4. Triggers que disparam emitem GitHub Action annotations (::warning::)
 #      + entrada em workflow output. NÃO muta arquivos.
-#   4. Exit 0 sempre (advisory; não bloqueia CI).
+#   5. Exit 0 sempre (advisory; não bloqueia CI).
 #
 # Triggers machine-evaluable (per adr-062 + adr-071):
 #   - recurrence:       grep do pattern no scope (filename/file-content/
@@ -70,7 +75,60 @@ if not json_data:
     )
 
 data = json.loads(json_data)
-defs = data.get("deferredDecisions", {})
+
+# ── Dual-source discovery ──
+#
+# Author styles observados:
+#   (a) `deferredDecisions: "def-NNN": {...}`              (def-001..def-014, def-016)
+#   (b) `deferredDecisions: "def-NNN-slug": {...}`         (def-015, def-017)
+#   (c) `defXXX: {...}` top-level                          (def-018+)
+# Todos válidos no schema (#DeferredDecision não impõe nesting nem chave). Mas
+# o discovery precisa olhar em ambos os lugares (deferredDecisions nested +
+# top-level), e o rekey precisa usar a id canônica do value, NÃO a chave do
+# author (que varia). Senão style novo vira dívida invisível.
+#
+# Detecção top-level: key não-reservada cujo value é dict tipado como
+# deferred-decision (tem id matching def-NNN + triggers list). Evita coletar
+# package metadata acidentalmente (e.g., chave "meta" do _meta.cue).
+def _is_def_value(v):
+    if not isinstance(v, dict):
+        return False
+    vid = v.get("id", "")
+    return (isinstance(vid, str)
+            and re.match(r"^def-\d{3}$", vid)
+            and isinstance(v.get("triggers"), list))
+
+defs = {}
+# (a) + (b): nested em deferredDecisions, rekeyar pela id canônica
+for _key, value in data.get("deferredDecisions", {}).items():
+    if _is_def_value(value):
+        defs[value["id"]] = value
+# (c): top-level keys
+for _key, value in data.items():
+    if _key == "deferredDecisions" or _key == "meta":
+        continue
+    if _is_def_value(value):
+        defs[value["id"]] = value
+
+# ── Filesystem sanity check (regressão contra discovery drift) ──
+#
+# Se há arquivo def-NNN-*.cue no diretório que NÃO foi discovered, o runner
+# tem bug de discovery (style novo não suportado, ou rename). Print ERROR
+# loud — não bloqueia CI (advisory), mas torna o gap visível.
+import glob as _glob
+fs_def_ids = set()
+for path in _glob.glob("architecture/deferred-decisions/def-*.cue"):
+    m = re.match(r"architecture/deferred-decisions/(def-\d{3})-", path)
+    if m:
+        fs_def_ids.add(m.group(1))
+discovered_ids = set(defs.keys())
+missing = fs_def_ids - discovered_ids
+if missing:
+    print(f"  ERROR: filesystem has {len(missing)} def-NNN file(s) NOT discovered")
+    print(f"  by runner: {sorted(missing)}.")
+    print(f"  Indicates discovery bug (novo autoring style não suportado, ou")
+    print(f"  schema drift). Runner continua (advisory), mas defs invisíveis")
+    print(f"  significam dívida não rastreada.")
 
 triggered_count = 0
 output_lines = []
