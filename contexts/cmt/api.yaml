@@ -1,0 +1,612 @@
+openapi: 3.0.3
+
+info:
+  title: Commitment Management sync surface
+  version: 0.1.0
+  description: >
+    Superfície síncrona do BC Commitment Management.
+    Source canônica de identidade: contexts/cmt/canvas.cue.
+    Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
+
+    Apenas 6 dos 8 commands do domain-model são exposed aqui. Os 2 ausentes
+    (cmd-clear-risk-flag e cmd-handle-dispute-resolution) são INTERNAL-ONLY
+    por design: são policy-driven (issued por policies em reação a eventos
+    upstream de REW e DRC respectivamente); expor sync API para eles criaria
+    dupla autoridade sobre o estado do compromisso e bypassaria o fluxo
+    cross-BC.
+
+    security e servers ausentes por design — ver
+    architecture/deferred-decisions/def-024.
+
+tags:
+  - name: mesh
+    description: bc=cmt
+
+paths:
+  /v1/cmt/commands/propose-commitment:
+    post:
+      operationId: proposeCommitment
+      summary: Registrar proposta de compromisso entre partes
+      description: >
+        Materializa a intenção de compromisso (estado inicial 'proposed').
+        Emite evt-commitment-proposed (internal). Sucesso retorna o evento
+        emitido como confirmação.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposeCommitmentRequest'
+      responses:
+        '200':
+          description: Compromisso proposto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentProposed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/cmt/commands/confirm-commitment-acceptance:
+    post:
+      operationId: confirmCommitmentAcceptance
+      summary: Confirmar aceite bilateral (transition proposed → accepted)
+      description: >
+        Gate de aceite bilateral. Valida invariantes mutual-bilateral-acceptance
+        e terms-reference-valid. Emite evt-commitment-accepted (published).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmCommitmentAcceptanceRequest'
+      responses:
+        '200':
+          description: Compromisso aceito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/cmt/commands/flag-at-risk:
+    post:
+      operationId: flagAtRisk
+      summary: Sinalizar risco de contraparte (accepted → at-risk)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlagAtRiskRequest'
+      responses:
+        '200':
+          description: Estado transicionado para at-risk
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentStateChanged'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/cmt/commands/suspend-commitment:
+    post:
+      operationId: suspendCommitment
+      summary: Suspender compromisso (accepted|at-risk → suspended)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspendCommitmentRequest'
+      responses:
+        '200':
+          description: Suspenso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentStateChanged'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/cmt/commands/reactivate-commitment:
+    post:
+      operationId: reactivateCommitment
+      summary: Reativar compromisso (suspended → accepted)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactivateCommitmentRequest'
+      responses:
+        '200':
+          description: Reativado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentStateChanged'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/cmt/commands/cancel-commitment:
+    post:
+      operationId: cancelCommitment
+      summary: Cancelar compromisso (proposed|accepted|at-risk|suspended → cancelled)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelCommitmentRequest'
+      responses:
+        '200':
+          description: Cancelado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentStateChanged'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/cmt/queries/commitment-state/{commitmentId}:
+    get:
+      operationId: queryCommitmentState
+      summary: Consultar estado canônico do compromisso por CommitmentId
+      description: >
+        Implementa qry-commitment-state (projection prj-commitment-state-view).
+        Leitura pura sem side-effects. commitmentId em path para cache-friendly.
+      parameters:
+        - name: commitmentId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/CommitmentId'
+      responses:
+        '200':
+          description: Estado do compromisso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentStateView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Chave única gerada pelo cliente (UUID v4 recomendado) usada pelo
+        servidor para cachear resultado dentro de uma janela curta e detectar
+        retry — request repetido com mesma key retorna mesmo resultado sem
+        executar de novo. Padrão informal de mercado (RFC draft); janela
+        exata definida quando ADR de stack chegar.
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    BadRequest:
+      description: Request malformado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Transição de estado não permitida
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Invariante de domínio violado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Erro interno
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      description: >
+        RFC 7807 Problem Details. Cross-BC shared contract; NÃO customizar
+        por BC. additionalProperties=true porque RFC 7807 §3.2 permite
+        extensões por problem type — mas extensões só por coordenação
+        cross-BC (tension-entry), nunca fork local.
+      additionalProperties: true
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identificando o tipo do problema
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        traceId:
+          type: string
+          description: Correlation id para auditoria
+
+    # ── Value-objects do CMT (mirror de schemas/events.cue) ──
+    CommitmentId:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentId'
+      type: string
+      minLength: 1
+    ParticipantId:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#ParticipantId'
+      type: string
+      minLength: 1
+      description: owned by NPM
+    ContractTermsId:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#ContractTermsId'
+      type: string
+      minLength: 1
+      description: owned by CTR
+    RiskLevel:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#RiskLevel'
+      type: string
+      minLength: 1
+      description: owned by REW
+    Money:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#Money'
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+    CommitmentParties:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentParties'
+      type: object
+      required: [proposer, counterparty]
+      properties:
+        proposer:
+          $ref: '#/components/schemas/ParticipantId'
+        counterparty:
+          $ref: '#/components/schemas/ParticipantId'
+    ContractTermsRef:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#ContractTermsRef'
+      type: object
+      required: [contractTermsId, validatedAt]
+      properties:
+        contractTermsId:
+          $ref: '#/components/schemas/ContractTermsId'
+        validatedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    CommitmentScope:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentScope'
+      type: object
+      required: [description, value, end]
+      properties:
+        description:
+          type: string
+          minLength: 1
+        value:
+          $ref: '#/components/schemas/Money'
+        end:
+          type: string
+          format: date
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+    CommitmentState:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentState'
+      type: string
+      enum: [proposed, accepted, at-risk, suspended, cancelled]
+    StateChangeReason:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#StateChangeReason'
+      type: object
+      required: [causeType, originContext, description]
+      properties:
+        causeType:
+          type: string
+          minLength: 1
+        originContext:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+
+    AcceptanceConfirmation:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-confirm-commitment-acceptance.fields.counterpartyConfirmation'
+      type: object
+      description: >
+        TODO/domain-gap — NÃO É CONTRATO CANÔNICO AINDA.
+        AcceptanceConfirmation é referenciado em cmd-confirm-commitment-
+        acceptance.fields do domain-model mas SEM shape canônico declarado.
+        Esta shape mínima inline ({acceptedAt + acceptedBy}) é provisória
+        para destravar o api.yaml; o contrato definitivo precisa nascer no
+        domain-model.cue antes do api.yaml ser tratado como autoridade.
+        Consumidores que dependam dessa shape devem revalidar quando a
+        formalização chegar.
+      required: [acceptedAt, acceptedBy]
+      properties:
+        acceptedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        acceptedBy:
+          $ref: '#/components/schemas/ParticipantId'
+
+    # ── Request bodies (mirror dos 6 commands EXPOSED de domain-model.cue) ──
+    # NOTA: cmd-clear-risk-flag e cmd-handle-dispute-resolution NÃO têm request
+    # schema aqui porque são INTERNAL-ONLY (policy-driven; ver info.description).
+    ProposeCommitmentRequest:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-propose-commitment'
+      type: object
+      required: [parties, contractTermsRef, scope]
+      properties:
+        parties:
+          $ref: '#/components/schemas/CommitmentParties'
+        contractTermsRef:
+          $ref: '#/components/schemas/ContractTermsRef'
+        scope:
+          $ref: '#/components/schemas/CommitmentScope'
+    ConfirmCommitmentAcceptanceRequest:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-confirm-commitment-acceptance'
+      type: object
+      required: [commitmentId, counterpartyConfirmation]
+      properties:
+        commitmentId:
+          $ref: '#/components/schemas/CommitmentId'
+        counterpartyConfirmation:
+          $ref: '#/components/schemas/AcceptanceConfirmation'
+    FlagAtRiskRequest:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-flag-at-risk'
+      type: object
+      required: [commitmentId, riskLevel]
+      properties:
+        commitmentId:
+          $ref: '#/components/schemas/CommitmentId'
+        riskLevel:
+          $ref: '#/components/schemas/RiskLevel'
+    SuspendCommitmentRequest:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-suspend-commitment'
+      type: object
+      required: [commitmentId, reason]
+      properties:
+        commitmentId:
+          $ref: '#/components/schemas/CommitmentId'
+        reason:
+          $ref: '#/components/schemas/StateChangeReason'
+    ReactivateCommitmentRequest:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-reactivate-commitment'
+      type: object
+      required: [commitmentId, reason]
+      properties:
+        commitmentId:
+          $ref: '#/components/schemas/CommitmentId'
+        reason:
+          $ref: '#/components/schemas/StateChangeReason'
+    CancelCommitmentRequest:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-cancel-commitment'
+      type: object
+      required: [commitmentId, reason]
+      properties:
+        commitmentId:
+          $ref: '#/components/schemas/CommitmentId'
+        reason:
+          $ref: '#/components/schemas/StateChangeReason'
+
+    # ── Response responses (events emitidos pelos commands EXPOSED) ──
+    CommitmentProposed:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentProposed'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/cmt
+        type:
+          type: string
+          const: mesh.cmt.commitment-proposed.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/cmt/schemas/events.cue#CommitmentProposed
+        data:
+          type: object
+          required: [commitmentId, parties, contractTermsRef, scope]
+          properties:
+            commitmentId:
+              $ref: '#/components/schemas/CommitmentId'
+            parties:
+              $ref: '#/components/schemas/CommitmentParties'
+            contractTermsRef:
+              $ref: '#/components/schemas/ContractTermsRef'
+            scope:
+              $ref: '#/components/schemas/CommitmentScope'
+    CommitmentAccepted:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentAccepted'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/cmt
+        type:
+          type: string
+          const: mesh.cmt.commitment-accepted.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/cmt/schemas/events.cue#CommitmentAccepted
+        data:
+          type: object
+          required: [commitmentId, parties, contractTermsRef, scope, acceptedAt]
+          properties:
+            commitmentId:
+              $ref: '#/components/schemas/CommitmentId'
+            parties:
+              $ref: '#/components/schemas/CommitmentParties'
+            contractTermsRef:
+              $ref: '#/components/schemas/ContractTermsRef'
+            scope:
+              $ref: '#/components/schemas/CommitmentScope'
+            acceptedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    CommitmentStateChanged:
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentStateChanged'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/cmt
+        type:
+          type: string
+          const: mesh.cmt.commitment-state-changed.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/cmt/schemas/events.cue#CommitmentStateChanged
+        data:
+          type: object
+          required: [commitmentId, previousState, newState, reason]
+          properties:
+            commitmentId:
+              $ref: '#/components/schemas/CommitmentId'
+            previousState:
+              $ref: '#/components/schemas/CommitmentState'
+            newState:
+              $ref: '#/components/schemas/CommitmentState'
+            reason:
+              $ref: '#/components/schemas/StateChangeReason'
+
+    # ── Projection response (qry-commitment-state) ──
+    CommitmentStateView:
+      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#projections.prj-commitment-state-view'
+      type: object
+      description: >
+        TODO/domain-gap — NÃO É CONTRATO CANÔNICO AINDA.
+        projection prj-commitment-state-view tem queryCapabilities declarado
+        mas SEM shape de output declarado no domain-model.cue. Esta shape
+        mínima inline (commitmentId + currentState) é provisória para
+        destravar o api.yaml; o contrato definitivo precisa nascer no
+        domain-model.cue antes do api.yaml ser tratado como autoridade.
+        Consumers (BDG/DLV/DRC/TCM) que precisem de campos adicionais devem
+        ser endereçados quando a projection formalizar o output.
+      required: [commitmentId, currentState]
+      properties:
+        commitmentId:
+          $ref: '#/components/schemas/CommitmentId'
+        currentState:
+          $ref: '#/components/schemas/CommitmentState'
