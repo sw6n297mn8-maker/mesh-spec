@@ -1,0 +1,244 @@
+asyncapi: '2.6.0'
+
+info:
+  title: Invoicing async surface
+  version: 0.1.0
+  description: >
+    Superfície assíncrona publicada pelo BC Invoicing (INV). Source canônica
+    de identidade: contexts/inv/canvas.cue. Bindings e servers ausentes por
+    design — ver architecture/deferred-decisions/def-023.
+    Money serializado como decimal-string não-negativo (divergente do CMT
+    int centavos por exigência fiscal/audit-grade) — ver
+    architecture/deferred-decisions/def-025 e header de
+    contexts/inv/schemas/events.cue.
+
+tags:
+  - name: mesh
+    description: bc=inv
+
+channels:
+  mesh.inv.invoice-issued.v1:
+    description: >
+      Canal versionado para o evento InvoiceIssued — fatura formalmente
+      emitida sob identity (commitmentRef, evidenceRef). Consumidores
+      descobertos via strategic/context-map.cue, relationships com
+      source.context=inv.
+    publish:
+      operationId: publishInvoiceIssued
+      message:
+        $ref: '#/components/messages/InvoiceIssued'
+
+  mesh.inv.receivable-materialized.v1:
+    description: >
+      Canal versionado para o evento ReceivableMaterialized — direito
+      creditório materializado atomicamente com InvoiceIssued (BD7).
+      Consumidores descobertos via strategic/context-map.cue,
+      relationships com source.context=inv.
+    publish:
+      operationId: publishReceivableMaterialized
+      message:
+        $ref: '#/components/messages/ReceivableMaterialized'
+
+  mesh.inv.invoice-cancelled.v1:
+    description: >
+      Canal versionado para o evento InvoiceCancelled — cancelamento
+      INV-owned dentro de janela fiscal regulada (G3 explicit-event-only).
+      Consumidores descobertos via strategic/context-map.cue,
+      relationships com source.context=inv.
+    publish:
+      operationId: publishInvoiceCancelled
+      message:
+        $ref: '#/components/messages/InvoiceCancelled'
+
+components:
+  messages:
+    InvoiceIssued:
+      name: InvoiceIssued
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/InvoiceIssued'
+
+    ReceivableMaterialized:
+      name: ReceivableMaterialized
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ReceivableMaterialized'
+
+    InvoiceCancelled:
+      name: InvoiceCancelled
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/InvoiceCancelled'
+
+  schemas:
+    InvoiceIssued:
+      x-mesh-cue-ref: 'contexts/inv/schemas/events.cue#InvoiceIssued'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/inv
+        type:
+          type: string
+          const: mesh.inv.invoice-issued.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/inv/schemas/events.cue#InvoiceIssued
+        data:
+          type: object
+          required: [invoiceId, commitmentRef, evidenceRef, amount, regimeVersion, fiscalDocRef, issuedAt]
+          properties:
+            invoiceId:
+              type: string
+              minLength: 1
+            commitmentRef:
+              type: string
+              minLength: 1
+              description: owned by CMT
+            evidenceRef:
+              type: string
+              minLength: 1
+              description: owned by DLV
+            amount:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:
+                  type: string
+                  pattern: '^[0-9]+(\.[0-9]+)?$'
+                  description: decimal-string não-negativo (audit-grade); divergente do CMT int centavos — ver def-025
+                currency:
+                  type: string
+                  pattern: '^[A-Z]{3}$'
+            regimeVersion:
+              type: string
+              minLength: 1
+            fiscalDocRef:
+              type: string
+              minLength: 1
+            issuedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+              description: >
+                Semantic timestamp — quando invoice nasceu canonicamente.
+                Mirror operacional para replay/audit; não é contrato canônico
+                ainda (TODO/domain-gap — ver header events.cue).
+
+    ReceivableMaterialized:
+      x-mesh-cue-ref: 'contexts/inv/schemas/events.cue#ReceivableMaterialized'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/inv
+        type:
+          type: string
+          const: mesh.inv.receivable-materialized.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/inv/schemas/events.cue#ReceivableMaterialized
+        data:
+          type: object
+          required: [receivableId, invoiceId, commitmentRef, amount, materializedAt]
+          properties:
+            receivableId:
+              type: string
+              minLength: 1
+            invoiceId:
+              type: string
+              minLength: 1
+            commitmentRef:
+              type: string
+              minLength: 1
+              description: owned by CMT
+            amount:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:
+                  type: string
+                  pattern: '^[0-9]+(\.[0-9]+)?$'
+                  description: decimal-string não-negativo (audit-grade); divergente do CMT int centavos — ver def-025
+                currency:
+                  type: string
+                  pattern: '^[A-Z]{3}$'
+            materializedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+              description: >
+                Semantic timestamp — quando receivable surgiu canonicamente.
+                Mirror operacional para replay/audit; não é contrato canônico
+                ainda (TODO/domain-gap — ver header events.cue).
+
+    InvoiceCancelled:
+      x-mesh-cue-ref: 'contexts/inv/schemas/events.cue#InvoiceCancelled'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/inv
+        type:
+          type: string
+          const: mesh.inv.invoice-cancelled.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/inv/schemas/events.cue#InvoiceCancelled
+        data:
+          type: object
+          required: [invoiceId, fiscalCancellationRef, reasonCode, cancelledAt]
+          properties:
+            invoiceId:
+              type: string
+              minLength: 1
+            fiscalCancellationRef:
+              type: string
+              minLength: 1
+            reasonCode:
+              type: string
+              minLength: 1
+              description: >
+                string (não enum); taxonomia em policy/regime/adapter, não
+                domain core (anti-mini-ATO).
+            cancelledAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+              description: >
+                Semantic timestamp — quando cancelamento foi efetivado.
+                Mirror operacional para replay/audit; não é contrato canônico
+                ainda (TODO/domain-gap — ver header events.cue).
