@@ -455,7 +455,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-019-events-bc-cross-file-check.cue",
 				"architecture/deferred-decisions/def-020-bcc-completeness-gate.cue",
 				"architecture/deferred-decisions/def-021-cross-context-flow-integration-events.cue",
-				"architecture/deferred-decisions/def-022-consolidate-event-envelope-money.cue"
+				"architecture/deferred-decisions/def-022-consolidate-event-envelope-money.cue",
+				"architecture/deferred-decisions/def-023-transport-bindings-pending-stack-adr.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
