@@ -1,12 +1,17 @@
 package cmt
 
+import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared_schemas"
 
 // schemas/events.cue — Payload schemas para os 11 eventos do BC CMT.
 //
-// Per WI-129 + def-022: envelope (CloudEvents-like subset, NÃO conformidade
-// formal a CloudEvents 1.0) e tipo Money são inline e locais ao CMT;
-// consolidação em architecture/shared-schemas/ é deferida pro 2º BC do slice
-// (DLV) — trigger em def-022.
+// Envelope CloudEvents-like subset consolidado em architecture/shared-schemas/
+// envelope.cue per def-022 (resolved em 2026-05-28 quando WI-130/DLV
+// materializou o 2º consumidor real). Aqui só aliases locais — VER COMENTÁRIO
+// NO ALIAS abaixo sobre proibição de override local.
+//
+// Money continua inline aqui (DLV não usa; aguardando 2º consumidor real
+// — provavelmente INV, possivelmente antes em BDG/BKR — via def-025
+// recortado do def-022 quando consolidação cross-BC executou só envelope).
 //
 // Refs cross-BC (RiskLevel, ParticipantId, ContractTermsId, PurchaseOrderRef,
 // DisputeRef, DisputeResolution) são opaque por design — não importamos
@@ -16,23 +21,19 @@ package cmt
 // (commands + events) mas ainda não tem shape canônico declarado; shape inline
 // local até formalização no domain-model.
 
-// ── Envelope (CloudEvents-like subset, inline per def-022) ──
+// ── Aliases para shared_schemas ──
 //
-// Sem campo `data` na base — cada evento adiciona `data` concretamente
-// tipado, impedindo envelope sem payload tipado. `...` permite a extensão
-// por evento sem afrouxar o shape dos campos declarados.
+// ATENÇÃO: estes aliases são apenas renomeio local — NÃO são pontos de
+// extensão. Adicionar overrides locais aqui (e.g., `#Envelope:
+// shared_schemas.#Envelope & { customField: ... }`) produz drift silencioso
+// vs outros BCs e quebra a consolidação cross-BC. Qualquer divergência local
+// deve virar tension-entry + revisita cross-BC antes — ver disciplina de
+// fronteira em architecture/shared-schemas/envelope.cue.
 
-#Envelope: {
-	id:          string & !=""
-	source:      string & =~"^mesh://contexts/[a-z][a-z0-9-]*$"
-	type:        string & !=""
-	envelopeVersion: "mesh-1"
-	time:        string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
-	dataschema?: string
-	...
-}
+#Envelope:         shared_schemas.#Envelope
+#RFC3339Timestamp: shared_schemas.#RFC3339Timestamp
 
-// ── Money (inline per def-022) ──
+// ── Money (inline per def-025; recortado do def-022) ──
 //
 // amount em centavos (int) para precisão exata; currency ISO 4217.
 
@@ -69,7 +70,7 @@ package cmt
 
 #ContractTermsRef: {
 	contractTermsId: #ContractTermsId
-	validatedAt:     string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+	validatedAt:     #RFC3339Timestamp
 }
 
 #CommitmentState: "proposed" | "accepted" | "at-risk" | "suspended" | "cancelled"
@@ -106,7 +107,7 @@ package cmt
 		parties:          #CommitmentParties
 		contractTermsRef: #ContractTermsRef
 		scope:            #CommitmentScope
-		acceptedAt:       string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+		acceptedAt:       #RFC3339Timestamp
 	}
 }
 
@@ -171,7 +172,7 @@ package cmt
 	type: "mesh.cmt.contract-terms-activated-received.v1"
 	data: {
 		contractTermsId: #ContractTermsId
-		effectiveFrom:   string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+		effectiveFrom:   #RFC3339Timestamp
 	}
 }
 
@@ -190,6 +191,6 @@ package cmt
 	data: {
 		contractTermsId: #ContractTermsId
 		reasonType:      string & !=""
-		cancelledAt:     string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+		cancelledAt:     #RFC3339Timestamp
 	}
 }
