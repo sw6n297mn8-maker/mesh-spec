@@ -1,0 +1,639 @@
+openapi: 3.0.3
+
+info:
+  title: Delivery & Verification sync surface
+  version: 0.1.0
+  description: >
+    Superfície síncrona do BC Delivery & Verification (DLV). Source canônica
+    de identidade: contexts/dlv/canvas.cue. Commands → POST RPC;
+    Queries → GET. Não usa REST resource-oriented (mesmo precedent de CMT).
+
+
+    Escopo: 2 commands sync + 2 query-surfaces. O 3º comando do
+    domain-model (cmd-transition-exception-state) é INTERNAL-ONLY por
+    design — timer-driven (BD6 14d exception-pending fail-safe), NÃO
+    é entry point externo; expor sync API para ele criaria dupla
+    autoridade sobre o lifecycle de exceção.
+
+
+    QueryVerificationStatus é INTERNAL — Not for downstream business
+    integration. Eligible consumers: sh-01/sh-02, DRC, audit tooling.
+    Cross-BC downstream (INV/REW/NIM) NÃO devem consumir; operam
+    apenas sobre terminal events (DeliveryVerified, DeliveryRejected)
+    per canvas BD8 + BD12 + BD6 contract limpo. Gate operacional final
+    materializa-se via def-024 (auth/scopes) quando ADR de stack chegar.
+
+
+    Timestamps de DOMÍNIO usam integer epoch ms (precedent DLV — ver
+    contexts/dlv/schemas/events.cue header sobre divergência vs CMT
+    RFC3339). Envelope.time mantém RFC3339 (consistência cross-BC via
+    shared-schemas/envelope.cue).
+
+
+    security e servers ausentes por design — ver
+    architecture/deferred-decisions/def-024.
+
+tags:
+  - name: mesh
+    description: bc=dlv
+
+paths:
+  /v1/dlv/commands/record-evidence:
+    post:
+      operationId: recordEvidence
+      summary: Ingestion command — cria EvidenceRecord embedded em Verification aggregate
+      description: >
+        Sync command direct ingestion path (alternativo ao event-driven
+        primário via EvidenceCommitted do LOG). Layer 1 integrity check
+        parser-time per BD11 — integrityProofRef DSSE-anchored obrigatório,
+        verificação local-first sem dependência de network. Falha integridade
+        → 422 sem side effects.
+
+
+        Response: RecordEvidenceAck (sync-only minimal contract). NÃO é
+        mirror de #EvidenceRecorded (que é evento DLV-INTERNAL per canvas
+        BD4 — listed em events.cue para satisfazer schema MinItems(1),
+        NÃO advertise como contrato público). Consumers async devem
+        consumir via event log canônico, não via este ack.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordEvidenceRequest'
+      responses:
+        '200':
+          description: Evidence registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordEvidenceAck'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/dlv/commands/evaluate-verification:
+    post:
+      operationId: evaluateVerification
+      summary: Core function — avalia EvidenceRecord contra criteriaVersion
+      description: >
+        Sync command core operation. Função pura sobre tripla causal
+        (evidence ingerida, criteriaVersion snapshot, integrityProof) per
+        BD1 RECTOR + BD9 Layer 1+2. Outcome binário verified | rejected
+        per BD7 anti-default; emit atomic per BD14.
+
+
+        Response: oneOf DeliveryVerified | DeliveryRejected — eventos
+        canônicos da rede, mutually exclusive per evaluation. Discriminator
+        é o field `type` (mesh.dlv.delivery-verified.v1 OR
+        mesh.dlv.delivery-rejected.v1). Estados intermediários internos
+        (evaluating-pending-criteria BD12; exception-pending BD6) NÃO
+        produzem immediate cross-BC event — sync contract Phase 0 assume
+        outcome terminal (canvas garante). Edge cases (criteria miss
+        pós-fallback; exception triggered durante sync) tratados como
+        503 Service Unavailable; comportamento exato refinado em
+        ADR futuro.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateVerificationRequest'
+      responses:
+        '200':
+          description: Verification decided (verified OR rejected — discriminado por `type`)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DeliveryVerified'
+                  - $ref: '#/components/schemas/DeliveryRejected'
+                discriminator:
+                  propertyName: type
+                  mapping:
+                    'mesh.dlv.delivery-verified.v1': '#/components/schemas/DeliveryVerified'
+                    'mesh.dlv.delivery-rejected.v1': '#/components/schemas/DeliveryRejected'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/dlv/queries/verification-status:
+    get:
+      operationId: queryVerificationStatus
+      summary: Status snapshot de verification por (commitmentRef, evidenceRef) — INTERNAL
+      description: >
+        Not for downstream business integration. Eligible consumers:
+        sh-01/sh-02, DRC, audit tooling.
+
+
+        Cross-BC downstream (INV/REW/NIM) NÃO DEVEM consumir — operam
+        apenas sobre terminal events (DeliveryVerified, DeliveryRejected)
+        per canvas BD8 + BD12 + BD6 contract limpo. Esta query EXPÕE
+        estados intermediários internos (evaluating-pending-criteria
+        BD12; exception-pending BD6) que NÃO fazem parte do contrato
+        público de integração downstream.
+
+
+        Retorna status atual de verification por tupla
+        (commitmentRef, evidenceRef): outcome (terminal OR intermediate),
+        criteriaVersion, reasonCode/retryPath se rejected, finalityAt,
+        exceptionHistory se aplicável.
+
+
+        Composite key em query params (não path) — refs são strings opacas
+        que podem conter `/`, `:` e outros chars especiais (e.g.,
+        mesh://contexts/...); query params suportam URL-encoding
+        naturalmente sem corromper path semantics.
+
+
+        Auth-restriction futura via def-024.
+      parameters:
+        - name: commitmentRef
+          in: query
+          required: true
+          description: Reference opaca a Commitment (owned by CMT); URL-encoded.
+          schema:
+            $ref: '#/components/schemas/CommitmentRef'
+        - name: evidenceRef
+          in: query
+          required: true
+          description: Reference opaca a Evidence (owned by DLV); URL-encoded.
+          schema:
+            $ref: '#/components/schemas/EvidenceRef'
+      responses:
+        '200':
+          description: Status snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationStatusView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/dlv/queries/evidence-ledger/{commitmentRef}:
+    get:
+      operationId: queryEvidenceLedger
+      summary: Trail completo de evidência + verificações por commitmentRef
+      description: >
+        Retorna lista canônica ordenada por eventLogOffset: EvidenceRecords
+        ingested (evidenceRef + recordedAt + integrityProofRef +
+        supersededByRef?) + Verifications emitidas (outcome +
+        criteriaVersion + decidedAt + finalityAt + reasonCode + retryPath
+        + exceptionHistory). Imutabilidade preservada per BD2 + BD3.
+
+
+        Consumidores legítimos: audit Lei 12.846/SCD/CVM + 5-year retention;
+        DRC dispute investigation; replay forensic engine. Audit-trail
+        focused (distinto de QueryVerificationStatus que é status-snapshot
+        focused para uso operacional interno).
+
+
+        commitmentRef em path (single key) — cache-friendly + REST-ish
+        padrão; URL-encoding standard per OpenAPI conventions.
+
+
+        TODO/Phase-0: sem pagination. Para trails longos, ADR futuro
+        definirá limit/cursor (provavelmente via header Link RFC 5988
+        OR query params).
+      parameters:
+        - name: commitmentRef
+          in: path
+          required: true
+          description: Reference opaca a Commitment (owned by CMT); URL-encoded.
+          schema:
+            $ref: '#/components/schemas/CommitmentRef'
+      responses:
+        '200':
+          description: Ledger completo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceLedgerView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Chave única gerada pelo cliente (UUID v4 recomendado) usada pelo
+        servidor para cachear resultado dentro de uma janela curta e detectar
+        retry — request repetido com mesma key retorna mesmo resultado sem
+        executar de novo. Padrão informal de mercado (RFC draft); janela
+        exata definida quando ADR de stack chegar.
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    BadRequest:
+      description: Request malformado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Invariante de domínio violado (e.g., BD11 integrity-proof-unverifiable-local)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServiceUnavailable:
+      description: >
+        Edge case Phase 0 — criteria cache miss pós-fallback OR exception
+        triggered durante sync evaluate-verification. Comportamento exato
+        refinado em ADR futuro.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Erro interno
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      description: >
+        RFC 7807 Problem Details. Cross-BC shared contract; NÃO customizar
+        por BC. additionalProperties=true porque RFC 7807 §3.2 permite
+        extensões por problem type — mas extensões só por coordenação
+        cross-BC (tension-entry), nunca fork local.
+      additionalProperties: true
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identificando o tipo do problema
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        traceId:
+          type: string
+          description: Correlation id para auditoria
+
+    # ── Value-objects do DLV (mirror de schemas/events.cue) ──
+    CommitmentRef:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#CommitmentRef'
+      type: string
+      minLength: 1
+      description: owned by CMT (opaque por design)
+
+    EvidenceRef:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#EvidenceRef'
+      type: string
+      minLength: 1
+      description: owned by DLV (local VO)
+
+    IntegrityProofRef:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#IntegrityProofRef'
+      type: string
+      minLength: 1
+      description: DSSE-anchored proof reference; MANDATORY per BD11
+
+    CriteriaVersion:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#CriteriaVersion'
+      type: string
+      minLength: 1
+
+    ReasonCode:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#ReasonCode'
+      type: string
+      minLength: 1
+
+    RetryPath:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#RetryPath'
+      type: string
+      minLength: 1
+
+    DecisionOutcome:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#DecisionOutcome'
+      type: string
+      minLength: 1
+
+    EventLogOffset:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#EventLogOffset'
+      type: integer
+      minimum: 0
+
+    ExceptionEntry:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#ExceptionEntry'
+      type: object
+      required: [reason, timestamp, triggeredBy]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+        timestamp:
+          type: integer
+          minimum: 0
+          description: epoch ms (assumido — ver header events.cue)
+        triggeredBy:
+          type: string
+          minLength: 1
+        resolvedAt:
+          type: integer
+          minimum: 0
+        resolution:
+          type: string
+          minLength: 1
+
+    # ── Command requests ──
+    RecordEvidenceRequest:
+      type: object
+      required: [commitmentRef, evidenceRef, integrityProofRef]
+      properties:
+        commitmentRef:
+          $ref: '#/components/schemas/CommitmentRef'
+        evidenceRef:
+          $ref: '#/components/schemas/EvidenceRef'
+        integrityProofRef:
+          $ref: '#/components/schemas/IntegrityProofRef'
+
+    EvaluateVerificationRequest:
+      type: object
+      required: [commitmentRef, evidenceRef]
+      properties:
+        commitmentRef:
+          $ref: '#/components/schemas/CommitmentRef'
+        evidenceRef:
+          $ref: '#/components/schemas/EvidenceRef'
+
+    # ── Command responses ──
+    RecordEvidenceAck:
+      type: object
+      description: >
+        Sync-only ack contract. NÃO é mirror de #EvidenceRecorded (evento
+        DLV-INTERNAL per canvas BD4). 3 fields canônicos: identity tuple
+        (commitmentRef, evidenceRef) + recordedAt (epoch ms, consistente
+        com DLV domain timestamps). Consumers async devem usar event log
+        canônico, não este ack.
+      required: [commitmentRef, evidenceRef, recordedAt]
+      properties:
+        commitmentRef:
+          $ref: '#/components/schemas/CommitmentRef'
+        evidenceRef:
+          $ref: '#/components/schemas/EvidenceRef'
+        recordedAt:
+          type: integer
+          minimum: 0
+          description: epoch ms
+
+    DeliveryVerified:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#DeliveryVerified'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/dlv
+        type:
+          type: string
+          const: mesh.dlv.delivery-verified.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/dlv/schemas/events.cue#DeliveryVerified
+        data:
+          type: object
+          required: [commitmentRef, evidenceRef, criteriaVersion, decidedAt, finalityAt, decidedBy, integrityProofRef, eventLogOffset]
+          properties:
+            commitmentRef:
+              $ref: '#/components/schemas/CommitmentRef'
+            evidenceRef:
+              $ref: '#/components/schemas/EvidenceRef'
+            criteriaVersion:
+              $ref: '#/components/schemas/CriteriaVersion'
+            decidedAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            finalityAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            decidedBy:
+              type: string
+              minLength: 1
+            integrityProofRef:
+              $ref: '#/components/schemas/IntegrityProofRef'
+            supersededByRef:
+              $ref: '#/components/schemas/EvidenceRef'
+            eventLogOffset:
+              $ref: '#/components/schemas/EventLogOffset'
+
+    DeliveryRejected:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#DeliveryRejected'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/dlv
+        type:
+          type: string
+          const: mesh.dlv.delivery-rejected.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/dlv/schemas/events.cue#DeliveryRejected
+        data:
+          type: object
+          required: [commitmentRef, evidenceRef, criteriaVersion, reasonCode, retryPath, decidedAt, finalityAt, decidedBy, integrityProofRef, eventLogOffset]
+          properties:
+            commitmentRef:
+              $ref: '#/components/schemas/CommitmentRef'
+            evidenceRef:
+              $ref: '#/components/schemas/EvidenceRef'
+            criteriaVersion:
+              $ref: '#/components/schemas/CriteriaVersion'
+            reasonCode:
+              $ref: '#/components/schemas/ReasonCode'
+            retryPath:
+              $ref: '#/components/schemas/RetryPath'
+            decidedAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            finalityAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            decidedBy:
+              type: string
+              minLength: 1
+            integrityProofRef:
+              $ref: '#/components/schemas/IntegrityProofRef'
+            supersededByRef:
+              $ref: '#/components/schemas/EvidenceRef'
+            eventLogOffset:
+              $ref: '#/components/schemas/EventLogOffset'
+
+    # ── Query views (sync-only projections — NÃO mirrors de events.cue) ──
+    VerificationStatusView:
+      type: object
+      description: >
+        Sync-only projection de internal aggregate state + event log.
+        Expõe estados intermediários (evaluating-pending-criteria,
+        exception-pending) que NÃO aparecem em terminal events
+        cross-BC. INTERNAL audience — ver description do endpoint.
+      required: [commitmentRef, evidenceRef, outcome]
+      properties:
+        commitmentRef:
+          $ref: '#/components/schemas/CommitmentRef'
+        evidenceRef:
+          $ref: '#/components/schemas/EvidenceRef'
+        outcome:
+          type: string
+          enum: [verified, rejected, evaluating-pending-criteria, exception-pending]
+        criteriaVersion:
+          $ref: '#/components/schemas/CriteriaVersion'
+        reasonCode:
+          $ref: '#/components/schemas/ReasonCode'
+          description: presente apenas se outcome=rejected
+        retryPath:
+          $ref: '#/components/schemas/RetryPath'
+          description: presente apenas se outcome=rejected
+        finalityAt:
+          type: integer
+          minimum: 0
+          description: epoch ms; presente apenas se outcome terminal (verified|rejected)
+        exceptionHistory:
+          type: array
+          description: presente se houve transições por exception-pending
+          items:
+            $ref: '#/components/schemas/ExceptionEntry'
+
+    EvidenceLedgerView:
+      type: object
+      description: >
+        Sync-only projection canonical-ordered (eventLogOffset asc) de
+        evidência ingerida + verificações emitidas para um commitmentRef.
+        Audit-trail focused. TODO/Phase-0: sem pagination — ver
+        description do endpoint.
+      required: [commitmentRef, evidenceRecords, verifications]
+      properties:
+        commitmentRef:
+          $ref: '#/components/schemas/CommitmentRef'
+        evidenceRecords:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceRecordView'
+        verifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationView'
+
+    EvidenceRecordView:
+      type: object
+      description: Projection-only — mirror parcial de #EvidenceRecorded.data sem envelope.
+      required: [evidenceRef, recordedAt, integrityProofRef, eventLogOffset]
+      properties:
+        evidenceRef:
+          $ref: '#/components/schemas/EvidenceRef'
+        recordedAt:
+          type: integer
+          minimum: 0
+          description: epoch ms
+        integrityProofRef:
+          $ref: '#/components/schemas/IntegrityProofRef'
+        supersededByRef:
+          $ref: '#/components/schemas/EvidenceRef'
+        eventLogOffset:
+          $ref: '#/components/schemas/EventLogOffset'
+
+    VerificationView:
+      type: object
+      description: >
+        Projection-only de Verification aggregate state. Expõe outcome
+        terminal OR intermediate, mais histórico de exceção quando
+        aplicável. NÃO é envelope de evento.
+      required: [evidenceRef, outcome, eventLogOffset]
+      properties:
+        evidenceRef:
+          $ref: '#/components/schemas/EvidenceRef'
+        outcome:
+          type: string
+          enum: [verified, rejected, evaluating-pending-criteria, exception-pending]
+        criteriaVersion:
+          $ref: '#/components/schemas/CriteriaVersion'
+        decidedAt:
+          type: integer
+          minimum: 0
+          description: epoch ms; presente apenas se outcome terminal
+        finalityAt:
+          type: integer
+          minimum: 0
+          description: epoch ms; presente apenas se outcome terminal
+        reasonCode:
+          $ref: '#/components/schemas/ReasonCode'
+        retryPath:
+          $ref: '#/components/schemas/RetryPath'
+        exceptionHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExceptionEntry'
+        eventLogOffset:
+          $ref: '#/components/schemas/EventLogOffset'

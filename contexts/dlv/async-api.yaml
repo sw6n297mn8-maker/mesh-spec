@@ -1,0 +1,207 @@
+asyncapi: '2.6.0'
+
+info:
+  title: Delivery & Verification async surface
+  version: 0.1.0
+  description: >
+    Superfície assíncrona publicada pelo BC Delivery & Verification (DLV).
+    Source canônica de identidade: contexts/dlv/canvas.cue. Bindings e
+    servers ausentes por design — ver
+    architecture/deferred-decisions/def-023.
+
+
+    Escopo: APENAS 2 dos 7 eventos do contexts/dlv/schemas/events.cue são
+    publicados cross-BC: DeliveryVerified e DeliveryRejected (terminal
+    outcomes per canvas BD7 anti-default). Os 5 restantes são
+    INTERNAL-ONLY por design — definidos em events.cue para replay/audit/
+    coordenação interna, NÃO advertise como contrato público:
+
+    - EvidenceRecorded — DLV-internal per BD4 ingestion-evaluation
+      separation (marker de aggregate creation; sync ack via
+      RecordEvidenceAck no api.yaml é o contract público)
+    - ExceptionEntered, ExceptionExtended, ExceptionResolved —
+      DLV-internal per BD6 exception-pending lifecycle (estados
+      intermediários NÃO surfaceiam cross-BC; consumers downstream
+      operam apenas sobre terminal events)
+    - SupersessionApplied — DLV-internal per BD5 supersession lineage
+      (marker de lineage interno; nova evaluation aprovada gera
+      DeliveryVerified novo via tupla distinta — esse SIM é
+      cross-BC)
+
+
+    Timestamps de DOMÍNIO em integer epoch ms (precedent DLV — ver
+    contexts/dlv/schemas/events.cue header). Envelope.time mantém
+    RFC3339 via shared-schemas/envelope.cue.
+
+tags:
+  - name: mesh
+    description: bc=dlv
+
+channels:
+  mesh.dlv.delivery-verified.v1:
+    description: >
+      Canal versionado para o evento DeliveryVerified — outcome terminal
+      verified per canvas BD7 anti-default + BD14 atomic emit. Consumidores
+      cross-BC descobertos via strategic/context-map.cue, relationships
+      com source.context=dlv (typically INV/REW/NIM para downstream
+      financial materialization).
+    publish:
+      operationId: publishDeliveryVerified
+      message:
+        $ref: '#/components/messages/DeliveryVerified'
+
+  mesh.dlv.delivery-rejected.v1:
+    description: >
+      Canal versionado para o evento DeliveryRejected — outcome terminal
+      rejected per canvas BD7 anti-default + BD14 atomic emit + BD13 retry
+      path deterministic. Consumidores descobertos via
+      strategic/context-map.cue.
+    publish:
+      operationId: publishDeliveryRejected
+      message:
+        $ref: '#/components/messages/DeliveryRejected'
+
+components:
+  messages:
+    DeliveryVerified:
+      name: DeliveryVerified
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/DeliveryVerified'
+
+    DeliveryRejected:
+      name: DeliveryRejected
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/DeliveryRejected'
+
+  schemas:
+    DeliveryVerified:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#DeliveryVerified'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/dlv
+        type:
+          type: string
+          const: mesh.dlv.delivery-verified.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/dlv/schemas/events.cue#DeliveryVerified
+        data:
+          type: object
+          required: [commitmentRef, evidenceRef, criteriaVersion, decidedAt, finalityAt, decidedBy, integrityProofRef, eventLogOffset]
+          properties:
+            commitmentRef:
+              type: string
+              minLength: 1
+              description: owned by CMT
+            evidenceRef:
+              type: string
+              minLength: 1
+              description: owned by DLV
+            criteriaVersion:
+              type: string
+              minLength: 1
+            decidedAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            finalityAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            decidedBy:
+              type: string
+              minLength: 1
+            integrityProofRef:
+              type: string
+              minLength: 1
+              description: DSSE-anchored proof reference
+            supersededByRef:
+              type: string
+              minLength: 1
+              description: optional — presente apenas em supersession lineage
+            eventLogOffset:
+              type: integer
+              minimum: 0
+
+    DeliveryRejected:
+      x-mesh-cue-ref: 'contexts/dlv/schemas/events.cue#DeliveryRejected'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/dlv
+        type:
+          type: string
+          const: mesh.dlv.delivery-rejected.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/dlv/schemas/events.cue#DeliveryRejected
+        data:
+          type: object
+          required: [commitmentRef, evidenceRef, criteriaVersion, reasonCode, retryPath, decidedAt, finalityAt, decidedBy, integrityProofRef, eventLogOffset]
+          properties:
+            commitmentRef:
+              type: string
+              minLength: 1
+              description: owned by CMT
+            evidenceRef:
+              type: string
+              minLength: 1
+              description: owned by DLV
+            criteriaVersion:
+              type: string
+              minLength: 1
+            reasonCode:
+              type: string
+              minLength: 1
+            retryPath:
+              type: string
+              minLength: 1
+            decidedAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            finalityAt:
+              type: integer
+              minimum: 0
+              description: epoch ms
+            decidedBy:
+              type: string
+              minLength: 1
+            integrityProofRef:
+              type: string
+              minLength: 1
+              description: DSSE-anchored proof reference
+            supersededByRef:
+              type: string
+              minLength: 1
+              description: optional — presente apenas em supersession lineage
+            eventLogOffset:
+              type: integer
+              minimum: 0

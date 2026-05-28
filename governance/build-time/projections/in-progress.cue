@@ -12,7 +12,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 //   - WI-070 (claimed 2026-05-07T20:01:00Z; expires 2026-05-15T20:01:00Z)
 
 inProgressProjection: {
-	rebuiltAt: "2026-05-28T19:29:52Z"
+	rebuiltAt: "2026-05-28T19:51:19Z"
 	entries: [...build_time.#InProgressEntry] & [{
 		taskId:         "WI-070"
 		version:        1
