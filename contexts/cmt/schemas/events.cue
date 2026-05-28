@@ -26,7 +26,7 @@ package cmt
 	id:          string & !=""
 	source:      string & =~"^mesh://contexts/[a-z][a-z0-9-]*$"
 	type:        string & !=""
-	specversion: "1.0"
+	envelopeVersion: "mesh-1"
 	time:        string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
 	dataschema?: string
 	...
@@ -87,7 +87,7 @@ package cmt
 // cross-BC é governada por contracts/strategic/context-map.cue, não por
 // presença/ausência do payload aqui.
 
-// evt-commitment-proposed — visibility: internal
+// evt-commitment-proposed
 #CommitmentProposed: #Envelope & {
 	type: "mesh.cmt.commitment-proposed.v1"
 	data: {
