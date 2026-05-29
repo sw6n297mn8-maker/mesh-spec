@@ -272,6 +272,7 @@ package artifact_schemas
 	events?:   _|_
 	commands?: _|_
 	queries?:  _|_
+	kind?:     #RelationshipKind
 }
 
 // Relação com communication declarada.
@@ -283,6 +284,7 @@ package artifact_schemas
 #BaseRelationshipWithCommunication: #_RelationshipCore & {
 	communication: #CommunicationPattern
 	#FlowPayload
+	kind?: #RelationshipKind
 }
 
 #BaseRelationship:
@@ -591,6 +593,12 @@ package artifact_schemas
 	exists:                true
 	reverseRelationshipId: string & =~"^[a-z][a-z0-9-]*$"
 	loopSemantics:         string & !=""
+	// Categorização machine-evaluable da natureza do loop (adr-118).
+	// Opcional em PR-1 (schema extension); aplicação em arestas concretas
+	// vem em PR-3 do plano registrado em def-026/def-027.
+	// loopSemantics permanece como descrição em prose; kind é a
+	// dimensão categorical complementar (typed enum).
+	kind?: #FeedbackLoopKind
 }
 
 #ConformistCascadeRisk: {
@@ -608,3 +616,37 @@ package artifact_schemas
 #CrossContextFlowRef:       string & =~"^[a-z][a-z0-9-]*$"
 #DomainLevelTransversalRef: string & =~"^[a-z][a-z0-9-]*$"
 #NonEmptyString:            string & !=""
+
+// ==============================
+// KINDS (categorização machine-evaluable, adr-118 + adr-119)
+// ==============================
+
+// #FeedbackLoopKind — categoria do loop bidirecional declarado em
+// #ActiveFeedbackLoop. Complementa loopSemantics (prose) com dimensão
+// typed. Per adr-118: 1 valor inicial; expansão via ADRs follow-on
+// quando padrão concreto adicional surgir (pattern adr-049/056/063 de
+// minimalismo).
+//
+// Valores:
+//   bidirectional-orchestration — par BC↔BC onde cada lado publica
+//     eventos para o outro consumir como orquestração sequencial
+//     (publish-react bilateral), distinto de partnership (shared
+//     kernel) e de OHS (one-way data flow). Primeiro consumidor:
+//     drc↔cmt (sc-cm-07 W1, ciclo declarado via feedbackLoop em
+//     ambas arestas; documentação no canvas CMT + subdomain DRC).
+#FeedbackLoopKind: "bidirectional-orchestration"
+
+// #RelationshipKind — categoria opcional de relationship cross-BC
+// que complementa direction (upstream-downstream | mutual-dependency)
+// + patterns (OHS/ACL/etc.) com dimensão semântica sobre NATUREZA do
+// acoplamento. Per adr-119: 1 valor inicial; expansão via ADRs
+// follow-on (pattern adr-049/056/063).
+//
+// Valores:
+//   policy-reaction — relação onde upstream PUBLICA decisão/sinal
+//     (notification) e downstream REAGE via policy interna,
+//     distinto de dependência estrutural de dados. Upstream
+//     "produz decisões; downstream executa OU ignora conforme
+//     policy local". Primeiro consumidor: rew-to-cmt (sc-cm-07 W2,
+//     RiskAlertRaised/Resolved per canvas REW "decisão ≠ execução").
+#RelationshipKind: "policy-reaction"
