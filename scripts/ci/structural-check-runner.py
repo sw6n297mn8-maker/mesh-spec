@@ -513,7 +513,7 @@ def ev_directed_acyclicity(rule,c):
                 # Union discriminada por presença do operator field (adr-117 + adr-120 + adr-121):
                 #   {path, equals: string}    → aresta passa se valor == equals
                 #   {path, exists: bool}      → aresta passa se field é presente quando true, ou ausente quando false
-                #   {path, notEquals: string} → aresta passa se valor != notEquals (ausente passa vacuously)
+                #   {path, notEquals: string} → aresta passa se valor != notEquals; ausente passa vacuously
                 if "equals" in fl:
                     if dotget(item,fl["path"]) != fl["equals"]:
                         ok=False; break
