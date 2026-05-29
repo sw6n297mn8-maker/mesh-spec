@@ -131,6 +131,12 @@ def028: artifact_schemas.#DeferredDecision & {
 		- PR-3: aplicação nas arestas concretas do context-map (para família
 		  A) + scan complementar para outras query-surfaces + promoção
 		  sc-cm-07 warn → reject
+
+		Pattern atualizado em PR-2 (adr-120) de communication.type para
+		exists:\\s*true refletindo a implementação final Opção β (events
+		exists via capability nova) em vez do critério 3-condições Família
+		B original. Refinamento preserva acoplamento entre trigger e
+		realidade materializada — evita precedente de triggers silenciosos.
 		"""
 
 	originatingArtifacts: [
@@ -172,7 +178,7 @@ def028: artifact_schemas.#DeferredDecision & {
 		condition: {
 			kind:    "file-contains"
 			path:    "architecture/structural-checks/context-map.cue"
-			pattern: "communication.type"
+			pattern: "exists:\\s*true"
 		}
 	}]
 }

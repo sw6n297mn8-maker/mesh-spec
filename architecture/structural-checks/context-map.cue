@@ -104,7 +104,7 @@ structuralChecks: {
 		id:           "sc-cm-07"
 		title:        "Grafo de dependência cross-BC é acíclico"
 		artifactType: "context-map"
-		description:  "Para o subgrafo de relationships com direction='upstream-downstream' entre dois bounded-contexts, o grafo dirigido de dependência (downstream → upstream) deve ser acíclico. Relações 'mutual-dependency' (partnership, shared-kernel) e relações com external-systems são excluídas por design — não representam dependência direcionada. Ciclo no grafo restante indica acoplamento circular entre BCs. Primeiro consumidor do kind directed-acyclicity (adr-117)."
+		description:  "Para o subgrafo de relationships com direction='upstream-downstream' entre dois bounded-contexts E que publicam events, o grafo dirigido de dependência (downstream → upstream) deve ser acíclico. Excluídas por design: (a) relações 'mutual-dependency' (partnership, shared-kernel — simétricas); (b) relações com external-systems (não-nós do grafo BC↔BC); (c) query-surfaces — arestas sem events declarados (sync queries são call-site operacional, não dependência arquitetural cross-BC, per adr-120). Primeiro consumidor do kind directed-acyclicity (adr-117)."
 		kind:         "directed-acyclicity"
 		rule: {
 			nodesPath:  "contexts[].context"
@@ -115,10 +115,11 @@ structuralChecks: {
 				{path: "direction", equals:   "upstream-downstream"},
 				{path: "source.kind", equals: "bounded-context"},
 				{path: "target.kind", equals: "bounded-context"},
+				{path: "events", exists: true},
 			]
 		}
 		errorMessage: "context-map: ciclo de dependência entre bounded-contexts detectado. Cada nó do caminho depende do próximo (downstream → upstream). Avaliar se a aresta deveria ser direction='mutual-dependency' (partnership/shared-kernel), se uma policy reaction está sendo modelada como dependência direta, ou se há acoplamento circular genuíno a resolver via redesenho de fronteira."
-		rationale:    "DDD orthodoxy + dp-03 (blast radius): bounded contexts são unidades de isolamento; dependência circular cross-BC quebra o isolamento e torna o grafo de deploy não-topologicamente-ordenável. Os sc-cm-01..06 garantem integridade referencial das relações; nenhum enxerga o fechamento transitivo. Born-warn (catraca adr-097) porque há 4 ciclos no grafo atual (2026-05-28; adr-117 documenta); promoção para reject depende de cada ciclo ser resolvido em PR de modelagem separado."
+		rationale:    "DDD orthodoxy + dp-03 (blast radius): bounded contexts são unidades de isolamento; dependência circular cross-BC quebra o isolamento e torna o grafo de deploy não-topologicamente-ordenável. Os sc-cm-01..06 garantem integridade referencial das relações; nenhum enxerga o fechamento transitivo. Born-warn (catraca adr-097) — 4 ciclos no grafo original (2026-05-28; adr-117 documenta); adr-120 (PR-2 cycle-resolution) adiciona filter events:exists → resolve W4 (fce↔tcm via tcm-to-fce query-surface) + internaliza scan complementar de outras query-surfaces (idc-to-log, idc-to-dlv, npm-to-ctr — benignas); restam W1/W2/W3 aguardando PR-3 (Família A applied)."
 		enforcement: "warn"
 	}
 }
