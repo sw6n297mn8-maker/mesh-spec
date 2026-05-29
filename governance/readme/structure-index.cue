@@ -459,7 +459,10 @@ structureIndex: {
 				"architecture/deferred-decisions/def-022-consolidate-event-envelope-money.cue",
 				"architecture/deferred-decisions/def-023-transport-bindings-pending-stack-adr.cue",
 				"architecture/deferred-decisions/def-024-api-yaml-auth-servers-pending-adr.cue",
-				"architecture/deferred-decisions/def-025-money-consolidation-pending-2nd-consumer.cue"
+				"architecture/deferred-decisions/def-025-money-consolidation-pending-2nd-consumer.cue",
+				"architecture/deferred-decisions/def-026-cmt-drc-bidirectional-orchestration.cue",
+				"architecture/deferred-decisions/def-027-rew-cmt-policy-reaction.cue",
+				"architecture/deferred-decisions/def-028-fce-tcm-sync-query-filter.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
