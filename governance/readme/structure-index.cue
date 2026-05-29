@@ -130,7 +130,8 @@ structureIndex: {
 				"architecture/adrs/adr-121-edge-filter-notequals-operator.cue",
 				"architecture/adrs/adr-122-apply-cycle-resolution-kinds.cue",
 				"architecture/adrs/adr-123-promote-acyclicity-check-to-reject.cue",
-				"architecture/adrs/adr-124-add-policy-execution-feedback-to-feedback-loop-kind.cue"
+				"architecture/adrs/adr-124-add-policy-execution-feedback-to-feedback-loop-kind.cue",
+				"architecture/adrs/adr-125-derivation-of-bounded-contexts.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -469,7 +470,9 @@ structureIndex: {
 				"architecture/deferred-decisions/def-025-money-consolidation-pending-2nd-consumer.cue",
 				"architecture/deferred-decisions/def-026-cmt-drc-bidirectional-orchestration.cue",
 				"architecture/deferred-decisions/def-027-rew-cmt-policy-reaction.cue",
-				"architecture/deferred-decisions/def-028-fce-tcm-sync-query-filter.cue"
+				"architecture/deferred-decisions/def-028-fce-tcm-sync-query-filter.cue",
+				"architecture/deferred-decisions/def-029-validation-prompt-bc-derivation.cue",
+				"architecture/deferred-decisions/def-030-pg-coverage-design-principle.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
