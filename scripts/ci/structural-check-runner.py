@@ -510,8 +510,18 @@ def ev_directed_acyclicity(rule,c):
             if not isinstance(item,dict): continue
             ok=True
             for fl in rule.get("edgeFilters",[]):
-                if dotget(item,fl["path"]) != fl["equals"]:
-                    ok=False; break
+                # Union discriminada por presença do operator field (adr-117 + adr-120):
+                #   {path, equals: string} → aresta passa se valor == equals
+                #   {path, exists: bool}   → aresta passa se field é presente quando true, ou ausente quando false
+                if "equals" in fl:
+                    if dotget(item,fl["path"]) != fl["equals"]:
+                        ok=False; break
+                elif "exists" in fl:
+                    present = dotget(item,fl["path"]) is not None
+                    if fl["exists"] and not present:
+                        ok=False; break
+                    if (not fl["exists"]) and present:
+                        ok=False; break
             if not ok: continue
             src=dotget(item,rule["edgeSource"])
             tgt=dotget(item,rule["edgeTarget"])
@@ -766,14 +776,40 @@ def self_test():
     checks=load_checks()
     da_results=ev_directed_acyclicity(checks["sc-g-01"]["rule"],checks["sc-g-01"])
     # Espera EXATAMENTE 1 ciclo em cycle2 + 1 ciclo em cycle4; acyclic e filtered -> nada.
+    # sc-g-01 usa equals — regression case para o operator pre-adr-120 continuar funcionando.
     da_paths=sorted(da_results)
     da_a_ok=not any("acyclic.cue" in r for r in da_results)
     da_b_ok=any("cycle2.cue" in r and "X -> Y -> X" in r for r in da_results) or any("cycle2.cue" in r and "Y -> X -> Y" in r for r in da_results)
     da_c_ok=any("cycle4.cue" in r and "ciclo de dependencia (4 aresta(s))" in r for r in da_results)
     da_d_ok=not any("filtered.cue" in r for r in da_results)
     daok = da_a_ok and da_b_ok and da_c_ok and da_d_ok
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths}")
+    # directed-acyclicity exists operator (adr-120): novo operator + AND com equals.
+    # sc-g-02 usa só {path:"events", exists:true} — exclui arestas sem events.
+    # sc-g-03 usa AND-composto [{path:"kind",equals:"hard"}, {path:"events",exists:true}].
+    # sc-g-04 usa {path:"events", exists:false} — inverso: exclui arestas COM events.
+    w("architecture/structural-checks/g2.cue",'package structural_checks\nstructuralChecks:{"sc-g-02":{id:"sc-g-02",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"events",exists:true}]},errorMessage:"e",rationale:"r"},"sc-g-03":{id:"sc-g-03",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"kind",equals:"hard"},{path:"events",exists:true}]},errorMessage:"e",rationale:"r"},"sc-g-04":{id:"sc-g-04",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"events",exists:false}]},errorMessage:"e",rationale:"r"}}\n')
+    # exists-presente: aresta com events presente passa filter (sc-g-02); ciclo gerado pela aresta deve ser detectado
+    w("graphs/exist-pres.cue",'package graphs\ng:{name:"ep",nodes:[{id:"A"},{id:"B"}],edges:[{from:"A",to:"B",events:["E1"]},{from:"B",to:"A",events:["E2"]}]}\n')
+    # exists-true-ausente-exclui: aresta SEM events seria cíclica mas é filtrada (sc-g-02)
+    w("graphs/exist-abs.cue",'package graphs\ng:{name:"ea",nodes:[{id:"C"},{id:"D"}],edges:[{from:"C",to:"D",events:["E1"]},{from:"D",to:"C"}]}\n')
+    # exists-false-passa: aresta sem events passa o inverso filter (sc-g-04); ciclo via aresta sem events deve ser detectado
+    w("graphs/exist-inv.cue",'package graphs\ng:{name:"ei",nodes:[{id:"M"},{id:"N"}],edges:[{from:"M",to:"N"},{from:"N",to:"M"}]}\n')
+    _loc_cache.clear(); _art_cache.clear()
+    checks=load_checks()
+    # sc-g-02 exists:true → exist-pres.cue ambas arestas têm events → ciclo detectado; exist-abs.cue aresta D→C sem events filtrada → sem ciclo
+    g2_res=ev_directed_acyclicity(checks["sc-g-02"]["rule"],checks["sc-g-02"])
+    g2_pres_ok=any("exist-pres.cue" in r and "A -> B -> A" in r for r in g2_res) or any("exist-pres.cue" in r and "B -> A -> B" in r for r in g2_res)
+    g2_abs_ok=not any("exist-abs.cue" in r for r in g2_res)
+    # sc-g-03 AND-composto (equals + exists) — em exist-pres.cue arestas não têm kind, então filter "kind==hard" rejeita; grafo vazio; sem ciclo
+    g3_res=ev_directed_acyclicity(checks["sc-g-03"]["rule"],checks["sc-g-03"])
+    g3_ok=not any("exist-pres.cue" in r for r in g3_res)
+    # sc-g-04 exists:false → exist-inv.cue ambas arestas sem events passam filter → ciclo detectado; exist-pres.cue todas com events filtradas → sem ciclo
+    g4_res=ev_directed_acyclicity(checks["sc-g-04"]["rule"],checks["sc-g-04"])
+    g4_inv_ok=any("exist-inv.cue" in r for r in g4_res)
+    g4_pres_excluded_ok=not any("exist-pres.cue" in r for r in g4_res)
+    existsok = g2_pres_ok and g2_abs_ok and g3_ok and g4_inv_ok and g4_pres_excluded_ok
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok and existsok
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths} existsok={existsok} g2={g2_res} g3={g3_res} g4={g4_res}")
     return 0 if ok else 1
 
 if __name__=="__main__":

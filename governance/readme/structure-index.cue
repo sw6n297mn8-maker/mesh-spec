@@ -125,7 +125,8 @@ structureIndex: {
 				"architecture/adrs/adr-116-hybrid-operating-model.cue",
 				"architecture/adrs/adr-117-add-directed-acyclicity-kind-to-structural-check.cue",
 				"architecture/adrs/adr-118-add-bidirectional-orchestration-to-feedback-loop-kind.cue",
-				"architecture/adrs/adr-119-add-policy-reaction-to-relationship-kind.cue"
+				"architecture/adrs/adr-119-add-policy-reaction-to-relationship-kind.cue",
+				"architecture/adrs/adr-120-edge-filter-exists-operator.cue"
 			],
 			"schema": "#ADRBase"
 		},

@@ -629,14 +629,24 @@ _#StructuralCheckBase: {
 	edgeTarget: string & !=""
 
 	// Filtros AND-compostos: aresta entra no grafo apenas se TODOS os
-	// {path, equals} casarem. path resolve DENTRO de cada item de
-	// edgesPath; equals é igualdade exata de string. Lista vazia = nenhum
-	// filtro (todas as arestas entram). Ex. context-map: filtra direction=
-	// "upstream-downstream" + source/target.kind="bounded-context" — exclui
-	// mutual-dependency (partnership/shared-kernel, simétricas por design)
-	// e arestas com external-systems (não-nós do grafo BC↔BC).
-	edgeFilters: [...{
+	// filters casarem. path resolve DENTRO de cada item de edgesPath.
+	// Lista vazia = nenhum filtro (todas as arestas entram). Cada filter
+	// é union discriminada por presença do field operator:
+	//   - {path, equals: string}: aresta passa se valor == equals
+	//     (igualdade exata de string). Operator original (adr-117).
+	//   - {path, exists: bool}: aresta passa se field presente (true) ou
+	//     ausente (false) per dotget resolução. Operator novo (adr-120)
+	//     para distinguir presence/absence em filters declarativos.
+	// Ex. context-map: filtra direction="upstream-downstream" + source/
+	// target.kind="bounded-context" (equals; exclui mutual-dependency e
+	// arestas com external-systems) + events presente (exists:true;
+	// exclui query-surfaces — call-site operacional ≠ dependência
+	// arquitetural cross-BC, per adr-120).
+	edgeFilters: [...({
 		path:   string & !=""
 		equals: string & !=""
-	}]
+	} | {
+		path:   string & !=""
+		exists: bool
+	})]
 }
