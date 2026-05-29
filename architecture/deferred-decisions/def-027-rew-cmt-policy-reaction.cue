@@ -6,7 +6,9 @@ def027: artifact_schemas.#DeferredDecision & {
 	id:     "def-027"
 	title:  "Resolver ciclo cmt→rew→dlv→bdg→cmt (sc-cm-07 W2) — policy-reaction como relationship.kind"
 	date:   "2026-05-29"
-	status: "open"
+	status: "resolved"
+
+	resolvedBy: "architecture/adrs/adr-122-apply-cycle-resolution-kinds.cue"
 
 	description: """
 		sc-cm-07 (directed-acyclicity, adr-117) detectou 4 ciclos. Este

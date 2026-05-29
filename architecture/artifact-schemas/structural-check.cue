@@ -637,16 +637,33 @@ _#StructuralCheckBase: {
 	//   - {path, exists: bool}: aresta passa se field presente (true) ou
 	//     ausente (false) per dotget resolução. Operator novo (adr-120)
 	//     para distinguir presence/absence em filters declarativos.
+	//   - {path, notEquals: string}: aresta passa se valor != notEquals;
+	//     ausente passa vacuously. Operator novo (adr-121) para excluir
+	//     arestas por valor typed (dual de equals, semântica Python-aligned).
+	//
+	// Tabela de verdade (per adr-121):
+	//   equals: X    — presente casa: passa | diverge: exclui | ausente: exclui
+	//   notEquals: X — presente casa: exclui | diverge: passa | ausente: passa
+	//   exists: true — presente: passa | ausente: exclui
+	//   exists: false — presente: exclui | ausente: passa
+	//
 	// Ex. context-map: filtra direction="upstream-downstream" + source/
 	// target.kind="bounded-context" (equals; exclui mutual-dependency e
 	// arestas com external-systems) + events presente (exists:true;
 	// exclui query-surfaces — call-site operacional ≠ dependência
-	// arquitetural cross-BC, per adr-120).
+	// arquitetural cross-BC, per adr-120) + kind notEquals
+	// "policy-reaction" + feedbackLoop.kind notEquals
+	// "bidirectional-orchestration" (adr-121 + adr-122; exclui kinds
+	// typed que representam acoplamento bilateral/notification ≠
+	// dependência estrutural).
 	edgeFilters: [...({
 		path:   string & !=""
 		equals: string & !=""
 	} | {
 		path:   string & !=""
 		exists: bool
+	} | {
+		path:      string & !=""
+		notEquals: string & !=""
 	})]
 }

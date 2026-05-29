@@ -459,6 +459,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 				exists:                true
 				reverseRelationshipId: "rew-to-fce"
 				loopSemantics:         "Comportamento de pagamento alimenta risco; risco condiciona elegibilidade de pagamento — loop de aprendizado contínuo entre execução financeira e avaliação de risco."
+				kind:                  "policy-execution-feedback"
 			}
 		},
 		{
@@ -473,6 +474,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			rationale:         "REW retroalimenta CMT com sinalização de deterioração e resolução de risco em compromissos ativos. Par simétrico: RiskAlertRaised → flag at-risk, RiskAlertResolved → clear risk flag."
 			communication: {type: "async"}
 			events: ["RiskAlertRaised", "RiskAlertResolved"]
+			kind: "policy-reaction"
 		},
 
 		// --- D. Financial Products & Execution (5) ---
@@ -505,6 +507,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 				exists:                true
 				reverseRelationshipId: "fce-to-rew"
 				loopSemantics:         "Risco informa elegibilidade de pagamento; pagamento realizado retroalimenta risco — loop de aprendizado contínuo."
+				kind:                  "policy-execution-feedback"
 			}
 		},
 		{
@@ -657,6 +660,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 				exists:                true
 				reverseRelationshipId: "drc-to-cmt"
 				loopSemantics:         "Compromisso contextualiza disputa; resolução de disputa altera estado do compromisso — loop bidirecional disputa↔compromisso."
+				kind:                  "bidirectional-orchestration"
 			}
 		},
 		{
@@ -698,6 +702,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 				exists:                true
 				reverseRelationshipId: "cmt-to-drc"
 				loopSemantics:         "Resolução de disputa altera estado do compromisso; compromisso contextualiza disputa — loop bidirecional disputa↔compromisso."
+				kind:                  "bidirectional-orchestration"
 			}
 		},
 		// --- I. Procurement & Sourcing (4) ---
@@ -842,6 +847,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			rationale:         "Score de risco da Mesh informa INS sobre exposição — INS usa como input para intermediar cotação com seguradoras externas. REW fornece sinal; INS gerencia vínculo de cobertura; seguradora externa é quem subscreve e decide aceitação do risco. INS nunca decide cobertura sozinho — intermedia."
 			communication: {type: "async"}
 			events: ["CounterpartyRiskScoreUpdated"]
+			kind: "policy-reaction"
 		},
 		{
 			code:              "ins-to-scf"

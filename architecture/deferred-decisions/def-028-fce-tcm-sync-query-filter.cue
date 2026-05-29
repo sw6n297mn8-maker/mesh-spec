@@ -6,7 +6,9 @@ def028: artifact_schemas.#DeferredDecision & {
 	id:     "def-028"
 	title:  "Resolver ciclo FCE↔TCM (sc-cm-07 W4) — excluir sync-only-query relationships do grafo de dependência"
 	date:   "2026-05-29"
-	status: "open"
+	status: "resolved"
+
+	resolvedBy: "architecture/adrs/adr-123-promote-acyclicity-check-to-reject.cue"
 
 	description: """
 		sc-cm-07 (directed-acyclicity, adr-117) detectou 4 ciclos. Este

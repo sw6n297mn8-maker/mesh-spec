@@ -104,7 +104,7 @@ structuralChecks: {
 		id:           "sc-cm-07"
 		title:        "Grafo de dependência cross-BC é acíclico"
 		artifactType: "context-map"
-		description:  "Para o subgrafo de relationships com direction='upstream-downstream' entre dois bounded-contexts E que publicam events, o grafo dirigido de dependência (downstream → upstream) deve ser acíclico. Excluídas por design: (a) relações 'mutual-dependency' (partnership, shared-kernel — simétricas); (b) relações com external-systems (não-nós do grafo BC↔BC); (c) query-surfaces — arestas sem events declarados (sync queries são call-site operacional, não dependência arquitetural cross-BC, per adr-120). Primeiro consumidor do kind directed-acyclicity (adr-117)."
+		description:  "Para o subgrafo de relationships com direction='upstream-downstream' entre dois bounded-contexts E que publicam events E não são tipadas como policy-reaction (rew-to-cmt, rew-to-ins) ou bidirectional-orchestration (cmt-to-drc, drc-to-cmt) ou policy-execution-feedback (rew-to-fce, fce-to-rew), o grafo dirigido de dependência (downstream → upstream) deve ser acíclico. Excluídas por design: (a) relações 'mutual-dependency' (partnership, shared-kernel — simétricas); (b) relações com external-systems (não-nós do grafo BC↔BC); (c) query-surfaces — arestas sem events declarados (sync queries são call-site operacional, não dependência arquitetural cross-BC, per adr-120); (d) policy-reaction kinds (notification + downstream agency per def-027 + adr-119) — aresta exclude via filter notEquals; (e) bidirectional-orchestration kinds (loop bilateral entre BCs distintos per def-026 + adr-118) — feedbackLoop.kind exclude via filter notEquals; (f) policy-execution-feedback kinds (estrutura policy↔execution com feedback contínuo per adr-124, descoberta empírica via Ajuste 1 do PR-3) — feedbackLoop.kind exclude via filter notEquals. Primeiro consumidor do kind directed-acyclicity (adr-117); primeiro consumidor do operator notEquals (adr-121)."
 		kind:         "directed-acyclicity"
 		rule: {
 			nodesPath:  "contexts[].context"
@@ -116,10 +116,13 @@ structuralChecks: {
 				{path: "source.kind", equals: "bounded-context"},
 				{path: "target.kind", equals: "bounded-context"},
 				{path: "events", exists: true},
+				{path: "kind", notEquals: "policy-reaction"},
+				{path: "feedbackLoop.kind", notEquals: "bidirectional-orchestration"},
+				{path: "feedbackLoop.kind", notEquals: "policy-execution-feedback"},
 			]
 		}
 		errorMessage: "context-map: ciclo de dependência entre bounded-contexts detectado. Cada nó do caminho depende do próximo (downstream → upstream). Avaliar se a aresta deveria ser direction='mutual-dependency' (partnership/shared-kernel), se uma policy reaction está sendo modelada como dependência direta, ou se há acoplamento circular genuíno a resolver via redesenho de fronteira."
-		rationale:    "DDD orthodoxy + dp-03 (blast radius): bounded contexts são unidades de isolamento; dependência circular cross-BC quebra o isolamento e torna o grafo de deploy não-topologicamente-ordenável. Os sc-cm-01..06 garantem integridade referencial das relações; nenhum enxerga o fechamento transitivo. Born-warn (catraca adr-097) — 4 ciclos no grafo original (2026-05-28; adr-117 documenta); adr-120 (PR-2 cycle-resolution) adiciona filter events:exists → resolve W4 (fce↔tcm via tcm-to-fce query-surface) + internaliza scan complementar de outras query-surfaces (idc-to-log, idc-to-dlv, npm-to-ctr — benignas); restam W1/W2/W3 aguardando PR-3 (Família A applied)."
-		enforcement: "warn"
+		rationale:    "DDD orthodoxy + dp-03 (blast radius): bounded contexts são unidades de isolamento; dependência circular cross-BC quebra o isolamento e torna o grafo de deploy não-topologicamente-ordenável. Os sc-cm-01..06 garantem integridade referencial das relações; nenhum enxerga o fechamento transitivo. Born-warn (catraca adr-097) cumprida: 4 ciclos no grafo original (2026-05-28; adr-117 documenta) → 0 ciclos após plano cycle-resolution completo. adr-120 (PR-2) filter events:exists → W4 (fce↔tcm via tcm-to-fce query-surface) resolvido + internalização de 3 query-surfaces benignas (idc-to-log, idc-to-dlv, npm-to-ctr). adr-121 (PR-3) capability notEquals. adr-122 (PR-3) aplicação Família A em 4 arestas (cmt-to-drc, drc-to-cmt → bidirectional-orchestration; rew-to-cmt, rew-to-ins → policy-reaction) + 2 edgeFilters notEquals → W1/W2/W3 resolvidos. adr-124 (PR-3) adiciona policy-execution-feedback ao #FeedbackLoopKind após descoberta empírica de ciclo fce↔rew via Ajuste 1 + aplicação em rew-to-fce/fce-to-rew + 7ª edgeFilter notEquals. adr-123 (PR-3) promove enforcement warn → reject."
+		enforcement: "reject"
 	}
 }
