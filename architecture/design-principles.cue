@@ -211,5 +211,75 @@ designPrinciples: artifact_schemas.#DesignPrinciples & {
 				governa.
 				"""
 		}
+
+		// ═══════════════════════════════════════════
+		// Design Philosophy (cont.) — P13 (group DesignPhilosophy)
+		// ═══════════════════════════════════════════
+		P13: {
+			group: "DesignPhilosophy"
+			statement: """
+				A decomposição do sistema em bounded contexts é decisão de design
+				explícita e auditável, nunca emergente. Um conceito merece BC
+				próprio quando satisfaz os três testes de separação: (a) linguagem
+				ubíqua distinta; (b) invariante própria que só ele pode garantir;
+				(c) ownership canônico de um conjunto de fatos. Os três indicam BC;
+				um ou nenhum indica parte de BC existente. Discriminante final é o
+				teste de remoção: se remover o candidato e o resto do sistema parar
+				por acoplamento (não por perda de função), a fronteira está errada.
+
+				Toda relação cross-BC é classificada na derivação, não apenas
+				direcionada, em ordem de preferência: (1) upstream-downstream com
+				pattern de tradução (OHS/PL no upstream; ACL/Conformist/
+				Customer-Supplier no downstream) sempre que o acoplamento puder ser
+				unidirecional; (2) mutual-dependency simétrica (partnership/
+				shared-kernel) só quando dois contextos compartilham deliberadamente
+				modelo ou destino; (3) ciclo com kind tipado (#FeedbackLoopKind /
+				#RelationshipKind) só quando a estrutura cíclica é a forma canônica
+				do acoplamento e não é redutível às anteriores.
+
+				Split de BC existente segue os mesmos três testes aplicados ao
+				candidato a desmembramento — se um sub-conceito do BC satisfaz
+				linguagem distinta + invariante própria + ownership canônico, e o
+				teste de remoção passa (resto continua funcionando), split é
+				correto. Merge inverso: dois BCs com linguagem fundida e sem
+				invariantes disjuntas indicam fronteira artificial.
+
+				Ônus invertido: ciclo de dependência cross-BC é defeito por default.
+				Sua legitimidade não se presume — exige kind nomeado descrevendo a
+				natureza do acoplamento E um ADR justificando por que o ciclo é a
+				forma correta. Ciclo sem kind + ADR é violação estrutural (gate
+				determinístico sc-cm-07, reject).
+
+				A taxonomia de kinds é aberta por construção. Quando o acoplamento
+				não cabe em kind existente, o autor não força enquadramento: avalia
+				três discriminantes — (a) onde mora a agência (o downstream decide
+				ou apenas reage/executa?); (b) signal-vs-state (cruza a fronteira
+				uma decisão/sinal ou um fato de estado?); (c) qual invariante ancora
+				o acoplamento. Se apontam estrutura genuinamente nova, cria-se kind
+				novo via ADR; senão, reclassifica-se em kind existente. Kinds
+				emergem da tentativa de fechar ciclos reais, não da inspeção isolada
+				de canvases.
+
+				Toda decisão de fronteira não-trivial — criação de BC, split, merge,
+				ou introdução de ciclo com kind novo — exige ADR documentando a
+				aplicação dos testes de separação e a classificação adotada.
+				"""
+			rationale: """
+				Fronteira de BC errada é o débito estrutural mais caro de corrigir:
+				refazer fronteira é redesign, não refactor (dp-06 — novos produtos
+				são novos BCs). Derivar por intuição produz acoplamento cíclico
+				oculto que só aparece com escala. Explicitar a derivação — testes de
+				separação + classificação obrigatória + ônus invertido sobre ciclos
+				— torna a decisão de fronteira auditável e, na parte de acyclicity,
+				gate-enforceável (sc-cm-07). A taxonomia aberta vem de evidência
+				empírica: policy-execution-feedback emergiu (adr-124) de um ciclo
+				real (fce↔rew) que uma taxonomia fechada teria mis-classificado —
+				taxonomia fechada falha nos casos que mais importam. Os
+				discriminantes (agência / signal-vs-state / invariante) generalizam
+				o critério tácito já usado em adr-085 (decisionAuthorityModel) e
+				adr-065 (teste de remoção). Complementar a dp-06, que é estratégia
+				de crescimento; P13 é o método de derivar a fronteira correta.
+				"""
+		}
 	}
 }

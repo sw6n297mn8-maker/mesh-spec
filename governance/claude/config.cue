@@ -173,6 +173,7 @@ config: #AgentConfig & {
 				| Antes de... | Ler obrigatoriamente |
 				|---|---|
 				| Criar ou alterar artefato de BC | canvas.cue do BC + artifact-schema correspondente + golden-examples/ do BC (se existirem) |
+				| Derivar bounded context (decidir fronteira / classificar relação cross-BC) | architecture/design-principles.cue (P13) + strategic/context-map.cue (vocabulários de kind/pattern) + architecture/production-guides/canvas.cue (section boundary-derivation) |
 				| Criar ou alterar artefato de arquitetura | architecture/design-principles.cue |
 				| Criar ou mover arquivo/diretório | governance/repo-structure.cue (ou README.md) |
 				| Nomear qualquer arquivo | README.md seção Convenções de Nomenclatura |

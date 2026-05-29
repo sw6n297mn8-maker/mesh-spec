@@ -70,6 +70,7 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 	}
 
 	workOrder: [
+		"boundary-derivation",
 		"identity-and-purpose",
 		"strategic-classification",
 		"domain-roles-and-capabilities",
@@ -81,6 +82,32 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 	]
 
 	sections: {
+		"boundary-derivation": {
+			target:    "#Canvas"
+			objective: "Antes de escrever identidade, derivar a fronteira do BC: decidir se merece existir como unidade separada (3 testes de separação + teste de remoção) e classificar cada relação cross-BC por kind. Materializa P13 (architecture/design-principles.cue)."
+			process: [{
+				action: "Aplicar os 3 testes de separação"
+				detail: "Linguagem ubíqua distinta + invariante própria (regra que só este BC garante) + ownership canônico de um conjunto de fatos. Os três indicam BC próprio; um ou nenhum indica parte de BC existente."
+			}, {
+				action: "Aplicar o teste de remoção"
+				detail: "Se remover o candidato e o resto do sistema parar por ACOPLAMENTO (não por perda de função), a fronteira está errada. Critério tácito generalizado de adr-065 (registry-não-engine)."
+			}, {
+				action: "Classificar cada relação cross-BC na ordem de preferência"
+				detail: "(1) upstream-downstream com pattern de tradução (OHS/PL no upstream; ACL/Conformist/Customer-Supplier no downstream) quando o acoplamento puder ser unidirecional; (2) mutual-dependency simétrica (partnership/shared-kernel) só quando dois BCs compartilham deliberadamente modelo ou destino; (3) ciclo com kind tipado (#FeedbackLoopKind / #RelationshipKind no context-map) só quando a estrutura cíclica é canônica e não redutível às anteriores."
+			}, {
+				action: "Aplicar o ônus invertido sobre ciclos"
+				detail: "Ciclo de dependência cross-BC é defeito por default — legitimidade exige kind nomeado + ADR; ciclo sem kind+ADR é violação estrutural (gate sc-cm-07 reject). Se o acoplamento não cabe em kind existente, avaliar agência (downstream decide ou só reage/executa?), signal-vs-state (cruza decisão ou fato de estado?) e invariante âncora antes de criar kind novo — revisão advisory em def-029."
+			}]
+			heuristics: [
+				"Se você não consegue nomear a linguagem própria, a invariante própria E o ownership próprio do candidato, provavelmente é parte de um BC existente — não crie BC.",
+				"Ciclo é o sinal mais caro: prefira redesenhar para unidirecional antes de aceitar ciclo. Aceitar ciclo é decisão de ADR, não default de modelagem.",
+				"Kinds de coupling emergem ao fechar ciclos reais (ver adr-122/124), não da inspeção isolada de canvases — só nomeie kind novo quando um ciclo concreto força a distinção.",
+				"Onde mora a autoridade de decisão (decisionAuthorityModel, padrão adr-085) discrimina policy-reaction (downstream tem agência) de policy-execution-feedback (loop policy↔execution).",
+			]
+			doneCriteria: "Candidato passou nos 3 testes + teste de remoção (ou foi rebaixado a parte de BC existente). TODA relação cross-BC tem direction + pattern/kind classificados na ordem de preferência. Nenhum ciclo não-classificado: todo ciclo tem kind nomeado + ADR. Decisão de fronteira não-trivial (criação/split/merge/ciclo com kind novo) tem ADR."
+			ifGap:        "Se um dos 3 testes falha, o conceito é provavelmente parte de um BC existente — PARE e reconsidere o contorno antes de identity-and-purpose. Se um ciclo cross-BC aparece sem kind que o legitime, é defeito: redesenhe para unidirecional OU registre kind + ADR; não prosseguir com ciclo não-justificado."
+		}
+
 		"identity-and-purpose": {
 			target:    "#Canvas"
 			objective: "Estabelecer identidade canônica do BC: code (alinhado ao diretório), name, purpose (justificativa do contorno), ubiquitousLanguageRef (ponteiro para glossary)."
