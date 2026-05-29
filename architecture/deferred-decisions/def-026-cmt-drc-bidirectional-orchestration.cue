@@ -6,7 +6,9 @@ def026: artifact_schemas.#DeferredDecision & {
 	id:     "def-026"
 	title:  "Resolver ciclo CMT↔DRC (sc-cm-07 W1 + cascata W3) — bidirectional-orchestration como feedbackLoop.kind"
 	date:   "2026-05-29"
-	status: "open"
+	status: "resolved"
+
+	resolvedBy: "architecture/adrs/adr-122-apply-cycle-resolution-kinds.cue"
 
 	description: """
 		sc-cm-07 (directed-acyclicity, adr-117) detectou 4 ciclos de dependência
@@ -167,7 +169,7 @@ def026: artifact_schemas.#DeferredDecision & {
 		condition: {
 			kind:    "file-contains"
 			path:    "strategic/context-map.cue"
-			pattern: "kind: \"bidirectional-orchestration\""
+			pattern: "kind:\\s*\"bidirectional-orchestration\""
 		}
 	}]
 }

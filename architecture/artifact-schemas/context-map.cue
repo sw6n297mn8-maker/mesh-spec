@@ -623,9 +623,10 @@ package artifact_schemas
 
 // #FeedbackLoopKind — categoria do loop bidirecional declarado em
 // #ActiveFeedbackLoop. Complementa loopSemantics (prose) com dimensão
-// typed. Per adr-118: 1 valor inicial; expansão via ADRs follow-on
-// quando padrão concreto adicional surgir (pattern adr-049/056/063 de
-// minimalismo).
+// typed. Per adr-118: enum inicial com 1 valor; expansão via ADRs
+// follow-on quando padrão concreto adicional surgir (pattern
+// adr-049/056/063 de minimalismo). adr-124 adiciona 2º valor após
+// descoberta empírica de ciclo fce↔rew via Ajuste 1 do PR-3.
 //
 // Valores:
 //   bidirectional-orchestration — par BC↔BC onde cada lado publica
@@ -634,7 +635,20 @@ package artifact_schemas
 //     kernel) e de OHS (one-way data flow). Primeiro consumidor:
 //     drc↔cmt (sc-cm-07 W1, ciclo declarado via feedbackLoop em
 //     ambas arestas; documentação no canvas CMT + subdomain DRC).
-#FeedbackLoopKind: "bidirectional-orchestration"
+//   policy-execution-feedback — par BC↔BC onde upstream publica
+//     decisões/policy (lado policy) e downstream publica state events
+//     de execução (lado execution) que retroalimentam o modelo do
+//     upstream. Estrutura canônica policy ↔ execution: assimetria de
+//     cadência (decisão pontual vs stream de state); complementar a
+//     policy-reaction (per adr-119) ao adicionar a dimensão de
+//     feedback contínuo de execução. Primeiro consumidor: fce↔rew
+//     (sc-cm-07 sub-ciclo emergente após quebra de W3, REW publica
+//     CreditEligibilityDecided + FCE publica PaymentSettled/
+//     PaymentObligationDefaulted; loopSemantics declarada em ambas
+//     arestas como "loop de aprendizado contínuo").
+#FeedbackLoopKind:
+	"bidirectional-orchestration" |
+	"policy-execution-feedback"
 
 // #RelationshipKind — categoria opcional de relationship cross-BC
 // que complementa direction (upstream-downstream | mutual-dependency)

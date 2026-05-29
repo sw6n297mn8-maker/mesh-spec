@@ -126,7 +126,11 @@ structureIndex: {
 				"architecture/adrs/adr-117-add-directed-acyclicity-kind-to-structural-check.cue",
 				"architecture/adrs/adr-118-add-bidirectional-orchestration-to-feedback-loop-kind.cue",
 				"architecture/adrs/adr-119-add-policy-reaction-to-relationship-kind.cue",
-				"architecture/adrs/adr-120-edge-filter-exists-operator.cue"
+				"architecture/adrs/adr-120-edge-filter-exists-operator.cue",
+				"architecture/adrs/adr-121-edge-filter-notequals-operator.cue",
+				"architecture/adrs/adr-122-apply-cycle-resolution-kinds.cue",
+				"architecture/adrs/adr-123-promote-acyclicity-check-to-reject.cue",
+				"architecture/adrs/adr-124-add-policy-execution-feedback-to-feedback-loop-kind.cue"
 			],
 			"schema": "#ADRBase"
 		},

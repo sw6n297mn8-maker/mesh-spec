@@ -510,9 +510,10 @@ def ev_directed_acyclicity(rule,c):
             if not isinstance(item,dict): continue
             ok=True
             for fl in rule.get("edgeFilters",[]):
-                # Union discriminada por presença do operator field (adr-117 + adr-120):
-                #   {path, equals: string} → aresta passa se valor == equals
-                #   {path, exists: bool}   → aresta passa se field é presente quando true, ou ausente quando false
+                # Union discriminada por presença do operator field (adr-117 + adr-120 + adr-121):
+                #   {path, equals: string}    → aresta passa se valor == equals
+                #   {path, exists: bool}      → aresta passa se field é presente quando true, ou ausente quando false
+                #   {path, notEquals: string} → aresta passa se valor != notEquals; ausente passa vacuously
                 if "equals" in fl:
                     if dotget(item,fl["path"]) != fl["equals"]:
                         ok=False; break
@@ -521,6 +522,9 @@ def ev_directed_acyclicity(rule,c):
                     if fl["exists"] and not present:
                         ok=False; break
                     if (not fl["exists"]) and present:
+                        ok=False; break
+                elif "notEquals" in fl:
+                    if dotget(item,fl["path"]) == fl["notEquals"]:
                         ok=False; break
             if not ok: continue
             src=dotget(item,rule["edgeSource"])
@@ -808,8 +812,37 @@ def self_test():
     g4_inv_ok=any("exist-inv.cue" in r for r in g4_res)
     g4_pres_excluded_ok=not any("exist-pres.cue" in r for r in g4_res)
     existsok = g2_pres_ok and g2_abs_ok and g3_ok and g4_inv_ok and g4_pres_excluded_ok
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok and existsok
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths} existsok={existsok} g2={g2_res} g3={g3_res} g4={g4_res}")
+    # adr-121 notEquals: sc-g-05/06/07/08 cobrem operator notEquals.
+    # sc-g-05 notEquals com valor diferente → mantém aresta (ciclo detectado)
+    # sc-g-06 notEquals com valor igual → exclui aresta (ciclo quebrado)
+    # sc-g-07 notEquals com field ausente → mantém aresta vacuously (ciclo detectado)
+    # sc-g-08 AND-composto 3-operator (equals + exists + notEquals)
+    w("architecture/structural-checks/g3.cue",'package structural_checks\nstructuralChecks:{"sc-g-05":{id:"sc-g-05",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"kind",notEquals:"policy-reaction"}]},errorMessage:"e",rationale:"r"},"sc-g-06":{id:"sc-g-06",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"kind",notEquals:"policy-reaction"}]},errorMessage:"e",rationale:"r"},"sc-g-07":{id:"sc-g-07",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"kind",notEquals:"policy-reaction"}]},errorMessage:"e",rationale:"r"},"sc-g-08":{id:"sc-g-08",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"direction",equals:"ud"},{path:"events",exists:true},{path:"kind",notEquals:"policy-reaction"}]},errorMessage:"e",rationale:"r"}}\n')
+    # notequals-diff: aresta com kind="structural" (≠ policy-reaction) passa; aresta sem kind passa vacuously; ciclo detectado
+    w("graphs/notequals-diff.cue",'package graphs\ng:{name:"nd",nodes:[{id:"P"},{id:"Q"}],edges:[{from:"P",to:"Q",kind:"structural"},{from:"Q",to:"P"}]}\n')
+    # notequals-eq: aresta P→Q com kind=policy-reaction é excluída; aresta Q→P sem kind passa; sem ciclo
+    w("graphs/notequals-eq.cue",'package graphs\ng:{name:"ne",nodes:[{id:"R"},{id:"S"}],edges:[{from:"R",to:"S",kind:"policy-reaction"},{from:"S",to:"R"}]}\n')
+    # notequals-abs: ambas arestas sem kind passam vacuously; ciclo detectado (ratifica semântica absent=passa)
+    w("graphs/notequals-abs.cue",'package graphs\ng:{name:"na",nodes:[{id:"T"},{id:"U"}],edges:[{from:"T",to:"U"},{from:"U",to:"T"}]}\n')
+    # notequals-composite: 4 arestas testando AND 3-operator: V→W passa todos (direction=ud + events + kind!=policy-reaction); W→V tem kind=policy-reaction (exclui); X→Y sem direction (exclui); Y→X sem events (exclui). Apenas V→W permanece — sem ciclo.
+    w("graphs/notequals-composite.cue",'package graphs\ng:{name:"nc",nodes:[{id:"V"},{id:"W"},{id:"X"},{id:"Y"}],edges:[{from:"V",to:"W",direction:"ud",events:["E1"],kind:"structural"},{from:"W",to:"V",direction:"ud",events:["E2"],kind:"policy-reaction"},{from:"X",to:"Y",events:["E3"],kind:"structural"},{from:"Y",to:"X",direction:"ud",kind:"structural"}]}\n')
+    _loc_cache.clear(); _art_cache.clear()
+    checks=load_checks()
+    # sc-g-05 notEquals diff → ciclo detectado em notequals-diff
+    g5_res=ev_directed_acyclicity(checks["sc-g-05"]["rule"],checks["sc-g-05"])
+    g5_ok=any("notequals-diff.cue" in r for r in g5_res)
+    # sc-g-06 notEquals eq → aresta com kind=policy-reaction excluída, sem ciclo em notequals-eq
+    g6_res=ev_directed_acyclicity(checks["sc-g-06"]["rule"],checks["sc-g-06"])
+    g6_ok=not any("notequals-eq.cue" in r for r in g6_res)
+    # sc-g-07 notEquals absent → ciclo detectado em notequals-abs (semantic vacuously-true)
+    g7_res=ev_directed_acyclicity(checks["sc-g-07"]["rule"],checks["sc-g-07"])
+    g7_ok=any("notequals-abs.cue" in r for r in g7_res)
+    # sc-g-08 AND-composto: W→V excluída por kind=policy-reaction; X→Y por direction ausente; Y→X por events ausente; só V→W passa → sem ciclo
+    g8_res=ev_directed_acyclicity(checks["sc-g-08"]["rule"],checks["sc-g-08"])
+    g8_ok=not any("notequals-composite.cue" in r for r in g8_res)
+    notequalsok = g5_ok and g6_ok and g7_ok and g8_ok
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok and existsok and notequalsok
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths} existsok={existsok} notequalsok={notequalsok} g2={g2_res} g3={g3_res} g4={g4_res} g5={g5_res} g6={g6_res} g7={g7_res} g8={g8_res}")
     return 0 if ok else 1
 
 if __name__=="__main__":
