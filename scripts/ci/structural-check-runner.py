@@ -452,6 +452,82 @@ def ev_regex_pattern_match(rule,c):
                 v.append("%s: valor '%s' (%s) nao casa pattern %s" % (f,x,rule["valuePath"],rule["pattern"]))
     return v
 
+def _find_cycles(adj):
+    # DFS clássico com cores (white/gray/black). Back-edge para um nó GRAY
+    # significa ciclo; o caminho do ciclo é extraído da pilha (do nó
+    # encontrado em GRAY até o topo). Determinístico: nós e arestas
+    # visitados em ordem alfabética. Cada ciclo é reportado UMA VEZ pela
+    # entrada que o DFS detecta primeiro; rotacoes do mesmo ciclo nao
+    # sao deduplicadas (cobertura: chamador deve filtrar se necessario).
+    from collections import defaultdict as _dd
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color = _dd(lambda: WHITE)
+    stack = []
+    cycles = []
+    nodes = sorted(set(adj.keys()) | {y for ys in adj.values() for y in ys})
+    def dfs(u):
+        color[u] = GRAY
+        stack.append(u)
+        for v in sorted(adj[u]):
+            if color[v] == GRAY:
+                i = stack.index(v)
+                cycles.append(stack[i:] + [v])
+            elif color[v] == WHITE:
+                dfs(v)
+        color[u] = BLACK
+        stack.pop()
+    for n in nodes:
+        if color[n] == WHITE:
+            dfs(n)
+    return cycles
+
+def ev_directed_acyclicity(rule,c):
+    # Constroi grafo dirigido a partir de paths declarativos no artefato e
+    # detecta ciclos via DFS. Aresta entra no grafo se TODOS os edgeFilters
+    # AND-compostos casarem; edgeSource/Target extraem ids string/int.
+    # Reporta cada ciclo como caminho concreto (legivel pelo humano).
+    from collections import defaultdict as _dd
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        # 1) nós: enumera ids do grafo (filtra string/int).
+        # _resolve_multi nao serve para isso (espera dict); usamos pequena
+        # iteracao manual sobre nodesPath suportando "[]" final.
+        np=rule["nodesPath"]
+        nodes=set()
+        # nodesPath tipico: "contexts[].context" — itera lista e pega campo.
+        # Implementacao minima: aproveita _resolve_multi tratando o ARTEFATO
+        # como item raiz.
+        for x in _resolve_multi(a,np):
+            if isinstance(x,(str,int)): nodes.add(x)
+        # 2) arestas: itera edgesPath; aplica edgeFilters; extrai src/tgt.
+        adj=_dd(set)
+        edge_meta={}  # (src,tgt) -> info extra (e.g., 'code') se houver
+        for item in _resolve_multi(a,rule["edgesPath"]):
+            if not isinstance(item,dict): continue
+            ok=True
+            for fl in rule.get("edgeFilters",[]):
+                if dotget(item,fl["path"]) != fl["equals"]:
+                    ok=False; break
+            if not ok: continue
+            src=dotget(item,rule["edgeSource"])
+            tgt=dotget(item,rule["edgeTarget"])
+            if not (isinstance(src,(str,int)) and isinstance(tgt,(str,int))): continue
+            adj[src].add(tgt)
+            edge_meta.setdefault((src,tgt), item.get("code") if isinstance(item.get("code"),str) else None)
+        # 3) detecta ciclos e reporta o caminho.
+        cycles=_find_cycles(adj)
+        for cyc in cycles:
+            path=" -> ".join(map(str,cyc))
+            codes=[edge_meta.get((cyc[j],cyc[j+1])) for j in range(len(cyc)-1)]
+            codes_str=", ".join(repr(x) for x in codes if x is not None)
+            extra=f" (arestas: {codes_str})" if codes_str else ""
+            v.append(f"{f}: ciclo de dependencia ({len(cyc)-1} aresta(s)): {path}{extra}")
+    return v
+
 def ev_evaluator_coverage(rule,c):
     # M1 (adr-099): todo kind DECLARADO no enum #StructuralCheckKind + todo kind
     # USADO por algum check tem evaluator em EVAL. Cartaz sem fiscal => finding.
@@ -494,7 +570,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "filesystem-declared-coverage":ev_filesystem_declared_coverage,
  "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists,
  "regex-pattern-match":ev_regex_pattern_match,
- "instance-scoped-cross-file-id-exists":ev_instance_scoped_cross_file_id_exists}
+ "instance-scoped-cross-file-id-exists":ev_instance_scoped_cross_file_id_exists,
+ "directed-acyclicity":ev_directed_acyclicity}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +
@@ -672,8 +749,31 @@ def self_test():
     # instance-scoped: x resolve (own dm tem c-1,c-2); y nao (c-9 ausente no SEU dm).
     isc=ev_instance_scoped_cross_file_id_exists(checks["sc-ag-99"]["rule"],checks["sc-ag-99"])
     iscok = (isc==["ctx/y/ag.cue: ref 'c-9' (scope.refs[]) ausente no alvo do escopo 'y' (ctx/y/dm.cue)"])
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc}")
+    # directed-acyclicity (sc-cm-07 / adr-117): 4 grafos sinteticos cobrindo
+    # (a) aciclico -> pass, (b) ciclo 2-nos -> detectar, (c) ciclo 4-nos ->
+    # detectar, (d) filtro exclui aresta que criaria ciclo -> pass.
+    w("architecture/artifact-schemas/g.cue",'package artifact_schemas\n#G:{name:string,_schema:location:{canonicalPathRegex:"^graphs/[a-z0-9-]+\\\\.cue$",fileNameRegex:"^[a-z0-9-]+\\\\.cue$",cardinality:"collection",allowNested:false}}\n')
+    w("architecture/structural-checks/g.cue",'package structural_checks\nstructuralChecks:{"sc-g-01":{id:"sc-g-01",title:"t",artifactType:"g",description:"d",kind:"directed-acyclicity",rule:{nodesPath:"nodes[].id",edgesPath:"edges[]",edgeSource:"from",edgeTarget:"to",edgeFilters:[{path:"kind",equals:"hard"}]},errorMessage:"e",rationale:"r"}}\n')
+    # (a) aciclico A->B->C
+    w("graphs/acyclic.cue",'package graphs\ng:{name:"a",nodes:[{id:"A"},{id:"B"},{id:"C"}],edges:[{from:"A",to:"B",kind:"hard"},{from:"B",to:"C",kind:"hard"}]}\n')
+    # (b) ciclo 2-nos X<->Y
+    w("graphs/cycle2.cue",'package graphs\ng:{name:"b",nodes:[{id:"X"},{id:"Y"}],edges:[{from:"X",to:"Y",kind:"hard"},{from:"Y",to:"X",kind:"hard"}]}\n')
+    # (c) ciclo 4-nos P->Q->R->S->P
+    w("graphs/cycle4.cue",'package graphs\ng:{name:"c",nodes:[{id:"P"},{id:"Q"},{id:"R"},{id:"S"}],edges:[{from:"P",to:"Q",kind:"hard"},{from:"Q",to:"R",kind:"hard"},{from:"R",to:"S",kind:"hard"},{from:"S",to:"P",kind:"hard"}]}\n')
+    # (d) aresta que CRIARIA ciclo eh kind="soft" -> filtrada -> aciclico
+    w("graphs/filtered.cue",'package graphs\ng:{name:"d",nodes:[{id:"M"},{id:"N"}],edges:[{from:"M",to:"N",kind:"hard"},{from:"N",to:"M",kind:"soft"}]}\n')
+    _loc_cache.clear(); _art_cache.clear()
+    checks=load_checks()
+    da_results=ev_directed_acyclicity(checks["sc-g-01"]["rule"],checks["sc-g-01"])
+    # Espera EXATAMENTE 1 ciclo em cycle2 + 1 ciclo em cycle4; acyclic e filtered -> nada.
+    da_paths=sorted(da_results)
+    da_a_ok=not any("acyclic.cue" in r for r in da_results)
+    da_b_ok=any("cycle2.cue" in r and "X -> Y -> X" in r for r in da_results) or any("cycle2.cue" in r and "Y -> X -> Y" in r for r in da_results)
+    da_c_ok=any("cycle4.cue" in r and "ciclo de dependencia (4 aresta(s))" in r for r in da_results)
+    da_d_ok=not any("filtered.cue" in r for r in da_results)
+    daok = da_a_ok and da_b_ok and da_c_ok and da_d_ok
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths}")
     return 0 if ok else 1
 
 if __name__=="__main__":
