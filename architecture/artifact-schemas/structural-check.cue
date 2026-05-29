@@ -87,6 +87,9 @@ package artifact_schemas
 } | {
 	kind: "instance-scoped-cross-file-id-exists"
 	rule: #InstanceScopedCrossFileIdExistsRule
+} | {
+	kind: "directed-acyclicity"
+	rule: #DirectedAcyclicityRule
 })
 
 _#StructuralCheckBase: {
@@ -165,9 +168,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "directed-acyclicity"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #DirectedAcyclicityRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -585,4 +588,55 @@ _#StructuralCheckBase: {
 	// Paths do(s) conjunto(s) de ids válidos no arquivo-alvo (lista — união).
 	// Ex.: ["aggregates[].code", "commands[].code", "events[].code"].
 	targetIdPaths: [string & !="", ...string & !=""]
+}
+
+// Rule shape para kind=directed-acyclicity.
+// Constrói um grafo dirigido a partir de paths declarativos no artefato e
+// detecta ciclos via DFS. Generaliza além de checks de presença/referência:
+// expressa propriedade topológica (aciclicidade) sobre um subgrafo do
+// artefato. Primeiro consumidor: context-map (ciclo de dependência entre
+// BCs — sc-cm-07, adr-117).
+//
+// Direção da aresta segue convenção de dependência: edgeSource = nó que
+// depende, edgeTarget = nó do qual depende. Para context-map: edgeSource
+// é o downstream da relação (target.context), edgeTarget é o upstream
+// (source.context) — o downstream depende do upstream em DDD orthodoxy.
+// Ciclos não dependem do sentido (G acíclico ⇔ G⁻¹ acíclico); a direção
+// só rege a leitura humana da mensagem de erro.
+//
+// edgeFilters são AND-compostos (todos devem casar para a aresta entrar
+// no grafo). OR-composto não suportado em v1 — expansão quando 2º
+// consumidor real precisar (princípio adr-062: consolidar no segundo
+// consumidor concreto, não preventivamente).
+#DirectedAcyclicityRule: {
+	// Path multi-valor para enumerar os ids dos nós do grafo no artefato
+	// sob validação (suporta travessia "[]"). Ex.: "contexts[].context".
+	nodesPath: string & !=""
+
+	// Path multi-valor para enumerar as arestas (itens-fonte). Cada item
+	// deve ser um struct do qual edgeSource/edgeTarget/edgeFilters extraem
+	// valores. Ex.: "relationships[]".
+	edgesPath: string & !=""
+
+	// Path dot-separated DENTRO de cada item de edgesPath para o id do
+	// nó-origem da aresta (semântica de dependência: origem = quem depende).
+	// Ex.: "target.context" para context-map (downstream depende de upstream).
+	edgeSource: string & !=""
+
+	// Path dot-separated DENTRO de cada item de edgesPath para o id do
+	// nó-destino da aresta (semântica de dependência: destino = quem é
+	// dependido). Ex.: "source.context" para context-map.
+	edgeTarget: string & !=""
+
+	// Filtros AND-compostos: aresta entra no grafo apenas se TODOS os
+	// {path, equals} casarem. path resolve DENTRO de cada item de
+	// edgesPath; equals é igualdade exata de string. Lista vazia = nenhum
+	// filtro (todas as arestas entram). Ex. context-map: filtra direction=
+	// "upstream-downstream" + source/target.kind="bounded-context" — exclui
+	// mutual-dependency (partnership/shared-kernel, simétricas por design)
+	// e arestas com external-systems (não-nós do grafo BC↔BC).
+	edgeFilters: [...{
+		path:   string & !=""
+		equals: string & !=""
+	}]
 }
