@@ -159,4 +159,31 @@ taskGovernance: {
 		defaultLeaseDuration: "4h"
 		rationale:            "ITC governa comércio exterior sob Siscomex, câmbio e legislação aduaneira. Boundary regulatório — obrigação acessória com consequência legal e aduaneira."
 	}
+	"WI-129-cmt-surfaces": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-129"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "medium"
+		defaultLeaseDuration: "8h"
+		rationale:            "Derivação de superfícies de interação do BC CMT (events.cue + api/async-api) a partir do domain-model. Derivação mecânica do contrato já modelado; criticality medium per wave-plan do slice."
+	}
+	"WI-130-dlv-surfaces": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-130"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "medium"
+		defaultLeaseDuration: "8h"
+		rationale:            "Derivação de superfícies de interação do BC DLV a partir do domain-model. Derivação mecânica; criticality medium per wave-plan do slice."
+	}
+	"WI-131-inv-surfaces": #TaskGovernanceRule & {
+		scope:                "task"
+		taskId:               "WI-131"
+		eligibleRoles:        ["spec-writer"]
+		approvalRequired:     true
+		criticality:          "medium"
+		defaultLeaseDuration: "8h"
+		rationale:            "Derivação de superfícies de interação do BC INV (async-api + events.cue; sem api.yaml pois hasSyncSurface=false) a partir do domain-model. Derivação mecânica; criticality medium per wave-plan do slice."
+	}
 }

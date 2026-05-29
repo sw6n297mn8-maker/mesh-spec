@@ -10,10 +10,10 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 19 candidato(s) prontos para claim.
+// 20 candidato(s) prontos para claim.
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-28T19:51:19Z"
+	rebuiltAt: "2026-05-28T20:57:52Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
@@ -128,5 +128,11 @@ readyQueueProjection: {
 		title:         "Criar scripts/build/generate-claude-md.sh para regenerar CLAUDE.md a partir do CUE fonte"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
+	}, {
+		taskId:        "WI-070"
+		version:       1
+		title:         "Bootstrap Economic Foundation Layers (Layer -1 / Layer 1 / Layer 2 NIM) — emergent from WI-053"
+		eligibleRoles: ["spec-writer"]
+		criticality:   "high"
 	}]
 }

@@ -8,18 +8,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // executionState computado é "claimed" (claim ativo, não expirado).
 // Deletável sem perda (P8). Não é source of truth.
 //
-// Reconstrução atual: 1 item(s) em progresso.
-//   - WI-070 (claimed 2026-05-07T20:01:00Z; expires 2026-05-15T20:01:00Z)
+// Reconstrução atual: zero items em progresso.
 
 inProgressProjection: {
-	rebuiltAt: "2026-05-28T19:51:19Z"
-	entries: [...build_time.#InProgressEntry] & [{
-		taskId:         "WI-070"
-		version:        1
-		title:          "Bootstrap Economic Foundation Layers (Layer -1 / Layer 1 / Layer 2 NIM) — emergent from WI-053"
-		claimedBy:      "spec-writer"
-		claimedAt:      "2026-05-07T20:01:00Z"
-		claimExpiresAt: "2026-05-15T20:01:00Z"
-		criticality:    "high"
-	}]
+	rebuiltAt: "2026-05-28T20:57:52Z"
+	entries: [...build_time.#InProgressEntry] & []
 }
