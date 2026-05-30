@@ -488,8 +488,9 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			publishedLanguage: "Risk score and eligibility model"
 			description:       "REW publica score e elegibilidade via published language; SCF consome para decisão de antecipação."
 			rationale:         "Decisão de crédito depende de risco. Published language porque score é ontologia formal consumida por múltiplos contexts."
-			communication: {type: "async"}
-			events: ["CounterpartyRiskScoreUpdated", "CreditEligibilityDecided"]
+			communication: {type: "hybrid"}
+			events: ["RiskScoreEmitted", "EligibilityEmitted"]
+			queries: ["QueryRiskScore", "QueryEligibility"]
 		},
 		{
 			code:              "rew-to-fce"

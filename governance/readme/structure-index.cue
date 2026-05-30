@@ -135,7 +135,9 @@ structureIndex: {
 				"architecture/adrs/adr-126-context-map-naming-shape-reconciliation-fce.cue",
 				"architecture/adrs/adr-127-derive-fce-bounded-context.cue",
 				"architecture/adrs/adr-128-money-on-proof-invariant-fce.cue",
-				"architecture/adrs/adr-129-derive-drc-bounded-context.cue"
+				"architecture/adrs/adr-129-derive-drc-bounded-context.cue",
+				"architecture/adrs/adr-130-context-map-naming-shape-reconciliation-scf.cue",
+				"architecture/adrs/adr-131-derive-scf-bounded-context.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -255,6 +257,7 @@ structureIndex: {
 				"contexts/npm/canvas.cue",
 				"contexts/p2p/canvas.cue",
 				"contexts/rew/canvas.cue",
+				"contexts/scf/canvas.cue",
 				"contexts/ssc/canvas.cue"
 			],
 			"schema": "#Canvas"
