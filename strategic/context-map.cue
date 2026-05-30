@@ -499,10 +499,11 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			upstreamPattern:   "open-host-service-published-language"
 			downstreamPattern: "anti-corruption-layer"
 			publishedLanguage: "Risk score and eligibility model"
-			description:       "REW publica decisões de risco e elegibilidade; FCE consome como PrePaymentGuard."
-			rationale:         "Pagamento condicional depende de decisão de risco. Invariante: dinheiro não move sem avaliação de risco."
-			communication: {type: "async"}
-			events: ["CreditEligibilityDecided"]
+			description:       "REW publica score e elegibilidade (event-driven) e expõe queries síncronas; FCE consome como PrePaymentGuard — cache via eventos + validação crítica real-time via query."
+			rationale:         "Pagamento condicional depende de decisão de risco. Invariante: dinheiro não move sem avaliação de risco. Reconciliado com o canvas REW (autoridade): EligibilityEmitted/RiskScoreEmitted substituem o candidato CreditEligibilityDecided; communication async→hybrid + queries QueryEligibility/QueryRiskScore adicionadas (REW expõe ambas nomeando FCE/PrePaymentGuard) (adr-126)."
+			communication: {type: "hybrid"}
+			events: ["EligibilityEmitted", "RiskScoreEmitted"]
+			queries: ["QueryEligibility", "QueryRiskScore"]
 			feedbackLoop: {
 				exists:                true
 				reverseRelationshipId: "fce-to-rew"
@@ -543,11 +544,11 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "BKR expõe rails bancários e status de liquidação física; FCE consome para executar e confirmar settlement."
-			rationale:         "FCE depende de BKR para liquidação física. Hybrid porque inclui iniciação síncrona de transferência e confirmação assíncrona de settlement."
+			description:       "BKR expõe rails bancários e outcomes de liquidação física; FCE invoca DispatchPaymentInstruction (sob authorization proof) e RequestSettlementCancellation, e consome os outcomes canônicos de settlement."
+			rationale:         "FCE depende de BKR para liquidação física. Hybrid porque inclui invocação síncrona de comando (despacho/cancelamento sob proof) e confirmação assíncrona de outcomes. Nomes canônicos reconciliados com o canvas BKR (autoridade per knownLimitations): SettlementFinalized/Failed/Indeterminate/FailureClassified/InstructionRejected substituem o candidato BankSettlementConfirmed; DispatchPaymentInstruction/RequestSettlementCancellation substituem InitiateBankTransfer (adr-126)."
 			communication: {type: "hybrid"}
-			events: ["BankSettlementConfirmed"]
-			commands: ["InitiateBankTransfer"]
+			events: ["SettlementFinalized", "SettlementFailed", "SettlementIndeterminate", "FailureClassified", "InstructionRejected"]
+			commands: ["DispatchPaymentInstruction", "RequestSettlementCancellation"]
 		},
 
 		// --- E. Fiscal & Accounting (3) ---
