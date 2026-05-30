@@ -67,3 +67,5 @@ adrSchema: build_time.#SelfReviewReport & {
 		único suficiente.
 		"""
 }
+
+// ci: re-trigger required checks no head materializado (structure-index regen veio com skip-ci); ref def-032 PR-95
