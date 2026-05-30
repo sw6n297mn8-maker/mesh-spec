@@ -482,7 +482,11 @@ structureIndex: {
 				"architecture/deferred-decisions/def-027-rew-cmt-policy-reaction.cue",
 				"architecture/deferred-decisions/def-028-fce-tcm-sync-query-filter.cue",
 				"architecture/deferred-decisions/def-029-validation-prompt-bc-derivation.cue",
-				"architecture/deferred-decisions/def-030-pg-coverage-design-principle.cue"
+				"architecture/deferred-decisions/def-030-pg-coverage-design-principle.cue",
+				"architecture/deferred-decisions/def-031-cross-context-flow-closure-oracle.cue",
+				"architecture/deferred-decisions/def-032-adr-falsification-condition-field.cue",
+				"architecture/deferred-decisions/def-033-relation-classification-gate.cue",
+				"architecture/deferred-decisions/def-034-modeling-health-dashboard.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
