@@ -18,7 +18,7 @@ def029: artifact_schemas.#DeferredDecision & {
 		agora: N=2 derivações reais (FCE section-by-section + DRC batch) ainda
 		é amostra insuficiente para calibrar um prompt advisory prescritivo
 		sobre genuinidade de contorno e legitimidade de kind. Revisitar em
-		N>=4-5 derivações (scaffolds futuros scf/nim/tcm), quando os exemplos
+		N>=4-5 derivações (scaffolds futuros scf/nim/tcm) OU até 2026-09-30, o que vier primeiro — quando os exemplos
 		acumulados derem base para critérios interpretativos calibrados. A
 		parte dura da derivação (acyclicity) permanece coberta por sc-cm-07
 		(reject); o gap advisory segue mitigado por self-review + founder
