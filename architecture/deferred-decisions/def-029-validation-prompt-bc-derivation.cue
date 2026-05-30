@@ -6,7 +6,26 @@ def029: artifact_schemas.#DeferredDecision & {
 	id:     "def-029"
 	title:  "Validation-prompt advisory para revisão de derivação de BC (testes de separação + classificação + descoberta de kind)"
 	date:   "2026-05-29"
-	status: "open"
+	status: "triggered"
+
+	triggeredAt: "2026-05-30"
+	triggeredCondition: """
+		Trigger secundário recurrence fired no commit 6f7da56 (DRC scaffold,
+		13º canvas): recurrence(scope=filename, pattern='contexts/[a-z0-9-]+/
+		canvas\\.cue$') atingiu 13 >= threshold 13.
+
+		Deferimento consciente mantido — NÃO materializar o validation-prompt
+		agora: N=2 derivações reais (FCE section-by-section + DRC batch) ainda
+		é amostra insuficiente para calibrar um prompt advisory prescritivo
+		sobre genuinidade de contorno e legitimidade de kind. Revisitar em
+		N>=4-5 derivações (scaffolds futuros scf/nim/tcm), quando os exemplos
+		acumulados derem base para critérios interpretativos calibrados. A
+		parte dura da derivação (acyclicity) permanece coberta por sc-cm-07
+		(reject); o gap advisory segue mitigado por self-review + founder
+		review per scaffold. Status 'triggered' registra que o sinal de
+		recorrência foi atingido; a resolução (criar o prompt) permanece
+		deferida por decisão explícita do founder.
+		"""
 
 	description: """
 		P13 (adr-125) introduz testes de separação (linguagem ubíqua +
