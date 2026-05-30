@@ -36,6 +36,14 @@ ten013: artifact_schemas.#TensionEntry & {
 		"""
 
 	resolution: """
+		Resolvido neste PR (polish-canvas-pg-drifts): wording corrigido em
+		strategic/subdomains/fce.cue:11 de "budget allocation" para "budget
+		realization", alinhando a definition com bd-realizes-not-allocates-budget
+		do canvas FCE (adr-127, Opção B — FCE realiza o envelope BDG-aprovado,
+		não aloca). manifestsIn (contexts/fce/canvas.cue) e relatedADR (adr-127)
+		inalterados.
+
+		Histórico do deferimento (scaffold FCE) — trade-off aceito à época:
 		Trade-off aceito: NÃO editar strategic/subdomains/fce.cue durante o
 		scaffold do FCE.
 
@@ -61,7 +69,7 @@ ten013: artifact_schemas.#TensionEntry & {
 		isolamento é exposta.
 		"""
 
-	status: "open"
+	status: "resolved"
 
 	structuralResolutionPath: "strategic/subdomains/fce.cue"
 
@@ -80,6 +88,6 @@ ten013: artifact_schemas.#TensionEntry & {
 		o atrito é entre dois artefatos de spec, não com um axioma nem com uma
 		limitação de schema. A resolução estrutural é trivial (editar o wording
 		da definition) e fica em structuralResolutionPath; o status permanece
-		open até o PR de correção do subdomain.
+		open até este PR (polish-canvas-pg-drifts), que aplicou a resolução estrutural; o status passou a resolved.
 		"""
 }

@@ -138,7 +138,7 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 				detail: "subdomainType em canvas (core/supporting/generic) deve coincidir EXATAMENTE com 'type' em strategic/subdomains/<code>.cue. Drift indica classification flutuante — corrigir um dos dois antes de prosseguir."
 			}, {
 				action: "Compor businessRole + wardleyEvolution"
-				detail: "businessRole captura papel funcional (compliance-enforcer, gateway-onboarding, ledger-of-record, advisor, etc.). wardleyEvolution: genesis/custom/product/commodity — reflete maturidade do problema."
+				detail: "businessRole captura papel funcional — enum FECHADO de 4 valores no schema #BCClassification: revenue-generator | engagement-creator | compliance-enforcer | operational-enabler. wardleyEvolution: genesis/custom/product/commodity — reflete maturidade do problema."
 			}, {
 				action: "Declarar verticalApplicability"
 				detail: "Mode + rationale. Vertical-agnostic: padrões universais. Vertical-adaptable: primitivas universais com vocabulary adaptável. Vertical-specific: anchored em construção civil ou outra vertical."
@@ -157,7 +157,7 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 			objective: "Articular o que o BC FAZ: domainRoles (primary + secondary archetypes) + capabilities (operational list + sync/async surface flags)."
 			process: [{
 				action: "Compor domainRoles primary + secondary"
-				detail: "Primary é papel CENTRAL; secondary captura capabilities ortogonais. Catalog: gateway, orchestrator, ledger, advisor, execution, etc. BCs que GATEKEEPING flow têm primary=gateway."
+				detail: "Primary é papel CENTRAL; secondary captura capabilities ortogonais. #Archetype é enum FECHADO de 6 valores no schema: analysis | draft | execution | gateway | specification | engagement. BCs que GATEKEEPING flow têm primary=gateway."
 			}, {
 				action: "Declarar capabilities operational com refs ao domain-definition"
 				detail: "Cada capability declara capabilityRef (cc-XX no catalog) OU description-only (capability local). Heurística: se capability local recorrer cross-BC, propor adição ao catalog em ADR separado."
@@ -218,7 +218,7 @@ canvasGuide: artifact_schemas.#ProductionGuide & {
 				"ID pattern: verb-noun em kebab-case (bd-coverage-as-invariant, bd-allocation-not-treasury). Verbs canônicos: as, not, requires, separates, reserves.",
 				"Decisão sem 'consequences' é contemplação abstrata. Force consequences ANTES de aceitar.",
 				"Invariant que apenas restate purpose é redundante — businessDecision adiciona SUBSTÂNCIA (constraint, separation, ordering).",
-				"Per tq-mg-06 derived→source ref: businessDecisions que derivam de domain principles devem ref-explicitar a origem (e.g., derivedFromAxiom: 'ax-XYZ').",
+				"Per tq-mg-06 derived→source ref: businessDecisions que derivam de domain principles devem ancorar a origem NO TEXTO do rationale (e.g., 'ancorada em P11', 'derivada de ax-07') — #BusinessDecision tem campos fechados (id/decision/rationale/consequences), sem campo dedicado derivedFromAxiom; a ancoragem é textual.",
 			]
 			doneCriteria: "≥2 businessDecisions. Cada com id (regex bd-*), decision (≥80 runes assertivo), rationale (≥80 runes), consequences (≥60 runes operacional)."
 			ifGap:        "Se < 2 invariants emergem, BC não tem identity própria — pergunte ao founder qual diferencia este BC. Sem invariants substantivos, postergue."
