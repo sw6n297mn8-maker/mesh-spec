@@ -9,7 +9,7 @@ fce: artifact_schemas.#Subdomain & {
 
 	definition: """
 		Orquestração da execução financeira de compromissos econômicos —
-		budget allocation, payment lifecycle, settlement e liberação
+		budget realization, payment lifecycle, settlement e liberação
 		condicional de retenções. Governa a invariante central da fusão:
 		dinheiro só se move quando operação comprova que deve se mover.
 		Não governa o estado do compromisso (CMT), não precifica risco
