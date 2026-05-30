@@ -131,7 +131,10 @@ structureIndex: {
 				"architecture/adrs/adr-122-apply-cycle-resolution-kinds.cue",
 				"architecture/adrs/adr-123-promote-acyclicity-check-to-reject.cue",
 				"architecture/adrs/adr-124-add-policy-execution-feedback-to-feedback-loop-kind.cue",
-				"architecture/adrs/adr-125-derivation-of-bounded-contexts.cue"
+				"architecture/adrs/adr-125-derivation-of-bounded-contexts.cue",
+				"architecture/adrs/adr-126-context-map-naming-shape-reconciliation-fce.cue",
+				"architecture/adrs/adr-127-derive-fce-bounded-context.cue",
+				"architecture/adrs/adr-128-money-on-proof-invariant-fce.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -244,6 +247,7 @@ structureIndex: {
 				"contexts/cmt/canvas.cue",
 				"contexts/ctr/canvas.cue",
 				"contexts/dlv/canvas.cue",
+				"contexts/fce/canvas.cue",
 				"contexts/idc/canvas.cue",
 				"contexts/inv/canvas.cue",
 				"contexts/npm/canvas.cue",
@@ -416,7 +420,8 @@ structureIndex: {
 				"architecture/tension-log/ten-009-decision-class-enum-lacks-governance-value.cue",
 				"architecture/tension-log/ten-010-file-classification-ignores-non-cue-types.cue",
 				"architecture/tension-log/ten-011-production-guide-verbatim-inherits-upstream-constraints.cue",
-				"architecture/tension-log/ten-012-escalation-channel-sla-runtime-semantic-leak.cue"
+				"architecture/tension-log/ten-012-escalation-channel-sla-runtime-semantic-leak.cue",
+				"architecture/tension-log/ten-013-fce-subdomain-budget-allocation-imprecision.cue"
 			],
 			"schema": "#TensionEntry"
 		},
