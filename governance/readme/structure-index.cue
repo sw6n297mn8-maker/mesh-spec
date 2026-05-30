@@ -137,7 +137,8 @@ structureIndex: {
 				"architecture/adrs/adr-128-money-on-proof-invariant-fce.cue",
 				"architecture/adrs/adr-129-derive-drc-bounded-context.cue",
 				"architecture/adrs/adr-130-context-map-naming-shape-reconciliation-scf.cue",
-				"architecture/adrs/adr-131-derive-scf-bounded-context.cue"
+				"architecture/adrs/adr-131-derive-scf-bounded-context.cue",
+				"architecture/adrs/adr-132-add-falsification-condition-to-adr-schema.cue"
 			],
 			"schema": "#ADRBase"
 		},
