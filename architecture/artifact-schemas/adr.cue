@@ -70,6 +70,20 @@ package artifact_schemas
 	reversibility: #Reversibility
 	blastRadius:   #BlastRadius
 
+	// ── Falsificação (def-032) ──
+
+	// Critério OBSERVÁVEL que tornaria esta decisão errada no futuro —
+	// transforma o ADR num teste de hipótese revisitável sem reabrir tudo.
+	// Distinto de reversibility (custo de reverter, não gatilho que invalida),
+	// defersTo (deferimento consciente, não falsificação) e supersededBy
+	// (sucessão, não condição). Optional no rollout per def-032 ("faseado:
+	// opcional no rollout"); o structural-check condicional por decisionClass
+	// (gate warn→reject) permanece DEFERIDO em def-032 (open) — este campo é a
+	// base estrutural, não o enforcement. Declarado em #ADRBase (não na união)
+	// porque a união discriminada por status não pode introduzir campos em
+	// struct fechada — mesmo motivo de supersededBy.
+	falsificationCondition?: #FalsificationCondition
+
 	// ── Rastreabilidade ──
 
 	// Artefatos normativos existentes alterados por esta decisão.
@@ -183,3 +197,14 @@ package artifact_schemas
 // cross-artifact: afeta múltiplos artefatos dentro do mesmo domínio/contexto
 // cross-cutting:  afeta artefatos em múltiplos domínios ou contextos
 // repo-wide:      afeta governança, CI, ou estrutura do repositório inteiro
+
+// Falsificação (def-032): a condição observável que invalidaria a decisão.
+// condition declara "esta decisão estará errada SE ___"; observableSignal
+// nomeia o sinal/métrica verificável que evidencia a condição (structural-
+// check, contagem de evento, gate de CI) — ancora a hipótese em algo
+// inspecionável, não em prosa. Struct mínima v1: não modela revisita nem
+// cadência (def-034 painel) por ora — evita over-modeling antes do consumidor.
+#FalsificationCondition: {
+	condition:        string & !=""
+	observableSignal: string & !=""
+}

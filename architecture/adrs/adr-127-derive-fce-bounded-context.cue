@@ -125,6 +125,23 @@ adr127: artifact_schemas.#ADR & {
 	reversibility: "medium"
 	blastRadius:   "cross-cutting"
 
+	falsificationCondition: {
+		condition: """
+			Esta derivação estará errada SE o discriminante "TCM projeta; FCE
+			executa" colapsar — i.e., se o TCM passar a depender do FCE para
+			FUNCIONAR (parar sem ele), não apenas para receber input — OU se o
+			ciclo fce↔rew deixar de ser a forma canônica do acoplamento (a aresta
+			reversa rew→fce desaparece e o ciclo se torna redutível a
+			unidirecional).
+			"""
+		observableSignal: """
+			Reaplicação do teste de remoção quando o canvas do TCM ou as arestas
+			fce↔rew mudarem; sc-cm-07 (acyclicity, catraca adr-123) sobre as 6
+			arestas do FCE — surgimento ou sumiço de aresta no par fce↔rew é o
+			gatilho observável.
+			"""
+	}
+
 	affectedArtifacts: []
 
 	plannedOutputs: [
