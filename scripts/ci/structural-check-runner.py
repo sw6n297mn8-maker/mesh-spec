@@ -573,6 +573,53 @@ def ev_sc_coverage(rule,c):
     miss=sorted(governed-covered-exempt)
     return ["tipo '%s' governado sem structural-check (so cue vet + gate de orfao)" % t for t in miss]
 
+def ev_flow_event_closure(rule,c):
+    # def-031: closure da cadeia de eventos de um cross-context-flow. Todo evento
+    # produzido (completionSignal + integrationEvents) tem >=1 consumidor em
+    # consumedBy[].consumes (consumidor pode ser phase OU contexto externo); todo
+    # consumes referencia evento produzido pela propria phase; consumedBy.phase
+    # (quando presente) existe em phases[].name. completionSignal da phase TERMINAL
+    # e emissao de fim-de-fluxo isenta. Promove tq-xf-02 (advisory) a gate (adr-040/P10).
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    csf=rule.get("completionSignalField","completionSignal")
+    ief=rule.get("integrationEventsField","integrationEvents")
+    cbf=rule.get("consumedByField","consumedBy")
+    cof=rule.get("consumesField","consumes")
+    cpf=rule.get("consumerPhaseField","phase")
+    pnf=rule.get("phaseNameField","name")
+    term_ex=rule.get("terminalCompletionSignalExempt",True)
+    v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        phases=dotget(a,rule.get("phasesPath","phases"))
+        if not isinstance(phases,list): continue
+        names={p.get(pnf) for p in phases if isinstance(p,dict)}
+        n=len(phases)
+        for i,p in enumerate(phases):
+            if not isinstance(p,dict): continue
+            cs=p.get(csf)
+            produced=set()
+            if isinstance(cs,str): produced.add(cs)
+            for e in (p.get(ief) or []):
+                if isinstance(e,str): produced.add(e)
+            consumers=[cb for cb in (p.get(cbf) or []) if isinstance(cb,dict)]
+            consumed_here={cb.get(cof) for cb in consumers}
+            terminal=(i==n-1); pname=p.get(pnf,"?")
+            for e in sorted(produced):                       # (1) produzido sem consumidor
+                if e in consumed_here: continue
+                if terminal and term_ex and e==cs: continue
+                v.append(f"{f}: phase '{pname}': '{e}' produzido sem consumidor (orfao)")
+            for cb in consumers:                             # (2)/(3) consumido sem produtor + phase fantasma
+                ce=cb.get(cof)
+                if ce is not None and ce not in produced:
+                    v.append(f"{f}: phase '{pname}': consumes '{ce}' nao e produzido por esta phase")
+                ph=cb.get(cpf)
+                if ph and ph not in names:
+                    v.append(f"{f}: consumedBy.phase '{ph}' inexistente em phases[].{pnf}")
+    return v
+
 EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_singleton,
  "production-guide-coverage":ev_pg_coverage,"required-block":ev_required_block,
  "at-least-one-block-present":ev_at_least_one,"filesystem-path-exists":ev_fs_path_exists,
@@ -585,7 +632,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists,
  "regex-pattern-match":ev_regex_pattern_match,
  "instance-scoped-cross-file-id-exists":ev_instance_scoped_cross_file_id_exists,
- "directed-acyclicity":ev_directed_acyclicity}
+ "directed-acyclicity":ev_directed_acyclicity,
+ "flow-event-closure":ev_flow_event_closure}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +

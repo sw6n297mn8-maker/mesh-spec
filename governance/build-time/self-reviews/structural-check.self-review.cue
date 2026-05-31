@@ -150,6 +150,20 @@ structuralCheck: build_time.#SelfReviewReport & {
 		confirmando intencionalidade. Nota: este self-review cobre
 		a criação v1; a extensão adr-049 é coberta pelo self-review
 		de adr-049.
+
+		AMENDMENT (2026-05-31 per adr-133, def-031): adiciona o kind
+		flow-event-closure ao enum #StructuralCheckKind + #StructuralCheckRule
+		+ a entrada na união discriminada de #StructuralCheck, e define
+		#FlowEventClosureRule (config de paths com defaults: phasesPath,
+		completionSignalField, integrationEventsField, consumedByField,
+		consumesField, consumerPhaseField, phaseNameField,
+		terminalCompletionSignalExempt). uq-08 PASSED: shape de rule conforma
+		à união discriminada (tq-sc-02); cue vet ./... EXIT=0. uq-04 PASSED:
+		coerente com P10 (promove o advisory tq-xf-02 a gate determinístico) e
+		P12 (regra vive em CUE versionado). O evaluator-coverage (adr-099)
+		exige handler correspondente no runner — registrado no MESMO commit
+		(ev_flow_event_closure em EVAL). Amendment atômico de um kind; sem
+		mudança nos kinds/rules existentes.
 		"""
 
 	singleRoundRationale: """
@@ -176,3 +190,5 @@ structuralCheck: build_time.#SelfReviewReport & {
 		adicional.
 		"""
 }
+
+// ci: re-trigger #2 dos required checks no head (runner desta sessao e flaky) — ref def-031 PR-97

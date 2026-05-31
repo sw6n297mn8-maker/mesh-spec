@@ -62,6 +62,17 @@ adr129: build_time.#SelfReviewReport & {
 		sem kind novo). Sem 2º ADR (DRC não tem invariante cross-cutting tipo
 		P11). costsEliminated ce-02+ce-03 com nota ce-08 futuro. def-029 dispara
 		(13º canvas) — advisory. cue vet EXIT=0.
+
+		AMENDMENT (2026-05-30 per adr-132, def-032): backfill de
+		falsificationCondition derivada do teste de remoção P13 —
+		condition = fluxo normal do compromisso (CMT) passar a DEPENDER do DRC
+		no caso comum (disputas deixarem de ser excepcionais; CMT parar sem
+		DRC); OU o ciclo cmt↔drc deixar de conformar ao kind
+		bidirectional-orchestration (adr-122) e exigir kind novo;
+		observableSignal = reaplicação do teste de remoção ao mudar canvas CMT
+		+ sc-cm-07 sobre cmt↔drc + razão de fluxos CMT que acionam DRC no
+		caminho comum vs. excepcional. Campo opcional; nenhum gate novo
+		(deferido em def-032).
 		"""
 
 	singleRoundRationale: """

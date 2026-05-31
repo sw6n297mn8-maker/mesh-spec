@@ -136,6 +136,23 @@ adr131: artifact_schemas.#ADR & {
 	reversibility: "medium"
 	blastRadius:   "cross-cutting"
 
+	falsificationCondition: {
+		condition: """
+			Esta derivação estará errada SE o SCF deixar de ser folha downstream
+			acíclica — i.e., surgir uma aresta reversa criando ciclo com
+			INV/REW/FCE/CTR/INS (acoplamento bidirecional onde hoje é
+			unidirecional) — OU se nenhuma AdvanceOperation for originada por um
+			período prolongado (o BC não captura função real: produto sem
+			ativação).
+			"""
+		observableSignal: """
+			sc-cm-07 (acyclicity, catraca adr-123) sobre as 6 arestas do SCF —
+			surgimento de aresta reversa é o gatilho; contagem de
+			ReceivableAdvanceOriginated emitidos (zero sustentado ⇒ reaplicar o
+			teste de remoção).
+			"""
+	}
+
 	affectedArtifacts: []
 
 	plannedOutputs: [
