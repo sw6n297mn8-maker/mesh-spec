@@ -82,3 +82,5 @@ adr133: build_time.#SelfReviewReport & {
 		objetiva; round único suficiente.
 		"""
 }
+
+// ci: re-trigger required checks no head materializado (bot regenerou structure-index com skip-ci) — ref def-031 PR-97
