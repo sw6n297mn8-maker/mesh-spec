@@ -57,6 +57,16 @@ adr127: build_time.#SelfReviewReport & {
 		de separação 3/3 + teste de remoção PASSED + classificação das 6
 		relações cross-BC. Opção B budget; ten-013 para imprecisão do
 		subdomain. plannedOutputs canvas + tension. cue vet EXIT=0.
+
+		AMENDMENT (2026-05-30 per adr-132, def-032): backfill de
+		falsificationCondition derivada do teste de remoção P13 —
+		condition = discriminante 'TCM projeta; FCE executa' colapsar (TCM
+		passar a depender do FCE para FUNCIONAR, não só para receber input;
+		OU o ciclo fce↔rew deixar de ser canônico, aresta reversa some);
+		observableSignal = reaplicação do teste de remoção ao mudar canvas TCM
+		ou arestas fce↔rew + sc-cm-07 (catraca adr-123) sobre as 6 arestas do
+		FCE. Campo opcional; shape do ADR inalterado; nenhum gate novo
+		(deferido em def-032).
 		"""
 
 	singleRoundRationale: """

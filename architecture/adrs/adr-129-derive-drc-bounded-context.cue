@@ -135,6 +135,23 @@ adr129: artifact_schemas.#ADR & {
 	reversibility: "medium"
 	blastRadius:   "cross-cutting"
 
+	falsificationCondition: {
+		condition: """
+			Esta derivação estará errada SE o fluxo normal do compromisso (CMT)
+			passar a DEPENDER do DRC para operar no caso comum — i.e., disputas
+			deixarem de ser excepcionais e o CMT parar sem o DRC (acoplamento, não
+			perda de função excepcional) — OU se o ciclo cmt↔drc deixar de
+			conformar ao kind bidirectional-orchestration (adr-122) e exigir kind
+			novo.
+			"""
+		observableSignal: """
+			Reaplicação do teste de remoção quando o canvas do CMT mudar; sc-cm-07
+			sobre as arestas cmt↔drc + conformância contínua ao kind
+			bidirectional-orchestration; razão de fluxos CMT que acionam o DRC no
+			caminho comum vs. excepcional.
+			"""
+	}
+
 	affectedArtifacts: []
 
 	plannedOutputs: [

@@ -64,6 +64,15 @@ adr131: build_time.#SelfReviewReport & {
 		costsEliminated ce-06/07 encaixe direto; sem 2º ADR (P11 instância como
 		DRC); ext-securitization-admin openQuestion. Naming em adr-130. cue vet
 		EXIT=0.
+
+		AMENDMENT (2026-05-30 per adr-132, def-032): backfill de
+		falsificationCondition derivada do teste de remoção P13 —
+		condition = SCF deixar de ser folha downstream acíclica (surgir aresta
+		reversa criando ciclo com INV/REW/FCE/CTR/INS); OU nenhuma
+		AdvanceOperation originada por período prolongado (BC sem função real);
+		observableSignal = sc-cm-07 (catraca adr-123) sobre as 6 arestas do SCF
+		+ contagem de ReceivableAdvanceOriginated emitidos. Campo opcional;
+		nenhum gate novo (deferido em def-032).
 		"""
 
 	singleRoundRationale: """
