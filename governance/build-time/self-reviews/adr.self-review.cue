@@ -69,3 +69,5 @@ adrSchema: build_time.#SelfReviewReport & {
 }
 
 // ci: re-trigger required checks no head materializado (structure-index regen veio com skip-ci); ref def-032 PR-95
+
+// nota: este SRR complementa adr-schema-affectedartifacts-relax.self-review.cue (review anterior do mesmo schema, adr-059) — ambos cobrem amendments distintos do #ADR.
