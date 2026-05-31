@@ -1,0 +1,6 @@
+=== Probe 1 — egress HTTPS generico ===
+P1 HTTP 200 | time 0.035646s
+=== Probe 2 — Anthropic alcancavel (sem key, espera 401/400) ===
+P2 HTTP 405 | time 0.036189s
+=== Probe 3 — chamada autenticada real (se houver secret) ===
+P3 NO_SECRET: ANTHROPIC_API_KEY ausente — pulado
