@@ -190,3 +190,5 @@ structuralCheck: build_time.#SelfReviewReport & {
 		adicional.
 		"""
 }
+
+// ci: re-trigger #2 dos required checks no head (runner desta sessao e flaky) — ref def-031 PR-97
