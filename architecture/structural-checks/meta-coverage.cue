@@ -54,6 +54,7 @@ structuralChecks: {
 				{type: "task-template", rationale: "(P) Templates de tarefa; conteúdo declarativo, shape via cue vet."},
 				{type: "lens", rationale: "(P) Lenses analíticas; critérios de ativação self-contained; shape via cue vet."},
 				{type: "validation-prompt", rationale: "(P) Prompts advisory (camada P10); matchPatterns self-contained; shape via cue vet."},
+				{type: "agent-probe-protocol", rationale: "(P) Protocolo singleton do agent-probe (camada P10, Ciclo 4 adr-134); self-contained (isolamento + taxonomia + promptTemplate versionado, sem ref cross-file); shape via cue vet. Análogo a validation-prompt. O record (agent-probe-record) NÃO é exempt — tem check próprio sc-apr-01 (filesystem-path-exists referencial)."},
 				{type: "economic-assumption-model", rationale: "(P) Modelo de premissas econômicas; declarativo, refs intra-shape; shape via cue vet."},
 				{type: "glossary", rationale: "(P) Glossário por BC; termos auto-contidos; shape via cue vet."},
 				{type: "api-spec", rationale: "(P) Presença de api.yaml já coberta por sc-cv-02 (conditional-file-presence); o schema em si é shape via cue vet."},

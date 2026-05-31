@@ -47,7 +47,9 @@ package artifact_schemas
 	"policy" |
 	"validation-prompt" |
 	"economic-assumption-model" |
-	"economic-mechanism-model"
+	"economic-mechanism-model" |
+	"agent-probe-protocol" |
+	"agent-probe-record"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -66,7 +68,8 @@ package artifact_schemas
 // wg (work-governance),
 // pol (policy),
 // eam (economic-assumption-model),
-// emm (economic-mechanism-model).
+// emm (economic-mechanism-model),
+// app (agent-probe-protocol), apr (agent-probe-record).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""
