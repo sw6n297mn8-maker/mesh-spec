@@ -1,0 +1,50 @@
+name: egress-test
+on:
+  push:
+    branches: [claude/ci-egress-test]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run egress probes (results teed to file for retrieval)
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          {
+            echo "=== Probe 1 — egress HTTPS generico ==="
+            curl -sS -o /dev/null -w "P1 HTTP %{http_code} | time %{time_total}s\n" \
+              https://example.com --max-time 10 || echo "P1 BLOCKED: no generic egress"
+
+            echo "=== Probe 2 — Anthropic alcancavel (sem key, espera 401/400) ==="
+            curl -sS -o /dev/null -w "P2 HTTP %{http_code} | time %{time_total}s\n" \
+              https://api.anthropic.com/v1/messages --max-time 10 || echo "P2 BLOCKED: anthropic unreachable"
+
+            echo "=== Probe 3 — chamada autenticada real (se houver secret) ==="
+            if [ -z "$KEY" ]; then
+              echo "P3 NO_SECRET: ANTHROPIC_API_KEY ausente — pulado"
+            else
+              curl -sS -w "\nP3 HTTP %{http_code} | time %{time_total}s\n" \
+                https://api.anthropic.com/v1/messages \
+                -H "x-api-key: $KEY" \
+                -H "anthropic-version: 2023-06-01" \
+                -H "content-type: application/json" \
+                --max-time 30 \
+                -d '{"model":"claude-haiku-4-5-20251001","max_tokens":16,"messages":[{"role":"user","content":"reply with the single word: PONG"}]}' \
+                || echo "P3 BLOCKED: authenticated call failed"
+            fi
+          } 2>&1 | tee egress-result.txt
+
+      - name: Commit results back so the agent can read them (no Actions-logs API available)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add egress-result.txt
+          git commit -m "ci(egress-test): probe results [skip ci]" || { echo "nada a commitar"; exit 0; }
+          git push origin "HEAD:${GITHUB_REF_NAME}"
