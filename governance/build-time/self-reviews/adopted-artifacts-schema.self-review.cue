@@ -51,3 +51,5 @@ adoptedArtifactsSchemaAdoption: build_time.#SelfReviewReport & {
 
 	summary: "Adopted-artifacts.cue schema stable em 1 round. Adoção verbatim de tekton-spec v0.2.0 per ADR-050. Sem findings. Validação upstream herdada."
 }
+
+// ci-smoke-test: PR descartável para testar se o pipeline (CI + merge) dispara num PR limpo. DO NOT MERGE.
