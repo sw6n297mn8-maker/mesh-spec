@@ -90,6 +90,9 @@ package artifact_schemas
 } | {
 	kind: "directed-acyclicity"
 	rule: #DirectedAcyclicityRule
+} | {
+	kind: "flow-event-closure"
+	rule: #FlowEventClosureRule
 })
 
 _#StructuralCheckBase: {
@@ -168,9 +171,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "directed-acyclicity"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "directed-acyclicity" | "flow-event-closure"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #DirectedAcyclicityRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #DirectedAcyclicityRule | #FlowEventClosureRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -666,4 +669,35 @@ _#StructuralCheckBase: {
 		path:      string & !=""
 		notEquals: string & !=""
 	})]
+}
+
+// Rule shape para kind=flow-event-closure (def-031).
+// Closure topológica da cadeia de eventos de um cross-context-flow: todo
+// evento PRODUZIDO por uma phase (completionSignal + integrationEvents) tem
+// >=1 consumidor declarado em consumedBy[].consumes (consumidor pode ser
+// phase OU contexto externo ao conjunto de phases — rew/nim/scf/ato consomem
+// sem serem fases); todo consumedBy[].consumes referencia um evento produzido
+// pela propria phase; consumedBy[].phase, quando presente, existe em
+// phases[].name. Excecao: o completionSignal da phase TERMINAL e emissao de
+// fim-de-fluxo legitima (nao exige consumidor). Promove tq-xf-02 (advisory) a
+// gate deterministico per adr-040/P10 — event-storming-reverso: um flow cuja
+// cadeia nao fecha tem furo de modelagem (evento orfao). Todos os campos tem
+// default (kind especifico do tipo cross-context-flow; rule pode ser {}).
+#FlowEventClosureRule: {
+	// Path da lista de phases no flow.
+	phasesPath: string & !="" | *"phases"
+	// Campo do sinal de conclusao de cada phase (string).
+	completionSignalField: string & !="" | *"completionSignal"
+	// Campo da lista de eventos de integracao de cada phase.
+	integrationEventsField: string & !="" | *"integrationEvents"
+	// Campo da lista de consumidores de cada phase.
+	consumedByField: string & !="" | *"consumedBy"
+	// Campo, dentro de cada consumer, do evento consumido.
+	consumesField: string & !="" | *"consumes"
+	// Campo, dentro de cada consumer, da phase consumidora (opcional na instancia).
+	consumerPhaseField: string & !="" | *"phase"
+	// Campo do nome de cada phase (alvo de consumedBy[].phase).
+	phaseNameField: string & !="" | *"name"
+	// true: completionSignal da ultima phase e emissao terminal isenta de consumidor.
+	terminalCompletionSignalExempt: bool | *true
 }

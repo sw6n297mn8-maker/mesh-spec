@@ -40,4 +40,15 @@ structuralChecks: {
 		rationale:    "adr-112: a phase ancora a responsabilidade num subdomínio estratégico; um subdomínio fantasma quebra o elo flow→estratégia."
 		enforcement: "reject"
 	}
+	"sc-ccf-03": artifact_schemas.#StructuralCheck & {
+		id:           "sc-ccf-03"
+		title:        "cross-context-flow: cadeia de eventos fecha (sem evento órfão)"
+		artifactType: "cross-context-flow"
+		description:  "Closure topológica do flow (def-031): todo evento produzido por uma phase (completionSignal + integrationEvents) tem >=1 consumidor em consumedBy[].consumes (phase OU contexto externo ao conjunto de phases); todo consumes referencia evento produzido pela própria phase; consumedBy.phase (quando presente) existe em phases[].name. O completionSignal da phase terminal é emissão de fim-de-fluxo isenta. Promove tq-xf-02 (advisory) a gate determinístico per adr-040/P10 — event-storming-reverso. NÃO duplica def-021 (integrationEvents↔domain-model, dimensão events): aqui é a closure do GRAFO."
+		kind:         "flow-event-closure"
+		rule: {}
+		errorMessage: "cross-context-flow: cadeia de eventos não fecha — evento produzido sem consumidor (órfão), consumes sem produtor na phase, ou consumedBy.phase inexistente. Declare o consumidor faltante, corrija o consumes, OU registre em consumedBy o consumidor downstream (inclusive contexto fora do conjunto de phases)."
+		rationale:    "def-031: o oráculo de closure pega o erro de modelagem mais caro (evento órfão num flow cross-BC) como gate determinístico, não só design-review (tq-xf-02 advisory). Born-warn (catraca adr-097): o flow commitment-lifecycle tem 2 emissões roadmap sem consumidor materializado (BudgetCommitted, CommitmentClosed); promove a reject quando o flow fechar."
+		enforcement: "warn"
+	}
 }
