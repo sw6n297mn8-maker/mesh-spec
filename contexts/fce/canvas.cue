@@ -271,6 +271,17 @@ canvas: artifact_schemas.#Canvas & {
 				"""
 			description: "Reconciliado: context-map dizia CreditEligibilityDecided; REW publica EligibilityEmitted/RiskScoreEmitted (rew:332,338)."
 		}, {
+			type:          "event-consumer"
+			sourceContext: "scf"
+			event:         "ReceivableAdvanceOriginated"
+			reaction: """
+				Desembolsa o advance ao fornecedor sob PrePaymentGuard/P11 — o SCF
+				origina (decide a antecipação), o FCE executa o movimento de dinheiro.
+				A interação do guard com a FONTE de capital (próprio/parceiro) é
+				deferida (def-036); aqui só se abre o canal de execução.
+				"""
+			description: "Canal de disbursement do advance — aresta scf-to-fce, ciclo bidirectional-orchestration (adr-137). Resolve pf-scf-1 (a prosa ce-06 já afirmava a execução do FCE; agora há aresta)."
+		}, {
 			type:       "query-surface"
 			query:      "QueryPaymentSettlementStatus"
 			returnType: "PaymentSettlementStatusView (paymentId + commitmentRef + status ∈ {guarded,authorized,dispatched,settled,failed,indeterminate,cancelled} + settledAt? + railReferenceId?)"
