@@ -6,7 +6,17 @@ def034: artifact_schemas.#DeferredDecision & {
 	id:     "def-034"
 	title:  "Painel de saúde de modelagem — 3 métricas North-Star de build-time (Camada 3 de feedback, cadência semanal)"
 	date:   "2026-05-30"
-	status: "open"
+	status: "resolved"
+
+	// Resolvido por adr-136 (status-A): a razão OPERANTE do deferimento — as fontes
+	// de dados não existiam — caiu. O campo falsificationCondition (adr-132) e o
+	// check sc-ccf-03 (adr-133) existem agora; fronteira-volatility sempre teve
+	// fonte (git). O painel foi materializado como tooling (scripts/ci/modeling-
+	// health.sh, reporter read-only fora de workflow) reportando 4 métricas —
+	// falsificação medida como PRESENÇA, não acionada (residual em adr-136 N1).
+	// def-031/def-032 seguem OPEN (trabalho de GATE); o painel consome o que eles
+	// já materializaram, não os fecha.
+	resolvedBy: "architecture/adrs/adr-136-modeling-health-dashboard.cue"
 
 	description: """
 		Estender dd-status.sh (ou script irmão) para reportar as 3 métricas de
