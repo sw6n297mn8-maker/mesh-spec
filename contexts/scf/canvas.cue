@@ -306,12 +306,14 @@ canvas: artifact_schemas.#Canvas & {
 				estruturado e ofertado.
 				"""
 			event:     "ReceivableAdvanceOriginated"
-			consumers: ["ato"]
+			consumers: ["ato", "fce"]
 			description: """
-				Fato canônico de originação de produto. ATO conforma para registrar
-				consequência fiscal/contábil (scf-to-ato, conformist). NOTA: canvas
-				ATO ainda não scaffolded — forward-ref (oq-scf-3); context-map é
-				autoridade.
+				Fato canônico de originação de produto. FCE consome para EXECUTAR o
+				disbursement ao fornecedor (aresta scf-to-fce, ciclo
+				bidirectional-orchestration, adr-137) — o canal de execução é sempre o
+				FCE. ATO conforma para registrar consequência fiscal/contábil
+				(scf-to-ato, conformist). NOTA: canvas ATO ainda não scaffolded —
+				forward-ref (oq-scf-3); context-map é autoridade.
 				"""
 		}, {
 			type: "event-publisher"
@@ -429,23 +431,35 @@ canvas: artifact_schemas.#Canvas & {
 	}, {
 		id: "bd-structures-not-executes"
 		decision: """
-			SCF ESPECIFICA e OFERTA o produto financeiro (parâmetros de antecipação,
-			taxa, prazo, condições); FCE EXECUTA o movimento de dinheiro. SCF nunca
-			move dinheiro nem toca rails — emite o fato de originação
-			(ReceivableAdvanceOriginated); a liquidação é do FCE.
+			Duas dimensões ORTOGONAIS, não confundir:
+			(a) CANAL de execução — é SEMPRE o FCE. O SCF ESPECIFICA e OFERTA o produto
+			(parâmetros de antecipação, taxa, prazo, condições) e emite
+			ReceivableAdvanceOriginated; o SCF nunca move dinheiro nem toca rails.
+			Quando há disbursement, o FCE o executa (aresta scf→fce, ciclo
+			bidirectional-orchestration; adr-137); a liquidação do recebível subjacente
+			também é do FCE (PaymentSettled fecha a antecipação).
+			(b) FONTE do capital — é VARIÁVEL: próprio (quando houver receita +
+			autorização BC) ou parceiro (para diluir risco) = dois modos de funding. A
+			escolha da fonte, o regime de risco por modo e o impacto no PrePaymentGuard
+			do FCE são decisão DEFERIDA (def-036). O canal não muda com a fonte.
 			"""
 		rationale: """
-			Anti-FCE boundary (scf.cue:49-55): separar especificação de produto da
-			execução de pagamento permite novos produtos financeiros sem alterar a
+			Anti-FCE boundary (scf.cue:49-55): separar ESPECIFICAÇÃO de produto (SCF) da
+			EXECUÇÃO de pagamento (FCE) permite novos produtos financeiros sem alterar a
 			orquestração de pagamentos. Espelho de fce bd-economic-authority-not-rails
-			(FCE decide/executa pagamento; não especifica produto) — SCF e FCE são
-			lados complementares.
+			(FCE decide/executa pagamento; não especifica produto). A separação canal
+			(estável, FCE) × fonte (variável, próprio/parceiro) preserva essa fronteira:
+			a fonte é dimensão do produto, não um segundo caminho de execução (P0 — um
+			executor canônico de movimento de dinheiro). adr-137 modela a aresta scf→fce
+			que antes faltava (contradição pf-scf-1); o regime de fonte fica em def-036.
 			"""
 		consequences: """
-			SCF não tem aggregate de pagamento; depende de FCE para a liquidação
-			efetiva (PaymentSettled fecha a operação via ReceivableAdvanceSettled).
-			Adicionar produto financeiro é mudança no SCF, não no FCE. SCF especifica
-			o que o FCE executará downstream.
+			SCF não tem aggregate de pagamento; depende do FCE para a execução efetiva
+			(disbursement do advance + liquidação do recebível via PaymentSettled). A
+			aresta scf→fce dá canal ao que antes era só prosa ("o que o FCE executará
+			downstream"). Adicionar produto financeiro é mudança no SCF, não no FCE.
+			Mudar a FONTE de capital (próprio↔parceiro) NÃO muda o canal nem cria
+			aggregate de pagamento no SCF — só o regime de risco/guard (def-036).
 			"""
 	}, {
 		id: "bd-consumes-risk-not-models"
@@ -794,6 +808,12 @@ canvas: artifact_schemas.#Canvas & {
 		impact:   "domainAgentSpec + api-specs referenciados mas não materializados; o agente operacional + as superfícies declaradas (hasSyncSurface/hasAsyncSurface=true) dependem deles. Flags true/true espelham bdg/fce/drc (gap conhecido)."
 		deadline: "2026-08-31"
 		rationale: "Agent spec materializa o operador do governanceScope; api-specs são trabalho rotineiro pendente sem trade-off (WI). Forward-refs conscientes."
+	}, {
+		id:       "oq-scf-6"
+		question: "Como a fonte de funding (próprio vs parceiro) é escolhida, qual o regime de risco por modo, e como afeta o PrePaymentGuard do FCE?"
+		impact:   "adr-137 fixou o canal de execução (sempre FCE, aresta scf→fce) mas deferiu o regime da FONTE de capital. Sem o regime, o disbursement real não pode ocorrer: quem fonda (próprio sob licença SCD / parceiro), como o risco é absorvido por modo, e se/como o PrePaymentGuard difere por fonte ficam em aberto."
+		deadline: "2026-09-30"
+		rationale: "Escopo amplo de pf-scf-1 deferido conscientemente (def-036) — depende de condições inexistentes (receita Mesh + autorização BC; parceiros concretos). O canal mínimo já existe (adr-137); o regime de fonte espera as condições."
 	}]
 
 	verificationMetrics: [{

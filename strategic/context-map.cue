@@ -537,6 +537,29 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			communication: {type: "hybrid"}
 			events: ["PaymentSettled"]
 			queries: ["QueryPaymentSettlementStatus"]
+			feedbackLoop: {
+				exists:                true
+				reverseRelationshipId: "scf-to-fce"
+				loopSemantics:         "Liquidação→fechamento (FCE liquida PaymentSettled, SCF fecha a antecipação) / originação→desembolso (SCF origina, FCE executa) — lifecycle do advance, espelho de scf-to-fce (adr-137)."
+				kind:                  "bidirectional-orchestration"
+			}
+		}, {
+			code:              "scf-to-fce"
+			source:            {kind: "bounded-context", context: "scf"}
+			target:            {kind: "bounded-context", context: "fce"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "SCF publica originação de antecipação; FCE consome para executar o disbursement ao fornecedor (movimento de dinheiro sob P11). Canal de execução do advance — a fonte do capital (próprio/parceiro) é dimensão variável deferida (def-036)."
+			rationale:         "Resolve pf-scf-1: bd-structures-not-executes afirma que o FCE executa o que o SCF origina, mas faltava a aresta. SCF=OHS (publica o fato de originação), FCE=ACL (traduz para execução de pagamento). Ciclo scf↔fce tipado bidirectional-orchestration (adr-137)."
+			communication: {type: "async"}
+			events: ["ReceivableAdvanceOriginated"]
+			feedbackLoop: {
+				exists:                true
+				reverseRelationshipId: "fce-to-scf"
+				loopSemantics:         "Originação→desembolso (SCF decide a antecipação, FCE executa o movimento) / liquidação→fechamento (FCE liquida, SCF fecha) — lifecycle do advance."
+				kind:                  "bidirectional-orchestration"
+			}
 		},
 		{
 			code:              "bkr-to-fce"
