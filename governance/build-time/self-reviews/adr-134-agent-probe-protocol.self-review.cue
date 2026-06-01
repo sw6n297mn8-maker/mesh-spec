@@ -11,9 +11,9 @@ adr134: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
-	generatedAt:     "2026-05-31"
+	generatedAt:     "2026-06-01"
 
-	roundsExecuted: 1
+	roundsExecuted: 2
 	maxRounds:      4
 	status:         "stable"
 
@@ -47,6 +47,23 @@ adr134: build_time.#SelfReviewReport & {
 			rejeitado], (b) cobertura como métrica dd-status [rejeitado — menos visível],
 			(c) gate born-reject [rejeitado — born-red]; escolheu A born-warn. Pass.
 			"""
+	}, {
+		round:     2
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 2 (refresh aditivo, 2026-06-01): adicionada nota de Calibração empírica
+			do Ciclo 4 (N=4) ao campo consequences — aditiva, NÃO reabre decision/context
+			(status segue accepted). A nota registra: 4 canvases probados (FCE/BDG/DRC/SCF,
+			naturezas distintas), 0 alucinação material, 3 classes recorrentes de
+			incompletude + 1 emergente (pf-scf-1, inconsistência interna), falsificationCondition
+			não disparou (GO), cobertura 1/14→4/14, e a nota de honestidade do P0 (derivação
+			humana de triagem, não detecção de probe — não atribuído ao protocolo).
+			Re-verificado: uq-03 (refs pf-scf-1 + os 3 records existem no mesmo PR), uq-05
+			(a honestidade-P0 declara a limitação), uq-07 (zero placeholder), uq-08
+			(conforma #ADR; cue vet EXIT=0). Adição factual e rastreável; sem novos findings.
+			"""
 	}]
 
 	findings: {}
@@ -57,14 +74,8 @@ adr134: build_time.#SelfReviewReport & {
 		#ArtifactType +2, sc-apr-01 (referencial) + sc-apr-02 (cobertura A born-warn),
 		exemptTypes do protocol, e o 1º probe-record (fce). falsificationCondition
 		(dogfood #5) observa conluio/zombie/DoD-insuficiente. Residual em def-035.
-		Estável em 1 round, zero findings.
-		"""
-
-	singleRoundRationale: """
-		Decisão moldada em diálogo extenso com o founder (cobertura A confirmada,
-		taxonomia de finding fixada, falsificationCondition redigida pelo founder).
-		O ADR materializa decisões já tomadas; critérios verificáveis por inspeção
-		direta (conformance a #ADR estrutural; alternativas rastreáveis no context).
-		Self-reported por ausência de subagente isolado no fluxo; sem ambiguidade pendente.
+		Round 2 (2026-06-01) adicionou a nota de calibração empírica N=4 (GO; 0
+		alucinação; cobertura 1/14→4/14) ao consequences, sem reabrir a decisão.
+		Estável; zero findings em ambos os rounds.
 		"""
 }
