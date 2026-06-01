@@ -91,6 +91,18 @@ adr134: artifact_schemas.#ADR & {
 		     founder tria (triaged); o ratio sinal/ruído é observável.
 		(N3) A taxonomia de FailureClass (S6) é cross-BC (BKR) — o probe a surfou mas a
 		     correção atravessa BCs; registrada como residual, não resolvida aqui.
+
+		Calibração empírica do Ciclo 4 (N=4): probes isolados em FCE, BDG, DRC, SCF —
+		naturezas distintas (core/execution, supporting/enforcer, supporting/enabler,
+		supporting/specification). Zero alucinação material nos 4. Três classes de
+		incompletude recorrentes nos 4: (a) taxonomia citada-mas-não-fechada, (b)
+		estado/evento sem caminho completo, (c) predicado de gate impreciso. Uma classe
+		emergente no SCF: inconsistência interna entre seções (businessDecision contradiz
+		topologia, pf-scf-1). A falsificationCondition (conluio | zombie | DoD-insuficiente;
+		ratio spec-finding/probe-noise) NÃO disparou: ratio alto, probe-noise=0 em todos.
+		Ciclo 4 generaliza além do FCE — GO. Cobertura 1/14 -> 4/14. Nota de honestidade:
+		o achado P0 (enum-sem-lar-canônico) registrado na triagem do FCE foi derivação
+		humana, não detecção de probe — não atribuído ao protocolo.
 		"""
 
 	reversibility: "medium"
