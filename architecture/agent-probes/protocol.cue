@@ -57,14 +57,18 @@ protocol: artifact_schemas.#AgentProbeProtocol & {
 		"spec-incompleteness",
 		"spec-ambiguity",
 		"spec-miscommunication",
+		"cross-bc-gap",
+		"deferred-by-design",
+		"already-specified",
 		"probe-noise",
 	]
 
 	closingDoD: """
 		Um probe está completo quando: (a) o agente entregou os testes + assunções;
-		(b) cada assunção foi triada numa das 4 categorias de findingTaxonomy; (c)
-		todo finding não-noise recebeu disposition (linkedTo um tracker OU
-		acceptedAsResidual). O protocolo NÃO corrige a spec — só registra os buracos
+		(b) cada assunção foi triada numa categoria de findingTaxonomy (gap real /
+		não-defeito / ruído); (c) todo GAP REAL (spec-incompleteness/ambiguity/
+		miscommunication/cross-bc-gap) recebeu disposition (linkedTo um tracker OU
+		acceptedAsResidual). probe-noise é reservado a alucinação genuína do agente. O protocolo NÃO corrige a spec — só registra os buracos
 		no probe-record; a correção é trabalho separado do BC alvo (ADR/oq/WI próprios,
 		sessão própria). Triagem por agente é advisory (P10): o founder decide o que
 		é defeito real vs ruído.

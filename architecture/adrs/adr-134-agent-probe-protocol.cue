@@ -40,9 +40,13 @@ adr134: artifact_schemas.#ADR & {
 		(1) CRIAR 2 schemas: #AgentProbeProtocol (self-contained — isolation contract,
 		    probeTask, promptTemplate versionado, findingTaxonomy, closingDoD) e
 		    #AgentProbeRecord (targetCanvas cross-ref; runs[] append-only; #ProbeFinding
-		    como UNIÃO DISCRIMINADA por #ProbeFindingCategory — category != probe-noise
-		    EXIGE disposition). A união é o DoD-completeness que neutraliza Goodhart:
-		    record-stub (finding sem disposition) falha cue vet.
+		    como UNIÃO DISCRIMINADA por #ProbeFindingCategory — 7 categorias: 3 de defeito
+		    deste canvas + cross-bc-gap [gaps reais], deferred-by-design + already-specified
+		    [não-defeitos], e probe-noise [alucinação]. GAP REAL exige disposition;
+		    não-defeito e probe-noise não). A união é o DoD-completeness que neutraliza
+		    Goodhart: gap real sem disposition falha cue vet. probe-noise reservado a
+		    alucinação genuína mantém honesto o ratio spec-finding/probe-noise da
+		    falsificationCondition — rotular não-defeito como noise faria o record mentir.
 
 		(2) ESTENDER #ArtifactType com agent-probe-protocol + agent-probe-record (aditivo).
 
@@ -57,7 +61,9 @@ adr134: artifact_schemas.#ADR & {
 
 		(5) MATERIALIZAR o protocolo singleton (architecture/agent-probes/protocol.cue) +
 		    o 1º probe-record (records/fce.cue — a triagem F1-F21 do canvas FCE feita
-		    nesta sessão: 16 findings, 4 reais com disposition + 12 noise).
+		    nesta sessão: 16 findings — 5 gaps reais com disposition (4 deste canvas
+		    S6/S7/S9/P0 + 1 cross-bc-gap S3) + 11 não-defeitos (4 deferred-by-design +
+		    7 already-specified) + 0 probe-noise).
 
 		(6) NÃO corrigir os defeitos do FCE aqui. Os findings reais (S6/S7/S9/P0) são
 		    BACKLOG DE CORREÇÃO do FCE (adr-135+, sessão própria); o record os REGISTRA.

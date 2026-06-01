@@ -48,7 +48,9 @@ agentProbeProtocol: build_time.#SelfReviewReport & {
 			aninhado em #AgentProbeProtocol. cue vet EXIT=0. Pass.
 			tq-as-01 (localização canônica): _schema.location presente e preenchido. Pass.
 			tq-as-02 (critérios acionáveis): tq-app-01/02 têm test concreto (isolation
-			exclui domain-model/ADRs; findingTaxonomy = as 4 categorias). Pass.
+			exclui domain-model/ADRs; findingTaxonomy = as 7 categorias: gaps reais
+			(3 defeito + cross-bc-gap), não-defeitos (deferred-by-design/already-specified)
+			e probe-noise). Pass.
 			tq-as-03 (rationale do conjunto): _qualityCriteria.rationale explica a
 			cobertura (isolamento + taxonomia como as duas dimensões que definem o
 			protocolo). Pass.

@@ -54,10 +54,10 @@ package artifact_schemas
 			rationale:   "O valor do probe vem de negar contexto: se o agente vê a fonte do design, ele ratifica em vez de falsificar (viés de confirmação)."
 		}, {
 			id:          "tq-app-02"
-			description: "findingTaxonomy separa defeito de ruído"
-			test:        "findingTaxonomy inclui as 4 categorias de #ProbeFindingCategory — as 3 de defeito (incompleteness/ambiguity/miscommunication) E probe-noise. Sem a categoria de ruído, alucinação do agente seria contada como buraco da spec."
+			description: "findingTaxonomy separa gap real de não-defeito de ruído"
+			test:        "findingTaxonomy inclui as categorias de #ProbeFindingCategory — gaps reais (3 de defeito deste canvas + cross-bc-gap), não-defeitos (deferred-by-design, already-specified) E probe-noise. Sem separar não-defeito de probe-noise, não-buracos legítimos (deferidos/já-respondidos) seriam contados como alucinação, distorcendo o ratio."
 			severity:    "fail"
-			rationale:   "Separar probe-noise dos defeitos reais é o que torna o ratio sinal/ruído mensurável (falsificationCondition do adr-134)."
+			rationale:   "Reservar probe-noise a alucinação genuína (distinta dos não-defeitos) é o que torna o ratio spec-finding/probe-noise honesto (falsificationCondition do adr-134); rotular não-defeito como noise faria o record reportar alucinação que não houve."
 		}]
 		rationale: "Critérios cobrem as duas dimensões que definem o protocolo: isolamento genuíno (tq-app-01 — sem o qual o probe ratifica) e taxonomia que separa sinal de ruído (tq-app-02 — sem a qual a métrica de qualidade da spec é poluída)."
 	}

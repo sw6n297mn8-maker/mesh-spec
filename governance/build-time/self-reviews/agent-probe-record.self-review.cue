@@ -27,8 +27,9 @@ agentProbeRecord: build_time.#SelfReviewReport & {
 			contra 8 universalCriteria + 3 type-specific de #ArtifactSchema (tq-as).
 
 			uq-01 (rationale=WHY): rationale do #ProbeFinding discriminated-union
-			explica POR QUE a disposição é obrigatória para findings não-noise
-			(neutraliza Goodhart — record vazio/sem-disposição falha cue vet). Pass.
+			explica POR QUE a disposição é obrigatória para GAPS REAIS (não para
+			não-defeitos/noise) — neutraliza Goodhart (gap real sem disposição falha
+			cue vet). Pass.
 			uq-02 (Mesh-specific): substitution falha — record é o audit-trail do
 			Ciclo 4 (targetCanvas aponta a canvas Mesh; categorias são da tese de
 			modelagem). Pass.
@@ -43,8 +44,8 @@ agentProbeRecord: build_time.#SelfReviewReport & {
 			uq-07 (zero placeholder): nenhum. Pass.
 			uq-08 (conforma schema): _schema.location collection
 			(architecture/agent-probes/records/[a-z0-9-]+.cue); discriminated union
-			#ProbeFinding (category≠probe-noise → disposition obrigatório) é shape
-			válido. cue vet EXIT=0. Pass.
+			#ProbeFinding (gap real → disposition obrigatório; não-defeito/noise não)
+			é shape válido (7 categorias). cue vet EXIT=0. Pass.
 			tq-as-01 (localização canônica): _schema.location preenchido. Pass.
 			tq-as-02 (critérios acionáveis): tq-apr-01/02 concretos (todo run tem ≥1
 			finding; finding não-noise tem disposition). Pass.
@@ -58,10 +59,11 @@ agentProbeRecord: build_time.#SelfReviewReport & {
 	summary: """
 		#AgentProbeRecord materializa o registro de probe do Ciclo 4: targetCanvas
 		(cross-ref), protocolVersion, triaged, runs[] append-only (cada probe = 1
-		entry), e #ProbeFinding como UNIÃO DISCRIMINADA por #ProbeFindingCategory —
-		category≠probe-noise exige disposition (#ProbeDisposition: linkedTo |
-		acceptedAsResidual). Esta união é o mecanismo DoD-completeness que neutraliza
-		Goodhart (record-stub não passa cue vet). Collection em
+		entry), e #ProbeFinding como UNIÃO DISCRIMINADA por #ProbeFindingCategory (7
+		categorias) — gap real (3 defeito deste canvas + cross-bc-gap) exige disposition;
+		não-defeito (deferred-by-design/already-specified) e probe-noise não. Esta união
+		é o mecanismo DoD-completeness que neutraliza Goodhart (gap-real-stub não passa
+		cue vet); probe-noise reservado a alucinação genuína mantém honesto o ratio. Collection em
 		architecture/agent-probes/records/. Estável em 1 round, zero findings.
 		"""
 
