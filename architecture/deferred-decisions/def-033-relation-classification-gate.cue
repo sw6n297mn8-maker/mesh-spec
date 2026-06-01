@@ -6,7 +6,14 @@ def033: artifact_schemas.#DeferredDecision & {
 	id:     "def-033"
 	title:  "Classificação de relação cross-BC gate-enforçada — structural-check de pattern/kind obrigatório (Ciclo 2 de feedback)"
 	date:   "2026-05-30"
-	status: "open"
+	status: "resolved"
+
+	// Resolvido por adr-135: a presença de classificação de relação já é
+	// gate determinístico (schema #Relationship união discriminada por direction
+	// → cue vet falha sem pattern; sc-cm-07 → ciclo sem kind → reject). 47/47
+	// arestas classificadas, cue vet EXIT=0. Um check novo seria redundante. A
+	// correção SEMÂNTICA (pattern correto) é interpretativa (P10) → def-029.
+	resolvedBy: "architecture/adrs/adr-135-relation-classification-schema-gated.cue"
 
 	description: """
 		Criar structural-check que FALHA quando uma aresta nova no context-map
