@@ -4,12 +4,13 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 wavePlan: artifact_schemas.#WavePlan & {
 	id:    "W001"
-	title: "Plan — Foundation, DDD strategic, cross-context workflows, C4, Stack"
+	title: "Plan — Foundation, DDD strategic, cross-context workflows, C4, Stack, Runtime bootstrap"
 	rationale: """
-		Plano de execução abrangente cobrindo cinco grupos sequenciados:
+		Plano de execução abrangente cobrindo seis grupos sequenciados:
 		W001 (foundation), W002 (DDD strategic & meta gaps), W003
 		(cross-context workflows expansion), W004 (C4 architecture
-		CUE-derived Structurizr), W005 (stack definition).
+		CUE-derived Structurizr), W005 (stack definition), W006
+		(runtime bootstrap lado-spec).
 
 		W001 estabelece foundation: identidade do domínio, schemas
 		de validação para tipos de artefato mais usados, subdomínios,
@@ -37,11 +38,21 @@ wavePlan: artifact_schemas.#WavePlan & {
 		compute, persistence, eventing, boundaries, operability,
 		frontend) + quality criteria família tq-stack-NN.
 
+		W006 (runtime bootstrap lado-spec, per adr-138) prova a hipótese
+		central P1 — a spec gera código que funciona sem edição semântica
+		manual — no menor experimento possível: gramática #Assertion +
+		contrato de codegen (atrás da stack de W005), contrato EventLogPort,
+		golden-example CMT (bd-mutual-acceptance) com harness de validação,
+		validação terminal cross-BC do FCE e gate de generalização do
+		template. Escopo restrito ao lado-spec: o código gerado vive no
+		mesh-runtime (repo subordinado, fora de escopo); este repo governa a
+		prontidão da spec + o contrato de codegen.
+
 		Ordenação por dependência estrutural mantida: schemas antes de
 		instâncias; domain antes de strategic; strategic antes de
 		tactical; strategic completion (W002 + Conway) antes de stack
 		(W005); stack antes de C4 L2/L3 (container topology depende de
-		decisões de stack).
+		decisões de stack); stack (W005) antes de runtime bootstrap (W006).
 		"""
 
 	waves: {
@@ -592,7 +603,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"""
 			}, {
 				id:         "WI-128"
-				title:      "Planejar a autoria dos shared-schemas base (envelopes de interacao/decisao de agentes, assertion, spec-gap, ion-rules)"
+				title:      "Planejar a autoria dos shared-schemas base (envelopes de interacao/decisao de agentes, spec-gap, ion-rules)"
 				tshirtSize: "M"
 				dependsOn: []
 				semanticPrerequisites: ["Framework de artifact-schemas estabelecido (WI-001 e relacionados)"]
@@ -603,16 +614,13 @@ wavePlan: artifact_schemas.#WavePlan & {
 					artifact: "architecture/shared-schemas/agent-decision-record.cue"
 					type:     "create"
 				}, {
-					artifact: "architecture/shared-schemas/assertion-schema.cue"
-					type:     "create"
-				}, {
 					artifact: "architecture/shared-schemas/spec-gap-event.cue"
 					type:     "create"
 				}, {
 					artifact: "architecture/shared-schemas/ion-rules.cue"
 					type:     "create"
 				}]
-				rationale: "Planeja a autoria dos shared-schemas referenciados na narrativa do config (infraestrutura de interacao/decisao de agentes). Dir ja reservado por stub; este WI registra a intencao (plannedIn), removendo os 5 paths de phantomCandidates. O desenho de cada schema fica para a execucao do WI."
+				rationale: "Planeja a autoria dos shared-schemas referenciados na narrativa do config (infraestrutura de interacao/decisao de agentes). Dir ja reservado por stub; este WI registra a intencao (plannedIn), removendo os 4 paths de phantomCandidates. O desenho de cada schema fica para a execucao do WI. NOTA: o assertion-schema.cue foi relocado deste WI para WI-133 (wave W006-foundation) por estar no caminho critico do runtime bootstrap (per adr-138) — single-ownership do path."
 			}]
 		}
 
@@ -2023,6 +2031,188 @@ wavePlan: artifact_schemas.#WavePlan & {
 					type:     "create"
 				}]
 				rationale: "Stack ADRs decidem em isolamento mas devem ser coerentes: CUE-first codegen path exists + envelope dispatch runnable + bounded-wait queue primitives + audit trail persistence + cross-BC integration pattern matches eventing choice + per-BC isolation respected. Quality criteria família valida coherence."
+			}]
+		}
+
+		// ════════════════════════════════════════════════════════════
+		// W006 — Runtime bootstrap (lado-spec) — per adr-138
+		// ════════════════════════════════════════════════════════════
+
+		"W006-foundation": {
+			id:    "W006-foundation"
+			title: "Runtime bootstrap — gramática de assertions + contrato de codegen (atrás da stack)"
+			rationale: """
+				Fundação do runtime bootstrap (adr-138). Dois artefatos lado-spec que
+				antecedem o golden-example: (1) a gramática #Assertion — fonte
+				ESTRUTURADA que o codegen consome para gerar testes de runtime (per
+				narrativa canônica do README em governance/readme/config.cue; autoria
+				PUXADA do WI-128 para cá por estar no caminho crítico até o código);
+				(2) o contrato de codegen, que declara a dependência BLOQUEANTE da
+				stack mínima de W005 e define a transformação spec→runtime.
+				domain-invariant (adr-080) permanece como camada de governança
+				referenciando #Assertion — sem schema paralelo (reconciliado com
+				adr-080).
+				"""
+
+			tasks: [{
+				id:         "WI-133"
+				title:      "Autorar gramática #Assertion (shared-schema) — fonte estruturada do codegen"
+				tshirtSize: "M"
+				dependsOn: []
+				semanticPrerequisites: [
+					"adr-138 aceito (estratégia de runtime bootstrap)",
+					"design canônico do #Assertion descrito no README (governance/readme/config.cue): #Assertion(subject, variables, predicate), #Variable, #Predicate",
+				]
+				outputs: [{
+					artifact: "architecture/shared-schemas/assertion-schema.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/artifact-schemas/structural-check.cue",
+					"contexts/cmt/domain-model.cue",
+				]
+				rationale: "Gramática formal #Assertion (subject/variables/predicate) como container estruturado das assertions; o gerador de testes no CI do mesh-runtime consome via codegen — CUE define estrutura, codegen produz executável (padrão CUE→.proto). Autoria PUXADA do WI-128 (single-ownership do path; WI-128 perde este output). domain-invariant (adr-080) referencia #Assertion por id — affects sinaliza a convenção de referência a definir na execução, NÃO edição obrigatória do CMT agora."
+			}, {
+				id:         "WI-134"
+				title:      "Definir contrato de codegen lado-spec (#Assertion + domain-model + domain-invariant → tipos/skeleton/Ports/testes)"
+				tshirtSize: "L"
+				dependsOn: ["WI-102", "WI-103", "WI-133"]
+				semanticPrerequisites: [
+					"adr-080 aceito (domain-invariant é a camada de governança da assertion)",
+				]
+				outputs: [{
+					artifact: "governance/build-time/codegen-contract.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/shared-schemas/assertion-schema.cue",
+					"contexts/cmt/domain-model.cue",
+					"architecture/structural-checks/cmt-domain-model.cue",
+				]
+				rationale: "Contrato spec→runtime: como #Assertion (fonte estruturada) + domain-model (building blocks) + domain-invariant (governança: coverage/runtimeGap/forbidden) viram tipos, aggregate-skeleton, contratos de Port e testes de runtime deriváveis. Zona schema-exempt governance/build-time (precedente subagent-execution-log) — sem artifact-schema first-class agora. Condição de promoção: se o contrato passar a ser referenciado por >1 wave OU governar múltiplas famílias de BC, promover a architecture/artifact-schemas/codegen-contract.cue via ADR. Depende das ADRs de stack de W005 (WI-102 toolchain, WI-103 compute) — consome, não possui. Os artefatos do CMT em affects são consumidos como fonte (leitura), não editados por este WI."
+			}]
+		}
+
+		"W006-port-contract": {
+			id:    "W006-port-contract"
+			title: "Runtime bootstrap — contrato do EventLogPort (primeira instância, CMT) + adapter-stub"
+			rationale: """
+				O golden-example sobe atrás dos 5 Ports (P7), começando pelo
+				EventLogPort (adr-138). EventLogPort é conceito CANÔNICO de P7; este WI
+				materializa a PRIMEIRA instância concreta de #ServiceContract, no CMT,
+				limitada ao golden-example. Registry compartilhado de Ports é DEFERIDO
+				até a evidência de fan-out justificar — não se cria escopo
+				compartilhado antes de provar que o contrato funciona.
+				"""
+
+			tasks: [{
+				id:         "WI-135"
+				title:      "Materializar contrato EventLogPort como #ServiceContract (CMT) + adapter-stub spec-side"
+				tshirtSize: "M"
+				dependsOn: ["WI-134"]
+				outputs: [{
+					artifact: "contexts/cmt/service-contract.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/design-principles.cue",
+				]
+				rationale: "EventLogPort (P7) modelado como o contrato que o CMT consome para event logging, conformante a #ServiceContract (precedente CTR). O adapter-stub é scaffold de validação SPEC-SIDE apenas: NÃO introduz código de adapter de runtime de produção e NÃO modifica o mesh-runtime (repo subordinado, fora de escopo). Prova o uso do Port sem runtime real (gate CONTINUAR de adr-138)."
+			}]
+		}
+
+		"W006-golden-example": {
+			id:    "W006-golden-example"
+			title: "Runtime bootstrap — golden-example CMT + harness de validação de codegen"
+			rationale: """
+				Coração de adr-138 (decisão 6-7): provar o pipeline spec→código no
+				menor experimento possível. O invariante já existe formalizado
+				(inv-mutual-bilateral-acceptance em cmt-domain-model.cue, com
+				assertion+forbidden+coverage.runtimeRequired); o golden-example
+				adiciona a instância #Assertion concreta + os casos válido/inválido +
+				o harness de validação + a evidência dos gates.
+				"""
+
+			tasks: [{
+				id:         "WI-136"
+				title:      "Criar schema #GoldenExample + production-guide"
+				tshirtSize: "M"
+				dependsOn: []
+				outputs: [{
+					artifact: "architecture/artifact-schemas/golden-example.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/production-guides/golden-example.cue"
+					type:     "create"
+				}]
+				rationale: "Cascade ordering (sc-pg-01): schema + production-guide antes da instância. golden-examples são referenciados no CLAUDE.md mas o tipo nunca foi formalizado (0 instâncias) — este WI fecha a lacuna."
+			}, {
+				id:         "WI-137"
+				title:      "Autorar golden-example CMT (bd-mutual-acceptance) + instância #Assertion + harness de codegen-validation + evidência"
+				tshirtSize: "L"
+				dependsOn: ["WI-133", "WI-134", "WI-135", "WI-136"]
+				semanticPrerequisites: [
+					"inv-mutual-bilateral-acceptance existe em architecture/structural-checks/cmt-domain-model.cue com assertion+forbidden+coverage.runtimeRequired",
+				]
+				outputs: [{
+					artifact: "contexts/cmt/golden-examples/bd-mutual-acceptance.cue"
+					type:     "create"
+				}, {
+					artifact: "scripts/ci/validate-codegen.sh"
+					type:     "create"
+				}, {
+					artifact: "governance/build-time/codegen-validation-evidence.cue"
+					type:     "create"
+				}]
+				affects: [
+					"contexts/cmt/domain-model.cue",
+					"contexts/cmt/service-contract.cue",
+				]
+				rationale: "Golden-example microscópico de adr-138: consome o invariante já formalizado, materializa a instância #Assertion (subject/variables/predicate) do aceite bilateral + casos concretos válido/inválido. O harness gera APENAS para diretório de scratch/build ignorado e valida compile+testes; artefatos de runtime gerados NÃO são commitados no mesh-spec e o mesh-runtime NÃO é tocado (P1 estrito). Outputs versionados: golden-example CUE + script de validação + evidência CUE (CONTINUAR/PIVOTAR/ABANDONAR) — nunca o código gerado."
+			}]
+		}
+
+		"W006-fce-terminal-validation": {
+			id:    "W006-fce-terminal-validation"
+			title: "Runtime bootstrap — validação terminal cross-BC (FCE)"
+			rationale: """
+				adr-138 (decisão 3): FCE = validação TERMINAL do walking skeleton, não
+				golden-example — seu valor é provar a COMPOSIÇÃO cross-BC
+				(DLV/INV/REW/BKR/FCE). Só faz sentido após o golden-example passar.
+				"""
+
+			tasks: [{
+				id:         "WI-138"
+				title:      "Definir cenário de validação terminal do FCE PrePaymentGuard sobre o walking skeleton"
+				tshirtSize: "M"
+				dependsOn: ["WI-137"]
+				outputs: [{
+					artifact: "contexts/fce/terminal-validations/prepayment-guard.cue"
+					type:     "create"
+				}]
+				rationale: "PrePaymentGuard (money-on-proof, P11) é cross-BC por construção; valida que o template do golden-example COMPÕE entre BCs, não só num aggregate isolado. Local terminal-validations/ (não golden-examples/) porque adr-138 define FCE como validação TERMINAL, não golden-example inicial; se a execução do WI concluir que precisa de schema próprio, decide entre criar #TerminalValidation ou reusar #GoldenExample marcado explicitamente como terminal-validation. Terminal: roda após o pipeline estar provado no CMT."
+			}]
+		}
+
+		"W006-fan-out-generalization": {
+			id:    "W006-fan-out-generalization"
+			title: "Runtime bootstrap — gate de generalização do template (fan-out)"
+			rationale: """
+				adr-138 N3 / falsificationCondition: a estratégia assume que o padrão
+				do golden-example generaliza. Este gate extrai o template e codifica o
+				critério de generalização antes do fan-out dos demais BCs.
+				"""
+
+			tasks: [{
+				id:         "WI-139"
+				title:      "Extrair template do golden-example + codificar critério de generalização (N3)"
+				tshirtSize: "M"
+				dependsOn: ["WI-136", "WI-137"]
+				outputs: [{
+					artifact: "architecture/production-guides/golden-example.cue"
+					type:     "update"
+				}]
+				rationale: "Promove o golden-example CMT a template reusável (P3c de adr-138) e codifica o sinal de falha do fan-out: zero divergência estrutural do template NÃO EXPLICADA por ADR (divergência é permitida desde que registrada em ADR — não é zero divergência absoluta). Gate antes de comprometer os 14 BCs."
 			}]
 		}
 	}
