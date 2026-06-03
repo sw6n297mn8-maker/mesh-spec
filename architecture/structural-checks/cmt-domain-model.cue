@@ -63,7 +63,7 @@ structuralChecks: "sc-cmt-01": artifact_schemas.#StructuralCheck & {
 	title:        "Mutual Bilateral Acceptance domain invariant"
 	artifactType: "domain-model"
 	description: """
-		Nenhum compromisso transiciona para state 'accepted' sem evidência bilateral de aceite (proposer + counterparty) sobre termos idênticos. Bilateral acceptance evidence pode ser materializada via campos do evt-commitment-accepted (parties + termsRef) OR via signals capturados pelo gate de aceite pre-emission — em ambos casos, evidência DEVE ser bilateral.
+		Nenhum compromisso transiciona para state 'accepted' sem evidência bilateral de aceite (proposer + counterparty) sobre termos idênticos. O aceite é assimétrico: o proponente confirma implicitamente via ProposeCommitment (fixando referenceTermsHash = sha256(canonical({contractTermsRef, scope}))); a contraparte confirma explicitamente via ConfirmCommitmentAcceptance carregando AcceptanceConfirmation.termsHash. 'Termos idênticos' é verificado por igualdade de hash (AcceptanceConfirmation.termsHash == referenceTermsHash), evidenciada no evt-commitment-accepted (campos termsHash + confirmedBy).
 
 		Layers ativos (per adr-086 D2):
 		- L1 PRESENCE: BilateralAcceptanceEvidence both proposer + counterparty present
@@ -84,9 +84,9 @@ structuralChecks: "sc-cmt-01": artifact_schemas.#StructuralCheck & {
 		assertion: """
 			∀ commitmentId:
 			  Commitment.state == 'accepted'
-			    ⇒ ∃ BilateralAcceptanceEvidence(commitmentId, party=proposer)
-			    ∧ ∃ BilateralAcceptanceEvidence(commitmentId, party=counterparty)
-			    ∧ proposer_evidence.termsRef == counterparty_evidence.termsRef
+			    ⇒ ∃ ProposeCommitment(commitmentId, by=proposer) fixa referenceTermsHash
+			    ∧ ∃ AcceptanceConfirmation(commitmentId, confirmedBy=counterparty)
+			    ∧ AcceptanceConfirmation.termsHash == referenceTermsHash
 			∧ ∀ state transition to 'accepted':
 			    transition event references both bilateral evidence entries
 			∧ no unilateral state transition to 'accepted' permitted
@@ -102,13 +102,13 @@ structuralChecks: "sc-cmt-01": artifact_schemas.#StructuralCheck & {
 		}
 		forbidden: [
 			"Commitment state 'accepted' com only one party's BilateralAcceptanceEvidence",
-			"BilateralAcceptanceEvidence termsRef divergente entre proposer + counterparty",
+			"AcceptanceConfirmation.termsHash divergente do referenceTermsHash fixado no ProposeCommitment",
 			"state transition to 'accepted' captured via single-party signal apenas (unilateral)",
 			"BilateralAcceptanceEvidence ausente em event log para Commitment.state == 'accepted'",
 		]
 	}
 	errorMessage: "domain-invariant inv-mutual-bilateral-acceptance: state 'accepted' atingido sem bilateral acceptance evidence completa OR com termsRef divergentes entre proposer/counterparty. dp-10 jurídico exige bilateral consent. Verifique event log para BilateralAcceptanceEvidence ambas partes + termsRef idêntico + state-machine guard pre-transition."
-	rationale:    "Materializa bd-bilateral-mutual-acceptance + dp-08 (custos de manipulação excedam benefícios) + dp-10 (ambas partes juridicamente identificáveis). L6 captura que bilateral consent é interpretation coherence (não apenas presence) — proposer + counterparty aceitam a MESMA interpretation of termsRef. Runtime gap canonical porque event log + state machine guard são runtime concerns."
+	rationale:    "Materializa bd-bilateral-mutual-acceptance + dp-08 (custos de manipulação excedam benefícios) + dp-10 (ambas partes juridicamente identificáveis). L6 captura que bilateral consent é interpretation coherence (não apenas presence). Per adr-142: 'termos idênticos' materializado por igualdade de termsHash (sha256 de canonical({contractTermsRef, scope})); proponente confirma implicitamente (ProposeCommitment fixa referenceTermsHash), contraparte explicitamente (AcceptanceConfirmation.termsHash); P11 mech-evidence. Runtime gap canonical porque event log + state machine guard são runtime concerns."
 }
 
 structuralChecks: "sc-cmt-02": artifact_schemas.#StructuralCheck & {
@@ -116,18 +116,18 @@ structuralChecks: "sc-cmt-02": artifact_schemas.#StructuralCheck & {
 	title:        "Terms Reference Valid (cross-BC CTR resolution) domain invariant"
 	artifactType: "domain-model"
 	description: """
-		Proposta de compromisso só transiciona para 'accepted' se termsRef resolve em CTR via QueryContractTerms returning ContractTerms ativo no momento de aceite, e Commitment.termsVersionAtAcceptance é frozen = ContractTerms.version. Cross-BC dependency declarada em domain-model dependsOnAggregateState per adr-055.
+		ProposeCommitment só é aceito (compromisso nasce em 'proposed') se termsRef resolve em CTR via QueryContractTerms returning ContractTerms ativo NO MOMENTO DO PROPOSE (propose-time, fail-closed). Fail-closed: CTR sem-resposta/indisponível em propose-time ⇒ ProposeCommitment REJEITADO, nenhum compromisso criado (sem lastro verificável). Commitment.termsVersionAtProposal frozen = ContractTerms.version. SLA numérico deferido a def-046. Cross-BC dependency declarada em domain-model dependsOnAggregateState per adr-055.
 
 		Layers ativos (per adr-086 D2):
 		- L3 RESOLVABLE CONTRACT: termsRef resolve em CTR.QueryContractTerms (authoritative cross-BC contract)
-		- L4 VERSIONED: Commitment.termsVersionAtAcceptance frozen at acceptance time
+		- L4 VERSIONED: Commitment.termsVersionAtProposal frozen at acceptance time
 		- L5 FRESHNESS HEURISTIC: ContractTerms.status == 'active' AT acceptance time (não expired entre proposal e acceptance)
 		- L6 DECISION↔INTERPRETATION COHERENCE: CMT + downstream BDG/INV interpretam mesma version de terms; downstream deprecation post-acceptance NÃO altera commitment interpretation (frozen reference)
 
 		Layers non-applicable: L1, L2, L2.5, L7
 		Non-applicability rationale: presence + cross-field cobertos em sc-cmt-01 (commitment fields); sem adoption proof binding (terms são authoritative not adopted); sem decision context scaling (terms validity é binary cross-BC check, não contextual scope).
 
-		RE-VAL: Yes — periodic audit re-validates termsVersionAtAcceptance frozen vs actual ContractTerms version history; cross-BC reconciliation catches terms drift post-acceptance OR retroactive ContractTerms modification.
+		RE-VAL: Yes — periodic audit re-validates termsVersionAtProposal frozen vs actual ContractTerms version history; cross-BC reconciliation catches terms drift post-acceptance OR retroactive ContractTerms modification.
 
 		War-game evidence (per adr-086 D5):
 		Terms expired during proposal-acceptance window — proposal references ContractTerms version=v3 status=active; counterparty review takes hours; during window, CTR deprecates v3 → activates v4 (regulatory change); counterparty accepts under v3 (read-cached) OR system silently uses v4 (drift); CMT acceptance gate doesn't detect version drift; commitment locks to expired terms; downstream BDG approves under v4 interpretation + INV emits invoice under v3 interpretation; reconciliation divergence cascade + Bacen audit gap exposes regulatory violation.
@@ -141,12 +141,12 @@ structuralChecks: "sc-cmt-02": artifact_schemas.#StructuralCheck & {
 			    ⇒ resolve(Commitment.termsRef) via CTR.QueryContractTerms
 			      returns ContractTerms_resolved
 			    ∧ ContractTerms_resolved.status == 'active'
-			      at acceptance time (frozen)
-			    ∧ Commitment.termsVersionAtAcceptance == ContractTerms_resolved.version
+			      validado em propose-time (frozen)
+			    ∧ Commitment.termsVersionAtProposal == ContractTerms_resolved.version
 			∧ post-acceptance:
-			    Commitment.termsVersionAtAcceptance write-once (no drift)
+			    Commitment.termsVersionAtProposal write-once (no drift)
 			∧ downstream BDG/INV consumers reference
-			    Commitment.termsVersionAtAcceptance (frozen)
+			    Commitment.termsVersionAtProposal (frozen)
 			"""
 		coverage: {
 			buildTime:       false
@@ -154,19 +154,20 @@ structuralChecks: "sc-cmt-02": artifact_schemas.#StructuralCheck & {
 			runtimeRequired: true
 		}
 		runtimeGap: {
-			description: "Cross-BC sync query at acceptance time + version freeze enforcement. Build-time não vê CTR state nem runtime sync query; validation-time advisory pode auditar event log post-hoc verificando termsVersionAtAcceptance presence + cross-BC reconciliation com CTR version history."
-			enforcedBy:  "CMT agent pre-acceptance gate (sync query CTR.QueryContractTerms) + event log records frozen termsVersionAtAcceptance em evt-commitment-accepted + persistence write-once constraint on termsVersionAtAcceptance + RE-VAL periodic cross-BC reconciliation com CTR audit"
+			description: "Cross-BC sync query at acceptance time + version freeze enforcement. Build-time não vê CTR state nem runtime sync query; validation-time advisory pode auditar event log post-hoc verificando termsVersionAtProposal presence + cross-BC reconciliation com CTR version history."
+			enforcedBy:  "CMT agent pre-acceptance gate (sync query CTR.QueryContractTerms) + event log records frozen termsVersionAtProposal em evt-commitment-accepted + persistence write-once constraint on termsVersionAtProposal + RE-VAL periodic cross-BC reconciliation com CTR audit"
 		}
 		forbidden: [
 			"state 'accepted' com termsRef que não resolve em CTR.QueryContractTerms",
+			"ProposeCommitment criado quando CTR indisponível/timeout em propose-time (fail-open proibido)",
 			"ContractTerms.status != 'active' at acceptance time (expired/deprecated)",
-			"Commitment.termsVersionAtAcceptance ausente",
-			"Commitment.termsVersionAtAcceptance mutated post-acceptance (drift)",
-			"downstream consumer (BDG/INV) referencing CTR.current version em vez de Commitment.termsVersionAtAcceptance frozen",
+			"Commitment.termsVersionAtProposal ausente",
+			"Commitment.termsVersionAtProposal mutated post-acceptance (drift)",
+			"downstream consumer (BDG/INV) referencing CTR.current version em vez de Commitment.termsVersionAtProposal frozen",
 		]
 	}
-	errorMessage: "domain-invariant inv-terms-reference-valid: termsRef não resolve em CTR.QueryContractTerms OR ContractTerms inativos at acceptance time OR termsVersionAtAcceptance drift detected. Verifique CMT agent pre-acceptance gate (sync query CTR) + event log para termsVersionAtAcceptance frozen + cross-BC reconciliation."
-	rationale:    "Materializa bd-terms-validation + adr-055 cross-aggregate-state-dependency. L3+L4+L5 capturam cross-BC contract resolution + version freeze + freshness; L6 captura interpretation coherence cross-BC (CMT frozen reference vs downstream CTR.current). Runtime gap canonical porque sync query + version freeze são runtime concerns. RE-VAL essential porque CTR version history pode drift retroactively (regulatory change) e cross-BC reconciliation detecta."
+	errorMessage: "domain-invariant inv-terms-reference-valid: termsRef não resolve em CTR.QueryContractTerms OR ContractTerms inativos at propose-time OR termsVersionAtProposal drift detected. Verifique CMT agent propose-time gate (sync query CTR, fail-closed) + event log para termsVersionAtProposal frozen + cross-BC reconciliation."
+	rationale:    "Materializa bd-terms-validation + adr-055 cross-aggregate-state-dependency. L3+L4+L5 capturam cross-BC contract resolution + version freeze + freshness; L6 captura interpretation coherence cross-BC (CMT frozen reference vs downstream CTR.current). Runtime gap canonical porque sync query + version freeze são runtime concerns. RE-VAL essential porque CTR version history pode drift retroactively (regulatory change) e cross-BC reconciliation detecta. Per adr-142: validação movida para propose-time + fail-closed (CTR indisponível/timeout em propose-time ⇒ ProposeCommitment rejeitado); SLA numérico deferido a def-046."
 }
 
 structuralChecks: "sc-cmt-03": artifact_schemas.#StructuralCheck & {

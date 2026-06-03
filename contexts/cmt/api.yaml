@@ -397,25 +397,26 @@ components:
           minLength: 1
 
     AcceptanceConfirmation:
-      x-mesh-cue-ref: 'contexts/cmt/domain-model.cue#commands.cmd-confirm-commitment-acceptance.fields.counterpartyConfirmation'
+      x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#AcceptanceConfirmation'
       type: object
       description: >
-        TODO/domain-gap — NÃO É CONTRATO CANÔNICO AINDA.
-        AcceptanceConfirmation é referenciado em cmd-confirm-commitment-
-        acceptance.fields do domain-model mas SEM shape canônico declarado.
-        Esta shape mínima inline ({acceptedAt + acceptedBy}) é provisória
-        para destravar o api.yaml; o contrato definitivo precisa nascer no
-        domain-model.cue antes do api.yaml ser tratado como autoridade.
-        Consumidores que dependam dessa shape devem revalidar quando a
-        formalização chegar.
-      required: [acceptedAt, acceptedBy]
+        Confirmação explícita da contraparte (cmd-confirm-commitment-acceptance).
+        termsHash torna "termos idênticos" verificável: deve igualar o hash dos
+        termos fixados no ProposeCommitment (sha256 de canonical({contractTermsRef,
+        scope})) — per adr-142.
+      required: [commitmentId, confirmedBy, confirmedAt, termsHash]
       properties:
-        acceptedAt:
+        commitmentId:
+          $ref: '#/components/schemas/CommitmentId'
+        confirmedBy:
+          $ref: '#/components/schemas/ParticipantId'
+        confirmedAt:
           type: string
           format: date-time
           pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
-        acceptedBy:
-          $ref: '#/components/schemas/ParticipantId'
+        termsHash:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
 
     # ── Request bodies (mirror dos 6 commands EXPOSED de domain-model.cue) ──
     # NOTA: cmd-clear-risk-flag e cmd-handle-dispute-resolution NÃO têm request
@@ -540,7 +541,7 @@ components:
           const: contexts/cmt/schemas/events.cue#CommitmentAccepted
         data:
           type: object
-          required: [commitmentId, parties, contractTermsRef, scope, acceptedAt]
+          required: [commitmentId, parties, contractTermsRef, scope, acceptedAt, termsHash, confirmedBy]
           properties:
             commitmentId:
               $ref: '#/components/schemas/CommitmentId'
@@ -554,6 +555,11 @@ components:
               type: string
               format: date-time
               pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+            termsHash:
+              type: string
+              pattern: '^sha256:[0-9a-f]{64}$'
+            confirmedBy:
+              $ref: '#/components/schemas/ParticipantId'
     CommitmentStateChanged:
       x-mesh-cue-ref: 'contexts/cmt/schemas/events.cue#CommitmentStateChanged'
       type: object
