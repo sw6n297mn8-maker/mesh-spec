@@ -11,9 +11,9 @@ cmtDomainModelStructuralCheck: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
-	generatedAt:     "2026-05-11"
+	generatedAt:     "2026-06-03"
 
-	roundsExecuted: 3
+	roundsExecuted: 4
 	maxRounds:      4
 
 	status: "stable"
@@ -177,6 +177,23 @@ cmtDomainModelStructuralCheck: build_time.#SelfReviewReport & {
 			backfill. Demonstra DISCAP transferable per ADR-086 D7
 			(PG patch goal: 'pattern transferable post-canonicalization
 			— each BC authors per protocol').
+			"""
+	}, {
+		round:     4
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 4 (adr-142, Fatia A+C — zero-drift do structural-check): sc-cmt-01 reescrito para o
+			predicado de hash assimétrico — proponente confirma implicitamente via ProposeCommitment
+			(fixa referenceTermsHash = sha256(canonical({contractTermsRef, scope}))), contraparte
+			explicitamente via AcceptanceConfirmation; assertion troca termsRef-coherence por
+			AcceptanceConfirmation.termsHash == referenceTermsHash; forbidden + rationale alinhados.
+			sc-cmt-02 reescrito para propose-time + fail-closed (CTR indisponível/timeout em propose-time
+			⇒ ProposeCommitment rejeitado; termsVersionAtProposal frozen; SLA → def-046). Mantém zero-drift
+			com inv-mutual-bilateral-acceptance + bd-terms-validation reescritos no mesmo pacote. Zero
+			findings; cue vet ./... EXIT=0; structural-check-runner inalterado (sc-cmt-* são domain-invariant
+			validation-time, não disparam por reescrita de texto).
 			"""
 	}]
 

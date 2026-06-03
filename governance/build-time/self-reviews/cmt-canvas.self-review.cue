@@ -11,9 +11,9 @@ cmtCanvas: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
-	generatedAt:     "2026-04-07"
+	generatedAt:     "2026-06-03"
 
-	roundsExecuted: 2
+	roundsExecuted: 3
 	maxRounds:      4
 	status:         "stable"
 
@@ -98,6 +98,23 @@ cmtCanvas: build_time.#SelfReviewReport & {
 			declarado, rationale explicita os três pontos de variação
 			com referências a IDs internos do canvas (as-cmt-1, as-cmt-3,
 			oq-cmt-2). cue vet pass.
+			"""
+	}, {
+		round:     3
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 3 (adr-142, Fatia A+C — correção do contrato de aceite): bd-mutual-acceptance reescrito
+			para o aceite bilateral assimétrico (proponente implícito via ProposeCommitment; contraparte
+			explícita via ConfirmCommitmentAcceptance) com "termos idênticos" verificado por igualdade de
+			termsHash (sha256 de canonical({contractTermsRef, scope})). bd-terms-validation declara
+			fail-closed em propose-time e remete o SLA numérico a def-046. communication.outbound
+			CommitmentAccepted: publicação única no aceite (sem sobreposição com CommitmentStateChanged) +
+			payload com termsHash/confirmedBy (mech-evidence). Zero findings: uq-02 mantém Mesh-specificity
+			(mech-evidence, dp-08/dp-10, CommitmentId); uq-03 cross-refs ok (def-046 criado no mesmo
+			pacote); uq-06 ubiquitous language consistente (termsHash/AcceptanceConfirmation). cue vet
+			./... EXIT=0.
 			"""
 	}]
 

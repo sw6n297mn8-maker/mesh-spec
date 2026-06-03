@@ -69,7 +69,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "value-object-ref", name: "contractTermsRef", valueObjectRef: "vo-contract-terms-ref"
 			description: "Referência aos termos contratuais de CTR."
 		}, {
-			kind: "domain-type", name: "scope", type: "CommitmentScope"
+			kind: "value-object-ref", name: "scope", valueObjectRef: "vo-commitment-scope"
 			description: "Escopo do compromisso: descrição, valor, prazo."
 		}]
 	}, {
@@ -85,10 +85,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		}, {
 			kind: "value-object-ref", name: "contractTermsRef", valueObjectRef: "vo-contract-terms-ref"
 		}, {
-			kind: "domain-type", name: "scope", type: "CommitmentScope"
+			kind: "value-object-ref", name: "scope", valueObjectRef: "vo-commitment-scope"
 		}, {
 			kind: "primitive", name: "acceptedAt", type: "datetime"
 			description: "Timestamp do aceite bilateral."
+		}, {
+			kind: "primitive", name: "termsHash", type: "string"
+			description: "Hash dos termos acordados (referenceTermsHash, validado idêntico ao AcceptanceConfirmation.termsHash via invariante inv-mutual-bilateral-acceptance)."
+		}, {
+			kind: "domain-type", name: "confirmedBy", type: "ParticipantId"
+			description: "Contraparte que emitiu a confirmação explícita."
 		}]
 	}, {
 		code:        "evt-commitment-state-changed"
@@ -226,25 +232,25 @@ domainModel: artifact_schemas.#DomainModel & {
 	commands: [{
 		code:        "cmd-propose-commitment"
 		name:        "ProposeCommitment"
-		description: "Proponente submete proposta de compromisso com termos, partes, escopo e referência a termos contratuais de CTR. Async — proponente não espera aceite imediato."
-		rationale:   "Separado de cmd-confirm-commitment-acceptance porque proposta e aceite são atos de partes distintas em momentos distintos. Validação de CTR no momento da proposta evita propostas órfãs de lastro contratual."
+		description: "Proponente submete proposta de compromisso com termos, partes, escopo e referência a termos contratuais de CTR. Async — proponente não espera aceite imediato. Validação de CTR é sync em propose-time e fail-closed: se QueryContractTerms não responde, ProposeCommitment é rejeitado (sem lastro → sem compromisso). Fixa o termsHash de referência = sha256(canonical({contractTermsRef, scope}))."
+		rationale:   "Separado de cmd-confirm-commitment-acceptance porque proposta e aceite são atos de partes distintas em momentos distintos. Validação de CTR no momento da proposta evita propostas órfãs de lastro contratual. Fail-closed protege lastro (dp-10); SLA numérico de indisponibilidade deferido a def-046."
 		fields: [{
 			kind: "value-object-ref", name: "parties", valueObjectRef: "vo-commitment-parties"
 		}, {
 			kind: "value-object-ref", name: "contractTermsRef", valueObjectRef: "vo-contract-terms-ref"
 		}, {
-			kind: "domain-type", name: "scope", type: "CommitmentScope"
+			kind: "value-object-ref", name: "scope", valueObjectRef: "vo-commitment-scope"
 		}]
 	}, {
 		code:        "cmd-confirm-commitment-acceptance"
 		name:        "ConfirmCommitmentAcceptance"
-		description: "Contraparte confirma aceite dos mesmos termos propostos pelo proponente. Sync — contraparte recebe confirmação imediata. Completa gate bilateral."
-		rationale:   "Par direto de cmd-propose-commitment. Sync por exigência de confirmação imediata (canvas inbound[1]). Gate determinístico: inv-mutual-bilateral-acceptance."
+		description: "Contraparte confirma aceite dos mesmos termos propostos pelo proponente. Sync — contraparte recebe confirmação imediata. Completa gate bilateral. Gate compara AcceptanceConfirmation.termsHash com o hash dos termos fixados no ProposeCommitment. Idempotente no-op (P6): se o compromisso já está accepted, retorna o CommitmentAccepted existente — não erro, não segundo evento."
+		rationale:   "Par direto de cmd-propose-commitment. Sync por exigência de confirmação imediata (canvas inbound[1]). Gate determinístico: inv-mutual-bilateral-acceptance. Idempotência por P6 (chave: commitmentId)."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
-			kind: "domain-type", name: "counterpartyConfirmation", type: "AcceptanceConfirmation"
-			description: "Confirmação com mesmos termos para validação bilateral."
+			kind: "value-object-ref", name: "counterpartyConfirmation", valueObjectRef: "vo-acceptance-confirmation"
+			description: "Confirmação da contraparte carregando termsHash para validação criptográfica bilateral."
 		}]
 	}, {
 		code:        "cmd-flag-at-risk"
@@ -316,8 +322,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	invariants: [{
 		code:      "inv-mutual-bilateral-acceptance"
 		name:      "Aceite Mútuo Bilateral"
-		rule:      "Nenhum compromisso progride para estado 'accepted' sem confirmação explícita de ambas as partes (proponente e contraparte) sobre termos idênticos."
-		rationale: "Invariante central do CMT. dp-08: custos de manipulação excedam benefícios por design. dp-10: ambas as partes são juridicamente identificáveis. Compromisso unilateral é irrepresentável."
+		rule:      "Nenhum compromisso transiciona para 'accepted' sem duas confirmações sobre termos idênticos: (1) o proponente confirma implicitamente ao emitir ProposeCommitment, que fixa os termos (contractTermsRef + scope) e define o termsHash de referência; (2) a contraparte confirma explicitamente via ConfirmCommitmentAcceptance carregando AcceptanceConfirmation. 'Termos idênticos' = AcceptanceConfirmation.termsHash == sha256 da serialização canônica (JCS/RFC 8785) de {contractTermsRef, scope} fixado no ProposeCommitment. Aceite unilateral ou com hash divergente é irrepresentável."
+		rationale: "Invariante central do CMT. dp-08: forjar aceite exige forjar hash; dp-10: ambas as partes juridicamente identificáveis. Predicado verificável (hash) torna 'termos idênticos' computável e derivável do event log (CommitmentProposed.{contractTermsRef,scope} vs CommitmentAccepted.termsHash); sc-cmt-01 espelha. P11 mech-evidence."
 	}, {
 		code:      "inv-terms-reference-valid"
 		name:      "Referência a Termos Contratuais Válida"
@@ -432,6 +438,36 @@ domainModel: artifact_schemas.#DomainModel & {
 			"originContext deve ser um dos: rew, drc, internal",
 		]
 		rationale: "Promovido de domain-type opaco para value object estruturado porque consumers de CommitmentStateChanged (especialmente DRC) precisam filtrar transições por causa e origem sem inspecionar payloads opacos. causeType classifica o que aconteceu; originContext diz de onde veio o sinal."
+	}, {
+		code:        "vo-acceptance-confirmation"
+		name:        "AcceptanceConfirmation"
+		description: "Confirmação explícita da contraparte: vincula commitmentId, identidade e timestamp ao termsHash que a contraparte aceita. O gate de aceite compara termsHash com o hash dos termos fixados no ProposeCommitment."
+		fields: [{
+			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
+		}, {
+			kind: "domain-type", name: "confirmedBy", type: "ParticipantId"
+			description: "Organização contraparte que confirma."
+		}, {
+			kind: "primitive", name: "confirmedAt", type: "datetime"
+		}, {
+			kind: "primitive", name: "termsHash", type: "string"
+			description: "sha256 hex da serialização canônica (JCS/RFC 8785) de {contractTermsRef, scope}."
+		}]
+		rationale: "Value object imutável definido pelos valores. termsHash torna 'termos idênticos' verificável criptograficamente (P11 mech-evidence); sem ele o aceite só atestava quem/quando, não sobre quê."
+	}, {
+		code:        "vo-commitment-scope"
+		name:        "CommitmentScope"
+		description: "Escopo econômico do compromisso: descrição, valor e prazo. Entra no termsHash junto de contractTermsRef."
+		fields: [{
+			kind: "primitive", name: "description", type: "string"
+		}, {
+			kind: "domain-type", name: "value", type: "Money"
+			description: "Valor econômico do compromisso."
+		}, {
+			kind: "primitive", name: "end", type: "string"
+			description: "Data limite no formato YYYY-MM-DD."
+		}]
+		rationale: "Promovido de shape inline (events.cue, marcada TODO) para value object canônico no domain-model — localização canônica única (P0). Espelha #CommitmentScope em schemas/events.cue."
 	}]
 
 	// =============================================
@@ -458,7 +494,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "value-object-ref", name: "currentState", valueObjectRef: "vo-commitment-state"
 			description: "Estado corrente do compromisso no lifecycle."
 		}, {
-			kind: "domain-type", name: "scope", type: "CommitmentScope"
+			kind: "value-object-ref", name: "scope", valueObjectRef: "vo-commitment-scope"
 			description: "Escopo do compromisso: descrição, valor, prazo."
 		}, {
 			kind: "primitive", name: "createdAt", type: "datetime"
@@ -488,6 +524,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-purchase-order-received",
 			"evt-contract-terms-activated-received",
 			"evt-contract-terms-superseded-received",
+			"evt-contract-terms-cancelled-received",
 		]
 
 		protectsInvariants: [
@@ -507,6 +544,8 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-contract-terms-ref",
 			"vo-commitment-parties",
 			"vo-state-change-reason",
+			"vo-commitment-scope",
+			"vo-acceptance-confirmation",
 		]
 
 		lifecycle: {
@@ -584,7 +623,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			}]
 		}
 
-		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate). Nota: 7 eventos ACL internos (evt-counterparty-risk-signaled, evt-counterparty-risk-cleared, evt-dispute-resolved-received, evt-suspension-ordered-received, evt-purchase-order-received, evt-contract-terms-activated-received, evt-contract-terms-superseded-received) aparecem em emitsEvents por limitação estrutural do schema (tq-dm-02), não porque o aggregate os origine semanticamente — são fatos traduzidos pela camada ACL que o aggregate registra no seu event stream. Eventos CTR (activated, superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms."
+		rationale: "Single aggregate porque compromisso é o único consistency boundary do CMT. Partes, termos e estado são sempre mutados atomicamente. at-risk como estado separado de suspended reflete distinção do canvas entre sinalização autônoma e suspensão supervisionada (mech-agent-gate). Nota: 8 eventos ACL internos (evt-counterparty-risk-signaled, evt-counterparty-risk-cleared, evt-dispute-resolved-received, evt-suspension-ordered-received, evt-purchase-order-received, evt-contract-terms-activated-received, evt-contract-terms-superseded-received, evt-contract-terms-cancelled-received) aparecem em emitsEvents por limitação estrutural do schema (tq-dm-02), não porque o aggregate os origine semanticamente — são fatos traduzidos pela camada ACL que o aggregate registra no seu event stream. Eventos CTR (activated, superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms."
 	}]
 
 	// =============================================
@@ -652,5 +691,5 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale: "Projeção necessária porque o aggregate é otimizado para escrita (event sourced). Leitura por BCs downstream usa projeção em vez de reconstruir estado do event log."
 	}]
 
-	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 10 events (7 internos ACL de REW/DRC/P2P/CTR + 1 interno + 2 published), 8 commands, 8 invariants, 5 value objects. Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. 5 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared + purchase-order→propose); eventos CTR (terms activated/superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms. Dual entry path: spot (P2P→CMT) e estratégico (SSC→CTR→CMT), ambos assumem termos em CTR (inv-terms-reference-valid). 1 projeção habilita QueryCommitmentState para BDG, DLV, DRC, TCM. Alinhado com canvas pós-WI-039/WI-041, glossário, context-map v2 e design principles."
+	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 11 events (8 internos ACL de REW/DRC/P2P/CTR + 1 interno + 2 published), 8 commands, 8 invariants, 7 value objects. Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. 5 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared + purchase-order→propose); eventos CTR (terms activated/superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms. Dual entry path: spot (P2P→CMT) e estratégico (SSC→CTR→CMT), ambos assumem termos em CTR (inv-terms-reference-valid). 1 projeção habilita QueryCommitmentState para BDG, DLV, DRC, TCM. Alinhado com canvas pós-WI-039/WI-041, glossário, context-map v2 e design principles."
 }

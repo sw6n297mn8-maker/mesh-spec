@@ -22,9 +22,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // DisputeRef, DisputeResolution) são opaque por design — não importamos
 // semântica de REW/NPM/CTR/P2P/DRC para CMT (princípio do slice).
 //
-// TODO/domain-gap: CommitmentScope é referenciado em domain-model.cue
-// (commands + events) mas ainda não tem shape canônico declarado; shape inline
-// local até formalização no domain-model.
+// CommitmentScope: shape canônica; espelha vo-commitment-scope em domain-model.cue
+// (promovido de inline a value object per adr-142).
 
 // ── Aliases para shared_schemas ──
 //
@@ -78,6 +77,16 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	description:   string & !=""
 }
 
+// AcceptanceConfirmation — payload da confirmação explícita da contraparte
+// (cmd-confirm-commitment-acceptance). termsHash torna "termos idênticos"
+// verificável criptograficamente (adr-142).
+#AcceptanceConfirmation: {
+	commitmentId: #CommitmentId
+	confirmedBy:  #ParticipantId
+	confirmedAt:  #RFC3339Timestamp
+	termsHash:    string & =~"^sha256:[0-9a-f]{64}$"
+}
+
 // ──────── Events ────────
 //
 // Cada evento estende #Envelope com `type` literal e `data` concretamente
@@ -105,6 +114,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 		contractTermsRef: #ContractTermsRef
 		scope:            #CommitmentScope
 		acceptedAt:       #RFC3339Timestamp
+		termsHash:        string & =~"^sha256:[0-9a-f]{64}$"
+		confirmedBy:      #ParticipantId
 	}
 }
 

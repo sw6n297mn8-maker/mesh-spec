@@ -230,7 +230,7 @@ canvas: artifact_schemas.#Canvas & {
 			trigger:     "Gate de aceite mútuo bilateral aprovado com sucesso."
 			event:       "CommitmentAccepted"
 			consumers:   ["bdg", "drc", "tcm", "inv"]
-			description: "Sinal canônico de entrada no commitment lifecycle. BDG inicia aprovação orçamentária; DRC registra contexto para disputas futuras; TCM projeta obrigação futura na posição de caixa; INV materializa projection cache read-only de commitment terms para cômputo fiscal apply-only no momento de faturamento."
+			description: "Sinal canônico de entrada no commitment lifecycle. BDG inicia aprovação orçamentária; DRC registra contexto para disputas futuras; TCM projeta obrigação futura na posição de caixa; INV materializa projection cache read-only de commitment terms para cômputo fiscal apply-only no momento de faturamento. Publicado SOMENTE na transição proposed→accepted (CommitmentStateChanged cobre as demais transições — sem sobreposição). Payload carrega termsHash + confirmedBy como evidência mech-evidence do aceite."
 		}, {
 			type:        "event-publisher"
 			trigger:     "Transição de estado do compromisso por sinal externo (risco, disputa) ou ação interna (suspensão, cancelamento, reativação)."
@@ -265,9 +265,9 @@ canvas: artifact_schemas.#Canvas & {
 
 	businessDecisions: [{
 		id:           "bd-mutual-acceptance"
-		decision:     "Aceite mútuo bilateral é invariante inviolável — nenhum compromisso progride sem confirmação explícita de ambas as partes."
+		decision:     "Aceite mútuo bilateral é invariante inviolável, materializado de forma assimétrica: o proponente confirma implicitamente via ProposeCommitment (que fixa os termos e gera o termsHash de referência) e a contraparte confirma explicitamente via ConfirmCommitmentAcceptance. 'Termos idênticos' é verificado criptograficamente por igualdade de hash (sha256 de {contractTermsRef, scope})."
 		rationale:    "Compromissos unilaterais são fonte de disputas e fraude. Aceite bilateral é barreira determinística contra compromissos fraudulentos (dp-08) e garante responsabilidade jurídica identificável (dp-10)."
-		consequences: "Todo compromisso exige duas confirmações explícitas antes de publicar CommitmentAccepted. Aumenta latência de formalização, mas elimina classe inteira de disputas."
+		consequences: "Todo compromisso exige a proposta (1ª confirmação, implícita) e a confirmação da contraparte com termsHash idêntico (2ª) antes de publicar CommitmentAccepted; hash divergente é rejeitado. Aumenta latência de formalização, mas elimina classe inteira de disputas e torna 'o que foi acordado' criptograficamente reconstituível."
 	}, {
 		id:           "bd-commitment-id-origin"
 		decision:     "CommitmentId é gerado exclusivamente em CMT e permeia todos os contexts downstream como fio de rastreabilidade."
@@ -278,7 +278,7 @@ canvas: artifact_schemas.#Canvas & {
 		decision:     "Compromisso só é formalizado se termos contratuais referenciados existem e estão vigentes em CTR."
 		rationale:    "Compromisso sem lastro contratual é risco jurídico. Validação sync contra CTR garante que termos são verificáveis no momento da formalização."
 		// [AJUSTE 4] Consequência em nível de negócio/arquitetura, sem detalhes de implementação.
-		consequences: "Dependência sync de CTR introduz ponto de falha. Estratégia de resiliência (degradação, indisponibilidade) deve ser definida no Architecture Communication Canvas do CMT."
+		consequences: "Dependência sync de CTR introduz ponto de falha. Política definida: fail-closed em propose-time — se QueryContractTerms não responde, ProposeCommitment é rejeitado (sem lastro verificável → sem compromisso). O SLA numérico de indisponibilidade é deferido a def-046 (pendente de telemetria de produção)."
 	}]
 
 	// ==============================
