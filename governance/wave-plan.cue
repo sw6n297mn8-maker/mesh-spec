@@ -1768,7 +1768,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 					artifact: "architecture/adrs/adr-098-container-topology.cue"
 					type:     "create"
 				}]
-				rationale: "Container topology informa C4 L2 + deploy. Decisão depende de codegen choice (WI-102) e compute platform (WI-103) — k8s pods vs serverless functions vs VMs têm granularidades naturais distintas. ADR formaliza decisão + impactos."
+				rationale: "Container topology: a visão LÓGICA (BC→módulo) é absorvida pelo adr-141 (kernel/Port contracts, P7 module boundary); a topologia FÍSICA/de deploy é deferida a def-038 (runtime). Re-escopado per adr-139 (stack puro): o output id (adr-098), o título e o cleanup estrutural de C4 (incl. deps) ficam para a reconciliação W004/C4 separada — não tratados neste pacote."
 			}]
 		}
 
@@ -1934,103 +1934,84 @@ wavePlan: artifact_schemas.#WavePlan & {
 
 		"W005-stack-definition": {
 			id:    "W005-stack-definition"
-			title: "Stack — 7 ADRs dimensão-a-dimensão + quality criteria família"
+			title: "Stack — keystone-first (codegen + kernel/Ports) + coherence; runtime/vendors deferidos (adr-139)"
 			rationale: """
-				Stack definition prerequisite hard antes de runtime.
-				7 ADRs cobrem dimensões: codegen toolchain (decisão mais
-				singular do projeto; informa todas as outras), compute &
-				runtime, persistence (per-BC vs shared, polyglot rules),
-				async/eventing (event bus + delivery semantics),
-				boundaries (API style + IdP), operability (observability +
-				CI/CD + IaC), frontend/clients. Quality criteria família
-				tq-stack-NN valida coherence cross-ADR.
-
-				Ordenação intra-wave: codegen primeiro (mais singular,
-				informa compute language). Compute em seguida (informa
-				persistence + eventing + boundaries + operability +
-				frontend). Quality criteria última (depende de todos).
+				Stack definition aplicando o filtro spec×runtime (adr-139): a
+				spec decide o estável e estrutural (codegen path + Port
+				contracts) e DEFERE seleção de vendor/runtime a deferred-
+				decisions materializadas JIT. Keystone-first — dois ADRs no
+				caminho crítico até o golden-example:
+				(1) WI-102 → adr-140: codegen/contracts (CUE SoT → tipos/
+				    validadores/stubs) + slice de contrato HTTP; runtime HTTP
+				    (framework, IdP, ingress) deferido em def-040.
+				(2) WI-103 → adr-141: runtime kernel / Port contracts (P7
+				    concreto — 5 Ports, PortResult<T>, value classes na
+				    fronteira, module boundary) + topologia LÓGICA de
+				    containers (absorve WI-087); seleção de vendor por Port
+				    deferida em def-041..045, materializada JIT pós golden-
+				    example.
+				WI-109 valida coherence do conjunto in-scope. A decomposição
+				antiga em 7 dimensões não governa mais: persistence/eventing →
+				per-Port (def-041..045); boundaries → adr-140 + def-040;
+				operability → def-037; frontend → def-039.
+				Ordenação intra-wave: adr-140 (codegen) primeiro; adr-141
+				(kernel) consome; coherence por último.
 				"""
 
 			tasks: [{
 				id:         "WI-102"
-				title:      "Criar ADR — Codegen toolchain (CUE → linguagem-alvo)"
+				title:      "Autorar ADR — Codegen/contracts (CUE SoT → tipos gerados) + slice de contrato HTTP"
 				tshirtSize: "L"
 				dependsOn: []
+				semanticPrerequisites: [
+					"adr-139 aceito (reconciliação de stack: filtro spec×runtime, keystone-first)",
+				]
 				outputs: [{
-					artifact: "architecture/adrs/adr-099-codegen-toolchain.cue"
+					artifact: "architecture/adrs/adr-140-codegen-contracts.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/deferred-decisions/def-040-http-runtime-stack.cue"
 					type:     "create"
 				}]
-				rationale: "Decisão mais singular do projeto. CUE-first stipulates codegen path. ADR avalia Go (CUE-native), TypeScript, Rust, Python como targets; escolhe linguagem + toolchain (cue go gen, custom transformer). Condiciona compute language em WI-103."
+				rationale: "Keystone (adr-139): materializa o codegen path estabilizado — CUE como SoT gera tipos/validadores/stubs (P1) — incluindo as regras de contrato HTTP (Money-string, payload via schema) como slice próprio. O runtime HTTP (framework, IdP, ingress/gateway) é deferido a def-040. É o contrato que o golden-example CMT consome via WI-134."
 			}, {
 				id:         "WI-103"
-				title:      "Criar ADR — Compute & runtime (lang + platform + deploy target)"
+				title:      "Autorar ADR — Runtime kernel / Port contracts (P7 concreto) + topologia lógica de containers"
 				tshirtSize: "L"
 				dependsOn: ["WI-102"]
+				semanticPrerequisites: [
+					"adr-139 aceito (reconciliação de stack: filtro spec×runtime, keystone-first)",
+				]
 				outputs: [{
-					artifact: "architecture/adrs/adr-100-compute-and-runtime.cue"
+					artifact: "architecture/adrs/adr-141-runtime-kernel-port-contracts.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/deferred-decisions/def-041-eventlogport-vendor.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/deferred-decisions/def-042-ledgerport-vendor.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/deferred-decisions/def-043-workflowport-vendor.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/deferred-decisions/def-044-deliveryport-vendor.cue"
+					type:     "create"
+				}, {
+					artifact: "architecture/deferred-decisions/def-045-evidenceport-vendor.cue"
 					type:     "create"
 				}]
-				rationale: "Linguagem(s) (monoglot vs polyglot), platform (k8s vs serverless vs VMs vs edge), deploy target (cloud-managed vs self-hosted vs hybrid). Decisão de container topology (WI-087) deriva desta."
-			}, {
-				id:         "WI-104"
-				title:      "Criar ADR — Persistence architecture (per-BC vs shared, polyglot rules)"
-				tshirtSize: "L"
-				dependsOn: ["WI-103"]
-				outputs: [{
-					artifact: "architecture/adrs/adr-101-persistence-architecture.cue"
-					type:     "create"
-				}]
-				rationale: "DDD orthodoxy: per-BC database. SQL vs document vs event store. Read model storage (CQRS implications). Transactional boundaries cross-aggregate. Decisão informa C4 L2 data stores."
-			}, {
-				id:         "WI-105"
-				title:      "Criar ADR — Async / eventing (event bus, delivery semantics)"
-				tshirtSize: "L"
-				dependsOn: ["WI-103"]
-				outputs: [{
-					artifact: "architecture/adrs/adr-102-async-eventing.cue"
-					type:     "create"
-				}]
-				rationale: "Event bus (Kafka, NATS, RabbitMQ, etc.), delivery semantics (at-least-once / exactly-once / at-most-once), cross-BC integration pattern (event sourcing vs event-carried state transfer vs notification-only). Suporta domain-model schema (eventos published)."
-			}, {
-				id:         "WI-106"
-				title:      "Criar ADR — Boundaries (API style + IdP)"
-				tshirtSize: "M"
-				dependsOn: ["WI-103"]
-				outputs: [{
-					artifact: "architecture/adrs/adr-103-boundaries-api-identity.cue"
-					type:     "create"
-				}]
-				rationale: "API style (REST, GraphQL, gRPC, hybrid), API gateway / BFF pattern, IdP (external Auth0/Clerk/Ory vs self-hosted Keycloak vs custom), service mesh (Istio/Linkerd vs none). Suporta IDC + boundary cross-BC decisions."
-			}, {
-				id:         "WI-107"
-				title:      "Criar ADR — Operability (observability + CI/CD + IaC)"
-				tshirtSize: "M"
-				dependsOn: ["WI-103"]
-				outputs: [{
-					artifact: "architecture/adrs/adr-104-operability.cue"
-					type:     "create"
-				}]
-				rationale: "Observability stack (OpenTelemetry default + backend Grafana/Datadog/Honeycomb), CI/CD platform (GitHub Actions / GitLab / Buildkite / Dagger), IaC (Terraform / Pulumi / CDK / Crossplane), secret management, feature flags. Suporta lens-observability-operational-intelligence."
-			}, {
-				id:         "WI-108"
-				title:      "Criar ADR — Frontend / clients (web + mobile + design system)"
-				tshirtSize: "M"
-				dependsOn: ["WI-103"]
-				outputs: [{
-					artifact: "architecture/adrs/adr-105-frontend-clients.cue"
-					type:     "create"
-				}]
-				rationale: "Frontend(s): web SPA/SSR/MPA, mobile native/cross-platform, multiple frontends (admin / customer / operator), shared design system. Suporta lens-design-tokens + lens-interaction-patterns."
+				rationale: "Keystone (adr-139): materializa P7 concreto — 5 Ports retornando PortResult<T>, value classes na fronteira de Port, module boundary — e a topologia LÓGICA de containers (BC→módulo), absorvendo o escopo de WI-087. A seleção de vendor atrás de cada Port é deferida per-Port (def-041..045) e materializada JIT pós golden-example. Consumido pelo golden-example CMT via WI-134 (EventLogPort + adapter-stub)."
 			}, {
 				id:         "WI-109"
-				title:      "Criar quality criteria família tq-stack-NN (cross-ADR coherence)"
+				title:      "Criar quality criteria família tq-stack-NN (coherence do conjunto in-scope)"
 				tshirtSize: "M"
-				dependsOn: ["WI-102", "WI-103", "WI-104", "WI-105", "WI-106", "WI-107", "WI-108"]
+				dependsOn: ["WI-102", "WI-103"]
 				outputs: [{
 					artifact: "architecture/structural-checks/stack-coherence.cue"
 					type:     "create"
 				}]
-				rationale: "Stack ADRs decidem em isolamento mas devem ser coerentes: CUE-first codegen path exists + envelope dispatch runnable + bounded-wait queue primitives + audit trail persistence + cross-BC integration pattern matches eventing choice + per-BC isolation respected. Quality criteria família valida coherence."
+				rationale: "Os ADRs de stack in-scope (adr-140 codegen/contracts + adr-141 kernel/Ports + ADRs de Port-vendor materializados JIT) decidem em isolamento mas devem ser coerentes: CUE-first codegen path existe + Port contracts conformes a P7 + per-Port deferrals (def-041..045) rastreados. Quality criteria família valida coherence. Escopo estreitado per adr-139 — não cobre mais observability/deploy/frontend (runtime/deferidos)."
 			}]
 		}
 

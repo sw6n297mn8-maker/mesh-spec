@@ -65,7 +65,7 @@ workGraph: {
 		id:              "p9-stack-definition"
 		order:           9
 		dependsOnPhases: ["p6-strategic-completion"]
-		rationale:       "W005 — Stack definition. Depende de p6 porque Conway alignment (WI-116) informa stack choices: team topology constrains architecture choice (Skelton/Pais). Stack ADRs decidem codegen, compute, persistence, eventing, boundaries, operability, frontend."
+		rationale:       "W005 — Stack definition. Depende de p6 porque Conway alignment (WI-116) informa stack choices: team topology constrains architecture choice (Skelton/Pais). Stack keystone-first per adr-139: adr-140 (codegen/contracts) + adr-141 (kernel/Port contracts + topologia lógica); seleção de vendor/runtime deferida (def-040..045), materializada JIT."
 	}, #Phase & {
 		id:              "p7-cross-context-workflows-expansion"
 		order:           10
@@ -181,7 +181,7 @@ workGraph: {
 	}, #Group & {
 		id:        "g11-stack-adrs"
 		phaseId:   "p9-stack-definition"
-		rationale: "W005 — 7 ADRs cobrindo dimensões de stack (codegen toolchain, compute, persistence, eventing, boundaries, operability, frontend) + quality criteria família tq-stack-NN."
+		rationale: "W005 — stack keystone-first per adr-139: adr-140 (codegen/contracts) + adr-141 (kernel/Port contracts + topologia lógica) + quality criteria família tq-stack-NN; vendors/runtime deferidos JIT (def-040..045)."
 	}]
 
 	dependencies: [#ExecutionDependency & {
@@ -893,7 +893,7 @@ workGraph: {
 	},
 
 	// ============================================================
-	// Phase p9: W005 stack definition (WI-102..109)
+	// Phase p9: W005 stack definition (WI-102, WI-103, WI-109) — per adr-139
 	// ============================================================
 	#ExecutionDependency & {
 		taskId:    "WI-102"
@@ -906,40 +906,10 @@ workGraph: {
 		phaseId: "p9-stack-definition"
 		groupId: "g11-stack-adrs"
 	}, #ExecutionDependency & {
-		taskId: "WI-104"
-		dependsOn: [{taskId: "WI-103", version: 1}]
-		phaseId: "p9-stack-definition"
-		groupId: "g11-stack-adrs"
-	}, #ExecutionDependency & {
-		taskId: "WI-105"
-		dependsOn: [{taskId: "WI-103", version: 1}]
-		phaseId: "p9-stack-definition"
-		groupId: "g11-stack-adrs"
-	}, #ExecutionDependency & {
-		taskId: "WI-106"
-		dependsOn: [{taskId: "WI-103", version: 1}]
-		phaseId: "p9-stack-definition"
-		groupId: "g11-stack-adrs"
-	}, #ExecutionDependency & {
-		taskId: "WI-107"
-		dependsOn: [{taskId: "WI-103", version: 1}]
-		phaseId: "p9-stack-definition"
-		groupId: "g11-stack-adrs"
-	}, #ExecutionDependency & {
-		taskId: "WI-108"
-		dependsOn: [{taskId: "WI-103", version: 1}]
-		phaseId: "p9-stack-definition"
-		groupId: "g11-stack-adrs"
-	}, #ExecutionDependency & {
 		taskId: "WI-109"
 		dependsOn: [
 			{taskId: "WI-102", version: 1},
 			{taskId: "WI-103", version: 1},
-			{taskId: "WI-104", version: 1},
-			{taskId: "WI-105", version: 1},
-			{taskId: "WI-106", version: 1},
-			{taskId: "WI-107", version: 1},
-			{taskId: "WI-108", version: 1},
 		]
 		phaseId: "p9-stack-definition"
 		groupId: "g11-stack-adrs"
