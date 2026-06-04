@@ -1972,6 +1972,9 @@ wavePlan: artifact_schemas.#WavePlan & {
 				}, {
 					artifact: "architecture/deferred-decisions/def-040-http-runtime-stack.cue"
 					type:     "create"
+				}, {
+					artifact: "architecture/deferred-decisions/def-049-assertion-to-test-mechanism.cue"
+					type:     "create"
 				}]
 				rationale: "Keystone (adr-139): materializa o codegen path estabilizado — CUE como SoT gera tipos/validadores/stubs (P1) — incluindo as regras de contrato HTTP (Money-string, payload via schema) como slice próprio. O runtime HTTP (framework, IdP, ingress/gateway) é deferido a def-040. É o contrato que o golden-example CMT consome via WI-134."
 			}, {
