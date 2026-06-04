@@ -13,7 +13,7 @@ cmtCanvas: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-06-03"
 
-	roundsExecuted: 3
+	roundsExecuted: 4
 	maxRounds:      4
 	status:         "stable"
 
@@ -115,6 +115,20 @@ cmtCanvas: build_time.#SelfReviewReport & {
 			(mech-evidence, dp-08/dp-10, CommitmentId); uq-03 cross-refs ok (def-046 criado no mesmo
 			pacote); uq-06 ubiquitous language consistente (termsHash/AcceptanceConfirmation). cue vet
 			./... EXIT=0.
+			"""
+	}, {
+		round:     4
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 4 (adr-143, Fatia B — orquestração de disputa): inbound DisputeResolved detalha o ACL
+			consumer (enum local #DisputeResolution {cancel | modify_terms | maintain}; canonicalização DRC
+			deferida a def-047) e as 3 resoluções (cancel / modify_terms-revalida-CTR / maintain-supervisionado).
+			Nova businessDecision bd-dispute-bounded-by-ctr: disputa não cria termo material fora do CTR
+			(modify_terms revalida CTR fail-closed; notificação downstream deferida a def-048). Zero findings:
+			uq-02 Mesh-specific (CTR/DRC/hierarquia/dp-08/dp-10); uq-03 refs ok (def-047/048/adr-143 no mesmo
+			pacote); uq-06 ubiquitous language consistente. cue vet ./... EXIT=0.
 			"""
 	}]
 

@@ -494,3 +494,57 @@ structuralChecks: "sc-cmt-08": artifact_schemas.#StructuralCheck & {
 	errorMessage: "domain-invariant inv-cancelled-is-terminal: state transition detected from 'cancelled' state OR command targeting cancelled commitment accepted. State machine declara terminality via ausência de transitions from 'cancelled'. Verifique state machine declaration + aggregate command handler reject post-cancel + event log forensics para transitions ilegais."
 	rationale:    "Materializa state machine closure discipline (paralelo a sc-cmt-05 cancellation-irreversible — sc-cmt-08 captura terminality via state machine; sc-cmt-05 captura supervision + immutability). Coverage T/T/T per founder ajuste: build-time state machine declaration; validation-time lint event log; runtime command handler + event enforcement (no transition from cancelled state)."
 }
+
+structuralChecks: "sc-cmt-09": artifact_schemas.#StructuralCheck & {
+	id:           "sc-cmt-09"
+	title:        "Dispute modify_terms revalidates CTR domain invariant"
+	artifactType: "domain-model"
+	description: """
+		Uma resolução de disputa com modify_terms (cmd-handle-dispute-resolution) só altera os termos do compromisso se os novos termos resolvem em CTR via QueryContractTerms (ativo) no momento da resolução de disputa (dispute-resolution-time). CTR indisponível/timeout ⇒ modify_terms REJEITADO (fail-closed), estado preservado. O termsHash é recomputado a partir dos novos termos validados. modify_terms é override autoritativo do DRC sobre a formação inicial — carve-out de inv-mutual-bilateral-acceptance (ten-014) — mas o lastro CTR é inviolável.
+
+		Layers ativos (per adr-086 D2):
+		- L3 RESOLVABLE CONTRACT: novos termos resolvem em CTR.QueryContractTerms at dispute-resolution-time
+		- L4 VERSIONED: Commitment.termsVersion frozen = ContractTerms.version na modificação
+		- L7 DECISION CONTEXT: override autoritativo do DRC (carve-out do aceite bilateral) escopado pelo gate de lastro CTR
+
+		Layers non-applicable: L1, L2, L2.5, L5, L6
+		Non-applicability rationale: presence/cross-field cobertos no fluxo de aceite (sc-cmt-01); sem freshness drift próprio (validação é point-in-time na resolução); interpretation coherence é do aceite inicial, não da modificação autoritativa.
+
+		RE-VAL: Yes — auditoria periódica reconcilia termsHash recomputado vs novos termos validados + verifica que nenhum modify_terms aplicou termo sem resolução CTR.
+
+		War-game evidence (per adr-086 D5):
+		Conluio usa disputa como canal lateral — partes forjam uma disputa cuja resolução modify_terms injeta termos inflados que nunca passaram pelo aceite bilateral nem pelo CTR; sem o gate de revalidação, a disputa vira porta dos fundos para criar lastro fictício; DLV/SCF a jusante operam sobre termo material que o CTR nunca registrou; dp-08 violado (manipulação barata) + dp-10 (responsabilidade sobre termo sem lastro).
+		"""
+	kind: "domain-invariant"
+	rule: {
+		invariantId: "inv-dispute-modify-terms-revalidates-ctr"
+		assertion: """
+			∀ commitmentId, ∀ DisputeResolution(commitmentId) com resolution == 'modify_terms':
+			  termos modificados aplicados ao Commitment
+			    ⇒ resolve(novos termos) via CTR.QueryContractTerms
+			      returns ContractTerms ativo at dispute-resolution-time
+			    ∧ Commitment.termsHash recomputado == sha256(canonical(novos {contractTermsRef, scope}))
+			∧ CTR indisponível/timeout at dispute-resolution-time
+			    ⇒ modify_terms REJECTED (estado preservado; termos inalterados)
+			∧ modify_terms NÃO exige novo AcceptanceConfirmation
+			    (override autoritativo DRC; carve-out ten-014)
+			"""
+		coverage: {
+			buildTime:       false
+			validationTime:  true
+			runtimeRequired: true
+		}
+		runtimeGap: {
+			description: "Sync query CTR no momento da resolução de disputa + recompute de termsHash. Build-time não vê CTR state nem runtime; validation-time audita event log post-hoc (modify_terms aplicado ⇒ termsHash recomputado presente + reconciliação cross-BC com CTR)."
+			enforcedBy:  "CMT agent dispute-resolution gate (sync query CTR.QueryContractTerms, fail-closed) + event log records termsHash recomputado + RE-VAL periodic reconciliation com CTR"
+		}
+		forbidden: [
+			"modify_terms aplicado com novos termos que não resolvem em CTR.QueryContractTerms",
+			"modify_terms aplicado quando CTR indisponível/timeout at dispute-resolution-time (fail-open proibido)",
+			"termos modificados por disputa sem recompute de termsHash",
+			"termo material criado por resolução de disputa fora do CTR (canal lateral)",
+		]
+	}
+	errorMessage: "domain-invariant inv-dispute-modify-terms-revalidates-ctr: modify_terms aplicado sem resolução CTR válida OR com CTR indisponível OR sem recompute de termsHash. Disputa não pode criar termo material fora do CTR. Verifique o dispute-resolution gate (sync query CTR, fail-closed) + termsHash recomputado no event log."
+	rationale: "Materializa inv-dispute-modify-terms-revalidates-ctr + dp-08 (manipulação cara) + dp-10 (lastro identificável). 'Disputa não deve virar canal lateral para criar termo material fora do CTR.' Carve-out de inv-mutual-bilateral-acceptance (aceite bilateral só na formação inicial) documentado em ten-014; a revalidação CTR fail-closed é o limite inviolável. L7 captura o override autoritativo do DRC escopado pelo gate de lastro. Runtime gap canonical porque sync query CTR é runtime concern."
+}

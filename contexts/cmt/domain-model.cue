@@ -136,7 +136,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
 			kind: "domain-type", name: "resolution", type: "DisputeResolution"
-			description: "Decisão de resolução: manter, cancelar, modificar termos."
+			description: "Tipo de resolução (enum fechado #DisputeResolution): cancel | modify_terms | maintain."
 		}]
 	}, {
 		code:          "evt-suspension-ordered-received"
@@ -295,8 +295,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "cmd-handle-dispute-resolution"
 		name:        "HandleDisputeResolution"
-		description: "Processa resolução de disputa recebida de DRC. Aggregate inspeciona tipo de resolução e executa transição apropriada: reativação (cmd-reactivate-commitment), cancelamento (cmd-cancel-commitment) ou manutenção do estado corrente."
-		rationale:   "Existe porque #Policy exige exatamente um issuesCommand, mas resolução de disputa é sinal externo com múltiplos outcomes (reativar, cancelar, manter). Routing vive no aggregate porque ele é o consistency boundary que preserva a decisão final — nenhum orchestrator externo decide a transição."
+		description: "Processa resolução de disputa do DRC (enum #DisputeResolution {cancel | modify_terms | maintain}). O aggregate inspeciona o tipo e executa: cancel → cmd-cancel-commitment (terminal); modify_terms → revalida os novos termos sync contra o CTR (fail-closed se indisponível: modificação rejeitada, estado preservado), recomputa o termsHash, e aplica como override autoritativo do DRC (sem novo AcceptanceConfirmation; carve-out de inv-mutual-bilateral-acceptance, ten-014); maintain → não auto-reativa um compromisso suspended (reativação fica em cmd-reactivate-commitment supervisionado), é no-op sobre accepted, mantém a marcação sobre at-risk, e é inválido sobre cancelled (terminal)."
+		rationale:   "Existe porque #Policy exige exatamente um issuesCommand, mas resolução de disputa é sinal externo com múltiplos outcomes. Routing vive no aggregate porque ele é o consistency boundary que preserva a decisão final — nenhum orchestrator externo decide a transição. modify_terms é gateado por inv-dispute-modify-terms-revalidates-ctr (sc-cmt-09): disputa não pode criar termo material fora do CTR. maintain não adiciona transição suspended→accepted — a reativação permanece supervisionada (inv-reactivation-requires-supervision)."
 		fields: [{
 			kind: "value-object-ref", name: "commitmentId", valueObjectRef: "vo-commitment-id"
 		}, {
@@ -368,6 +368,11 @@ domainModel: artifact_schemas.#DomainModel & {
 		name:      "Estado Cancelado é Terminal"
 		rule:      "Nenhum compromisso em estado 'cancelled' aceita commands de reativação, suspensão, sinalização de risco ou aceite. Cancelamento encerra definitivamente o lifecycle."
 		rationale: "State machine já expressa terminality via ausência de transições from: cancelled. Invariant explícito torna a restrição auditável por validação e legível sem interpretar o grafo de transições."
+	}, {
+		code:      "inv-dispute-modify-terms-revalidates-ctr"
+		name:      "Modificação de Termos por Disputa Revalida CTR"
+		rule:      "Uma resolução de disputa com modify_terms só altera os termos do compromisso se os novos termos validarem sync contra o CTR (QueryContractTerms ativo) no momento da resolução. CTR indisponível ⇒ a modificação é rejeitada (fail-closed) e o estado é preservado. modify_terms é override autoritativo do DRC sobre a formação inicial (carve-out de inv-mutual-bilateral-acceptance, ten-014); o lastro CTR é inviolável."
+		rationale: "Disputa não deve virar canal lateral para criar termo material fora do CTR (dp-08, dp-10). O termsHash é recomputado a partir dos novos termos validados; o aceite bilateral não é re-exigido (autoridade do DRC). Materializado por sc-cmt-09."
 	}]
 
 	// =============================================
@@ -536,6 +541,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-cancellation-irreversible",
 			"inv-reactivation-requires-supervision",
 			"inv-cancelled-is-terminal",
+			"inv-dispute-modify-terms-revalidates-ctr",
 		]
 
 		usesValueObjects: [
@@ -691,5 +697,5 @@ domainModel: artifact_schemas.#DomainModel & {
 		rationale: "Projeção necessária porque o aggregate é otimizado para escrita (event sourced). Leitura por BCs downstream usa projeção em vez de reconstruir estado do event log."
 	}]
 
-	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 11 events (8 internos ACL de REW/DRC/P2P/CTR + 1 interno + 2 published), 8 commands, 8 invariants, 7 value objects. Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. 5 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared + purchase-order→propose); eventos CTR (terms activated/superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms. Dual entry path: spot (P2P→CMT) e estratégico (SSC→CTR→CMT), ambos assumem termos em CTR (inv-terms-reference-valid). 1 projeção habilita QueryCommitmentState para BDG, DLV, DRC, TCM. Alinhado com canvas pós-WI-039/WI-041, glossário, context-map v2 e design principles."
+	rationale: "Domain model do CMT com single aggregate (Commitment) como único consistency boundary. Behavior-first: 11 events (8 internos ACL de REW/DRC/P2P/CTR + 1 interno + 2 published), 8 commands, 9 invariants, 7 value objects. Lifecycle com 5 estados e 10 transições — at-risk↔accepted via flag/clear autônomos, suspended↔accepted via reactivate supervisionado. 5 policies conectam sinais ACL a commands (inclui par simétrico risk-signal/risk-cleared + purchase-order→propose); eventos CTR (terms activated/superseded) são informativos sem policy — validação de termos é sync via QueryContractTerms. Dual entry path: spot (P2P→CMT) e estratégico (SSC→CTR→CMT), ambos assumem termos em CTR (inv-terms-reference-valid). 1 projeção habilita QueryCommitmentState para BDG, DLV, DRC, TCM. Alinhado com canvas pós-WI-039/WI-041, glossário, context-map v2 e design principles."
 }
