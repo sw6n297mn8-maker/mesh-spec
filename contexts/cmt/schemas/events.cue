@@ -19,8 +19,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // reais; migration é lossless.
 //
 // Refs cross-BC (RiskLevel, ParticipantId, ContractTermsId, PurchaseOrderRef,
-// DisputeRef, DisputeResolution) são opaque por design — não importamos
-// semântica de REW/NPM/CTR/P2P/DRC para CMT (princípio do slice).
+// DisputeRef) são opaque por design — não importamos semântica de
+// REW/NPM/CTR/P2P/DRC para CMT (princípio do slice). DisputeResolution é enum
+// local fechado (ACL consumer; ver abaixo + adr-143).
 //
 // CommitmentScope: shape canônica; espelha vo-commitment-scope em domain-model.cue
 // (promovido de inline a value object per adr-142).
@@ -53,7 +54,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #PurchaseOrderRef:  string & !=""  // owned by P2P
 #RiskLevel:         string & !=""  // owned by REW
 #DisputeRef:        string & !=""  // owned by DRC
-#DisputeResolution: string & !=""  // owned by DRC
+
+// ── ACL consumer enum (taxonomia local; canonicalização no owner deferida) ──
+
+// DisputeResolution: enum local fechado do CMT (ACL consumer do DRC); a
+// canonicalização vive no DRC quando ele ganhar domain-model (def-047, adr-143).
+#DisputeResolution: "cancel" | "modify_terms" | "maintain"
 
 // ── Value-objects locais do CMT (espelham domain-model.cue) ──
 

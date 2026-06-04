@@ -189,7 +189,7 @@ canvas: artifact_schemas.#Canvas & {
 			type:          "event-consumer"
 			sourceContext: "drc"
 			event:         "DisputeResolved"
-			reaction:      "Atualiza estado do compromisso conforme decisão de disputa — pode cancelar, modificar termos ou manter."
+			reaction:      "Atualiza o compromisso conforme a resolução (enum local ACL #DisputeResolution {cancel | modify_terms | maintain}; canonicalização DRC deferida a def-047, per adr-143): cancel cancela; modify_terms revalida CTR (fail-closed) e é override autoritativo do DRC; maintain sobre suspended exige reativação supervisionada (não auto-reativa)."
 		}, {
 			type:          "event-consumer"
 			sourceContext: "drc"
@@ -279,6 +279,11 @@ canvas: artifact_schemas.#Canvas & {
 		rationale:    "Compromisso sem lastro contratual é risco jurídico. Validação sync contra CTR garante que termos são verificáveis no momento da formalização."
 		// [AJUSTE 4] Consequência em nível de negócio/arquitetura, sem detalhes de implementação.
 		consequences: "Dependência sync de CTR introduz ponto de falha. Política definida: fail-closed em propose-time — se QueryContractTerms não responde, ProposeCommitment é rejeitado (sem lastro verificável → sem compromisso). O SLA numérico de indisponibilidade é deferido a def-046 (pendente de telemetria de produção)."
+	}, {
+		id:           "bd-dispute-bounded-by-ctr"
+		decision:     "Resolução de disputa não pode criar termo material fora do CTR. modify_terms revalida os novos termos contra o CTR (fail-closed se indisponível); termos impostos por autoridade externa fora do CTR exigem ADR próprio (mudança da hierarquia DRC/CTR/CMT)."
+		rationale:    "Disputa não deve virar canal lateral para criar termo material fora do CTR — o lastro contratual é inviolável mesmo sob resolução autoritativa (dp-08, dp-10). Materializado por inv-dispute-modify-terms-revalidates-ctr (sc-cmt-09); carve-out do aceite bilateral em ten-014; per adr-143."
+		consequences: "modify_terms aplica termos só com lastro CTR; sem CTR disponível, a modificação é rejeitada e o estado preservado. A notificação a consumidores que fizeram snapshot (BDG/INV) é deferida a def-048."
 	}]
 
 	// ==============================

@@ -13,8 +13,8 @@ cmtDomainModelStructuralCheck: build_time.#SelfReviewReport & {
 	executionMode:   "self-reported"
 	generatedAt:     "2026-06-03"
 
-	roundsExecuted: 4
-	maxRounds:      4
+	roundsExecuted: 5
+	maxRounds:      5
 
 	status: "stable"
 
@@ -194,6 +194,21 @@ cmtDomainModelStructuralCheck: build_time.#SelfReviewReport & {
 			com inv-mutual-bilateral-acceptance + bd-terms-validation reescritos no mesmo pacote. Zero
 			findings; cue vet ./... EXIT=0; structural-check-runner inalterado (sc-cmt-* são domain-invariant
 			validation-time, não disparam por reescrita de texto).
+			"""
+	}, {
+		round:     5
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round 5 (adr-143, Fatia B — sc-cmt-09): novo structural-check sc-cmt-09 materializa a invariante
+			nova inv-dispute-modify-terms-revalidates-ctr — modify_terms (resolução de disputa) só altera
+			termos se resolvem em CTR at dispute-resolution-time; CTR indisponível ⇒ REJECTED (fail-closed,
+			estado preservado); termsHash recomputado; sem novo AcceptanceConfirmation (override autoritativo
+			DRC, carve-out ten-014). kind domain-invariant, assertion ∀⇒∧, coverage F/T/T + runtimeGap,
+			forbidden como state/property prohibitions, war-game (disputa como canal lateral de conluio),
+			errorMessage 3-part. Zero findings; cue vet ./... EXIT=0; structural-check-runner: sc-cmt-09 é
+			validation-time, não dispara build-time.
 			"""
 	}]
 
