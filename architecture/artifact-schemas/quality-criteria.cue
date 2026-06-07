@@ -14,9 +14,11 @@ package artifact_schemas
 #Severity: "fail" | "warn" | "info"
 
 // #ArtifactType é deliberadamente restrito aos artefatos com critérios
-// de qualidade específicos validados na prática. Expandir quando novos
-// tipos entrarem no regime de self-review. A enum é fechada por fase
-// operacional, não ontologicamente completa.
+// de qualidade específicos que entram no regime de self-review — inclui
+// tipos born-green (critérios próprios, ainda sem instâncias), e.g.
+// port-manifest e aggregate-manifest. Expandir quando novos tipos
+// entrarem. A enum é fechada por fase operacional, não ontologicamente
+// completa.
 #ArtifactType:
 	"adr" |
 	"canvas" |
@@ -49,7 +51,9 @@ package artifact_schemas
 	"economic-assumption-model" |
 	"economic-mechanism-model" |
 	"agent-probe-protocol" |
-	"agent-probe-record"
+	"agent-probe-record" |
+	"port-manifest" |
+	"aggregate-manifest"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -69,7 +73,8 @@ package artifact_schemas
 // pol (policy),
 // eam (economic-assumption-model),
 // emm (economic-mechanism-model),
-// app (agent-probe-protocol), apr (agent-probe-record).
+// app (agent-probe-protocol), apr (agent-probe-record),
+// pm (port-manifest), am (aggregate-manifest).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

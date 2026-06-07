@@ -2199,5 +2199,33 @@ wavePlan: artifact_schemas.#WavePlan & {
 				rationale: "Promove o golden-example CMT a template reusável (P3c de adr-138) e codifica o sinal de falha do fan-out: zero divergência estrutural do template NÃO EXPLICADA por ADR (divergência é permitida desde que registrada em ADR — não é zero divergência absoluta). Gate antes de comprometer os 14 BCs."
 			}]
 		}
+
+		"W006-manifest-instances": {
+			id:    "W006-manifest-instances"
+			title: "Runtime bootstrap — instâncias de manifest (PortManifest/AggregateManifest) por BC/aggregate"
+			rationale: "Slot downstream de adr-144: materializa as INSTÂNCIAS de manifest por BC/aggregate, depois de adr-144 fixar os ArtifactTypes (schemas + production-guides + structural-checks) e do kernel/Ports (WI-103). É o consumidor que torna os checks dormentes (manifest-conformance, manifest-ref-integrity) não-triviais. Não decomposto por BC aqui — quais BCs consomem Port e quais aggregates ganham manifest é descoberta de autoria, não alocação agora."
+
+			tasks: [{
+				id:         "WI-140"
+				title:      "Materializar instâncias de PortManifest/AggregateManifest por BC/aggregate"
+				tshirtSize: "L"
+				dependsOn: ["WI-103"]
+				semanticPrerequisites: [
+					"adr-144 aceito (PortManifest/AggregateManifest como ArtifactTypes governados: schemas, production-guides, structural-checks materializados)",
+				]
+				outputs: [{
+					artifact: "contexts/{bc}/port-manifest.cue"
+					type:     "create"
+				}, {
+					artifact: "contexts/{bc}/aggregate-manifests/am-*.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/structural-checks/manifest-conformance.cue",
+					"architecture/structural-checks/manifest-ref-integrity.cue",
+				]
+				rationale: "Downstream de adr-144 (cria os tipos) + WI-103 (kernel/Ports). Materializa um PortManifest por BC que consome Port e um AggregateManifest por aggregate; ativa os 5 structural-checks (saem de verde-vácuo). Não crava quais BCs/aggregates — descoberta de autoria. dependsOn WI-103 (a superfície de Port precisa do kernel); a existência dos tipos vem de adr-144 (semanticPrerequisite, pois adr-144 não é WI)."
+			}]
+		}
 	}
 }
