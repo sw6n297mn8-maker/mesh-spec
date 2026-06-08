@@ -2083,7 +2083,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 			rationale: """
 				O golden-example sobe atrás dos 5 Ports (P7), começando pelo
 				EventLogPort (adr-138). EventLogPort é conceito CANÔNICO de P7; este WI
-				materializa a PRIMEIRA instância concreta de #ServiceContract, no CMT,
+				materializa a PRIMEIRA instância concreta de #PortManifest, no CMT,
 				limitada ao golden-example. Registry compartilhado de Ports é DEFERIDO
 				até a evidência de fan-out justificar — não se cria escopo
 				compartilhado antes de provar que o contrato funciona.
@@ -2091,17 +2091,17 @@ wavePlan: artifact_schemas.#WavePlan & {
 
 			tasks: [{
 				id:         "WI-135"
-				title:      "Materializar contrato EventLogPort como #ServiceContract (CMT) + adapter-stub spec-side"
+				title:      "Materializar contrato EventLogPort como #PortManifest (CMT) + adapter-stub spec-side"
 				tshirtSize: "M"
 				dependsOn: ["WI-134"]
 				outputs: [{
-					artifact: "contexts/cmt/service-contract.cue"
+					artifact: "contexts/cmt/port-manifest.cue"
 					type:     "create"
 				}]
 				affects: [
 					"architecture/design-principles.cue",
 				]
-				rationale: "EventLogPort (P7) modelado como o contrato que o CMT consome para event logging, conformante a #ServiceContract (precedente CTR). O adapter-stub é scaffold de validação SPEC-SIDE apenas: NÃO introduz código de adapter de runtime de produção e NÃO modifica o mesh-runtime (repo subordinado, fora de escopo). Prova o uso do Port sem runtime real (gate CONTINUAR de adr-138)."
+				rationale: "EventLogPort (P7) modelado como o #PortManifest que declara o Port consumido pelo CMT para event logging — adr-141 item 4: PortManifest é a SoT exclusiva de superfície de Port. Texto original (#ServiceContract) tornado obsoleto por adr-141 item 4 (#ServiceContract é API externa do BC com refs ao domain-model, não superfície de Port de infra); reinterpretado como o nó mínimo CMT-PortManifest do golden-example. O adapter-stub é scaffold de validação SPEC-SIDE apenas: NÃO introduz código de adapter de runtime de produção e NÃO modifica o mesh-runtime (repo subordinado, fora de escopo). Prova o uso do Port sem runtime real (gate CONTINUAR de adr-138)."
 			}]
 		}
 
@@ -2150,7 +2150,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				}]
 				affects: [
 					"contexts/cmt/domain-model.cue",
-					"contexts/cmt/service-contract.cue",
+					"contexts/cmt/port-manifest.cue",
 				]
 				rationale: "Golden-example microscópico de adr-138: consome o invariante já formalizado, materializa a instância #Assertion (subject/variables/predicate) do aceite bilateral + casos concretos válido/inválido. O harness gera APENAS para diretório de scratch/build ignorado e valida compile+testes; artefatos de runtime gerados NÃO são commitados no mesh-spec e o mesh-runtime NÃO é tocado (P1 estrito). Outputs versionados: golden-example CUE + script de validação + evidência CUE (CONTINUAR/PIVOTAR/ABANDONAR) — nunca o código gerado."
 			}]
@@ -2224,7 +2224,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"architecture/structural-checks/manifest-conformance.cue",
 					"architecture/structural-checks/manifest-ref-integrity.cue",
 				]
-				rationale: "Downstream de adr-144 (cria os tipos) + WI-103 (kernel/Ports). Materializa um PortManifest por BC que consome Port e um AggregateManifest por aggregate; ativa os 5 structural-checks (saem de verde-vácuo). Não crava quais BCs/aggregates — descoberta de autoria. dependsOn WI-103 (a superfície de Port precisa do kernel); a existência dos tipos vem de adr-144 (semanticPrerequisite, pois adr-144 não é WI)."
+				rationale: "Downstream de adr-144 (cria os tipos) + WI-103 (kernel/Ports). Materializa um PortManifest por BC que consome Port e um AggregateManifest por aggregate; ativa os 5 structural-checks (saem de verde-vácuo). Não crava quais BCs/aggregates — descoberta de autoria. dependsOn WI-103 (a superfície de Port precisa do kernel); a existência dos tipos vem de adr-144 (semanticPrerequisite, pois adr-144 não é WI). FRONTEIRA com WI-135: o fan-out EXCLUI o CMT EventLogPort PortManifest (já materializado por WI-135); WI-140 cobre os DEMAIS BCs. Arquivo per-BC único (contexts/{bc}/port-manifest.cue) impede coexistência no CMT."
 			}]
 		}
 	}
