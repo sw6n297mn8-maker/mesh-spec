@@ -24,7 +24,7 @@ portManifest: artifact_schemas.#PortManifest & {
 	id:                "pm-cmt"
 	boundedContextRef: "cmt"
 
-	// Golden-example sobe atras do EventLogPort; cross-BC excluido (adr-138 dec 2).
+	// So EventLogPort: gate deterministico sync (read stream -> compara termsHash -> append); demais Ports fora da fatia (adr-138 core-first).
 	portsConsumed: ["EventLogPort"]
 
 	operations: [{
@@ -38,7 +38,7 @@ portManifest: artifact_schemas.#PortManifest & {
 		name: "readStream"
 		inputs: ["StreamId", "FromVersion"] // CANON-PENDING: StreamId/FromVersion -- grafia a confirmar contra canon mesh-runtime
 		output:                             "EventStream" // CANON-PENDING: EventStream -- grafia a confirmar contra canon mesh-runtime
-		rationale:                          "CMT le o stream do compromisso para verificar evidencia bilateral -- o runtimeGap de inv-mutual-bilateral-acceptance exige query ao event log. Value-class names CANON-PENDING."
+		rationale:                          "CMT le o stream para (a) verificar a evidencia bilateral necessaria para appendar CommitmentAccepted -- sc-cmt-01 declara runtimeGap exigindo query ao event log + event log auditor; (b) obter a versao corrente para o ExpectedVersion do append (OCC read-then-write); (c) detectar aceite preexistente (idempotencia P6 no-op). Value-class names CANON-PENDING."
 	}]
 
 	adaptersForGoldenExample: [{
@@ -56,10 +56,10 @@ portManifest: artifact_schemas.#PortManifest & {
 		port:        "EventLogPort"
 		tier:        2
 		description: "Tier-2 (comportamental): optimistic concurrency do EventLogPort -- append com ExpectedVersion conflitante rejeita; append-only/single-writer por stream."
-		rationale:   "adr-141 item 6: OCC e invariante comportamental que o schema nao captura -- hand-authored, fora do Tier-1 gerado."
+		rationale:   "OCC e o invariante comportamental relevante ao CMT (fluxo de dois appends, CommitmentProposed -> CommitmentAccepted) -- de autoria manual, fora do Tier-1 gerado. Propriedades genericas do EventLogPort (ex.: dedup por eventId) pertencem a suite de contract-tests do proprio Port (mesh-runtime), nao a este manifest BC-specifico."
 	}]
 
 	referenceAdapterRequired: true // explicito: golden-example e o template do fan-out; legibilidade > default implicito.
 
-	rationale: "EventLogPort (P7) modelado como PortManifest (adr-141 item 4: PortManifest = SoT exclusiva da superficie de Port). No minimo CMT-PortManifest do golden-example bilateral (WI-135; aresta WI-137<-WI-135 preservada, real-options). adapter-stub spec-side e DECLARACAO (codigo em mesh-runtime; codegen-contract committedHere:false). Value-class names das operations CANON-PENDING (grafia a confirmar contra canon mesh-runtime). Ativa 4 structural-checks verde: sc-pmc-01/02/03 (todo .port=EventLogPort em portsConsumed) + sc-mri-01 (boundedContextRef cmt em context-map)."
+	rationale: "EventLogPort (P7) modelado como PortManifest (adr-141 item 4: PortManifest = SoT exclusiva da superficie de Port). portsConsumed e [EventLogPort] porque a fatia modela exclusivamente o gate deterministico de aceite bilateral sobre o event log (adr-138 core-first); os demais Ports estao fora desta fatia. No minimo CMT-PortManifest do golden-example bilateral (WI-135; aresta WI-137<-WI-135 preservada, real-options). adapter-stub spec-side e DECLARACAO (codigo em mesh-runtime; codegen-contract committedHere:false). Value-class names das operations CANON-PENDING (grafia a confirmar contra canon mesh-runtime). Ativa 4 structural-checks verde: sc-pmc-01/02/03 (todo .port=EventLogPort em portsConsumed) + sc-mri-01 (boundedContextRef cmt em context-map)."
 }
