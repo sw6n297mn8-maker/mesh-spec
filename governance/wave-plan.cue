@@ -2152,7 +2152,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"contexts/cmt/domain-model.cue",
 					"contexts/cmt/port-manifest.cue",
 				]
-				rationale: "Golden-example microscópico de adr-138: consome o invariante já formalizado, materializa a instância #Assertion (subject/variables/predicate) do aceite bilateral + casos concretos válido/inválido. O harness gera APENAS para diretório de scratch/build ignorado e valida compile+testes; artefatos de runtime gerados NÃO são commitados no mesh-spec e o mesh-runtime NÃO é tocado (P1 estrito). Outputs versionados: golden-example CUE + script de validação + evidência CUE (CONTINUAR/PIVOTAR/ABANDONAR) — nunca o código gerado."
+				rationale: "Golden-example microscópico de adr-138: consome o invariante já formalizado, materializa a instância #Assertion (subject/variables/predicate) do aceite bilateral + casos concretos válido/inválido. O harness gera APENAS para diretório de scratch/build ignorado e valida compile+testes; artefatos de runtime gerados NÃO são commitados no mesh-spec e o mesh-runtime NÃO é tocado (P1 estrito). Outputs versionados: golden-example CUE + script de validação + evidência CUE (CONTINUAR/PIVOTAR/ABANDONAR) — nunca o código gerado. [Escopo B+C] WI-137 entrega o LADO-SPEC: declaração (golden-example) + #Assertion + harness-script + evidence-pending; a EXECUÇÃO VIVA (gerar+compilar+testar → gate real) é downstream, bloqueada por toolchain (adr-139 deferiu vendor/runtime; def-040 open) + mesh-runtime ausente do escopo, rastreada por def-055 + gates adr-138. Sem split formal 137a/137b — nota de escopo."
 			}]
 		}
 
