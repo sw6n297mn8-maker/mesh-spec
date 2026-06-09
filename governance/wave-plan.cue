@@ -2129,7 +2129,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 					artifact: "architecture/production-guides/golden-example.cue"
 					type:     "create"
 				}]
-				rationale: "Cascade ordering (sc-pg-01): schema + production-guide antes da instância. golden-examples são referenciados no CLAUDE.md mas o tipo nunca foi formalizado (0 instâncias) — este WI fecha a lacuna."
+				rationale: "Cascade ordering (sc-pg-01): schema + production-guide antes da instância. golden-examples são referenciados no CLAUDE.md mas o tipo nunca foi formalizado (0 instâncias) — este WI fecha a lacuna. Formalizado como ArtifactType em adr-145 (schema #GoldenExample + PG + enum #ArtifactType + cobertura sc-pg-01)."
 			}, {
 				id:         "WI-137"
 				title:      "Autorar golden-example CMT (bd-mutual-acceptance) + instância #Assertion + harness de codegen-validation + evidência"

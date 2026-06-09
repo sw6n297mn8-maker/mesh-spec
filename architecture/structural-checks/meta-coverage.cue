@@ -65,6 +65,7 @@ structuralChecks: {
 				{type: "wave-plan", rationale: "(follow-on) Integridade de dependsOn (WI→WI) é expressável intra-arquivo via local-field-reference-integrity (adr-100); autoria adiada para focar este pass em zerar+promover."},
 				{type: "deferred-decision", rationale: "(follow-on) originatingArtifacts/resolvedBy são #OriginRef (path .cue OU session:); verificação de path exige filesystem-path-exists com discriminação de session: — enhancement futuro."},
 				{type: "adopted-artifacts", rationale: "(follow-on) artifacts[].artifact são paths em lista-de-structs; exige iteração nested em filesystem-path-exists (não suportada em V1) — enhancement futuro."},
+				{type: "golden-example", rationale: "(harness) ref-integrity de specSlice/assertionRefs coberta pelo harness de codegen-validation (WI-137) que EXERCITA os refs ao gerar codigo -- check estatico seria REDUNDANTE, nao inexpressivel (diferente de adr-144 def-051/052); review+harness-trusted ate o harness materializar; reopening governado em def-055."},
 			]
 		}
 		errorMessage: "tipo governado '{nome}' não tem nenhum structural-check (artifactType correspondente) e não consta em exemptTypes. Adicione um check comportamental OU registre a isenção em exemptTypes com rationale (cobertura só de cue vet + gate de órfão é decisão, não acidente)."
