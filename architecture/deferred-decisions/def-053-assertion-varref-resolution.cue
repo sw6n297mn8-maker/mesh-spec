@@ -30,7 +30,7 @@ def053: artifact_schemas.#DeferredDecision & {
 		Zero Duplicacao) e poderia MENTIR sobre ela (declarar um var que a arvore nao usa, ou omitir um
 		que usa), trocando um gap de enforcement por um risco de drift. Custo de continuar deferindo:
 		uma assertion com VarRef pendente (var sem #Variable correspondente) passaria no cue vet ate a
-		review humana pega-la -- aceitavel enquanto o numero de assertions e baixo.
+		review humana pega-la -- aceitavel enquanto o numero de assertions e baixo. CASO CONCRETO: asrt-mutual-bilateral-acceptance (golden-example CMT, WI-137) e essa 1a assertion -- o binding ator/tipo-de-evento dos seus #VarRef (proposer-proposed vs counterparty-accepted) e a correlacao state+evidencias por mesmo-commitmentId vivem em filter-prosa, casos concretos desta resolucao deferida; o hand-encoded (def-049) os cobre ate o kind recursivo existir.
 		"""
 
 	triggerCalibrationRationale: """

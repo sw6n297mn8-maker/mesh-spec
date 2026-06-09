@@ -38,7 +38,7 @@ def054: artifact_schemas.#DeferredDecision & {
 		multi-termo OU quantificacao sobre colecao' -- depende de julgamento de modelagem ao autorar o
 		invariant, nao de um sinal machine-evaluable no repo. A
 		lens-testing-and-validation-for-financial-systems ja flagou conservation/double-entry como
-		invariants fundamentais; eles serao o gatilho natural quando FCE/ledger forem modelados.
+		invariants fundamentais; eles serao o gatilho natural quando FCE/ledger forem modelados. CASO CONCRETO (calibracao hipotetico->concreto): asrt-mutual-bilateral-acceptance (WI-137) ja exibe um caso de quantificacao -- o invariante e forall commitmentId, mas o predicate V1 e booleano per-elemento (sem no forall), deixando o 'para todo commitment' + o join state+evidencias por commitment implicitos. Conservation/double-entry (FCE/ledger) seguem como gatilho da quantificacao-sobre-colecao; o forall-commitmentId do aceite bilateral e o 1o caso concreto do quantificador top-level, coberto no interino por hand-encoded (def-049).
 		"""
 
 	originatingArtifacts: [
