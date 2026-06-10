@@ -7,9 +7,10 @@ package build_time
 // o pipeline pelos gates CONTINUAR/PIVOTAR/ABANDONAR. NAO se apresenta como
 // accepted/estavel.
 //
-// AUTORIZADO POR: adr-140 (pipeline CUE->.proto/Ion/JSON; ContractGate;
-// #Assertion first-order) + adr-141 (5 Ports, PortResult, manifests, aggregate
-// skeleton). Sem ADR proprio (instanciacao dessas decisoes) e sem
+// AUTORIZADO POR: adr-140 (pipeline de codegen; ContractGate; #Assertion
+// first-order) + adr-141 (5 Ports, PortResult, manifests, aggregate skeleton)
+// + adr-146 (P14: domain-types gerados do cue.Value direto; .proto/Ion/JSON
+// para compat/wire/exit, nao para tipos). Sem ADR proprio (instanciacao dessas decisoes) e sem
 // #Type/_schema.location (schema-exempt; precedente subagent-execution-log).
 // Promocao a architecture/artifact-schemas/codegen-contract.cue via ADR so
 // quando referenciado por >1 wave OU governar multiplas familias de BC.
@@ -32,7 +33,7 @@ codegenContract: {
 	// golden-example (WI-137) resolve a hipotese; default proposed.
 	status: *"proposed" | "accepted" | "deprecated"
 
-	authorizedBy: ["adr-140", "adr-141"] // proveniencia; sem ADR proprio (instanciacao)
+	authorizedBy: ["adr-140", "adr-141", "adr-146"] // proveniencia; sem ADR proprio (instanciacao)
 
 	// (2) INPUTS -- consumidos read-only; localizacao canonica de cada um.
 	inputs: {
@@ -46,7 +47,7 @@ codegenContract: {
 
 	// (2) TRANSFORM -- estagios declarativos (o que -> o que + ADR que autoriza); NAO engine.
 	transform: [
-		{stage: "contracts", from: "CUE SoT", via: ".proto + Ion Schema + JSON Schema", to: "tipos + validadores + stubs", authority: "adr-140 1-2"},
+		{stage: "contracts", from: "CUE SoT", via: "cue.Value direto p/ domain-types (P14, adr-146); .proto/Ion/JSON servem compat/wire/exit, nao geram tipos", to: "tipos + validadores + stubs", authority: "adr-140 1-2; adr-146 2-3"},
 		{stage: "aggregate-skeleton", from: "AggregateManifest", to: "aggregate base/skeleton", authority: "adr-141 5"},
 		{stage: "port-contracts", from: "PortManifest", to: "Port contracts + Tier-1 contract-tests", authority: "adr-141 4,6"},
 		{stage: "runtime-tests", from: "#Assertion + domain-invariant", to: "property-based runtime tests", authority: "adr-140 6; mecanismo -> def-049"},

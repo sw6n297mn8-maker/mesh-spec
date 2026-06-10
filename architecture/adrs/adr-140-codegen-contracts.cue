@@ -154,6 +154,19 @@ adr140: artifact_schemas.#ADR & {
 		     fixa a PONTE (#Assertion é fonte canônica de teste) mas não o COMO; WI-137
 		     depende de def-049 resolver (ou de mecanismo provisório) para derivar
 		     testes executáveis.
+		(N5) REINTERPRETADO por adr-146: o item 2 declarava o .proto como IR-de-domain-types
+		     (CUE→.proto→tipos na linguagem-alvo). adr-146 estabelece P14 (fidelidade de
+		     forma) e move a geração de domain-types para o cue.Value direto — proto3 apaga
+		     exaustividade-de-estado e presença-de-campo (medido), forma que o cue.Value
+		     direto preserva. O .proto PERMANECE no escopo deste ADR para os papéis que não
+		     geram tipos: compatibilidade (Ion-3, buf breaking nos .proto) e exit-strategy
+		     (item 8). É reinterpretação do escopo do item 2, não supersession: adr-140
+		     segue proposed e vigente nos demais itens. Consequência sobre FF-CG-03: o alvo
+		     de regeneração-e-diff em generated/ re-aponta para os domain-types gerados do
+		     cue.Value; os derivados .proto/Ion/JSON seguem cobertos por FF-CG-03 para
+		     compat/wire/exit. Mesmo mecanismo (git diff em generated/), alvo de tipos
+		     re-apontado — as menções a FF-CG-03 abaixo (P2c, rationale) permanecem válidas;
+		     esta nota é a localização canônica única da re-apontagem (P0).
 		"""
 
 	reversibility: "medium"

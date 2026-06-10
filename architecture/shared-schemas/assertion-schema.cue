@@ -4,8 +4,8 @@ package shared_schemas
 //
 // O QUE E: forma estruturada de um invariant/regra de dominio. E a fonte
 // canonica que o gerador de testes (CI do mesh-runtime) consome via codegen
-// para produzir property-based tests -- padrao CUE->.proto: CUE define a
-// estrutura, o codegen produz o executavel. CUE e o CONTAINER das assertions,
+// para produzir property-based tests -- padrao CUE->codigo (adr-146): CUE define
+// a estrutura, o codegen produz o executavel. CUE e o CONTAINER das assertions,
 // nao a engine de avaliacao. Estabelecida como artifact-class de primeira
 // ordem em adr-140 item 6.
 //
