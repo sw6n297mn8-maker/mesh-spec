@@ -167,6 +167,9 @@ adr140: artifact_schemas.#ADR & {
 		     compat/wire/exit. Mesmo mecanismo (git diff em generated/), alvo de tipos
 		     re-apontado — as menções a FF-CG-03 abaixo (P2c, rationale) permanecem válidas;
 		     esta nota é a localização canônica única da re-apontagem (P0).
+		(N6) adr-147 resolve o placeholder de linguagem-alvo dos domain-types gerados: Kotlin.
+		     Isto NÃO promove adr-140 a accepted — a condição de migração segue amarrada ao
+		     golden-example provar a hipótese P1/codegen.
 		"""
 
 	reversibility: "medium"
