@@ -45,7 +45,7 @@ goldenExampleGuide: artifact_schemas.#ProductionGuide & {
 	}
 
 	prerequisites: {
-		description: "Antes de autorar um GoldenExample, o agente le o schema #GoldenExample, o adr-138 (mecanismo: escopo microscopico, pipeline, gates item 7, P1-strict, template P3c), o adr-145 (o tipo), o codegen-contract (adr-140, o que se gera) e o domain-model/canvas/assertions do BC para saber quais refs o recorte usa. GoldenExample DECLARA o experimento; a evidencia de run vive em codegen-validation-evidence (WI-137)."
+		description: "Antes de autorar um GoldenExample, o agente le o schema #GoldenExample, o adr-138 (mecanismo: escopo microscopico, pipeline, gates item 7, P1-strict, template P3c), o adr-145 (o tipo), o codegen-contract (adr-140, o que se gera) e o domain-model/canvas/assertions do BC para saber quais refs o recorte usa. GoldenExample DECLARA o experimento; a evidencia de run vive em codegen-validation-evidence (WI-137). No fan-out (golden-example que NAO e o primeiro), le tambem contexts/cmt/golden-examples/bd-mutual-acceptance.cue (ge-cmt) como exemplar de referencia (adr-138 P3c; adr-145) e deriva dele -- replicar ESTRUTURA, variar CONTEUDO (ver secao template-role-and-rationale)."
 		collectFromFounder: [
 			"boundedContextRef: code do BC dono do experimento -- verificar que contexts/{bc}/ existe.",
 			"businessDecisionRef: a bd-<slug> que o golden-example prova (= stem do arquivo).",
@@ -148,24 +148,35 @@ goldenExampleGuide: artifact_schemas.#ProductionGuide & {
 		}
 		"template-role-and-rationale": {
 			target:    "#GoldenExample"
-			objective: "Declarar templateRole (P3c) e compor o rationale do golden-example."
+			objective: "Declarar templateRole (P3c), derivar do exemplar de referencia no fan-out, e compor o rationale do golden-example."
 			process: [{
 				action: "Declarar templateRole"
 				detail: "isTemplate (tipicamente true) + divergencePolicy (divergencia estrutural do template exige ADR, adr-138 falsificationCondition)."
+			}, {
+				action: "Derivar do exemplar (fan-out)"
+				detail: "ge-cmt-mutual-acceptance e o exemplar/template de referencia do portfolio (adr-138 P3c; adr-145, 1o golden-example). Golden-example de outro BC DERIVA dele, nao autora do zero: replicar a ESTRUTURA, variar so o CONTEUDO do BC (ver heuristics)."
 			}, {
 				action: "Compor rationale"
 				detail: "Por que este recorte e o golden-example do BC -- ancorado no escopo microscopico real, nao generico."
 			}]
 			sources: [
-				"architecture/adrs/adr-138-runtime-bootstrap-strategy.cue (template P3c)",
+				"architecture/adrs/adr-138-runtime-bootstrap-strategy.cue (template P3c; pipeline item 6; falsificationCondition do fan-out)",
 				"architecture/adrs/adr-145-golden-example-artifact-governance.cue (o tipo, separacao declaracao/evidencia)",
+				"contexts/cmt/golden-examples/bd-mutual-acceptance.cue (ge-cmt: exemplar de referencia do fan-out)",
+				"architecture/adrs/adr-080-extend-structural-check-domain-invariants.cue (domain-invariant do structural-check carrega o assertion espelhado)",
+				"governance/build-time/codegen-contract.cue (#Assertion + domain-invariant convergem num mecanismo unico de teste)",
+				"architecture/adrs/adr-147-target-language-kotlin.cue (a divergencia estrutural registrada alimenta a falsificationCondition da linguagem)",
 			]
 			heuristics: [
 				"templateRole e papel/politica (declaracao), nao medicao de divergencia (evidencia).",
 				"rationale explica o recorte, nao repete os campos.",
+				"ESTRUTURA (replicar; divergir exige ADR ANTES, nao depois): (a) o pipeline specSlice -> #Assertion -> golden-example -> gates (adr-138 itens 6-7); (b) as secoes do workOrder desta PG e sua ordem (bijecao workOrder<->sections: sc-pg-02/03); (c) quando o recorte exercita um Port, o kind port-contracts deriva do PortManifest do proprio BC (adr-141; ge-cmt usa EventLogPort/pm-cmt); (d) zero-drift entre o #Assertion do golden-example e o domain-invariant do structural-check do BC na mesma fatia -- ambos codificam o mesmo invariante e convergem num mecanismo unico de teste (adr-080; codegen-contract.testDerivation; P0).",
+				"CONTEUDO (variar e normal, NAO conta como divergencia): o invariante de dominio, os estados do aggregate, os payloads, os exemplos valido/invalido, os nomes de dominio -- especificos do BC.",
+				"A REGRA que torna a divergencePolicy contavel: divergencia ESTRUTURAL > 0 sem ADR = falha do fan-out (adr-138 falsificationCondition); variacao de CONTEUDO nunca conta. Exemplo do tie-break: um BC exercitar Ports diferentes de ge-cmt NAO e divergencia -- a estrutura replicada e derivar do PortManifest do proprio BC (ver (c)); o conjunto de Ports e CONTEUDO.",
+				"Coerencia: a divergencia estrutural registrada (em ADR) alimenta a falsificationCondition de adr-147 -- o registro acumula num gate maior (a decisao de linguagem). O template herda a triade de codegen (P14 forma / adr-146 gerador cue.Value / adr-147 Kotlin) via codegen-contract -- nao re-declarar.",
 			]
-			doneCriteria: "templateRole preenchido (isTemplate + divergencePolicy); rationale substantivo; zero campo de evidencia em toda a instancia."
-			ifGap:        "Se o rationale fica generico, ancorar no aggregate/businessDecision concreto do BC."
+			doneCriteria: "templateRole preenchido (isTemplate + divergencePolicy); se nao for o 1o golden-example, estrutura replicada do exemplar e cada divergencia estrutural coberta por ADR; rationale substantivo; zero campo de evidencia em toda a instancia."
+			ifGap:        "Se o rationale fica generico, ancorar no aggregate/businessDecision concreto do BC. Se uma divergencia estrutural parece necessaria, PARAR e abrir ADR antes de autorar -- nunca divergir por prosa."
 		}
 	}
 
