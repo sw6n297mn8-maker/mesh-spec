@@ -2211,7 +2211,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 				tshirtSize: "L"
 				dependsOn: ["WI-103"]
 				semanticPrerequisites: [
-					"adr-144 aceito (PortManifest/AggregateManifest como ArtifactTypes governados: schemas, production-guides, structural-checks materializados)",
+					"adr-144 vigente (PortManifest/AggregateManifest como ArtifactTypes governados: schemas, production-guides, structural-checks materializados)",
 				]
 				outputs: [{
 					artifact: "contexts/{bc}/port-manifest.cue"
