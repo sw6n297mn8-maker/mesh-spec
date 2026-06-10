@@ -2055,7 +2055,7 @@ wavePlan: artifact_schemas.#WavePlan & {
 					"architecture/artifact-schemas/structural-check.cue",
 					"contexts/cmt/domain-model.cue",
 				]
-				rationale: "Gramática formal #Assertion (subject/variables/predicate) como container estruturado das assertions; o gerador de testes no CI do mesh-runtime consome via codegen — CUE define estrutura, codegen produz executável (padrão CUE→.proto). Autoria PUXADA do WI-128 (single-ownership do path; WI-128 perde este output). domain-invariant (adr-080) referencia #Assertion por id — affects sinaliza a convenção de referência a definir na execução, NÃO edição obrigatória do CMT agora."
+				rationale: "Gramática formal #Assertion (subject/variables/predicate) como container estruturado das assertions; o gerador de testes no CI do mesh-runtime consome via codegen — CUE define estrutura, codegen produz executável (padrão CUE→código, adr-146). Autoria PUXADA do WI-128 (single-ownership do path; WI-128 perde este output). domain-invariant (adr-080) referencia #Assertion por id — affects sinaliza a convenção de referência a definir na execução, NÃO edição obrigatória do CMT agora."
 			}, {
 				id:         "WI-134"
 				title:      "Definir contrato de codegen lado-spec (#Assertion + domain-model + domain-invariant → tipos/skeleton/Ports/testes)"

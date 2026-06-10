@@ -281,5 +281,69 @@ designPrinciples: artifact_schemas.#DesignPrinciples & {
 				de crescimento; P13 é o método de derivar a fronteira correta.
 				"""
 		}
+
+		// ═══════════════════════════════════════════
+		// Design Philosophy (cont.) — P14 (group DesignPhilosophy)
+		// ═══════════════════════════════════════════
+		P14: {
+			group: "DesignPhilosophy"
+			statement: """
+				Todo invariante de domínio estruturalmente expressável no sistema de tipos
+				da linguagem-alvo é forçado em compile-time. Nenhum invariante verificável
+				em compile-time é delegado a verificação de runtime. Isto especializa P1:
+				onde P1 fixa que o código é gerado e nunca escrito à mão, P14 fixa que a
+				geração preserva toda a forma compile-time-verificável da spec — gerar da
+				spec não basta se a geração degrada o tipo a ponto de o compilador não
+				conseguir recusar o estado ilegal.
+
+				A linguagem-alvo do código de domínio possui três capacidades mínimas, e
+				uma linguagem sem as três não é elegível como alvo de domínio: (i)
+				tipos-soma fechados com exaustividade verificada (sealed/enum fechado), de
+				modo que adicionar um caso sem tratá-lo não compila; (ii) ausência-de-nulo
+				no tipo, com presença explícita, de modo que omitir um campo obrigatório
+				não compila; (iii) tipos-embrulho inescapáveis (newtype/value-class com
+				construtor privado), de modo que um valor cru cruzar a fronteira não compila.
+
+				A classificação de cada invariante é por demonstração, nunca por julgamento.
+				Um invariante é compile-time-verificável quando existe uma construção de
+				tipo que torna o estado violador não-compilável. É runtime-only quando é um
+				predicado sobre valores que só existem em runtime — relação entre dois
+				valores, conteúdo de string, igualdade calculada — logicamente impossível de
+				decidir antes da execução. No caso de fronteira, o valor exige checagem em
+				runtime mas é encapsulável num tipo-embrulho inescapável: o embrulho é
+				obrigatório em compile-time e a checagem-de-valor roda inescapavelmente no
+				construtor. Classificar um invariante como runtime-only exige provar a
+				impossibilidade de expressá-lo como tipo.
+
+				A geração de domain-types preserva toda distinção compile-time-verificável
+				da spec (CUE) até o tipo da linguagem-alvo. Intermediários que reduzem a
+				expressividade de tipo — proto3, por exemplo, com enum aberto e escalar sem
+				presença — não entram no caminho de geração de domain-types. Esses mesmos
+				intermediários permanecem válidos para os papéis que não geram domain-types:
+				serialização wire, compatibilidade, exit-strategy.
+
+				Os invariantes runtime-only são cobertos por gates determinísticos gerados
+				da mesma spec, que recusam a operação antes de qualquer efeito (P1, P10,
+				P11). Isto não é exceção a este princípio e sim seu complemento: P14 exige o
+				teto do compilador, e os gates cobrem exatamente e apenas o que está acima
+				desse teto.
+
+				O contrato compile-time vale dentro do uso disciplinado da linguagem. Furos
+				de runtime que contornam os tipos-embrulho — reflection na JVM,
+				unsafe/transmute em Rust — estão fora do contrato e são fechados por
+				lint-gate (proibição de reflection no domínio, deny(unsafe)).
+				"""
+			rationale: """
+				P1 fixa proveniência (o código é gerado) e compatibilidade como gate, mas
+				não exige que a geração preserve a forma: um pipeline que gera tipos
+				degradados — enum aberto, presença opcional — satisfaz P1 literalmente e
+				ainda assim deixa o compilador incapaz de recusar estados ilegais. Medido na
+				adoção: o intermediário proto3 apaga exaustividade-de-estado e
+				presença-de-campo, enquanto gerar do cue.Value direto preserva ambas,
+				forçadas pelo compilador. Num sistema financeiro, cada invariante de forma
+				não-forçado em compile-time é um estado ilegal que só falha em runtime —
+				inaceitável quando o compilador poderia recusá-lo de graça.
+				"""
+		}
 	}
 }
