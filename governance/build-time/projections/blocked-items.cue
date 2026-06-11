@@ -11,6 +11,6 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Reconstrução atual: zero items bloqueados.
 
 blockedItemsProjection: {
-	rebuiltAt: "2026-06-11T17:17:34Z"
+	rebuiltAt: "2026-06-11T17:47:09Z"
 	entries: [...build_time.#BlockedItemEntry] & []
 }

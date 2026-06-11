@@ -13,7 +13,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // 16 candidato(s) prontos para claim.
 
 readyQueueProjection: {
-	rebuiltAt: "2026-06-11T17:17:34Z"
+	rebuiltAt: "2026-06-11T17:47:09Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
