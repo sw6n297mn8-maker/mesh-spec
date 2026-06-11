@@ -17,7 +17,7 @@ adr144: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	context: """
 		adr-141 (runtime kernel, em main) decidiu que PortManifest e AggregateManifest existem como contrato e SERAO ArtifactTypes governados, mas deferiu a materializacao formal dos tipos ao adr-144 (decision item 5; O1-split). adr-141 N3 declara a janela aberta: os structural-checks de manifest que o adr-141 previa sao obrigatorios mas so existem apos os ArtifactTypes serem criados -- ate la, conformidade/cobertura de manifest nao tem gate deterministico, so self-review + founder review.
