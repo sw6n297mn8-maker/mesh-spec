@@ -14,10 +14,12 @@
 # o mesh-runtime NAO e tocado. Edicao semantica do gerado e PROIBIDA (gate
 # ABANDONAR) -- so header/formatacao/scaffolding documentado FORA do gerado.
 #
-# ESTADO ATUAL: a toolchain de codegen (linguagem-alvo + gerador CUE->codigo +
-# test runner) NAO esta decidida -- adr-139 deferiu vendor/runtime; def-040
-# (runtime HTTP) esta open; e o mesh-runtime nao esta no escopo. Sem toolchain
-# NAO HA o que gerar/compilar/testar; este harness detecta a ausencia e para.
+# ESTADO ATUAL: a toolchain de codegen ESTA decidida no lado-spec (gerador
+# cue.Value, adr-146; linguagem-alvo Kotlin, adr-147; morada/distribuicao no
+# mesh-runtime como executavel invocavel, adr-148). O que segue pendente e a
+# MATERIALIZACAO (mesh-runtime ausente; executavel inexistente) + o test-runner
+# concreto (def-049 open). Sem o executavel NAO HA o que gerar/compilar/testar;
+# este harness detecta a ausencia e para.
 #
 # POR QUE EXIT 78 (EX_CONFIG, sysexits.h), NAO 0 NEM 1:
 #   - exit 0 seria FALSO-VERDE: um CI futuro concluiria que a validacao P1
@@ -33,15 +35,15 @@ readonly EX_CONFIG=78
 readonly GOLDEN_EXAMPLE="contexts/cmt/golden-examples/bd-mutual-acceptance.cue"
 readonly SCRATCH_DIR="${MESH_CODEGEN_SCRATCH:-.codegen-scratch}" # gitignored; nunca commitado
 
-# Marcador de toolchain: definido quando a stack de codegen for materializada
-# (linguagem-alvo + gerador + test runner). Ausente hoje (adr-139 deferiu).
+# Marcador de toolchain: definido quando o mesh-runtime distribuir o executavel
+# do gerador (adr-148). Ausente hoje (materializacao pendente).
 TOOLCHAIN="${MESH_CODEGEN_TOOLCHAIN:-}"
 
 if [[ -z "${TOOLCHAIN}" ]]; then
 	{
-		echo "codegen toolchain pending (adr-139/def-040; mesh-runtime ausente) -- nada a gerar/compilar/testar."
+		echo "codegen toolchain decidida (adr-146/147/148) mas NAO materializada (mesh-runtime ausente) -- nada a gerar/compilar/testar."
 		echo "WI-137 entregou o lado-spec (golden-example + #Assertion + este harness + evidence-pending);"
-		echo "a execucao viva fica deferida ate a toolchain ser decidida e o mesh-runtime existir."
+		echo "a execucao viva fica deferida ate o mesh-runtime existir e distribuir o executavel (MESH_CODEGEN_TOOLCHAIN; adr-148)."
 		echo "exit ${EX_CONFIG} (EX_CONFIG) deliberado: NAO 0 (evita falso-verde), NAO 1 (evita confusao com bug)."
 	} >&2
 	exit "${EX_CONFIG}"
