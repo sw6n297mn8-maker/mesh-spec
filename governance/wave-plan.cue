@@ -1989,19 +1989,23 @@ wavePlan: artifact_schemas.#WavePlan & {
 					artifact: "architecture/adrs/adr-141-runtime-kernel-port-contracts.cue"
 					type:     "create"
 				}, {
-					artifact: "architecture/deferred-decisions/def-041-eventlogport-vendor.cue"
+					// Correcao factual (2026-06-11, reconciliacao N2): os 5 paths de deferred-decision
+					// abaixo corrigidos de def-04X-*-vendor.cue (planejado) para o nome REAL
+					// materializado def-04X-*-vendor-of-record.cue — fecha a aresta de path-drift
+					// registrada nos streams/task-specs de WI-103 (backfill do ledger).
+					artifact: "architecture/deferred-decisions/def-041-eventlogport-vendor-of-record.cue"
 					type:     "create"
 				}, {
-					artifact: "architecture/deferred-decisions/def-042-ledgerport-vendor.cue"
+					artifact: "architecture/deferred-decisions/def-042-ledgerport-vendor-of-record.cue"
 					type:     "create"
 				}, {
-					artifact: "architecture/deferred-decisions/def-043-workflowport-vendor.cue"
+					artifact: "architecture/deferred-decisions/def-043-workflowport-vendor-of-record.cue"
 					type:     "create"
 				}, {
-					artifact: "architecture/deferred-decisions/def-044-deliveryport-vendor.cue"
+					artifact: "architecture/deferred-decisions/def-044-deliveryport-vendor-of-record.cue"
 					type:     "create"
 				}, {
-					artifact: "architecture/deferred-decisions/def-045-evidenceport-vendor.cue"
+					artifact: "architecture/deferred-decisions/def-045-evidenceport-vendor-of-record.cue"
 					type:     "create"
 				}]
 				rationale: "Keystone (adr-139): materializa P7 concreto — 5 Ports retornando PortResult<T>, value classes na fronteira de Port, module boundary — e a topologia LÓGICA de containers (BC→módulo), absorvendo o escopo de WI-087. A seleção de vendor atrás de cada Port é deferida per-Port (def-041..045) e materializada JIT pós golden-example. Consumido pelo golden-example CMT via WI-134 (EventLogPort + adapter-stub)."

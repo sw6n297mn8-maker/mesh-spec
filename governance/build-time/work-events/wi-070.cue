@@ -40,6 +40,17 @@ streams: {
 			timestamp:              "2026-05-15T20:01:00Z"
 			actor:                  "spec-writer"
 			originalClaimCommandId: "WI-070-claim-economic-foundation"
-		}]
+		}, // ── Append 2026-06-11 (reconciliacao N2; append-only, eventos acima intactos) ──
+			// Released: o claim caducou ha meses; o registro reflete o fato sem decidir o
+			// destino do trabalho restante (Layer 2 NIM) — re-scope e decisao posterior.
+			{
+				eventType:   "task-released"
+				taskId:      "WI-070"
+				taskVersion: 1
+				commandId:   "WI-070-release-portfolio-reconciliation-n2"
+				timestamp:   "2026-06-11T17:45:00Z"
+				actor:       "founder"
+				reason:      "claim de 2026-03 expirado sem completion; 6/9 outputs entregues (Layers -1 e 1 completos: economic-assumption + economic-mechanism, schemas+instancias+adr-082/083); Layer 2 NIM (value-function x3) pendente; re-scope/split e decisao posterior do founder"
+			}]
 	}
 }
