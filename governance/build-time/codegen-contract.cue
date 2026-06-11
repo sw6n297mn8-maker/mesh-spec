@@ -2,10 +2,9 @@ package build_time
 
 // codegen-contract.cue -- Contrato declarativo de codegen spec->runtime (WI-134).
 //
-// STATUS: V1 PROPOSED -- tao proposed quanto adr-140/adr-141. HIPOTESE
-// FALSIFICAVEL (adr-138): o golden-example CMT (WI-137) valida/pivota/abandona
-// o pipeline pelos gates CONTINUAR/PIVOTAR/ABANDONAR. NAO se apresenta como
-// accepted/estavel.
+// STATUS: V1 ACCEPTED (adr-140 promovido 2026-06-11 -- golden-example resolveu
+// a hipotese P1/codegen com gate CONTINUAR; ver codegen-validation-evidence).
+// adr-141 segue proposed com condicao propria (ver nota no adr-141).
 //
 // AUTORIZADO POR: adr-140 (pipeline de codegen; ContractGate; #Assertion
 // first-order) + adr-141 (5 Ports, PortResult, manifests, aggregate skeleton)
@@ -30,8 +29,9 @@ codegenContract: {
 	version: "v1"
 
 	// Tipado para tornar a transicao verificavel: status migra quando o
-	// golden-example (WI-137) resolve a hipotese; default proposed.
-	status: *"proposed" | "accepted" | "deprecated"
+	// golden-example (WI-137) resolve a hipotese; resolvida em run-001
+	// (gate CONTINUAR, ver codegen-validation-evidence).
+	status: "accepted"
 
 	authorizedBy: ["adr-140", "adr-141", "adr-146", "adr-148"] // proveniencia; sem ADR proprio (instanciacao); adr-148 autoriza a secao (2b) toolchain
 

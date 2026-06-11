@@ -10,7 +10,7 @@ adr140: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	context: """
 		A reconciliação de stack (adr-138 runtime-bootstrap; adr-139 keystone-first)
