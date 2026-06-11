@@ -1,74 +1,100 @@
 #!/usr/bin/env bash
 # validate-codegen.sh -- harness do golden-example CMT (WI-137 / W006).
 #
-# O QUE FAZ (quando houver toolchain): le o golden-example
-# contexts/cmt/golden-examples/bd-mutual-acceptance.cue, gera os artefatos de
-# codegenTarget.kinds (types/aggregate-skeleton/port-contracts/stubs/
-# contract-tests/assertion-tests) para um diretorio de SCRATCH ignorado pelo git,
-# compila, roda os assertion-tests de asrt-mutual-bilateral-acceptance (>=1 caso
-# valido + >=1 invalido), avalia os gates de adr-138 item 7 (CONTINUAR/PIVOTAR/
-# ABANDONAR) e grava o resultado em
-# governance/build-time/codegen-validation-evidence.cue.
+# O QUE FAZ: delega os 5 passos (gerar -> compilar -> testar -> avaliar gates ->
+# gravar evidencia-de-run em scratch) a toolchain distribuida pelo mesh-runtime
+# (MESH_CODEGEN_TOOLCHAIN pipeline; adr-148 item 3), rodando A PARTIR deste
+# checkout do mesh-spec. A toolchain le o golden-example
+# contexts/cmt/golden-examples/bd-mutual-acceptance.cue e os artefatos da fatia,
+# re-emite todo o codigo gerado FRESCO da spec num workspace de scratch, compila,
+# roda assertion-tests (>=1 valido + >=1 invalido) + contract-tests, e avalia os
+# gates de adr-138 item 7.
 #
-# P1 ESTRITO: o codigo gerado vai SO para scratch (nunca commitado no mesh-spec);
-# o mesh-runtime NAO e tocado. Edicao semantica do gerado e PROIBIDA (gate
-# ABANDONAR) -- so header/formatacao/scaffolding documentado FORA do gerado.
+# P1 ESTRITO: o codigo gerado vai SO para scratch (fora desta arvore; a toolchain
+# rejeita scratch dentro dela); o mesh-runtime NAO e tocado. Edicao semantica do
+# gerado e PROIBIDA (gate ABANDONAR).
 #
-# ESTADO ATUAL: a toolchain de codegen ESTA decidida no lado-spec (gerador
-# cue.Value, adr-146; linguagem-alvo Kotlin, adr-147; morada/distribuicao no
-# mesh-runtime como executavel invocavel, adr-148). O que segue pendente e a
-# MATERIALIZACAO (mesh-runtime ausente; executavel inexistente) + o test-runner
-# concreto (def-049 open). Sem o executavel NAO HA o que gerar/compilar/testar;
-# este harness detecta a ausencia e para.
+# CONTRATO DE FALHA (codegen-contract nota 2b; adr-148): falha deterministica
+# com EX_CONFIG=78 quando (a) MESH_CODEGEN_TOOLCHAIN ausente; (b) nao resolve
+# para um executavel; (c) a identidade/versao da ferramenta nao puder ser
+# registrada na evidencia -- versao vazia/falha OU '-dirty' (working tree sujo:
+# identidade nao-rastreavel; escape explicito MESH_CODEGEN_ALLOW_DIRTY=1 para
+# dev local, com warning logado; NUNCA setado em CI).
 #
-# POR QUE EXIT 78 (EX_CONFIG, sysexits.h), NAO 0 NEM 1:
-#   - exit 0 seria FALSO-VERDE: um CI futuro concluiria que a validacao P1
-#     PASSOU quando so detectamos ausencia de toolchain. Falso-verde e PIOR que
-#     ausencia -- mascara o experimento nao-executado como se fosse sucesso.
-#   - exit 1 seria confundivel com BUG / teste real falhando.
-#   - exit 78 = "configuracao ausente": sinaliza inequivocamente "toolchain
-#     pending", distinto de sucesso e de bug. Este harness so retorna 0 quando
-#     a toolchain existir E o pipeline gerar+compilar+testar rodar ate o fim.
+# EXIT-MAP (pre-fixado; exit codes INFORMAM, o veredito por causa-raiz e do
+# founder -- adr-148):
+#   CONTINUAR = 0 · PIVOTAR = 75 (EX_TEMPFAIL) · ABANDONAR = 70 (EX_SOFTWARE)
+#   78 = EX_CONFIG (contrato de falha acima) · 1 = bug do harness/pipeline
+#
+# EVIDENCE: este harness e GATE-ONLY. A evidencia produzida pelo run vai para
+# <scratch>/evidence/ como artefato de log (descartavel). O artefato canonico
+# governance/build-time/codegen-validation-evidence.cue registra runs de
+# PROMOCAO com veredito do founder embutido -- write-back e processo humano
+# gated (precedente run-001/#126), NUNCA escrita de CI.
 set -euo pipefail
 
 readonly EX_CONFIG=78
 readonly GOLDEN_EXAMPLE="contexts/cmt/golden-examples/bd-mutual-acceptance.cue"
-readonly SCRATCH_DIR="${MESH_CODEGEN_SCRATCH:-.codegen-scratch}" # gitignored; nunca commitado
 
-# Marcador de toolchain: definido quando o mesh-runtime distribuir o executavel
-# do gerador (adr-148). Ausente hoje (materializacao pendente).
+# (a) variavel ausente -> EX_CONFIG.
 TOOLCHAIN="${MESH_CODEGEN_TOOLCHAIN:-}"
-
 if [[ -z "${TOOLCHAIN}" ]]; then
 	{
-		echo "codegen toolchain decidida (adr-146/147/148) mas NAO materializada (mesh-runtime ausente) -- nada a gerar/compilar/testar."
-		echo "WI-137 entregou o lado-spec (golden-example + #Assertion + este harness + evidence-pending);"
-		echo "a execucao viva fica deferida ate o mesh-runtime existir e distribuir o executavel (MESH_CODEGEN_TOOLCHAIN; adr-148)."
-		echo "exit ${EX_CONFIG} (EX_CONFIG) deliberado: NAO 0 (evita falso-verde), NAO 1 (evita confusao com bug)."
+		echo "MESH_CODEGEN_TOOLCHAIN ausente -- o mesh-runtime distribui o executavel (adr-148; codegen-contract 2b)."
+		echo "exit ${EX_CONFIG} (EX_CONFIG) deliberado: NAO 0 (falso-verde), NAO 1 (bug)."
 	} >&2
 	exit "${EX_CONFIG}"
 fi
 
-# Guard: mesmo com a env var setada, o pipeline de execucao abaixo ainda nao foi
-# implementado (WI-137 entregou so o lado-spec). Sair com EX_CONFIG ate ele
-# existir -- nunca cair em exit 0 implicito (falso-verde) por env var prematura.
-{
-	echo "MESH_CODEGEN_TOOLCHAIN='${TOOLCHAIN}' setada, mas o pipeline gerar+compilar+testar ainda nao foi implementado."
-	echo "Implementar contra ${GOLDEN_EXAMPLE} -> ${SCRATCH_DIR} (gitignored), depois gravar codegen-validation-evidence.cue."
-	echo "exit ${EX_CONFIG} ate la (evita falso-verde)."
-} >&2
-exit "${EX_CONFIG}"
+# (b) nao resolve para executavel -> EX_CONFIG.
+TOOLCHAIN_BIN="$(command -v -- "${TOOLCHAIN}" || true)"
+if [[ -z "${TOOLCHAIN_BIN}" || ! -x "${TOOLCHAIN_BIN}" ]]; then
+	echo "MESH_CODEGEN_TOOLCHAIN='${TOOLCHAIN}' nao resolve para um executavel (codegen-contract 2b). exit ${EX_CONFIG}." >&2
+	exit "${EX_CONFIG}"
+fi
 
-# --- Pipeline a implementar quando a toolchain materializar (adr-138 item 6/7) ---
-#  1. Gerar codegenTarget.kinds de ${GOLDEN_EXAMPLE} para ${SCRATCH_DIR} (gitignored;
-#     nunca commitar; nunca tocar o mesh-runtime).
-#  2. Compilar o gerado na linguagem-alvo.
-#  3. Rodar os assertion-tests de asrt-mutual-bilateral-acceptance (>=1 valido + >=1 invalido).
-#  4. Avaliar os gates de adr-138 item 7 e mapear para exit-code DISTINTO (nunca ad-hoc):
-#       CONTINUAR = 0
-#       PIVOTAR   = 75 (EX_TEMPFAIL: spec/toolchain insuficiente -- revisar)
-#       ABANDONAR = 70 (EX_SOFTWARE: output exige edicao semantica -- P1 violado)
-#     Todos DISTINTOS de 1 (bug/teste real falhando) e de 78 (EX_CONFIG: toolchain ausente, acima);
-#     pre-fixados aqui para o implementador futuro NAO escolher ad-hoc e reintroduzir falso-verde.
-#  5. Gravar governance/build-time/codegen-validation-evidence.cue com o gate atingido.
-#  P1: qualquer edicao semantica do gerado dispara ABANDONAR (exit 70). exit 0 SO no gate CONTINUAR.
+# (c) identidade/versao nao-registravel -> EX_CONFIG.
+TOOLCHAIN_VERSION="$("${TOOLCHAIN_BIN}" version 2>/dev/null || true)"
+if [[ -z "${TOOLCHAIN_VERSION}" ]]; then
+	echo "toolchain nao reporta identidade/versao ('${TOOLCHAIN_BIN} version' vazio/falhou) -- evidencia nao-registravel (codegen-contract 2b). exit ${EX_CONFIG}." >&2
+	exit "${EX_CONFIG}"
+fi
+if [[ "${TOOLCHAIN_VERSION}" == *"-dirty"* ]]; then
+	if [[ "${MESH_CODEGEN_ALLOW_DIRTY:-}" == "1" ]]; then
+		echo "WARNING: toolchain '-dirty' (versao '${TOOLCHAIN_VERSION}') aceita por MESH_CODEGEN_ALLOW_DIRTY=1 -- dev local APENAS; identidade nao-rastreavel; NUNCA usar em CI." >&2
+	else
+		echo "toolchain construida de working tree sujo (versao '${TOOLCHAIN_VERSION}') -- identidade nao-rastreavel na evidencia (codegen-contract 2b); rebuild de commit limpo. exit ${EX_CONFIG}." >&2
+		exit "${EX_CONFIG}"
+	fi
+fi
+echo "toolchain: mesh-codegen ${TOOLCHAIN_VERSION} (${TOOLCHAIN_BIN})"
+
+# Checkout do mesh-runtime (workspace hand-authored do pipeline): SEMPRE
+# explicito via MESH_RUNTIME_DIR -- o layout interno do mesh-runtime e decisao
+# runtime-local (adr-148), nao contrato deste harness; nada e derivado dele.
+RUNTIME_DIR="${MESH_RUNTIME_DIR:-}"
+if [[ -z "${RUNTIME_DIR}" || ! -x "${RUNTIME_DIR}/gradlew" ]]; then
+	echo "MESH_RUNTIME_DIR ausente ou invalido ('${RUNTIME_DIR:-}': gradlew nao encontrado) -- aponte o checkout do mesh-runtime. exit ${EX_CONFIG}." >&2
+	exit "${EX_CONFIG}"
+fi
+
+# Scratch: fora desta arvore (a toolchain rejeita scratch dentro dela).
+# Default efemero; MESH_CODEGEN_SCRATCH como override para debugging.
+SCRATCH_DIR="${MESH_CODEGEN_SCRATCH:-$(mktemp -d /tmp/mesh-codegen-scratch.XXXXXX)}"
+
+[[ -f "${GOLDEN_EXAMPLE}" ]] || {
+	echo "golden-example ausente: ${GOLDEN_EXAMPLE}. exit ${EX_CONFIG}." >&2
+	exit "${EX_CONFIG}"
+}
+
+# Delegacao: os 5 passos + exit-map vivem na toolchain (mesh-codegen pipeline).
+rc=0
+"${TOOLCHAIN_BIN}" pipeline \
+	--spec "$(pwd)" \
+	--runtime "${RUNTIME_DIR}" \
+	--scratch "${SCRATCH_DIR}" || rc=$?
+
+echo "harness: exit ${rc} (0 CONTINUAR · 75 PIVOTAR · 70 ABANDONAR · 78 config · 1 bug)."
+echo "evidencia de run (log, gate-only): ${SCRATCH_DIR}/evidence/codegen-validation-evidence.cue"
+echo "promocao ao artefato canonico = processo humano gated (precedente run-001/#126)."
+exit "${rc}"
