@@ -10,20 +10,14 @@ import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 // Algorithm aplicado: admission=approved + execution=unclaimed + todas
 // as deps em estado final (task-completed) + task-spec existe.
 //
-// 20 candidato(s) prontos para claim.
+// 16 candidato(s) prontos para claim.
 
 readyQueueProjection: {
-	rebuiltAt: "2026-05-28T20:57:52Z"
+	rebuiltAt: "2026-06-11T17:17:34Z"
 	entries: [...build_time.#ReadyQueueEntry] & [{
 		taskId:        "WI-014"
 		version:       1
 		title:         "Alinhar domain/stakeholder-map.cue com glossário universal"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-027"
-		version:       2
-		title:         "Definir convenção OpenAPI/AsyncAPI por capability flags"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
@@ -39,11 +33,11 @@ readyQueueProjection: {
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
-		taskId:        "WI-033"
+		taskId:        "WI-043"
 		version:       1
-		title:         "Criar shared-types.cue para tipos utilitários do package artifact_schemas"
+		title:         "Criar artefatos de domínio para Financial Commitment Execution (FCE)"
 		eligibleRoles: ["spec-writer"]
-		criticality:   "high"
+		criticality:   "medium"
 	}, {
 		taskId:        "WI-045"
 		version:       1
@@ -63,21 +57,9 @@ readyQueueProjection: {
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
-		taskId:        "WI-050"
-		version:       1
-		title:         "Criar artefatos de domínio para Identity & Data Governance (IDC)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
 		taskId:        "WI-054"
 		version:       1
 		title:         "Criar artefatos de domínio para Logistics & Operational Evidence (LOG)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-055"
-		version:       1
-		title:         "Criar artefatos de domínio para Network Participant Management (NPM)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {
@@ -102,12 +84,6 @@ readyQueueProjection: {
 		taskId:        "WI-061"
 		version:       1
 		title:         "Criar artefatos de domínio para Treasury & Cash Management (TCM)"
-		eligibleRoles: ["spec-writer"]
-		criticality:   "medium"
-	}, {
-		taskId:        "WI-062"
-		version:       1
-		title:         "Criar artefatos de domínio para Banking Rails & Settlement (BKR)"
 		eligibleRoles: ["spec-writer"]
 		criticality:   "medium"
 	}, {

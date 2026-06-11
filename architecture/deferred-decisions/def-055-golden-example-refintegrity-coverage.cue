@@ -6,7 +6,22 @@ def055: artifact_schemas.#DeferredDecision & {
 	id:     "def-055"
 	title:  "Cobertura de ref-integrity do #GoldenExample: harness de codegen-validation (preferido) vs structural-check estatico"
 	date:   "2026-06-08"
-	status: "open"
+	status: "resolved"
+
+	// Resolucao (2026-06-11, founder): o exit preferido realizou-se. O trigger
+	// adjacent-need (file-exists em scripts/ci/validate-codegen.sh) disparou na
+	// materializacao do harness (WI-137, commit 6caa446) e o run-001 do
+	// golden-example (toolchain mesh-runtime; evidencia atualizada em #126,
+	// commit ba26b0e) EXERCITOU os refs do specSlice/assertionRefs ao
+	// gerar+compilar+testar (gate CONTINUAR, 17/17) — a cobertura de
+	// ref-integrity prevista pelo deferimento foi realizada pela mecanica mais
+	// forte, tornando o check estatico redundante como antecipado.
+	triggeredAt: "2026-06-09"
+	triggeredCondition: """
+		scripts/ci/validate-codegen.sh criado por WI-137 (commit 6caa446) — condicao
+		machine-evaluable do trigger adjacent-need (file-exists).
+		"""
+	resolvedBy: "governance/build-time/codegen-validation-evidence.cue"
 
 	description: """
 		adr-145 governa #GoldenExample como ArtifactType (declaracao-pura). Fica deferida a cobertura de
