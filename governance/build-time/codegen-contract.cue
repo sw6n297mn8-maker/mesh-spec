@@ -33,7 +33,7 @@ codegenContract: {
 	// golden-example (WI-137) resolve a hipotese; default proposed.
 	status: *"proposed" | "accepted" | "deprecated"
 
-	authorizedBy: ["adr-140", "adr-141", "adr-146"] // proveniencia; sem ADR proprio (instanciacao)
+	authorizedBy: ["adr-140", "adr-141", "adr-146", "adr-148"] // proveniencia; sem ADR proprio (instanciacao); adr-148 autoriza a secao (2b) toolchain
 
 	// (2) INPUTS -- consumidos read-only; localizacao canonica de cada um.
 	inputs: {
@@ -60,6 +60,16 @@ codegenContract: {
 		committedHere: false          // P1 estrito: gerado NUNCA committado no mesh-spec
 		goldenExample: "WI-137 gera para scratch/build ignorado; so evidencia + harness versionados"
 	}
+
+	// (2b) TOOLCHAIN -- morada e distribuicao (adr-148). A implementacao e a
+	// distribuicao da toolchain de geracao pertencem ao mesh-runtime. O
+	// mesh-runtime deve disponibiliza-la como executavel versionado e
+	// reproduzivel. No ambiente de validacao do mesh-spec,
+	// MESH_CODEGEN_TOOLCHAIN localiza esse executavel; o harness deve falhar
+	// deterministicamente quando a variavel estiver ausente, nao resolver para
+	// um executavel, ou quando a identidade/versao da ferramenta nao puder ser
+	// registrada na evidencia. A localizacao do source da ferramenta nao faz
+	// parte do contrato de invocacao. Ver adr-148.
 
 	// (3) CONVERGENCIA DE TESTES -- Tier-1 + assertion num unico mecanismo (adr-141 6).
 	testDerivation: {
