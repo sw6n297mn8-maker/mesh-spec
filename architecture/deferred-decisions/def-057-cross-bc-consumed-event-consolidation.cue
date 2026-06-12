@@ -7,6 +7,8 @@ def057: artifact_schemas.#DeferredDecision & {
 	title:  "Mecanismo de consolidacao de eventos consumidos cross-BC (espelhos em schemas de consumidor)"
 	date:   "2026-06-12"
 	status: "triggered" // trigger (1) file-exists contexts/rew/schemas/events.cue DISPAROU na Etapa 2 da fatia REW (PR #139, runner provado); resolucao na Etapa 3 (decisao founder)
+	triggeredAt:        "2026-06-12"
+	triggeredCondition: "adjacent-need.file-exists: contexts/rew/schemas/events.cue exists (runner evaluate-deferred-triggers, Etapa 2 da fatia REW, PR #139)"
 
 	description: """
 		A fatia FCE do WI-140 declarou em contexts/fce/schemas/events.cue o PRIMEIRO espelho cross-BC de um
