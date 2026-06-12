@@ -23,10 +23,10 @@ package dlv
 //
 // CANON: as operations do EventLogPort usam a grafia JA CANONICA do runtime
 // (platform/canon, mesh-runtime docs/decisions.md rtd-004 -- resolvida pos
-// pm-cmt). As operations do EvidencePort sao CANON-PENDING: o canon do
-// EvidencePort ainda nao foi materializado; grafia a confirmar quando o
-// pacote-runtime da fatia-2 o criar (precedente: pm-cmt CANON-PENDING ->
-// rtd-004). grep "CANON-PENDING" lista os nomes a reconciliar.
+// pm-cmt). As operations do EvidencePort usam a grafia CANONICA confirmada:
+// o canon do EvidencePort nasceu no pacote-runtime da fatia-2 (mesh-runtime
+// platform/canon/EvidenceCanon.kt, rtd-012) com os nomes deste manifest
+// adotados VERBATIM (precedente: pm-cmt -> rtd-004).
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
@@ -53,14 +53,14 @@ portManifest: artifact_schemas.#PortManifest & {
 	}, {
 		port: "EvidencePort"
 		name: "retrieve"
-		inputs: ["EvidenceAddress"] // CANON-PENDING: EvidenceAddress -- grafia a confirmar contra canon mesh-runtime
-		output:                     "EvidenceContent" // CANON-PENDING: EvidenceContent -- grafia a confirmar contra canon mesh-runtime
+		inputs: ["EvidenceAddress"] // CANON: EvidenceAddress -- grafia canonica rtd-012 (mesh-runtime)
+		output:                     "EvidenceContent" // CANON: EvidenceContent -- grafia canonica rtd-012 (mesh-runtime)
 		rationale:                  "Deep semantic check BD9 (evaluation-time, Layer 1 deep): recuperar o conteudo custodiado content-addressed para inspecao semantica alem da proof sintatica. OPCIONAL Phase 0 com fail-safe fallback (domain-model cmd-evaluate-verification); a superficie e declarada porque o uso e real quando ativado."
 	}, {
 		port: "EvidencePort"
 		name: "verify"
-		inputs: ["EvidenceAddress", "IntegrityProof"] // CANON-PENDING: EvidenceAddress/IntegrityProof -- grafia a confirmar contra canon mesh-runtime
-		output:                                       "VerificationReceipt" // CANON-PENDING: VerificationReceipt -- grafia a confirmar contra canon mesh-runtime
+		inputs: ["EvidenceAddress", "IntegrityProof"] // CANON: EvidenceAddress/IntegrityProof -- grafia canonica rtd-012 (mesh-runtime)
+		output:                                       "VerificationReceipt" // CANON: VerificationReceipt -- grafia canonica rtd-012 (mesh-runtime)
 		rationale:                                    "Verificacao de custodia content-addressed: o conteudo no address confere com a proof DSSE-anchored (vo-integrity-proof-ref) e a custodia emite receipt (adr-141 item 6: content-addressability + receipt). Complementa -- nao substitui -- a validacao local de ingestao (BD11): integridade != verdade (BD9 defense in depth)."
 	}]
 
@@ -98,5 +98,5 @@ portManifest: artifact_schemas.#PortManifest & {
 
 	referenceAdapterRequired: true // explicito: nos do caminho N5(a); legibilidade > default implicito (precedente pm-cmt).
 
-	rationale: "DLV consome EventLogPort (uso-forte: persistencia OCC + replay do agg-verification -- vo-event-log-offset e a fonte canonica de ordering do BC) e EvidencePort (deep semantic check BD9, evaluation-time, OPCIONAL Phase 0 com fail-safe fallback -- ressalva explicita; a ingestao BD11 e local-first e nao atravessa Port). Segunda instancia de #PortManifest (precedente pm-cmt) e no spec-side da fatia-2 do WI-140: o EvidencePort e o segundo Port real do caminho N5(a) da condicao de migracao do adr-141 -- exercitado por contract-tests Tier-1/2 contra reference adapter in-memory no mesh-runtime (pacote-runtime separado, ordem spec->runtime). Operations do EventLogPort em grafia ja canonica (rtd-004); operations do EvidencePort CANON-PENDING ate o canon do Port nascer no runtime. Ativa sc-pmc-01/02/03 e sc-mri-01 para o segundo BC. Nenhum campo modela conformance interface<->manifest (def-050, c-puro)."
+	rationale: "DLV consome EventLogPort (uso-forte: persistencia OCC + replay do agg-verification -- vo-event-log-offset e a fonte canonica de ordering do BC) e EvidencePort (deep semantic check BD9, evaluation-time, OPCIONAL Phase 0 com fail-safe fallback -- ressalva explicita; a ingestao BD11 e local-first e nao atravessa Port). Segunda instancia de #PortManifest (precedente pm-cmt) e no spec-side da fatia-2 do WI-140: o EvidencePort e o segundo Port real do caminho N5(a) da condicao de migracao do adr-141 -- exercitado por contract-tests Tier-1/2 contra reference adapter in-memory no mesh-runtime (pacote-runtime separado, ordem spec->runtime). Operations do EventLogPort em grafia ja canonica (rtd-004); operations do EvidencePort em grafia canonica confirmada (rtd-012, canon nascido no pacote-runtime da fatia-2). Ativa sc-pmc-01/02/03 e sc-mri-01 para o segundo BC. Nenhum campo modela conformance interface<->manifest (def-050, c-puro)."
 }

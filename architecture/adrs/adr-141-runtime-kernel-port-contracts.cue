@@ -15,7 +15,7 @@ adr141: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	context: """
 		Segundo keystone da stack spec-side (W005/W006), na sequência adr-138 (runtime bootstrap) -> adr-139 (filtro spec x runtime, keystone-first) -> adr-140 (CUE como SoT, codegen, ContractGate). adr-140 fixou COMO a spec gera artefatos; falta definir A FRONTEIRA que o codigo gerado cruza para alcancar o runtime.
