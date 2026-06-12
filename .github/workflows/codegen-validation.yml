@@ -1,0 +1,69 @@
+# codegen-validation.yml — pipeline P1 spec->runtime no CI do mesh-spec.
+#
+# Roda o harness canonico scripts/ci/validate-codegen.sh (adr-148 item 3):
+# checkout do mesh-runtime (workspace hand-authored + toolchain), build da
+# toolchain de commit limpo, delega os 5 passos ao `mesh-codegen pipeline`.
+# O exit-map do harness e o veredito do job: 0 CONTINUAR (verde) · 75 PIVOTAR
+# · 70 ABANDONAR · 78 config · 1 bug — qualquer nao-zero = job vermelho; o
+# significado fica no log. Exit codes INFORMAM; o desfecho por causa-raiz e
+# decisao do founder (adr-148).
+#
+# Triggers: PRs tocando inputs do codegen (contexts, artifact-schemas,
+# shared-schemas) ou o proprio harness; push na main (deteccao de drift
+# pos-merge); workflow_dispatch (disparo manual com avaliacao fresca de vars).
+#
+# Exige: secret MESH_RUNTIME_TOKEN (PAT read-only para sw6n297mn8-maker/
+# mesh-runtime) + var MESH_RUNTIME_CHECKOUT_ENABLED=true. Sem a var o job e
+# SKIPPED explicito — nunca falso-verde, nunca falha por setup ausente
+# (espelho exato do regenerate-check do mesh-runtime).
+#
+# Actions pinadas por SHA (supply chain; mesmos pins do ci.yml do mesh-runtime,
+# rtd-011 de la).
+name: codegen-validation
+
+on:
+  pull_request:
+    paths:
+      - "contexts/**"
+      - "architecture/artifact-schemas/**"
+      - "architecture/shared-schemas/**"
+      - "scripts/ci/validate-codegen.sh"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: codegen-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  codegen-validation:
+    runs-on: ubuntu-latest
+    if: ${{ vars.MESH_RUNTIME_CHECKOUT_ENABLED == 'true' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: sw6n297mn8-maker/mesh-runtime
+          token: ${{ secrets.MESH_RUNTIME_TOKEN }}
+          path: mesh-runtime
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: mesh-runtime/tools/codegen/go.sum
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - name: Build toolchain from clean checkout
+        run: mesh-runtime/scripts/build-toolchain.sh
+      - name: Run P1 validation pipeline
+        env:
+          MESH_CODEGEN_TOOLCHAIN: ${{ github.workspace }}/mesh-runtime/tools/codegen/bin/mesh-codegen
+          MESH_RUNTIME_DIR: ${{ github.workspace }}/mesh-runtime
+        run: bash scripts/ci/validate-codegen.sh
