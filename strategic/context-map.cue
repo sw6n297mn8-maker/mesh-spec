@@ -489,7 +489,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			description:       "REW publica score e elegibilidade via published language; SCF consome para decisão de antecipação."
 			rationale:         "Decisão de crédito depende de risco. Published language porque score é ontologia formal consumida por múltiplos contexts."
 			communication: {type: "hybrid"}
-			events: ["RiskScoreEmitted", "EligibilityEmitted"]
+			events: ["RiskEvaluationEmitted"]
 			queries: ["QueryRiskScore", "QueryEligibility"]
 		},
 		{
@@ -501,9 +501,9 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			downstreamPattern: "anti-corruption-layer"
 			publishedLanguage: "Risk score and eligibility model"
 			description:       "REW publica score e elegibilidade (event-driven) e expõe queries síncronas; FCE consome como PrePaymentGuard — cache via eventos + validação crítica real-time via query."
-			rationale:         "Pagamento condicional depende de decisão de risco. Invariante: dinheiro não move sem avaliação de risco. Reconciliado com o canvas REW (autoridade): EligibilityEmitted/RiskScoreEmitted substituem o candidato CreditEligibilityDecided; communication async→hybrid + queries QueryEligibility/QueryRiskScore adicionadas (REW expõe ambas nomeando FCE/PrePaymentGuard) (adr-126)."
+			rationale:         "Pagamento condicional depende de decisão de risco. Invariante: dinheiro não move sem avaliação de risco. Reconciliado com o canvas REW (autoridade): EligibilityEmitted/RiskScoreEmitted substituem o candidato CreditEligibilityDecided; communication async→hybrid + queries QueryEligibility/QueryRiskScore adicionadas (REW expõe ambas nomeando FCE/PrePaymentGuard) (adr-126). Unificação posterior: RiskEvaluationEmitted substitui o par EligibilityEmitted/RiskScoreEmitted (decisão atômica score + eligibility + confidence — emenda do canvas REW, commit 245c056 / PR #139)."
 			communication: {type: "hybrid"}
-			events: ["EligibilityEmitted", "RiskScoreEmitted"]
+			events: ["RiskEvaluationEmitted"]
 			queries: ["QueryEligibility", "QueryRiskScore"]
 			feedbackLoop: {
 				exists:                true
