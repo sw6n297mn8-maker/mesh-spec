@@ -35,4 +35,12 @@ streams: "WI-140": events: [{
 	timestamp:      "2026-06-11T19:09:28Z"
 	actor:          "spec-writer"
 	claimExpiresAt: "2026-06-12T03:09:28Z"
+}, {
+	eventType:      "task-claimed"
+	taskId:         "WI-140"
+	taskVersion:    1
+	commandId:      "WI-140-claim-fatia-fce"
+	timestamp:      "2026-06-12T17:12:00Z"
+	actor:          "spec-writer"
+	claimExpiresAt: "2026-06-13T01:12:00Z"
 }]
