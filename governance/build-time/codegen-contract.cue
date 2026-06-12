@@ -4,7 +4,8 @@ package build_time
 //
 // STATUS: V1 ACCEPTED (adr-140 promovido 2026-06-11 -- golden-example resolveu
 // a hipotese P1/codegen com gate CONTINUAR; ver codegen-validation-evidence).
-// adr-141 segue proposed com condicao propria (ver nota no adr-141).
+// adr-141 ACCEPTED (2026-06-12 -- condicao N5(a): >=2 Ports exercitados por
+// contract-tests reais, EventLog + Evidence; ver N5 no adr-141).
 //
 // AUTORIZADO POR: adr-140 (pipeline de codegen; ContractGate; #Assertion
 // first-order) + adr-141 (5 Ports, PortResult, manifests, aggregate skeleton)

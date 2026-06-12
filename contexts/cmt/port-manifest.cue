@@ -13,10 +13,10 @@ package cmt
 // do adapter vive no mesh-runtime (codegen-contract committedHere:false; adr-141
 // item 6). Nenhum codigo de adapter neste arquivo.
 //
-// CANON-PENDING: os nomes de value-class das operations (StreamId, EventBatch,
-// ExpectedVersion, AppendResult, EventStream, FromVersion) sao provisorios -- o
-// canon do mesh-runtime ainda nao foi materializado. Grafia a confirmar; grep
-// "CANON-PENDING" lista todos os nomes a reconciliar quando o canon existir.
+// CANON: os nomes de value-class das operations (StreamId, EventBatch,
+// ExpectedVersion, AppendResult, EventStream, FromVersion) usam a grafia
+// CANONICA do runtime -- o canon nasceu em mesh-runtime platform/canon com os
+// nomes deste manifest adotados VERBATIM (docs/decisions.md rtd-004).
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
@@ -30,15 +30,15 @@ portManifest: artifact_schemas.#PortManifest & {
 	operations: [{
 		port: "EventLogPort"
 		name: "append"
-		inputs: ["StreamId", "EventBatch", "ExpectedVersion"] // CANON-PENDING: StreamId/EventBatch/ExpectedVersion -- grafia a confirmar contra canon mesh-runtime
-		output:                                               "AppendResult" // CANON-PENDING: AppendResult -- grafia a confirmar contra canon mesh-runtime
-		rationale:                                            "CMT appenda CommitmentProposed + CommitmentAccepted (aceite bilateral) ao event log com optimistic concurrency (ExpectedVersion). Value-class names CANON-PENDING."
+		inputs: ["StreamId", "EventBatch", "ExpectedVersion"] // CANON: StreamId/EventBatch/ExpectedVersion -- grafia canonica rtd-004 (mesh-runtime)
+		output:                                               "AppendResult" // CANON: AppendResult -- grafia canonica rtd-004 (mesh-runtime)
+		rationale:                                            "CMT appenda CommitmentProposed + CommitmentAccepted (aceite bilateral) ao event log com optimistic concurrency (ExpectedVersion). Value-class names em grafia canonica rtd-004."
 	}, {
 		port: "EventLogPort"
 		name: "readStream"
-		inputs: ["StreamId", "FromVersion"] // CANON-PENDING: StreamId/FromVersion -- grafia a confirmar contra canon mesh-runtime
-		output:                             "EventStream" // CANON-PENDING: EventStream -- grafia a confirmar contra canon mesh-runtime
-		rationale:                          "CMT le o stream para (a) verificar a evidencia bilateral necessaria para appendar CommitmentAccepted -- sc-cmt-01 declara runtimeGap exigindo query ao event log + event log auditor; (b) obter a versao corrente para o ExpectedVersion do append (OCC read-then-write); (c) detectar aceite preexistente (idempotencia P6 no-op). Value-class names CANON-PENDING."
+		inputs: ["StreamId", "FromVersion"] // CANON: StreamId/FromVersion -- grafia canonica rtd-004 (mesh-runtime)
+		output:                             "EventStream" // CANON: EventStream -- grafia canonica rtd-004 (mesh-runtime)
+		rationale:                          "CMT le o stream para (a) verificar a evidencia bilateral necessaria para appendar CommitmentAccepted -- sc-cmt-01 declara runtimeGap exigindo query ao event log + event log auditor; (b) obter a versao corrente para o ExpectedVersion do append (OCC read-then-write); (c) detectar aceite preexistente (idempotencia P6 no-op). Value-class names em grafia canonica rtd-004."
 	}]
 
 	adaptersForGoldenExample: [{
@@ -61,5 +61,5 @@ portManifest: artifact_schemas.#PortManifest & {
 
 	referenceAdapterRequired: true // explicito: golden-example e o template do fan-out; legibilidade > default implicito.
 
-	rationale: "EventLogPort (P7) modelado como PortManifest (adr-141 item 4: PortManifest = SoT exclusiva da superficie de Port). portsConsumed e [EventLogPort] porque a fatia modela exclusivamente o gate deterministico de aceite bilateral sobre o event log (adr-138 core-first); os demais Ports estao fora desta fatia. No minimo CMT-PortManifest do golden-example bilateral (WI-135; aresta WI-137<-WI-135 preservada, real-options). adapter-stub spec-side e DECLARACAO (codigo em mesh-runtime; codegen-contract committedHere:false). Value-class names das operations CANON-PENDING (grafia a confirmar contra canon mesh-runtime). Ativa 4 structural-checks verde: sc-pmc-01/02/03 (todo .port=EventLogPort em portsConsumed) + sc-mri-01 (boundedContextRef cmt em context-map)."
+	rationale: "EventLogPort (P7) modelado como PortManifest (adr-141 item 4: PortManifest = SoT exclusiva da superficie de Port). portsConsumed e [EventLogPort] porque a fatia modela exclusivamente o gate deterministico de aceite bilateral sobre o event log (adr-138 core-first); os demais Ports estao fora desta fatia. No minimo CMT-PortManifest do golden-example bilateral (WI-135; aresta WI-137<-WI-135 preservada, real-options). adapter-stub spec-side e DECLARACAO (codigo em mesh-runtime; codegen-contract committedHere:false). Value-class names das operations em grafia canonica confirmada (rtd-004, canon nascido no bootstrap do mesh-runtime). Ativa 4 structural-checks verde: sc-pmc-01/02/03 (todo .port=EventLogPort em portsConsumed) + sc-mri-01 (boundedContextRef cmt em context-map)."
 }
