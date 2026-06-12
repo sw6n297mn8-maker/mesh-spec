@@ -6,10 +6,10 @@ jobs:
   cue-validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Install CUE
-        uses: cue-lang/setup-cue@v1.0.0
+        uses: cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1 # v1.0.1 — node20 — sem release node24 disponivel; risco aceito ate set/2026, substituicao por download direto do binario
         with:
           version: v0.16.0
 
