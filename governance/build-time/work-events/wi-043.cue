@@ -16,6 +16,14 @@ streams: {
 			commandId:   "WI-043-approve-bc-bootstrap"
 			timestamp:   "2026-04-06T18:01:00Z"
 			actor:       "founder"
+		}, {
+			eventType:      "task-claimed"
+			taskId:         "WI-043"
+			taskVersion:    1
+			commandId:      "WI-043-claim-fatia-guard-path"
+			timestamp:      "2026-06-12T16:45:00Z"
+			actor:          "spec-writer"
+			claimExpiresAt: "2026-06-13T00:45:00Z"
 		}]
 	}
 }
