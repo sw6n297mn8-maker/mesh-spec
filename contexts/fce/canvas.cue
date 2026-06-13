@@ -262,14 +262,14 @@ canvas: artifact_schemas.#Canvas & {
 		}, {
 			type:          "event-consumer"
 			sourceContext: "rew"
-			event:         "EligibilityEmitted"
+			event:         "RiskEvaluationEmitted"
 			reaction: """
-				Atualiza cache de elegibilidade do PrePaymentGuard
-				(event-driven); RiskScoreEmitted também consumido para cache de
-				score. Validação crítica no momento do gate usa sync query
-				(QueryEligibility).
+				Projeta a faceta eligibility (decision) para o cache do
+				PrePaymentGuard (condição (b), event-driven). Validação
+				crítica no momento do gate usa sync query (QueryEligibility).
+				Score/confidence/context do fato NÃO consumidos aqui.
 				"""
-			description: "Reconciliado: context-map dizia CreditEligibilityDecided; REW publica EligibilityEmitted/RiskScoreEmitted (rew:332,338)."
+			description: "FCE consome a faceta eligibility de RiskEvaluationEmitted (fato atômico unificado do REW; contrato-de-consumo #EligibilityConsumption, def-057 opção d). Reconciliação do forward-ref: o canvas REW Phase 1 nomeava EligibilityEmitted/RiskScoreEmitted separados (rew amendment, ed19316)."
 		}, {
 			type:          "event-consumer"
 			sourceContext: "scf"

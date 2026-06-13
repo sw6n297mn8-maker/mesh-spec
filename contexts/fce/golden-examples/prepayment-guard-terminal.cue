@@ -33,9 +33,10 @@ package fce
 //   3. INV (real)    — evt-invoice-issued (bd-issuance-requires-
 //                      verification, contexts/inv/canvas.cue:382; o FCE
 //                      consome via espelho-7, def-057).
-//   4. REW (FIXTURE) — evt-eligibility-emitted decision=eligible
-//                      (fixture-contract de contexts/fce/schemas/
-//                      events.cue, forward-ref oq-fce-4).
+//   4. REW           — faceta eligibility (decision=eligible) de
+//                      evt-risk-evaluation-emitted, consumida via
+//                      contrato-de-consumo #EligibilityConsumption
+//                      (contexts/fce/schemas/events.cue, def-057 d).
 //   5. FCE (alvo)    — cmd-materialize-payment → PrePaymentGuard compõe
 //                      (a) fatura ✓ (b) elegibilidade ✓ (c) EvidencePort.
 //                      verify() → receipt valid=true ✓ →
@@ -222,7 +223,7 @@ moneyMovesOnlyOnProofAssertion: shared_schemas.#Assertion & {
 	variables: [
 		{name: "state", source: "aggregate-state", filter: "Payment.state"},
 		{name: "invoiceEvidence", source: "event-log", filter: "evt-invoice-issued (INV, espelho-7) para o commitmentRef do Payment"},
-		{name: "eligibilityDecision", source: "event-log", filter: "evt-eligibility-emitted.decision (fixture REW) para o entityRef do pagador do commitmentRef"},
+		{name: "eligibilityDecision", source: "event-log", filter: "evt-risk-evaluation-emitted.eligibility.decision (faceta consumida via #EligibilityConsumption) para o entityRef do pagador do commitmentRef"},
 		{name: "verifyReceiptValid", source: "contract", filter: "VerificationReceipt.valid retornado por EvidencePort.verify(address, proof) para a cadeia de evidência que lastreia o invoiceEvidence (rtd-012: receipt determinístico e re-verificável)"},
 	]
 	predicate: {
