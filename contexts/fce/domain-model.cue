@@ -30,7 +30,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //      eligibility é consumida via contrato-de-consumo #EligibilityConsumption
 //      (faceta de RiskEvaluationEmitted, def-057 opção d) — não há entry de
 //      evento REW aqui (projeção, não espelho). BKR ainda fixture
-//      (#SettlementFinalized, forward-ref oq-fce-4 até BKR materializar).
+//      (#SettlementFinalized, forward-ref adr-149 até BKR materializar).
 //
 // Ajuste estrutural sobre a proposta aprovada (exigência do schema
 // #StateTransition: toda transição requer triggeredByCommand +
@@ -98,7 +98,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			FIXTURE-CONTRACT (BKR sem schemas materializados): shape
 			mínimo derivado do canvas (inbound bkr SettlementFinalized,
 			fce canvas l.223 / bkr:482), restrito ao que o settle consome.
-			Forward-ref oq-fce-4: reconciliar quando BKR materializar.
+			Forward-ref adr-149: aplicar o contrato-de-consumo quando BKR materializar.
 			"""
 		fields: [{
 			kind: "primitive"
@@ -443,9 +443,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 		constraints: ["decision ∈ {eligible, conditionally-eligible, ineligible}"]
 		rationale: """
-			FIXTURE-CONTRACT shape mínimo (canvas REW rew:321); congela
-			apenas o que o guard consome — forward-ref oq-fce-4 para
-			reconciliação quando REW materializar schemas.
+			Faceta eligibility consumida do fato unificado do REW
+			(RiskEvaluationEmitted) via contrato-de-consumo
+			#EligibilityConsumption (def-057 opção d, adr-149); REW
+			materializou na Etapa 2 — projeção-de-parte, não fixture.
 			"""
 	}]
 

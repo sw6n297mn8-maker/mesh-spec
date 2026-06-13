@@ -6,7 +6,8 @@ def059: artifact_schemas.#DeferredDecision & {
 	id:     "def-059"
 	title:  "Remover #EligibilityEmitted phantom + 2 entries de catalogo + unificar enum apos runtime migrar para #EligibilityConsumption"
 	date:   "2026-06-13"
-	status: "open"
+	status:     "resolved" // fantasma #EligibilityEmitted + enum hifenizado removidos na Etapa 3 Section B (commit 346ab6d); passo 2 runtime migrado (mesh-runtime 79e65ab) reconhecido pelo founder
+	resolvedBy: "architecture/adrs/adr-149-consumption-contract-cross-bc.cue"
 
 	description: """
 		A Etapa 3 da fatia REW reconcilia o consumo de eligibility do FCE: o fixture #EligibilityEmitted (evento

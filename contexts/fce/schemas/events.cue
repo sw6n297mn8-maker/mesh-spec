@@ -28,8 +28,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 //   RiskEvaluationEmitted (produtor REW; def-057 opção d). Projeção do
 //   subconjunto que o guard lê — não é evento (o REW emite o fato unificado).
 // • #SettlementFinalized: FIXTURE-CONTRACT (BKR sem schemas) — shape mínimo
-//   do que o settle consome (bkr:482). Forward-ref oq-fce-4: reconciliar
-//   quando BKR materializar.
+//   do que o settle consome (bkr:482). Forward-ref adr-149: aplicar o
+//   contrato-de-consumo quando BKR materializar SettlementFinalized.
 
 // ── Aliases para shared_schemas ──
 //
@@ -106,7 +106,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 }
 
 // evt-settlement-finalized — FIXTURE-CONTRACT (BKR sem schemas; shape
-// mínimo do que o settle consome; forward-ref oq-fce-4).
+// mínimo do que o settle consome; forward-ref adr-149: contrato-de-consumo
+// quando BKR materializar).
 #SettlementFinalized: #Envelope & {
 	type: "mesh.bkr.settlement-finalized.v1"
 	data: {
