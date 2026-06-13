@@ -25,12 +25,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //      11 do Payment (canvas bd-payment-canonical-state: "o
 //      detalhamento granular das 11 invariantes vive no domain-model").
 //      As demais entram com os fluxos que protegem.
-// (FIXTURES) REW e BKR não possuem schemas materializados; os eventos
-//      consumidos deles são FIXTURE-CONTRACTS de shape mínimo (apenas
-//      os campos que o guard/settle consomem), com forward-ref
-//      oq-fce-4 — reconciliar quando REW/BKR materializarem schemas.
-//      INV é REAL: evt-invoice-issued espelha #InvoiceIssued
-//      (contexts/inv/schemas/events.cue:126).
+// (CONSUMO) INV é REAL: evt-invoice-issued espelha #InvoiceIssued
+//      (contexts/inv/schemas/events.cue:126). REW materializou: a
+//      eligibility é consumida via contrato-de-consumo #EligibilityConsumption
+//      (faceta de RiskEvaluationEmitted, def-057 opção d) — não há entry de
+//      evento REW aqui (projeção, não espelho). BKR ainda fixture
+//      (#SettlementFinalized, forward-ref adr-149 até BKR materializar).
 //
 // Ajuste estrutural sobre a proposta aprovada (exigência do schema
 // #StateTransition: toda transição requer triggeredByCommand +
@@ -86,36 +86,6 @@ domainModel: artifact_schemas.#DomainModel & {
 			type: "string"
 		}]
 	}, {
-		code:        "evt-eligibility-emitted"
-		name:        "EligibilityEmitted"
-		visibility:  "internal"
-		sourceContext: "rew"
-		description: """
-			Decisão de elegibilidade emitida pelo REW; alimenta o cache
-			event-driven do PrePaymentGuard (condição (b) do gate).
-			"""
-		rationale: """
-			FIXTURE-CONTRACT (REW sem schemas materializados): shape
-			mínimo derivado do canvas REW (QueryEligibility returnType,
-			rew:321 — decision ∈ {eligible, conditionally-eligible,
-			ineligible} + policyVersion + entityRef), restrito aos campos
-			que o guard consome. Forward-ref oq-fce-4: reconciliar quando
-			REW materializar schemas/events.cue.
-			"""
-		fields: [{
-			kind: "primitive"
-			name: "entityRef"
-			type: "string"
-		}, {
-			kind: "primitive"
-			name: "decision"
-			type: "string"
-		}, {
-			kind: "primitive"
-			name: "policyVersion"
-			type: "string"
-		}]
-	}, {
 		code:        "evt-settlement-finalized"
 		name:        "SettlementFinalized"
 		visibility:  "internal"
@@ -128,7 +98,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			FIXTURE-CONTRACT (BKR sem schemas materializados): shape
 			mínimo derivado do canvas (inbound bkr SettlementFinalized,
 			fce canvas l.223 / bkr:482), restrito ao que o settle consome.
-			Forward-ref oq-fce-4: reconciliar quando BKR materializar.
+			Forward-ref adr-149: aplicar o contrato-de-consumo quando BKR materializar.
 			"""
 		fields: [{
 			kind: "primitive"
@@ -214,36 +184,6 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "primitive"
 			name: "settledAt"
 			type: "datetime"
-		}]
-	}, {
-		code:        "evt-risk-score-emitted"
-		name:        "RiskScoreEmitted"
-		visibility:  "internal"
-		sourceContext: "rew"
-		description: """
-			Score de risco recomputado pelo REW; alimenta o cache de score
-			do PrePaymentGuard (complementar a EligibilityEmitted).
-			"""
-		rationale: """
-			FIXTURE-CONTRACT de CATÁLOGO (REW sem schemas): declarado para
-			integridade da aresta rew→fce do context-map (sc-cm-06 exige o
-			evento quando o FCE possui domain-model); o guard desta fatia
-			usa elegibilidade — o consumo de score entra com a validação
-			contextual. Shape mínimo per canvas REW (rew:316). Forward-ref
-			oq-fce-4.
-			"""
-		fields: [{
-			kind: "primitive"
-			name: "entityRef"
-			type: "string"
-		}, {
-			kind: "primitive"
-			name: "score"
-			type: "decimal"
-		}, {
-			kind: "primitive"
-			name: "scoreVersion"
-			type: "string"
 		}]
 	}, {
 		code:        "evt-payment-obligation-defaulted"
@@ -503,9 +443,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 		constraints: ["decision ∈ {eligible, conditionally-eligible, ineligible}"]
 		rationale: """
-			FIXTURE-CONTRACT shape mínimo (canvas REW rew:321); congela
-			apenas o que o guard consome — forward-ref oq-fce-4 para
-			reconciliação quando REW materializar schemas.
+			Faceta eligibility consumida do fato unificado do REW
+			(RiskEvaluationEmitted) via contrato-de-consumo
+			#EligibilityConsumption (def-057 opção d, adr-149); REW
+			materializou na Etapa 2 — projeção-de-parte, não fixture.
 			"""
 	}]
 
@@ -621,9 +562,11 @@ domainModel: artifact_schemas.#DomainModel & {
 	rationale: """
 		Fatia do domain-model do FCE recortada no caminho do
 		PrePaymentGuard (claim parcial WI-043; precedente WI-140),
-		derivada integralmente do canvas: 6 events (3 consumidos — INV
-		real, REW/BKR fixtures mínimos com forward-ref oq-fce-4; 2
-		internos; 1 publicado), 4 commands, 5 invariantes (subconjunto
+		derivada integralmente do canvas: 6 events (1 consumido — INV
+		real espelho; 1 fixture BKR — SettlementFinalized; 2 internos;
+		1 publicado — PaymentSettled; 1 catálogo — PaymentObligationDefaulted;
+		eligibility consumida via contrato-de-consumo #EligibilityConsumption,
+		fora do events[]), 4 commands, 5 invariantes (subconjunto
 		declarado das 11), 4 VOs e o agg-payment com lifecycle de 4
 		estados. Gaps T1/T2 declarados no header; expansão (estados de
 		falha, retenção, realização orçamentária, default) segue nos

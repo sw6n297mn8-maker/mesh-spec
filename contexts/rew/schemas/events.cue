@@ -26,12 +26,13 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // upstream. Opacidade é por construção, não por disciplina.
 //
 // GRAFIA DO ENUM DE ELIGIBILITY: underscore (conditionally_eligible),
-// VERBATIM do Phase 3 (vo-eligibility-decision). Diverge DELIBERADAMENTE
-// da fixture hifenizada do FCE (#EligibilityDecisionKind em
-// contexts/fce/schemas/events.cue — forward-ref oq-fce-4): este arquivo
-// materializa o CONTRATO REAL do produtor; a reconciliação da fixture é
-// a Etapa 3 da fatia (oq-fce-4 + def-057 — este arquivo é o trigger
-// file-exists do def-057, disparo esperado e declarado).
+// VERBATIM do Phase 3 (vo-eligibility-decision). Esta é a grafia canônica:
+// o FCE consome a faceta eligibility deste fato via contrato-de-consumo
+// #EligibilityConsumption (enum underscore inline), reconciliado na Etapa 3
+// da fatia (def-057 resolvido por adr-149; a fixture #EligibilityEmitted e o
+// enum hifenizado #EligibilityDecisionKind do FCE foram removidos). Este
+// arquivo materializa o CONTRATO REAL do produtor; foi o trigger file-exists
+// do def-057 (disparo registrado na Etapa 2).
 //
 // ENVELOPE: eventId/eventTimestamp do domain-model vivem no #Envelope
 // (id/time); correlationId/causationId NÃO entram em data (disciplina

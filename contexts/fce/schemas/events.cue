@@ -25,13 +25,11 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 //   domain-model). 1ª instância de espelho cross-BC: mecanismo de
 //   consolidação é def-057 (deferred-decision deste pacote).
 // • #EligibilityConsumption: CONTRATO-DE-CONSUMO da faceta eligibility de
-//   RiskEvaluationEmitted (REW materializou; def-057 opção d). NOVO no passo 1
-//   da migração aditiva da Etapa 3 — coexiste com #EligibilityEmitted
-//   DEPRECATED (def-059) até o passo 3 remover o fantasma.
-// • #EligibilityEmitted: DEPRECATED (def-059) — ver nota no tipo.
+//   RiskEvaluationEmitted (produtor REW; def-057 opção d). Projeção do
+//   subconjunto que o guard lê — não é evento (o REW emite o fato unificado).
 // • #SettlementFinalized: FIXTURE-CONTRACT (BKR sem schemas) — shape mínimo
-//   do que o settle consome (bkr:482). Forward-ref oq-fce-4: reconciliar
-//   quando BKR materializar.
+//   do que o settle consome (bkr:482). Forward-ref adr-149: aplicar o
+//   contrato-de-consumo quando BKR materializar SettlementFinalized.
 
 // ── Aliases para shared_schemas ──
 //
@@ -63,11 +61,6 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // exceção).
 #PaymentState: "guarded" | "authorized" | "dispatched" | "settled"
 
-// Decisão de elegibilidade (grafia HÍFEN) do #EligibilityEmitted DEPRECATED
-// (def-059) — some no passo 3 da migração aditiva com o fantasma. O
-// #EligibilityConsumption real usa underscore (conditionally_eligible) inline.
-#EligibilityDecisionKind: "eligible" | "conditionally-eligible" | "ineligible"
-
 // Prova de Autorização (glossário term-prova-de-autorizacao; as-fce-3):
 // artefato verificável que acompanha toda PaymentInstruction.
 #AuthorizationProof: {
@@ -96,32 +89,15 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	}
 }
 
-// evt-eligibility-emitted — DEPRECATED (def-059): FIXTURE-CONTRACT de um
-// evento que o REW NÃO emite. MANTIDO TEMPORARIAMENTE para os módulos hand do
-// runtime (PaymentSlice.kt, CompositionFixtures.kt) compilarem durante a
-// migração aditiva em 3 passos (Etapa 3 da fatia REW): passo 1 adiciona
-// #EligibilityConsumption; passo 2 migra o hand do runtime; passo 3 remove
-// este fantasma + as 2 entries de catálogo + unifica o enum. NÃO adicionar
-// novos consumidores — usar #EligibilityConsumption.
-#EligibilityEmitted: #Envelope & {
-	type: "mesh.rew.eligibility-emitted.v1"
-	data: {
-		entityRef:     string & !=""
-		decision:      #EligibilityDecisionKind
-		policyVersion: string & !=""
-	}
-}
-
-// CONTRATO-DE-CONSUMO (def-057 opção d) — NÃO é evento: o REW NÃO emite
-// mesh.rew.eligibility-emitted.v1. FCE consome a faceta ELIGIBILITY de
-// RiskEvaluationEmitted (produtor REW, contexts/rew/schemas/events.cue —
-// mesh.rew.risk-evaluation-emitted.v1). Projeção do subconjunto que o
-// PrePaymentGuard condição (b) lê; score/confidence/context NÃO consumidos
-// (sem re-declarar o fato inteiro). _consumesEvent/_projectsFacets são hidden
-// fields (gerador ignora — campos _-prefixed). decision usa grafia UNDERSCORE
-// (igual ao produtor) inline — NÃO o #EligibilityDecisionKind hifenizado do
-// fantasma (que some no passo 3); inline evita colisão de nome que quebraria
-// o hand durante a coexistência.
+// CONTRATO-DE-CONSUMO (def-057 opção d, adr-149) — NÃO é evento: o REW NÃO
+// emite mesh.rew.eligibility-emitted.v1. FCE consome as facetas ELIGIBILITY
+// + CONTEXT de RiskEvaluationEmitted (produtor REW, contexts/rew/schemas/
+// events.cue — mesh.rew.risk-evaluation-emitted.v1): decision ← eligibility
+// (#EligibilityDecision); entityRef + policyVersion ← context
+// (#ApplicableContext). Projeção do subconjunto que o PrePaymentGuard condição
+// (b) lê; score/confidence NÃO consumidos (sem re-declarar o fato inteiro).
+// _consumesEvent/_projectsFacets são hidden fields (gerador ignora — campos
+// _-prefixed). decision usa grafia UNDERSCORE (igual ao produtor) inline.
 #EligibilityConsumption: {
 	_consumesEvent:  "mesh.rew.risk-evaluation-emitted.v1"
 	_projectsFacets: ["eligibility", "context"]
@@ -131,7 +107,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 }
 
 // evt-settlement-finalized — FIXTURE-CONTRACT (BKR sem schemas; shape
-// mínimo do que o settle consome; forward-ref oq-fce-4).
+// mínimo do que o settle consome; forward-ref adr-149: contrato-de-consumo
+// quando BKR materializar).
 #SettlementFinalized: #Envelope & {
 	type: "mesh.bkr.settlement-finalized.v1"
 	data: {
