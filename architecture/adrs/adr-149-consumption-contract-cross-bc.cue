@@ -25,10 +25,11 @@ adr149: artifact_schemas.#ADR & {
 		Trigger (n=2): a Etapa 2 da fatia REW materializou RiskEvaluationEmitted
 		(contexts/rew/schemas/events.cue). O FCE carregava a fixture
 		#EligibilityEmitted — um EVENTO que o REW nunca emite. A reconciliação
-		(Etapa 3) revelou que a eligibility é a FACETA eligibility de
-		RiskEvaluationEmitted, não um evento autônomo: o PrePaymentGuard lê um
-		SUBCONJUNTO do fato unificado do REW. Com o espelho InvoiceIssued
-		(projeção-do-todo) e a eligibility (projeção-de-parte), há duas
+		(Etapa 3) revelou que o que o FCE consome é um SUBCONJUNTO de facetas de
+		RiskEvaluationEmitted (eligibility + context), não um evento autônomo: o
+		PrePaymentGuard lê parte do fato unificado do REW. Com o espelho
+		InvoiceIssued (projeção-do-todo) e o #EligibilityConsumption
+		(projeção-de-parte), há duas
 		instâncias concretas (n=2) — a disciplina de promoção por evidência
 		(precedente def-022/def-025, que só consolidaram no 2º consumidor real)
 		autoriza decidir o mecanismo agora.
@@ -39,8 +40,8 @@ adr149: artifact_schemas.#ADR & {
 		    produtor) + suporte do gerador a refs cross-contexto. REJEITADA:
 		    acopla o build do consumidor ao package do produtor, exige resolução
 		    cross-contexto no gerador (custo material no mesh-runtime), e não
-		    expressa consumo PARCIAL — importar o tipo inteiro não diz que só a
-		    faceta eligibility é lida.
+		    expressa consumo PARCIAL — importar o tipo inteiro não diz que só as
+		    facetas eligibility + context são lidas.
 
 		(b) Promover o evento a architecture/shared-schemas/ por par
 		    produtor-consumidor (precedente def-022/def-025). REJEITADA:
@@ -73,8 +74,9 @@ adr149: artifact_schemas.#ADR & {
 		(2) RECONHECER duas expressões do MESMO mecanismo: (a) projeção-do-todo
 		(espelho — o consumidor projeta o fato inteiro, incluindo envelope;
 		ex.: #InvoiceIssued no FCE) e (b) projeção-de-parte (subset — o
-		consumidor projeta uma faceta sem envelope; ex.: #EligibilityConsumption
-		no FCE, a faceta eligibility de RiskEvaluationEmitted).
+		consumidor projeta um subconjunto de facetas sem envelope; ex.:
+		#EligibilityConsumption no FCE, as facetas [eligibility, context] de
+		RiskEvaluationEmitted).
 
 		(3) SUBORDINAR o ownership do fato ao produtor (per adr-104/sc-cm-06): o
 		contrato-de-consumo declara dependência projetada, NÃO transfere
@@ -82,7 +84,7 @@ adr149: artifact_schemas.#ADR & {
 		(P0: ponteiro, não cópia) — o produtor permanece a autoridade do fato.
 
 		(4) ESCOPAR a afirmação ao que n=2 prova (projeção-do-todo InvoiceIssued
-		+ projeção-de-parte eligibility). Aplicabilidade universal a todo
+		+ projeção-de-parte #EligibilityConsumption). Aplicabilidade universal a todo
 		consumo cross-BC é INTENT declarada, NÃO afirmação provada; a revisita é
 		em n=3 (o próximo fato consumido cross-BC — ex.: a materialização do
 		#SettlementFinalized do BKR), per falsificationCondition.
@@ -98,8 +100,8 @@ adr149: artifact_schemas.#ADR & {
 		força declarar consumo-de-faceta de um fato REAL do produtor
 		(_consumesEvent aponta o type canônico existente).
 		(P2) Expressa consumo PARCIAL nativamente (_projectsFacets) — o que o
-		espelho-verbatim (opção c) não alcança: o guard lê só a faceta
-		eligibility sem copiar RiskEvaluationEmitted inteiro.
+		espelho-verbatim (opção c) não alcança: o guard lê só as facetas
+		eligibility + context sem copiar RiskEvaluationEmitted inteiro.
 		(P3) Preserva o ownership do produtor (adr-104) sem acoplar o build do
 		consumidor ao package do produtor — evita o custo da opção (a) no
 		gerador (sem resolução cross-contexto).

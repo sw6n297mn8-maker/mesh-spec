@@ -89,14 +89,15 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	}
 }
 
-// CONTRATO-DE-CONSUMO (def-057 opção d) — NÃO é evento: o REW NÃO emite
-// mesh.rew.eligibility-emitted.v1. FCE consome a faceta ELIGIBILITY de
-// RiskEvaluationEmitted (produtor REW, contexts/rew/schemas/events.cue —
-// mesh.rew.risk-evaluation-emitted.v1). Projeção do subconjunto que o
-// PrePaymentGuard condição (b) lê; score/confidence/context NÃO consumidos
-// (sem re-declarar o fato inteiro). _consumesEvent/_projectsFacets são hidden
-// fields (gerador ignora — campos _-prefixed). decision usa grafia UNDERSCORE
-// (igual ao produtor) inline.
+// CONTRATO-DE-CONSUMO (def-057 opção d, adr-149) — NÃO é evento: o REW NÃO
+// emite mesh.rew.eligibility-emitted.v1. FCE consome as facetas ELIGIBILITY
+// + CONTEXT de RiskEvaluationEmitted (produtor REW, contexts/rew/schemas/
+// events.cue — mesh.rew.risk-evaluation-emitted.v1): decision ← eligibility
+// (#EligibilityDecision); entityRef + policyVersion ← context
+// (#ApplicableContext). Projeção do subconjunto que o PrePaymentGuard condição
+// (b) lê; score/confidence NÃO consumidos (sem re-declarar o fato inteiro).
+// _consumesEvent/_projectsFacets são hidden fields (gerador ignora — campos
+// _-prefixed). decision usa grafia UNDERSCORE (igual ao produtor) inline.
 #EligibilityConsumption: {
 	_consumesEvent:  "mesh.rew.risk-evaluation-emitted.v1"
 	_projectsFacets: ["eligibility", "context"]
