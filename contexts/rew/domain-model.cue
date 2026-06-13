@@ -60,14 +60,14 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //     - payload é opaco para REW logic — discriminated union por
 //       signalType determina parsing autorizado
 //
-// CANVAS ↔ DOMAIN-MODEL ALIGNMENT DEBT (known divergence):
+// CANVAS ↔ DOMAIN-MODEL ALIGNMENT DEBT — PAGO (2026-06-12):
 // Canvas Phase 1 declarou 4 published events (RiskScoreEmitted,
 // EligibilityEmitted, RiskAlertOpened, RiskAlertResolved). Phase 3
 // design evolved: score + eligibility + confidence formam DECISÃO
 // ATÔMICA via evt-risk-evaluation-emitted (single fact). Canvas
-// alignment update requires separate commit (não bloqueia Part 1 —
-// runner tq-dm-11 emitirá warning até alignment). Tracked como
-// implicit work for canvas amendment commit pos Part 2.
+// alignment update materializado no commit separado 245c056
+// (PR #139, fatia REW Etapa 1): canvas publica RiskEvaluationEmitted
+// + RiskAlertRaised/RiskAlertResolved — debt pago; tq-dm-11 sem objeto.
 //
 // O QUE NÃO VIVE AQUI:
 // - SoT affinity (Event Log, Ledger) → Architecture Communication Canvas
@@ -161,7 +161,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		{
 			code:        "evt-risk-evaluation-emitted"
 			name:        "RiskEvaluationEmitted"
-			description: "Evaluation publicada cross-BC para consumers (CMT, FCE, SCF). evaluationId IDENTITY anchor; eventId varia per re-emission (network retry), evaluationId NÃO. Consumer dedupe via evaluationId. Alinhamento com canvas RiskScoreEmitted + EligibilityEmitted: Phase 3 design evolved para evaluation atômica unificando score + eligibility + confidence em fact único; canvas alignment debt tracked para commit posterior."
+			description: "Evaluation publicada cross-BC para consumers (CMT, FCE, SCF). evaluationId IDENTITY anchor; eventId varia per re-emission (network retry), evaluationId NÃO. Consumer dedupe via evaluationId. Alinhamento com canvas: Phase 3 design evolved para evaluation atômica unificando score + eligibility + confidence em fact único (ex-RiskScoreEmitted + EligibilityEmitted); canvas alinhado em 245c056 (PR #139)."
 			rationale:   "Public contract event. Founder insight: 'evento pode duplicar; decisão não pode' — evaluationId stable identity garante consumers nunca contam decision 2× por retry de emission. errorClassEliminated: 'consumer treating retried emission as new evaluation'."
 			visibility:  "published"
 			fields: [

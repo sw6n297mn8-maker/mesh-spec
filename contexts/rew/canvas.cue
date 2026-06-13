@@ -208,10 +208,11 @@ rewCanvas: artifact_schemas.#Canvas & {
 				Risk alert publication + lifecycle: emissão de alertas
 				estruturados quando estado de risco muda (e.g., thresholds
 				cruzados, signals divergentes). Lifecycle: open →
-				acknowledged → resolved (com resolutionReason). Consumers
-				(CMT, SCF, FCE) consomem para sinalizar/limpar entidades
-				sob risco. Alerts NÃO são fire-and-forget — lifecycle
-				gerenciado com persistent state.
+				acknowledged → resolved (com resolutionReason). Consumer
+				(CMT) consome para sinalizar/limpar entidades sob risco —
+				SCF/FCE consomem decisões (eligibility), não alerts
+				(decisão ≠ execução; ver outbound). Alerts NÃO são
+				fire-and-forget — lifecycle gerenciado com persistent state.
 				"""
 			rationale: """
 				Per rew-to-cmt context-map relation: 'REW publica alertas de
@@ -312,38 +313,32 @@ rewCanvas: artifact_schemas.#Canvas & {
 		}, {
 			type:        "query-surface"
 			query:       "QueryRiskScore"
-			returnType:  "RiskScore (numérico + confidenceInterval + signalTrace + scoreVersion + computedAt)"
-			description: "Sync query consumida por CMT/SCF/FCE para confirmação ou validação contextual. Disciplina sync surface: NÃO é única fonte de verdade — consumers operam com state cacheado (event-driven via RiskScoreEmitted) e usam sync apenas para validation crítica (e.g., FCE PrePaymentGuard real-time)."
+			returnType:  "RiskScore (evaluationId + numérico + confidenceInterval + signalTrace + modelVersion + computedAt)"
+			description: "Sync query consumida por CMT/SCF/FCE para confirmação ou validação contextual. Retorna a faceta score da RiskEvaluation ATIVA (read-rule determinística per inv-rew-active-evaluation-rule); evaluationId correlaciona o resultado sync ao fato atômico cacheado. Disciplina sync surface: NÃO é única fonte de verdade — consumers operam com state cacheado (event-driven via RiskEvaluationEmitted) e usam sync apenas para validation crítica (e.g., FCE PrePaymentGuard real-time)."
 		}, {
 			type:        "query-surface"
 			query:       "QueryEligibility"
-			returnType:  "EligibilityDecision (eligible | conditionally-eligible | ineligible) + reasoningTrace + policyVersion + applicableContext (entityRef + productCode + evaluationTime)"
-			description: "Eligibility é função CONTEXTUAL: entity X é elegível para produto Y sob política V no tempo T. Query carrega contexto como input — não retorna eligibility estática. Consumed primarily by SCF (anticipation eligibility) e FCE (PrePaymentGuard)."
+			returnType:  "EligibilityDecision (eligible | conditionally-eligible | ineligible) + evaluationId + reasoningTrace + policyVersion + applicableContext (entityRef + productCode + decisionContextTime)"
+			description: "Eligibility é função CONTEXTUAL: entity X é elegível para produto Y sob política V no tempo T. Query carrega contexto como input — não retorna eligibility estática. Consumed primarily by SCF (anticipation eligibility) e FCE (PrePaymentGuard). Faceta da MESMA RiskEvaluation atômica que carrega o score; evaluationId correlaciona as duas leituras."
 		}, {
 			type:        "query-surface"
 			query:       "QueryAlertState"
-			returnType:  "AlertState (open | acknowledged | resolved) + alerts[] (cada com kind, severity, openedAt, lastUpdatedAt)"
-			description: "CMT consome para visibility de entidades sob risco antes de aceitar novos compromissos."
+			returnType:  "AlertState (open | acknowledged | resolved) + alerts[] (cada com alertCategory, severity, evaluationId (binding imutável à evaluation de origem), raisedAt, lastUpdatedAt)"
+			description: "CMT consome para visibility de entidades sob risco antes de aceitar novos compromissos. Alerts carregam evaluationId per inv-rew-alert-evaluation-binding-immutability — alert nunca migra para evaluation nova."
 		}]
 
 		outbound: [{
 			type:        "event-publisher"
-			trigger:     "Score recomputado e diferença vs score anterior > emissionThreshold (políticaConfigurada) OR primeira emissão para entity."
-			event:       "RiskScoreEmitted"
+			trigger:     "Evaluation emitida: score recomputado com diferença vs anterior > emissionThreshold (política configurada) OR primeira emissão para entity OR decisão proativa após policy change."
+			event:       "RiskEvaluationEmitted"
 			consumers:   ["cmt", "scf", "fce"]
-			description: "Per rew-to-cmt + rew-to-scf + rew-to-fce: published language 'Risk score and eligibility model'. Threshold de emissão evita event flood — consumers recebem mudanças significativas, não micro-flutuações."
-		}, {
-			type:        "event-publisher"
-			trigger:     "Decisão de eligibility emitida (reativo a query OR proativo após policy change OR após score crossing threshold)."
-			event:       "EligibilityEmitted"
-			consumers:   ["scf", "fce", "cmt"]
-			description: "Eligibility distinta de score (capability separada): score é contínuo, eligibility é discrete decision com reasoningTrace. Consumers usam para gate decisions (SCF antecipa? FCE paga? CMT aceita commitment?)."
+			description: "Per rew-to-cmt + rew-to-scf + rew-to-fce: published language 'Risk score and eligibility model'. DECISÃO ATÔMICA: score + eligibility + confidence + applicableContext num fato único — score nunca viaja sem confidence; eligibility nunca viaja sem o score que a fundamenta. evaluationId é identity anchor para dedupe do consumer ('evento pode duplicar; decisão não pode'). Threshold de emissão evita event flood — consumers recebem mudanças significativas, não micro-flutuações. Consumers usam para gate decisions (SCF antecipa? FCE paga? CMT aceita commitment?)."
 		}, {
 			type:        "event-publisher"
 			trigger:     "Threshold crítico cruzado OR padrão adversarial detectado OR sinais externos (sanctions, soberano) impactam entity portfolio."
-			event:       "RiskAlertOpened"
+			event:       "RiskAlertRaised"
 			consumers:   ["cmt"]
-			description: "Per rew-to-cmt: 'CMT consome para sinalizar e limpar sinalização de compromissos existentes com contraparte sob risco'. Alert lifecycle: open → acknowledged → resolved (RiskAlertResolved event). Não enviado a FCE — FCE consome decisões (eligibility), não sinais (alerts); separação preserva decisão ≠ execução."
+			description: "Per rew-to-cmt: 'CMT consome para sinalizar e limpar sinalização de compromissos existentes com contraparte sob risco'. Lifecycle de EVENTOS: RiskAlertRaised → RiskAlertAcknowledged → RiskAlertResolved (estados do alert: open → acknowledged → resolved). Dedupe key (evaluationId, alertCategory) per inv-rew-alert-dedupe. Não enviado a FCE — FCE consome decisões (eligibility), não sinais (alerts); separação preserva decisão ≠ execução."
 		}, {
 			type:        "event-publisher"
 			trigger:     "Operator resolveu alerta via ResolveRiskAlert command."
@@ -369,7 +364,8 @@ rewCanvas: artifact_schemas.#Canvas & {
 			operacional → financeiro: consome 4 streams de sinais
 			operacionais (NPM lifecycle, DLV evidence, NIM value, FCE
 			payment behavior) + 2 sync queries upstream (NPM, NIM) para
-			normalization; publica 4 streams de decisões financeiras +
+			normalization; publica 1 fato de decisão atômica
+			(RiskEvaluationEmitted) + 2 streams de lifecycle de alerta +
 			3 query surfaces sync para gate/validation em consumers.
 
 			Padrão upstream-downstream + open-host-service-published-language
@@ -381,7 +377,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 			Sync surface discipline: QueryRiskScore + QueryEligibility +
 			QueryAlertState são sync para confirmação/fallback, NÃO base
 			operacional. Consumers DEVEM operar com state cacheado
-			(event-driven via RiskScoreEmitted/EligibilityEmitted) e usar
+			(event-driven via RiskEvaluationEmitted) e usar
 			sync apenas para validation crítica (e.g., FCE PrePaymentGuard
 			real-time). Hard dependency cross-BC NÃO é design intent.
 
@@ -435,7 +431,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 			"""
 		consequences: """
 			Schema de EligibilityDecision DEVE carregar: entityRef +
-			productCode + policyVersion + evaluationTime + reasoningTrace.
+			productCode + policyVersion + decisionContextTime + reasoningTrace.
 			Query API exige todos esses fields como input. Caching de
 			eligibility é per-context — invalidação on policy change.
 			Consumers (SCF/FCE/CMT) NUNCA tratam eligibility como atributo
@@ -453,8 +449,8 @@ rewCanvas: artifact_schemas.#Canvas & {
 			granular + auditável por decisão individual).
 			"""
 		consequences: """
-			Aumenta payload size de events (RiskScoreEmitted/Eligibility
-			Emitted/RiskAlertOpened); compensação operacional via storage
+			Aumenta payload size de events (RiskEvaluationEmitted/
+			RiskAlertRaised); compensação operacional via storage
 			policy. Decisão tem 'identidade temporal' — re-execução do
 			mesmo input sob mesma versão produz mesma output (paralelo a
 			bd-deterministic-scoring). Versioning é first-class; nunca
@@ -504,7 +500,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 			'comportamento degradado' + FCE 'atrasos sustentados'): REW
 			NÃO resolve o conflito semanticamente (não escolhe qual signal
 			é 'verdadeiro' — violaria boundary das interpretações de
-			origem). REW: (1) reduz confidence; (2) emite RiskAlertOpened
+			origem). REW: (1) reduz confidence; (2) emite RiskAlertRaised
 			com kind='inconsistent-signals' para CMT; (3) mantém TODOS
 			os signals em reasoningTrace para audit + handoff humano.
 			Resolução do conflito pertence ao BC de origem (founder R5+++
@@ -516,7 +512,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 		decision: "Risk alerts têm lifecycle explícito (open → acknowledged → resolved) com persistent state. NÃO são fire-and-forget events. Cada transição é evento com resolutionReason + reasoningTrace."
 		rationale: """
 			Alertas sem lifecycle viram noise — consumers (CMT) recebem
-			RiskAlertOpened, sinalizam entity, mas nunca limpam sinalização
+			RiskAlertRaised, sinalizam entity, mas nunca limpam sinalização
 			porque não há resolution event. Resultado: estado degraded
 			permanente. Lifecycle gerenciado garante que sinalização
 			downstream pode ser cleaned up via RiskAlertResolved +
@@ -529,7 +525,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 			(ResolveRiskAlert) modificam estado + emitem evento. Re-emissão
 			de alert para mesma condition é idempotent (não cria alert
 			duplicado se condition já open). Audit trail captura full
-			lifecycle: opened-at, acknowledged-at, resolved-at,
+			lifecycle: raised-at, acknowledged-at, resolved-at,
 			resolutionReason, reasoningTrace. Métrica vm-rew-alert-
 			lifecycle-integrity testa lifecycle correctness diretamente
 			(NÃO via downstream consumption proxy).
@@ -924,11 +920,11 @@ rewCanvas: artifact_schemas.#Canvas & {
 				rationale:   "Scoring é função pura de inputs verificados; execução autônoma é precondition de cc-02 (scoring operacional) + escala. Versionamento + snapshot per-decision (bd-policy-and-model-version-snapshot) preservam auditability sob automação."
 			}, {
 				id:          "ad-rew-eligibility-evaluation"
-				description: "Avaliação de eligibility contextual (entity, product, policyVersion, evaluationTime) contra políticas vigentes. Output: eligible | conditionally-eligible | ineligible + reasoningTrace + applicableContext."
+				description: "Avaliação de eligibility contextual (entity, product, policyVersion, decisionContextTime) contra políticas vigentes. Output: eligible | conditionally-eligible | ineligible + reasoningTrace + applicableContext."
 				rationale:   "Eligibility é função determinística de score + policy + context (bd-contextual-eligibility-not-static). Execução autônoma sob política approved — operator NÃO override individual decision; calibração via policy version, NÃO ajuste pontual (preserva P10)."
 			}, {
 				id:          "ad-rew-alert-emission"
-				description: "Emissão de RiskAlertOpened quando conditions definidas em policy ativam (threshold crossed, signal inconsistency detected, anomaly pattern matched). Lifecycle managed: open → published para CMT."
+				description: "Emissão de RiskAlertRaised quando conditions definidas em policy ativam (threshold crossed, signal inconsistency detected, anomaly pattern matched). Lifecycle managed: open → published para CMT."
 				rationale:   "Alert emission é reativa a conditions deterministicamente avaliáveis. Policy define quando alert dispara; agente NÃO interpreta — aplica regra. Emission autônoma porque consumer (CMT) precisa receber em latência baixa para sinalizar entities downstream."
 			}, {
 				id:          "ad-rew-signal-ingestion-normalization"
@@ -961,12 +957,12 @@ rewCanvas: artifact_schemas.#Canvas & {
 			escalationCriteria: [{
 				id:        "esc-rew-conflicting-signals"
 				condition: "Signals cross-BC contradictory (NPM 'ativo' + DLV 'comportamento degradado' + FCE 'atrasos sustentados' simultaneously) — per bd-signal-as-interpretation-not-raw-data, REW NÃO resolve conflito semanticamente."
-				action:    "Emit RiskAlertOpened com kind='inconsistent-signals' para CMT; reduce confidence in affected scoring; mantém TODOS signals em reasoningTrace; escalate para founder review (resolução de conflito pertence aos BCs de origem)."
+				action:    "Emit RiskAlertRaised com kind='inconsistent-signals' para CMT; reduce confidence in affected scoring; mantém TODOS signals em reasoningTrace; escalate para founder review (resolução de conflito pertence aos BCs de origem)."
 				rationale: "Severity: medium. Resolver conflito autonomamente quebraria boundary das interpretations de origem. Founder review garante handoff humano para BC owners reverem signal validity."
 			}, {
 				id:        "esc-rew-threshold-breach-critical"
 				condition: "Score crossing critical threshold (e.g., entity score < minimum-eligibility-floor declared in policy) OR realization-gap individual emissor > 15% (HARD trigger from Layer 1 mechanisms via INV signal)."
-				action:    "Emit RiskAlertOpened com kind='critical-threshold-breach'; immediate eligibility recomputation para entity; CMT consumes alert + sinaliza commitments; founder review se sustained > 1 evaluation."
+				action:    "Emit RiskAlertRaised com kind='critical-threshold-breach'; immediate eligibility recomputation para entity; CMT consumes alert + sinaliza commitments; founder review se sustained > 1 evaluation."
 				rationale: "Severity: high. Critical thresholds são hard gates (não suaves). Single breach é signal estrutural — alert + recompute imediato preserva consistency cross-decision."
 			}, {
 				id:        "esc-rew-asset-visibility-gap"
@@ -976,7 +972,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 			}, {
 				id:        "esc-rew-cross-bc-signal-staleness"
 				condition: "Signal stream de upstream BC stale > defined threshold (e.g., NPM ParticipantStatusChanged não recebido em > 24h para entity ativa OR FCE PaymentSettled stream silent > 7 dias). Detected via heartbeat/expected-frequency monitoring."
-				action:    "Reduce confidence em scoring para affected entities; emit RiskAlertOpened com kind='upstream-signal-stale' para founder review; degraded eligibility (conditionally-eligible) até signal recovers OR founder explicit override via policy adjustment."
+				action:    "Reduce confidence em scoring para affected entities; emit RiskAlertRaised com kind='upstream-signal-stale' para founder review; degraded eligibility (conditionally-eligible) até signal recovers OR founder explicit override via policy adjustment."
 				rationale: "Severity: medium. Stale signal ≠ healthy signal (per bd-confidence-reflects-signal-coverage + founder R5++++ canonical 'missing signal ≠ neutral signal'). Honesty discipline: confidence interval reflete coverage; alert garante humano sees gap."
 			}, {
 				id: "esc-rew-unclassifiable-pattern"
@@ -992,8 +988,8 @@ rewCanvas: artifact_schemas.#Canvas & {
 				rationale: "Severity: high (entity-level) / CRITICAL (system-level → HALT_AGENT). REW NÃO improvisa interpretation para patterns não modelados (bd-signal-as-interpretation-not-raw-data + UNKNOWN EVENT SAFETY RULE). Hubris-driven autonomous decision sob unknown pattern = exatamente vetor adversarial sh-06."
 			}, {
 				id:        "esc-rew-decision-consumption-anomaly"
-				condition: "Outcome observado downstream contradiz REW published decision: FCE PaymentSettled para entity que REW deemed ineligible; SCF anticipated invoice apesar de eligibility = 'conditionally-eligible' com strict caveat; CMT accepted commitment apesar de RiskAlertOpened active. Detected via cross-source reconciliation."
-				action:    "Emit RiskAlertOpened kind='downstream-decision-anomaly'; mark consumer BC como 'inconsistent-with-rew-decisions' (visibility para founder); reduce confidence in consumer's signals (e.g., se FCE inconsistente, FCE PaymentSettled signal weight em REW scoring é degradado); founder review imediato."
+				condition: "Outcome observado downstream contradiz REW published decision: FCE PaymentSettled para entity que REW deemed ineligible; SCF anticipated invoice apesar de eligibility = 'conditionally-eligible' com strict caveat; CMT accepted commitment apesar de alert ATIVO (status open/acknowledged). Detected via cross-source reconciliation."
+				action:    "Emit RiskAlertRaised kind='downstream-decision-anomaly'; mark consumer BC como 'inconsistent-with-rew-decisions' (visibility para founder); reduce confidence in consumer's signals (e.g., se FCE inconsistente, FCE PaymentSettled signal weight em REW scoring é degradado); founder review imediato."
 				rationale: "Severity: high. Founder R5++++ canonical: 'decisão correta + execução errada = sistema falhou'. REW publishes decisions; consumers DEVEM respeitar (per bd-separation-decision-vs-execution). Quando consumer viola contract: detectar; alert; reduce trust em consumer signals (recursive trust decay); escalate."
 			}, {
 				id:        "esc-rew-agent-self-drift"
@@ -1130,6 +1126,23 @@ rewCanvas: artifact_schemas.#Canvas & {
 		impact:    "Mesmo escape válido pode virar abuse vector. Override pattern abused silently quebra bd-deterministic-scoring + bd-policy-and-model-version-snapshot. Sem meta-monitoring: erosion gradual da discipline; founder pode acidentalmente normalize override."
 		deadline:  "2026-09-01"
 		rationale: "Adversarial mode aplicado a own escape mechanism. Meta-monitoring é governance discipline. Pattern paralelo a INV WI-053 R3 cross-BC review approach."
+	}, {
+		id: "oq-rew-06"
+		question: """
+			alertCategory enum do domain-model Phase 3 (eligibility-denied |
+			signal-corruption | adversarial-pattern | policy-violation |
+			model-drift) NÃO cobre os 4 alert kinds operacionais que os
+			escalation paths deste canvas comandam: 'inconsistent-signals'
+			(esc-rew-conflicting-signals), 'critical-threshold-breach'
+			(esc-rew-threshold-breach-critical), 'upstream-signal-stale'
+			(esc-rew-cross-bc-signal-staleness), 'downstream-decision-anomaly'
+			(esc-rew-decision-consumption-anomaly). Estender o enum OU mapear
+			condition→category? Remap seria lossy: inconsistência ≠ corrupção
+			(per 'integridade ≠ veracidade').
+			"""
+		impact:    "Direção INVERSA do alignment debt (canvas mais rico que Phase 3): enquanto aberto, os 4 escalation paths comandam alerts que o contrato evt-risk-alert-raised não expressa via alertCategory — emissão real desses alerts fica bloqueada ou forçada a remap lossy. Canvas mantém kind= e os 4 valores até resolução."
+		deadline:  "2026-08-31"
+		rationale: "Gap exposto pela varredura da emenda de alignment canvas↔domain-model (2026-06-12). Resolução pertence ao contrato de evento (próximo commit do domain-model REW) — decisão de founder, não de canvas."
 	}]
 
 	verificationMetrics: [{
@@ -1143,7 +1156,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 		rationale: "Determinism é precondition de auditabilidade Bacen + replay. Falha aqui invalida toda decisão histórica."
 	}, {
 		id:     "vm-rew-policy-version-snapshot-completeness"
-		metric: "% de RiskScoreEmitted + EligibilityEmitted + RiskAlertOpened events com policyVersion E modelVersion fields populated. Mede bd-policy-and-model-version-snapshot-per-decision."
+		metric: "% de RiskEvaluationEmitted + RiskAlertRaised events com policyVersion E modelVersion fields populated. Mede bd-policy-and-model-version-snapshot-per-decision."
 		target: "100% (Bacen audit precondition; Lei 13.726 + LGPD)"
 		onBreach: {
 			escalationRef: "esc-rew-agent-self-drift"
@@ -1152,7 +1165,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 		rationale: "Snapshot per-decision é precondition de Lei 13.726 + LGPD compliance. Sem isso, evolução de policy invalida audit trail histórico (ilegal)."
 	}, {
 		id:     "vm-rew-eligibility-reasoning-trace-completeness"
-		metric: "% de EligibilityDecision com reasoningTrace non-empty + applicableContext (entityRef + productCode + policyVersion + evaluationTime) populated. Mede bd-contextual-eligibility-not-static."
+		metric: "% de EligibilityDecision com reasoningTrace non-empty + applicableContext (entityRef + productCode + policyVersion + decisionContextTime) populated. Mede bd-contextual-eligibility-not-static."
 		target: "100%"
 		onBreach: {
 			escalationRef: "esc-rew-unclassifiable-pattern"
@@ -1170,7 +1183,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 		rationale: "Honesty discipline: confidence DEVE refletir signal coverage. Falha = sistema mente sobre própria certeza."
 	}, {
 		id:     "vm-rew-decision-consumption-consistency"
-		metric: "% de outcomes downstream consistent with REW published decisions: FCE settled apenas para eligible; SCF anticipated apenas para eligible; CMT accepted commitment apenas sem RiskAlertOpened active. Mede bd-separation-decision-vs-execution."
+		metric: "% de outcomes downstream consistent with REW published decisions: FCE settled apenas para eligible; SCF anticipated apenas para eligible; CMT accepted commitment apenas sem alert ativo (status open/acknowledged). Mede bd-separation-decision-vs-execution."
 		target: "≥ 99.5% (5σ confidence threshold)"
 		onBreach: {
 			escalationRef: "esc-rew-decision-consumption-anomaly"
@@ -1188,7 +1201,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 		rationale: "Tracking de prevalence permite measure quanto REW está degraded por INV gap. Decreases com Phase B+ resolução."
 	}, {
 		id:     "vm-rew-conflicting-signal-resolution-discipline"
-		metric: "% de detected conflicting-signals events que emitem RiskAlertOpened (vs silent autonomous resolution) — REW NÃO escolhe signal 'verdadeiro'. Mede bd-signal-as-interpretation-not-raw-data."
+		metric: "% de detected conflicting-signals events que emitem RiskAlertRaised (vs silent autonomous resolution) — REW NÃO escolhe signal 'verdadeiro'. Mede bd-signal-as-interpretation-not-raw-data."
 		target: "100% (silent resolution = boundary violation)"
 		onBreach: {
 			escalationRef: "esc-rew-conflicting-signals"
@@ -1197,7 +1210,7 @@ rewCanvas: artifact_schemas.#Canvas & {
 		rationale: "Disciplina canonical: 'REW não decide qual signal é verdadeiro; decide quão confiável é decidir com signals conflitantes'. Falha = REW absorvendo responsibility de outros BCs."
 	}, {
 		id:     "vm-rew-alert-lifecycle-integrity"
-		metric: "% de alerts que seguem lifecycle válido (open → acknowledged → resolved) sem: (a) duplicação (mesmo kind+entity em janela short → idempotent suppression); (b) skipping de estado (open → resolved sem acknowledged); (c) resolução sem reasoningTrace populated; (d) reabertura sem novo trigger condition. Mede bd-alert-explicit-lifecycle-managed."
+		metric: "% de alerts que seguem lifecycle válido (open → acknowledged → resolved) sem: (a) duplicação (mesma (evaluationId, alertCategory) → idempotent, primeiro alert preservado, per inv-rew-alert-dedupe); (b) skipping de estado (open → resolved sem acknowledged); (c) resolução sem reasoningTrace populated; (d) reabertura (resolve é irreversível — recorrência gera NOVO alert). Mede bd-alert-explicit-lifecycle-managed."
 		target: "100%"
 		onBreach: {
 			escalationRef: "esc-rew-unclassifiable-pattern"
