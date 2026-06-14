@@ -16,7 +16,7 @@ adr150: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	context: """
 		Os invariantes de frontend AI-first da Mesh foram explorados e
