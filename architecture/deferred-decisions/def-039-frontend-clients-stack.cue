@@ -3,10 +3,13 @@ package deferred_decisions
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
 def039: artifact_schemas.#DeferredDecision & {
-	id:     "def-039"
-	title:  "Stack de frontend/clients (web/mobile/design system) deferida até existir contrato HTTP/API"
-	date:   "2026-06-03"
-	status: "open"
+	id:                 "def-039"
+	title:              "Stack de frontend/clients (web/mobile/design system) deferida até existir contrato HTTP/API"
+	date:               "2026-06-03"
+	status:             "resolved"
+	resolvedBy:         "architecture/adrs/adr-150-frontend-ai-first-invariants.cue"
+	triggeredAt:        "2026-06-14"
+	triggeredCondition: "file-exists satisfeita: architecture/adrs/adr-140-codegen-contracts.cue existe (contrato HTTP materializado)"
 
 	description: """
 		A W005 original tinha um ADR de frontend/clients (WI-108: web SPA/SSR/MPA; mobile
