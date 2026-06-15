@@ -447,8 +447,8 @@ glossary: artifact_schemas.#Glossary & {
 		Schema satisfação tq-gl-XX por inspeção: tq-gl-01 (codes
 		únicos: 15 terms com term-* codes distintos) ✓; tq-gl-02
 		(relatedTerms refs intra-glossário válidos) ✓; tq-gl-03
-		(domainModelRefs vazios — Phase 0 sem domain-model P2P
-		ainda; Phase 3 reconcilia) ✓; tq-gl-04 (não aplicável Phase
+		(domainModelRefs vazios — o domain-model P2P já existe;
+		backfill dos refs é trabalho futuro) ✓; tq-gl-04 (não aplicável Phase
 		0); tq-gl-05 (definitions distintas de names; sem redundância)
 		✓; tq-gl-06 (antiTerms não repetem term names) ✓; tq-gl-07
 		(boundedContextRef alinha canvas) ✓; tq-gl-08 (sem self-

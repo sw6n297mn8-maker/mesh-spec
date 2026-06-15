@@ -807,11 +807,11 @@ glossary: artifact_schemas.#Glossary & {
 
 		Event naming intentionally deferred to domain-model authoring
 		(Phase 3) to preserve distinction between operational completion
-		and canonicalized settlement finality. Domain-model emergirá
+		and canonicalized settlement finality. O domain-model.cue de BKR já existe
 		com aggregate, entity, value-object, event, command e invariant
 		building blocks com prefixos canônicos (agg-, ent-, vo-, evt-,
-		cmd-, inv-); domainModelRefs serão preenchidos incrementalmente
-		nos terms quando Phase 3 materializar building blocks.
+		cmd-, inv-); os domainModelRefs dos terms permanecem vazios —
+		o backfill dos refs é trabalho futuro.
 
 		Forward-looking: glossário cobre Phase 0 / Phase 1 conceptual
 		surface. Termos para emerging rails (Drex CBDC, Pix
