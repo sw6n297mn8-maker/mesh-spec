@@ -1,0 +1,141 @@
+##########################################################################
+# SIMULACAO 2 — caso COMPARTILHADO (Money cruzando inv/p2p/bdg/bkr)
+##########################################################################
+
+==========================================================================
+ RUN: BASELINE-DISCO (realidade: 0 refs declaradas, 0 termo de Money, #Money schema existe)
+==========================================================================
+  LEITURA A (cobertura local): 4 gritos | exigiria 4 copias de term-money (['bdg', 'bkr', 'inv', 'p2p'])
+      - ('inv', 'vo-money', 'Money')
+      - ('p2p', 'vo-money', 'Money')
+      - ('bdg', 'vo-money', 'Money')
+      - ('bkr', 'vo-settlement-value', 'SettlementValue')
+  LEITURA B [shared-aware]: B1canon=True orphans=4 dangling=0 mismatch=0 ok=0 foreign-exempt=0
+     orphans (B2):
+      - ('inv', 'vo-money', 'Money')
+      - ('p2p', 'vo-money', 'Money')
+      - ('bdg', 'vo-money', 'Money')
+      - ('bkr', 'vo-settlement-value', 'SettlementValue')
+  FILA DE REVISAO (4):
+      - ('inv', 'vo-money', 'sem-canonicalTermRef')
+      - ('p2p', 'vo-money', 'sem-canonicalTermRef')
+      - ('bdg', 'vo-money', 'sem-canonicalTermRef')
+      - ('bkr', 'vo-settlement-value', 'sem-canonicalTermRef')
+
+==========================================================================
+ RUN: BASELINE-IDEAL (Reading B preenchido; bkr=SettlementValue e divergencia real de disco)
+==========================================================================
+  LEITURA A (cobertura local): 4 gritos | exigiria 4 copias de term-money (['bdg', 'bkr', 'inv', 'p2p'])
+      - ('inv', 'vo-money', 'Money')
+      - ('p2p', 'vo-money', 'Money')
+      - ('bdg', 'vo-money', 'Money')
+      - ('bkr', 'vo-settlement-value', 'SettlementValue')
+  LEITURA B [shared-aware]: B1canon=True orphans=0 dangling=0 mismatch=1 ok=3 foreign-exempt=0
+     mismatch (B4):
+      - ('bkr', 'vo-settlement-value', 'SettlementValue', 'Money')
+  FILA DE REVISAO (1):
+      - ('bkr', 'vo-settlement-value', "coreNoun 'SettlementValue' != canonico 'Money'")
+
+==========================================================================
+ RUN: INJECAO 4d
+ INJECAO: bdg/vo-money: canonicalTermRef removido (orfao — usa Money, nao aponta canonico, sem termo local)
+==========================================================================
+  LEITURA A (cobertura local): 4 gritos | exigiria 4 copias de term-money (['bdg', 'bkr', 'inv', 'p2p'])
+      - ('inv', 'vo-money', 'Money')
+      - ('p2p', 'vo-money', 'Money')
+      - ('bdg', 'vo-money', 'Money')
+      - ('bkr', 'vo-settlement-value', 'SettlementValue')
+  LEITURA B [shared-aware]: B1canon=True orphans=1 dangling=0 mismatch=1 ok=2 foreign-exempt=0
+     orphans (B2):
+      - ('bdg', 'vo-money', 'Money')
+     mismatch (B4):
+      - ('bkr', 'vo-settlement-value', 'SettlementValue', 'Money')
+  FILA DE REVISAO (2):
+      - ('bdg', 'vo-money', 'sem-canonicalTermRef')
+      - ('bkr', 'vo-settlement-value', "coreNoun 'SettlementValue' != canonico 'Money'")
+
+==========================================================================
+ RUN: INJECAO 4e_honest
+ INJECAO: ctr/vo-retention-fee: coreNoun='RetentionFee' aponta term-money (Fee != Money, NOME divergente)
+==========================================================================
+  LEITURA A (cobertura local): 5 gritos | exigiria 5 copias de term-money (['bdg', 'bkr', 'ctr', 'inv', 'p2p'])
+      - ('inv', 'vo-money', 'Money')
+      - ('p2p', 'vo-money', 'Money')
+      - ('bdg', 'vo-money', 'Money')
+      - ('bkr', 'vo-settlement-value', 'SettlementValue')
+      - ('ctr', 'vo-retention-fee', 'RetentionFee')
+  LEITURA B [shared-aware]: B1canon=True orphans=0 dangling=0 mismatch=2 ok=3 foreign-exempt=0
+     mismatch (B4):
+      - ('bkr', 'vo-settlement-value', 'SettlementValue', 'Money')
+      - ('ctr', 'vo-retention-fee', 'RetentionFee', 'Money')
+  FILA DE REVISAO (2):
+      - ('bkr', 'vo-settlement-value', "coreNoun 'SettlementValue' != canonico 'Money'")
+      - ('ctr', 'vo-retention-fee', "coreNoun 'RetentionFee' != canonico 'Money'")
+
+==========================================================================
+ RUN: INJECAO 4e_dishonest
+ INJECAO: ctr/vo-receivable-amount: coreNoun='Money' aponta term-money MAS _trueSemantic=receivable-claim (mentira de nome identico)
+==========================================================================
+  LEITURA A (cobertura local): 5 gritos | exigiria 5 copias de term-money (['bdg', 'bkr', 'ctr', 'inv', 'p2p'])
+      - ('inv', 'vo-money', 'Money')
+      - ('p2p', 'vo-money', 'Money')
+      - ('bdg', 'vo-money', 'Money')
+      - ('bkr', 'vo-settlement-value', 'SettlementValue')
+      - ('ctr', 'vo-receivable-amount', 'Money')
+  LEITURA B [shared-aware]: B1canon=True orphans=0 dangling=0 mismatch=1 ok=4 foreign-exempt=0
+     mismatch (B4):
+      - ('bkr', 'vo-settlement-value', 'SettlementValue', 'Money')
+  FILA DE REVISAO (1):
+      - ('bkr', 'vo-settlement-value', "coreNoun 'SettlementValue' != canonico 'Money'")
+
+==========================================================================
+ RUN: INJECAO 4f (shared mascarado de estrangeiro)
+ INJECAO: p2p/vo-money: sourceContext inv (parece estrangeiro) + canonicalTermRef removido (orfao)
+==========================================================================
+  LEITURA A (cobertura local): 4 gritos | exigiria 4 copias de term-money (['bdg', 'bkr', 'inv', 'p2p'])
+      - ('inv', 'vo-money', 'Money')
+      - ('p2p', 'vo-money', 'Money')
+      - ('bdg', 'vo-money', 'Money')
+      - ('bkr', 'vo-settlement-value', 'SettlementValue')
+  LEITURA B [naive]: B1canon=True orphans=0 dangling=0 mismatch=1 ok=2 foreign-exempt=1
+     mismatch (B4):
+      - ('bkr', 'vo-settlement-value', 'SettlementValue', 'Money')
+     ISENTOS COMO ESTRANGEIRO (nao checados!):
+      - ('p2p', 'vo-money', 'inv')
+  LEITURA B [shared-aware]: B1canon=True orphans=1 dangling=0 mismatch=1 ok=2 foreign-exempt=0
+     orphans (B2):
+      - ('p2p', 'vo-money', 'Money')
+     mismatch (B4):
+      - ('bkr', 'vo-settlement-value', 'SettlementValue', 'Money')
+  FILA DE REVISAO (2):
+      - ('p2p', 'vo-money', 'sem-canonicalTermRef')
+      - ('bkr', 'vo-settlement-value', "coreNoun 'SettlementValue' != canonico 'Money'")
+
+##########################################################################
+# MATRIZ DE DETECCAO (TP=pego / FN=escapou verde / FP=grito indevido)
+##########################################################################
+
+  [TP                          ] 4d orfao-de-definicao (criterio: NAO pode escapar)
+       detector: B2-orphan
+         . B2 isolou bdg/vo-money: True
+         . Reading A tambem grita, mas para TODOS (4) — nao isola
+
+  [TP                          ] 4e nome-divergente (Fee->Money)
+       detector: B4-mismatch
+         . B4 flagou ctr/vo-retention-fee: True
+         . nome divergente vira finding -> fila de revisao
+
+  [FN-declarado                ] 4e mascara-identica (Receivable-claim diz 'Money')
+       detector: (limite honesto)
+         . gate marcou OK (passou): True
+         . oraculo _trueSemantic=receivable-claim e INVISIVEL a estrutura
+         . mitigacao = camada advisory/humano (le a definicao), nao mais estrutura
+
+  [TP(shared-aware) / FN(naive)] 4f shared-mascarado-de-estrangeiro
+       detector: shared sobrepoe foreign
+         . naive (filtro piloto-1): isentou como estrangeiro -> ESCAPOU: True
+         . shared-aware: shared sobrepoe -> orphan pego: True
+
+##########################################################################
+# VEREDITO: PASSA — 4d nao escapou; 4e-mascara e limite declarado; 4f exige shared!=foreign
+##########################################################################
