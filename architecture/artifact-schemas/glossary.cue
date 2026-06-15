@@ -71,7 +71,9 @@ package artifact_schemas
 
 	_schema: {
 		location: {
-			canonicalPathRegex: "^contexts/[a-z][a-z0-9-]*/glossary\\.cue$"
+			// adr-151 (item 4): lar canônico estendido para admitir o glossário-kernel
+			// compartilhado em architecture/shared-schemas/, além de contexts/<bc>/.
+			canonicalPathRegex: "^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\\.cue$"
 			fileNameRegex:      "^glossary\\.cue$"
 			description:        "Glossary: Ubiquitous Language canônica do bounded context."
 			rationale:          "Glossary vive na raiz do BC junto ao canvas e domain model. Agentes consultam o glossário para validar terminologia."
