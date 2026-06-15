@@ -139,7 +139,25 @@ structureIndex: {
 				"architecture/adrs/adr-130-context-map-naming-shape-reconciliation-scf.cue",
 				"architecture/adrs/adr-131-derive-scf-bounded-context.cue",
 				"architecture/adrs/adr-132-add-falsification-condition-to-adr-schema.cue",
-				"architecture/adrs/adr-133-add-flow-event-closure-kind.cue"
+				"architecture/adrs/adr-133-add-flow-event-closure-kind.cue",
+				"architecture/adrs/adr-134-agent-probe-protocol.cue",
+				"architecture/adrs/adr-135-relation-classification-schema-gated.cue",
+				"architecture/adrs/adr-136-modeling-health-dashboard.cue",
+				"architecture/adrs/adr-137-scf-fce-disbursement-channel.cue",
+				"architecture/adrs/adr-138-runtime-bootstrap-strategy.cue",
+				"architecture/adrs/adr-139-stack-reconciliation-keystone-first.cue",
+				"architecture/adrs/adr-140-codegen-contracts.cue",
+				"architecture/adrs/adr-141-runtime-kernel-port-contracts.cue",
+				"architecture/adrs/adr-142-cmt-bilateral-acceptance-contract.cue",
+				"architecture/adrs/adr-143-cmt-dispute-orchestration.cue",
+				"architecture/adrs/adr-144-manifest-artifact-governance.cue",
+				"architecture/adrs/adr-145-golden-example-artifact-governance.cue",
+				"architecture/adrs/adr-146-codegen-form-fidelity.cue",
+				"architecture/adrs/adr-147-target-language-kotlin.cue",
+				"architecture/adrs/adr-148-mesh-runtime-bootstrap-handoff.cue",
+				"architecture/adrs/adr-149-consumption-contract-cross-bc.cue",
+				"architecture/adrs/adr-150-frontend-ai-first-invariants.cue",
+				"architecture/adrs/adr-151-first-class-semantic-traceability.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -161,6 +179,17 @@ structureIndex: {
 			"schema": "#AgentGovernanceEnvelope"
 		},
 		{
+			"canonicalPathRegex": "^architecture/agent-probes/records/[a-z0-9-]+\\.cue$",
+			"files": [
+				"architecture/agent-probes/records/bdg.cue",
+				"architecture/agent-probes/records/cmt.cue",
+				"architecture/agent-probes/records/drc.cue",
+				"architecture/agent-probes/records/fce.cue",
+				"architecture/agent-probes/records/scf.cue"
+			],
+			"schema": "#AgentProbeRecord"
+		},
+		{
 			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/agents/[a-z][a-z0-9-]*\\.cue$",
 			"files": [
 				"contexts/bdg/agents/bdg-primary-agent.cue",
@@ -176,6 +205,16 @@ structureIndex: {
 				"contexts/ssc/agents/ssc-primary-agent.cue"
 			],
 			"schema": "#AgentSpec"
+		},
+		{
+			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/aggregate-manifests/am-[a-z0-9-]+\\.cue$",
+			"files": [
+				"contexts/cmt/aggregate-manifests/am-commitment.cue",
+				"contexts/dlv/aggregate-manifests/am-verification.cue",
+				"contexts/fce/aggregate-manifests/am-payment.cue",
+				"contexts/rew/aggregate-manifests/am-risk-evaluation.cue"
+			],
+			"schema": "#AggregateManifest"
 		},
 		{
 			"canonicalPathRegex": "^architecture/lenses/[a-z0-9-]+\\.cue$",
@@ -278,6 +317,7 @@ structureIndex: {
 				"ai-orchestration/agent-instructions/_meta.cue",
 				"architecture/_meta.cue",
 				"architecture/adrs/_meta.cue",
+				"architecture/agent-probes/_meta.cue",
 				"architecture/artifact-schemas/_meta.cue",
 				"architecture/artifacts/_meta.cue",
 				"architecture/artifacts/governance/_meta.cue",
@@ -333,6 +373,7 @@ structureIndex: {
 				"contexts/bkr/domain-model.cue",
 				"contexts/cmt/domain-model.cue",
 				"contexts/ctr/domain-model.cue",
+				"contexts/fce/domain-model.cue",
 				"contexts/idc/domain-model.cue",
 				"contexts/inv/domain-model.cue",
 				"contexts/npm/domain-model.cue",
@@ -343,13 +384,14 @@ structureIndex: {
 			"schema": "#DomainModel"
 		},
 		{
-			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/glossary\\.cue$",
+			"canonicalPathRegex": "^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\\.cue$",
 			"files": [
 				"contexts/bdg/glossary.cue",
 				"contexts/bkr/glossary.cue",
 				"contexts/cmt/glossary.cue",
 				"contexts/ctr/glossary.cue",
 				"contexts/dlv/glossary.cue",
+				"contexts/fce/glossary.cue",
 				"contexts/idc/glossary.cue",
 				"contexts/inv/glossary.cue",
 				"contexts/npm/glossary.cue",
@@ -360,6 +402,14 @@ structureIndex: {
 			"schema": "#Glossary"
 		},
 		{
+			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/golden-examples/[a-z0-9-]+\\.cue$",
+			"files": [
+				"contexts/cmt/golden-examples/bd-mutual-acceptance.cue",
+				"contexts/fce/golden-examples/prepayment-guard-terminal.cue"
+			],
+			"schema": "#GoldenExample"
+		},
+		{
 			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/api\\.yaml$",
 			"files": [],
 			"schema": "#OpenAPISpec"
@@ -368,6 +418,16 @@ structureIndex: {
 			"canonicalPathRegex": "^domain/policies/pol-[a-z0-9-]+\\.cue$",
 			"files": [],
 			"schema": "#PolicyRegistryEntry"
+		},
+		{
+			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/port-manifest\\.cue$",
+			"files": [
+				"contexts/cmt/port-manifest.cue",
+				"contexts/dlv/port-manifest.cue",
+				"contexts/fce/port-manifest.cue",
+				"contexts/rew/port-manifest.cue"
+			],
+			"schema": "#PortManifest"
 		},
 		{
 			"canonicalPathRegex": "^contexts/[a-z][a-z0-9-]*/service-contract\\.cue$",
@@ -428,7 +488,9 @@ structureIndex: {
 				"architecture/tension-log/ten-010-file-classification-ignores-non-cue-types.cue",
 				"architecture/tension-log/ten-011-production-guide-verbatim-inherits-upstream-constraints.cue",
 				"architecture/tension-log/ten-012-escalation-channel-sla-runtime-semantic-leak.cue",
-				"architecture/tension-log/ten-013-fce-subdomain-budget-allocation-imprecision.cue"
+				"architecture/tension-log/ten-013-fce-subdomain-budget-allocation-imprecision.cue",
+				"architecture/tension-log/ten-014-dispute-modify-terms-authoritative-override.cue",
+				"architecture/tension-log/ten-015-port-interface-handauthored-vs-p1.cue"
 			],
 			"schema": "#TensionEntry"
 		},
@@ -488,7 +550,35 @@ structureIndex: {
 				"architecture/deferred-decisions/def-031-cross-context-flow-closure-oracle.cue",
 				"architecture/deferred-decisions/def-032-adr-falsification-condition-field.cue",
 				"architecture/deferred-decisions/def-033-relation-classification-gate.cue",
-				"architecture/deferred-decisions/def-034-modeling-health-dashboard.cue"
+				"architecture/deferred-decisions/def-034-modeling-health-dashboard.cue",
+				"architecture/deferred-decisions/def-035-agent-probe-coverage-residual.cue",
+				"architecture/deferred-decisions/def-036-funding-source-regime.cue",
+				"architecture/deferred-decisions/def-037-operability-runtime-stack.cue",
+				"architecture/deferred-decisions/def-038-compute-platform-deploy-topology.cue",
+				"architecture/deferred-decisions/def-039-frontend-clients-stack.cue",
+				"architecture/deferred-decisions/def-040-http-runtime-stack.cue",
+				"architecture/deferred-decisions/def-041-eventlogport-vendor-of-record.cue",
+				"architecture/deferred-decisions/def-042-ledgerport-vendor-of-record.cue",
+				"architecture/deferred-decisions/def-043-workflowport-vendor-of-record.cue",
+				"architecture/deferred-decisions/def-044-deliveryport-vendor-of-record.cue",
+				"architecture/deferred-decisions/def-045-evidenceport-vendor-of-record.cue",
+				"architecture/deferred-decisions/def-046-ctr-availability-sla.cue",
+				"architecture/deferred-decisions/def-047-drc-dispute-resolution-canonicalization.cue",
+				"architecture/deferred-decisions/def-048-cmt-modify-terms-downstream-notification.cue",
+				"architecture/deferred-decisions/def-049-assertion-to-test-mechanism.cue",
+				"architecture/deferred-decisions/def-050-port-interface-conformance-runtime.cue",
+				"architecture/deferred-decisions/def-051-manifest-true-coverage.cue",
+				"architecture/deferred-decisions/def-052-manifest-cross-file-scoping.cue",
+				"architecture/deferred-decisions/def-053-assertion-varref-resolution.cue",
+				"architecture/deferred-decisions/def-054-assertion-grammar-arith-quant.cue",
+				"architecture/deferred-decisions/def-055-golden-example-refintegrity-coverage.cue",
+				"architecture/deferred-decisions/def-056-codegen-form-compile-probes.cue",
+				"architecture/deferred-decisions/def-057-cross-bc-consumed-event-consolidation.cue",
+				"architecture/deferred-decisions/def-058-evidenceport-signal-proof-reverification.cue",
+				"architecture/deferred-decisions/def-059-remove-eligibility-emitted-phantom.cue",
+				"architecture/deferred-decisions/def-060-frontend-client-vendor-stack.cue",
+				"architecture/deferred-decisions/def-061-capture-provenance-data-contract.cue",
+				"architecture/deferred-decisions/def-062-local-specialization-shared-primitive.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
@@ -496,6 +586,7 @@ structureIndex: {
 			"canonicalPathRegex": "^architecture/structural-checks/[a-z0-9-]+\\.cue$",
 			"files": [
 				"architecture/structural-checks/adr.cue",
+				"architecture/structural-checks/agent-probe-record.cue",
 				"architecture/structural-checks/agent-spec.cue",
 				"architecture/structural-checks/bdg-domain-model.cue",
 				"architecture/structural-checks/canvas.cue",
@@ -509,6 +600,8 @@ structureIndex: {
 				"architecture/structural-checks/domain-model-event-convention.cue",
 				"architecture/structural-checks/economic-mechanism-model.cue",
 				"architecture/structural-checks/inv-domain-model.cue",
+				"architecture/structural-checks/manifest-conformance.cue",
+				"architecture/structural-checks/manifest-ref-integrity.cue",
 				"architecture/structural-checks/meta-coverage.cue",
 				"architecture/structural-checks/p2p-domain-model.cue",
 				"architecture/structural-checks/production-guide.cue",
@@ -535,13 +628,16 @@ structureIndex: {
 				"architecture/production-guides/adr.cue",
 				"architecture/production-guides/agent-governance.cue",
 				"architecture/production-guides/agent-spec.cue",
+				"architecture/production-guides/aggregate-manifest.cue",
 				"architecture/production-guides/api-spec.cue",
 				"architecture/production-guides/asyncapi-spec.cue",
 				"architecture/production-guides/canvas.cue",
 				"architecture/production-guides/deferred-decision.cue",
 				"architecture/production-guides/domain-model.cue",
 				"architecture/production-guides/glossary.cue",
+				"architecture/production-guides/golden-example.cue",
 				"architecture/production-guides/lens.cue",
+				"architecture/production-guides/port-manifest.cue",
 				"architecture/production-guides/production-guide.cue",
 				"architecture/production-guides/structural-check.cue",
 				"architecture/production-guides/task-spec.cue",
@@ -563,6 +659,11 @@ structureIndex: {
 			"canonicalPath": "architecture/agent-governance.cue",
 			"present": true,
 			"schema": "#AgentGovernanceGlobal"
+		},
+		{
+			"canonicalPath": "architecture/agent-probes/protocol.cue",
+			"present": true,
+			"schema": "#AgentProbeProtocol"
 		},
 		{
 			"canonicalPath": "architecture/design-principles.cue",
