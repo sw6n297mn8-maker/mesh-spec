@@ -13,6 +13,7 @@ treeAscii: """
 	│   └── agent-instructions/      # Prompt-templates por tarefa recorrente (implementar agregado, expor API, gerar testes, evoluir evento).
 	├── architecture/                # Layer 3 da espec: decisões arquiteturais globais que não pertencem a nenhum BC individual.
 	│   ├── adrs/                    # ADRs globais do sistema (stack, patterns, deploy strategy, protocolos cross-context).
+	│   ├── agent-probes/            # Protocolo agent-probe (Ciclo 4) e os probe-records append-only por canvas — validação semântica advisory que dá um canvas fechado a um agente limpo e trata cada buraco como defeito de spec.
 	│   ├── artifact-schemas/        # Schemas de validação para cada tipo de artefato instanciado no repo (#Canvas, #ADR, #Lens, etc.).
 	│   ├── artifacts/               # Instâncias de artefatos operacionais cross-context (governance envelopes, lenses produzidos).
 	│   │   ├── governance/          # Instâncias de autonomy envelopes por domínio.
@@ -104,6 +105,15 @@ treeEntries: [
 		"path": "architecture/adrs",
 		"purpose": "ADRs globais do sistema (stack, patterns, deploy strategy, protocolos cross-context).",
 		"rationale": "ADR é a forma canônica de registrar decisão com contexto, alternativas consideradas e consequências — histórico imutável evita perda de justificativa."
+	},
+	{
+		"conventions": [
+			"protocol.cue — instância singleton de #AgentProbeProtocol.",
+			"records/<bc>.cue — instância de #AgentProbeRecord, 1 por canvas probado."
+		],
+		"path": "architecture/agent-probes",
+		"purpose": "Protocolo agent-probe (Ciclo 4) e os probe-records append-only por canvas — validação semântica advisory que dá um canvas fechado a um agente limpo e trata cada buraco como defeito de spec.",
+		"rationale": "Co-localiza o protocolo singleton e seus registros (records/) num lar canônico (P0), em vez de dispersá-los; o mecanismo de probe é distinto das camadas de gate (structural-checks) e de advisory por-tipo (validation-prompts)."
 	},
 	{
 		"conventions": [

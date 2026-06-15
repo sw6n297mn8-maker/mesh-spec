@@ -10,6 +10,7 @@ mesh-spec/
 │   └── agent-instructions/      # Prompt-templates por tarefa recorrente (implementar agregado, expor API, gerar testes, evoluir evento).
 ├── architecture/                # Layer 3 da espec: decisões arquiteturais globais que não pertencem a nenhum BC individual.
 │   ├── adrs/                    # ADRs globais do sistema (stack, patterns, deploy strategy, protocolos cross-context).
+│   ├── agent-probes/            # Protocolo agent-probe (Ciclo 4) e os probe-records append-only por canvas — validação semântica advisory que dá um canvas fechado a um agente limpo e trata cada buraco como defeito de spec.
 │   ├── artifact-schemas/        # Schemas de validação para cada tipo de artefato instanciado no repo (#Canvas, #ADR, #Lens, etc.).
 │   ├── artifacts/               # Instâncias de artefatos operacionais cross-context (governance envelopes, lenses produzidos).
 │   │   ├── governance/          # Instâncias de autonomy envelopes por domínio.
@@ -70,6 +71,7 @@ mesh-spec/
 | `ai-orchestration/agent-instructions` | Prompt-templates por tarefa recorrente (implementar agregado, expor API, gerar testes, evoluir evento). | Um arquivo por tarefa; nome no formato verbo-substantivo (implement-aggregate.cue).<br>Cada template referencia artefatos source da spec, nunca duplica conteúdo. |
 | `architecture` | Layer 3 da espec: decisões arquiteturais globais que não pertencem a nenhum BC individual. | Artefatos cross-context (ADRs globais, schemas, lenses, princípios) vivem aqui.<br>design-principles.cue é top-level; demais artefatos em subdiretórios por tipo. |
 | `architecture/adrs` | ADRs globais do sistema (stack, patterns, deploy strategy, protocolos cross-context). | Formato adr-NNN-slug.cue com numeração contínua e incremental.<br>Cada ADR conforma com architecture/artifact-schemas/adr.cue.<br>Supersession atualiza os dois ADRs no mesmo commit (ADR novo + status do antigo). |
+| `architecture/agent-probes` | Protocolo agent-probe (Ciclo 4) e os probe-records append-only por canvas — validação semântica advisory que dá um canvas fechado a um agente limpo e trata cada buraco como defeito de spec. | protocol.cue — instância singleton de #AgentProbeProtocol.<br>records/<bc>.cue — instância de #AgentProbeRecord, 1 por canvas probado. |
 | `architecture/artifact-schemas` | Schemas de validação para cada tipo de artefato instanciado no repo (#Canvas, #ADR, #Lens, etc.). | Um arquivo por tipo de artefato; nome em singular kebab-case (canvas.cue, adr.cue).<br>Schemas definem shape + rationale + location + qualityCriteria.<br>CI valida que toda instância do tipo conforma com seu schema. |
 | `architecture/artifacts` | Instâncias de artefatos operacionais cross-context (governance envelopes, lenses produzidos). | artifacts/governance/ contém autonomy envelopes.<br>artifacts/lenses/ reservado para outputs produzidos pelas lenses analíticas. |
 | `architecture/artifacts/governance` | Instâncias de autonomy envelopes por domínio. | Um arquivo por envelope; nome no formato {domain-slug}.governance.cue.<br>Conteúdo instanciado, não schema nem protocolo cross-domain. |
