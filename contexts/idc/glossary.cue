@@ -7,9 +7,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //
 // Materializa a UL emergente do canvas IDC: 3 pilares (verificação,
 // integridade criptográfica, autorização) + boundary com fontes oficiais
-// + revogação e cache invalidation. domainModelRefs ficam vazios pois
-// domain-model.cue de IDC ainda não existe — a serem preenchidos
-// incrementalmente quando WI futura materializar o domain model.
+// + revogação e cache invalidation. domainModelRefs permanecem vazios —
+// o domain-model.cue de IDC já existe; o preenchimento dos refs é
+// trabalho futuro.
 //
 // Lens aplicada: lens-domain-language-and-terminology-design.
 // Production-guide aplicado: architecture/production-guides/glossary.cue
@@ -226,5 +226,5 @@ glossary: artifact_schemas.#Glossary & {
 		}]
 	}]
 
-	rationale: "UL de IDC organiza-se em torno dos 3 pilares declarados no canvas: (1) verificação de identidade organizacional contra fontes oficiais; (2) integridade criptográfica via DSSE/CAS/Merkle; (3) autorização como primitiva. Termos arquiteturais (Primitiva e Raiz de Confiança) caracterizam o papel de IDC como provedor único de primitivas no portfolio Mesh; termos de boundary (Fonte Oficial, Janela de Inconsistência) explicitam dependências externas e operacionais. Estados (Verificada, Suspensa, Revogada) NÃO são terms separados per anti-fragmentação. Comandos e eventos são building blocks de domain-model.cue (a ser materializado), não terms de glossary. domainModelRefs ficam vazios pendente de materialização do domain-model — preenchimento incremental quando WI futura criar."
+	rationale: "UL de IDC organiza-se em torno dos 3 pilares declarados no canvas: (1) verificação de identidade organizacional contra fontes oficiais; (2) integridade criptográfica via DSSE/CAS/Merkle; (3) autorização como primitiva. Termos arquiteturais (Primitiva e Raiz de Confiança) caracterizam o papel de IDC como provedor único de primitivas no portfolio Mesh; termos de boundary (Fonte Oficial, Janela de Inconsistência) explicitam dependências externas e operacionais. Estados (Verificada, Suspensa, Revogada) NÃO são terms separados per anti-fragmentação. Comandos e eventos são building blocks de domain-model.cue (já existente), não terms de glossary. domainModelRefs permanecem vazios — o preenchimento dos refs é trabalho futuro."
 }

@@ -42,8 +42,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // — dl-bilingual-terminology + dl-term-selection-criteria + dl-cross-layer-
 // consistency.
 //
-// Phase 0 baseline; domainModelRefs preenchidos forward Phase 3 (domain-
-// model REW pendente). Glossary cresce incrementalmente per term promotion
+// Phase 0 baseline; domainModelRefs permanecem vazios — o domain-model.cue
+// de REW já existe e o backfill dos refs é trabalho futuro. Glossary cresce
+// incrementalmente per term promotion
 // criteria declarada no rationale (NÃO add derivados como decision-version,
 // emission-threshold, snapshot — pertencem a domain-model).
 
@@ -561,9 +562,9 @@ rewGlossary: artifact_schemas.#Glossary & {
 
 		**FORWARD REFERENCES** (Phase 0 baseline):
 
-		domainModelRefs vazios — domain-model REW Phase 3 pendente.
-		Quando materializado (WI-046 Phase 3), terms canonical receberão
-		domainModelRefs:
+		domainModelRefs vazios — o domain-model.cue de REW já existe;
+		o backfill dos refs permanece trabalho futuro. Mapeamento alvo
+		desse backfill:
 		- Signal → vo-signal (value-object)
 		- Risk Score → vo-risk-score
 		- Eligibility Decision → vo-eligibility-decision
