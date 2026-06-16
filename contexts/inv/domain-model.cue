@@ -278,6 +278,13 @@ domainModel: artifact_schemas.#DomainModel & {
 				{kind: "primitive", name: "currency", type: "string"},
 			]
 			rationale: "Encapsular amount + currency como par estrutural impede divergência silenciosa entre os dois (currency mismatch + amount match seria erro mascarado). VO compartilhado entre Invoice e Receivable garante mesma fonte computacional."
+
+			// adr-151 Forma B (Peça 3b): elo ao primitivo compartilhado canônico.
+			// Money puro (amount+currency) — aponta #Money + term-money como lar
+			// canônico (P0: ponteiro, não cópia; os fields locais permanecem).
+			shared:             true
+			canonicalSchemaRef: "#Money"
+			canonicalTermRef:   "term-money"
 		},
 		{
 			code:        "vo-regime-version"

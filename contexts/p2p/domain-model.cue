@@ -409,6 +409,13 @@ domainModel: artifact_schemas.#DomainModel & {
 			"currency deve ser ISO 4217 code (3 letters, ex.: BRL, USD)",
 		]
 		rationale: "Tipo canônico de domínio para amounts. Sustenta auditoria + reconciliação spend. Currency multi-moeda suportada (paralelo a CMT/BDG)."
+
+		// adr-151 Forma B (Peça 3b): elo ao primitivo compartilhado canônico.
+		// Money puro (amount+currency) — aponta #Money + term-money como lar
+		// canônico (P0: ponteiro, não cópia; os fields locais permanecem).
+		shared:             true
+		canonicalSchemaRef: "#Money"
+		canonicalTermRef:   "term-money"
 	}, {
 		code:        "vo-purchase-scope"
 		name:        "PurchaseScope"
