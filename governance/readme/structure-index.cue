@@ -158,7 +158,8 @@ structureIndex: {
 				"architecture/adrs/adr-149-consumption-contract-cross-bc.cue",
 				"architecture/adrs/adr-150-frontend-ai-first-invariants.cue",
 				"architecture/adrs/adr-151-first-class-semantic-traceability.cue",
-				"architecture/adrs/adr-152-derived-drift-gate.cue"
+				"architecture/adrs/adr-152-derived-drift-gate.cue",
+				"architecture/adrs/adr-153-add-first-class-traceability-kind.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -580,7 +581,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-059-remove-eligibility-emitted-phantom.cue",
 				"architecture/deferred-decisions/def-060-frontend-client-vendor-stack.cue",
 				"architecture/deferred-decisions/def-061-capture-provenance-data-contract.cue",
-				"architecture/deferred-decisions/def-062-local-specialization-shared-primitive.cue"
+				"architecture/deferred-decisions/def-062-local-specialization-shared-primitive.cue",
+				"architecture/deferred-decisions/def-063-port-manifest-crosses-contract-mapping.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
@@ -601,6 +603,7 @@ structureIndex: {
 				"architecture/structural-checks/domain-definition.cue",
 				"architecture/structural-checks/domain-model-event-convention.cue",
 				"architecture/structural-checks/economic-mechanism-model.cue",
+				"architecture/structural-checks/first-class-traceability.cue",
 				"architecture/structural-checks/inv-domain-model.cue",
 				"architecture/structural-checks/manifest-conformance.cue",
 				"architecture/structural-checks/manifest-ref-integrity.cue",
