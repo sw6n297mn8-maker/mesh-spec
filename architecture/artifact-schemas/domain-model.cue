@@ -258,6 +258,8 @@ package artifact_schemas
 	#PublishedDomainEvent
 
 _#DomainEventBase: {
+	_#FirstClassMarker
+
 	code:        string & =~"^evt-[a-z][a-z0-9-]*$"
 	name:        string & !=""
 	description: string & !=""
@@ -298,6 +300,8 @@ _#DomainEventBase: {
 // ==============================
 
 #Command: {
+	_#FirstClassMarker
+
 	code:        string & =~"^cmd-[a-z][a-z0-9-]*$"
 	name:        string & !=""
 	description: string & !=""
@@ -386,6 +390,9 @@ _#DomainEventBase: {
 // Tipos de domínio imutáveis sem identidade.
 // Catálogo top-level para reúso entre aggregates.
 #ValueObject: {
+	_#FirstClassMarker
+	_#SharedPrimitiveMarker
+
 	code:        string & =~"^vo-[a-z][a-z0-9-]*$"
 	name:        string & !=""
 	description: string & !=""
@@ -482,6 +489,8 @@ _#DomainEventBase: {
 // Declara quais commands aceita, quais events emite e quais invariants protege.
 // Entities são nested (owned). Value objects são referenciados do catálogo.
 #Aggregate: {
+	_#FirstClassMarker
+
 	code:        string & =~"^agg-[a-z][a-z0-9-]*$"
 	name:        string & !=""
 	description: string & !=""
@@ -638,6 +647,8 @@ _#DomainEventBase: {
 // Policy é automação local: um event, um command, condições opcionais.
 // Para coordenação de múltiplos aggregates ou orquestração complexa, usar domain service.
 #Policy: {
+	_#FirstClassMarker
+
 	code:        string & =~"^pol-[a-z][a-z0-9-]*$"
 	name:        string & !=""
 	description: string & !=""
@@ -663,6 +674,8 @@ _#DomainEventBase: {
 // Read models derivados de events para consulta.
 // Projeções não mutam estado — são visões otimizadas para leitura.
 #Projection: {
+	_#FirstClassMarker
+
 	code:        string & =~"^prj-[a-z][a-z0-9-]*$"
 	name:        string & !=""
 	description: string & !=""
@@ -816,3 +829,70 @@ _#DomainEventBase: {
 // Aceita BCs internos ("cmt", "rew") e sistemas externos ("ext-banco-central").
 // Alinhado com #ContextOrSystemRef do canvas.
 #SourceContextRef: string & =~"^([a-z][a-z0-9-]*|ext-[a-z][a-z0-9-]*)$"
+
+// ============================================================
+// FIRST-CLASS SEMANTIC TRACEABILITY (adr-151 Peça 3a)
+// ============================================================
+//
+// Campos Forma-A/B do adr-151 (decision 1-3): declaração explícita de conceito
+// de primeira classe + elo verificável entre linguagem ubíqua e domain-model.
+// Dois markers — Forma A genérica (nos conceitos que cruzam contrato), Forma B
+// só primitivo compartilhado (VO).
+//
+// ASSIMETRIA shared-defaulted vs firstClass-opcional (PERMANENTE, não descuido):
+// `shared` é defaulted (bool | *false), NÃO opcional, porque sua constraint
+// condicional (shared:true -> canonicalSchemaRef+canonicalTermRef) vive no
+// SCHEMA, e o conditional CUE exige o campo-gatilho concreto (SIM provou: shared
+// opcional torna instâncias incompletas e cue vet falha). `firstClass` é opcional
+// porque sua constraint (firstClass:true -> firstClassReason+coreNoun) vive no
+// GATE G2, não no schema. A assimetria DERIVA da divisão schema-vs-gate (Forma B
+// coerência-por-construção no schema; Forma A política-gradual no gate), não é
+// acidental.
+
+// Razão tipada de classificação first-class (enums reusados do piloto 1 do
+// adr-151, sim/annotations.json). O split positivo(firstClass:true)/
+// negativo(false) é imposto pelo gate G2 (plannedOutput), não pelo schema.
+#FirstClassReasonPositive:
+	"financial" | "risk" | "eligibility" | "compliance" | "governance" |
+	"delivery" | "qualification" | "reputation" | "cross-artifact-contract"
+#FirstClassReasonNegative:
+	"transport-envelope" | "persistence" | "derived-mechanical" |
+	"internal-temporary" | "id-ref-only"
+#FirstClassReason: #FirstClassReasonPositive | #FirstClassReasonNegative
+
+// Ref a um shared-schema (ex. #Money em architecture/shared-schemas/). O pattern
+// garante a FORMA; a EXISTÊNCIA do alvo (o #-def em shared-schemas) é verificada
+// pelo GATE (plannedOutput), não pelo schema — o schema não vê filesystem (mesma
+// razão da Peça 1). Forma no schema, existência no gate.
+#SharedSchemaRef: string & =~"^#[A-Z][A-Za-z0-9]*$"
+
+// Ref a um term-* do glossário-kernel (architecture/shared-schemas/glossary.cue).
+// O pattern garante a FORMA; a EXISTÊNCIA do term-* no kernel é verificada pelo
+// GATE (plannedOutput), não pelo schema. Forma no schema, existência no gate.
+#CanonicalTermRef: string & =~"^term-[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+
+// Forma A (genérica): marcação de conceito de primeira classe. Mixin nos 6
+// structs que cruzam contrato (aggregate/vo/event/command/policy/projection).
+// Campos OPCIONAIS — a obrigatoriedade condicional (firstClass:true ->
+// firstClassReason+coreNoun) é imposta pelo gate G2 (plannedOutput), preservando
+// migração aditiva.
+_#FirstClassMarker: {
+	firstClass?:       bool
+	firstClassReason?: #FirstClassReason
+	coreNoun?:         string & !=""
+}
+
+// Forma B (só primitivo compartilhado): elo do VO ao shared-schema canônico e ao
+// termo-kernel. Mixin SÓ em #ValueObject (shared não faz sentido em aggregate/
+// event/etc.). shared defaulted (ver ASSIMETRIA acima); shared:true torna os dois
+// refs obrigatórios — coerência-por-construção (VO compartilhado sem apontar o
+// canônico é incoerente, não só contra-política).
+_#SharedPrimitiveMarker: {
+	shared:              bool | *false
+	canonicalSchemaRef?: #SharedSchemaRef
+	canonicalTermRef?:   #CanonicalTermRef
+	if shared {
+		canonicalSchemaRef!: #SharedSchemaRef
+		canonicalTermRef!:   #CanonicalTermRef
+	}
+}
