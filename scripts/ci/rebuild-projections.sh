@@ -33,8 +33,10 @@ set -euo pipefail
 #   - Claim expiration is NOT auto-detected; trusts last event.
 #     If task-claim-expired wasn't emitted, claim shows as in-progress
 #     even past claimExpiresAt. Future WI: claim expiration runner.
-#   - No diff/check mode yet (always overwrites). Future WI: --check
-#     flag para CI gate verifying drift.
+#   - No diff/check mode for THESE projections yet (always overwrites). The
+#     regenerate-and-diff CI drift-gate pattern was delivered for the discovery
+#     derivatives by adr-152 (scripts/ci/regenerate-derived.sh --check); applying
+#     it to these P8 projections is a separate future WI.
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"

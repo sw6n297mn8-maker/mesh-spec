@@ -85,7 +85,7 @@ repoStructure: artifact_schemas.#RepoStructure & {
 			path:      "governance/readme/structure-index.cue"
 			source:    "_schema.location (architecture/artifact-schemas + governance/build-time) + scan do filesystem (repoStructure.scope)"
 			generator: "python3 scripts/ci/generate-structure-index.py ."
-			rationale: "Índice estrutural derivado (adr-090 componente 1): a estrutura schema-governada do repo é derivada de cada _schema.location + scan do filesystem, não autorada. Materializado e mantido em sync pelo workflow .github/workflows/materialize-structure-index.yml (auto-commit do github-actions[bot] quando difere). O gerador faz self-exclusão do próprio índice, evitando auto-referência. Consumo pelo config.cue e virada do sync em gate ficam para o passo (v) do cutover."
+			rationale: "Índice estrutural derivado (adr-090 componente 1): a estrutura schema-governada do repo é derivada de cada _schema.location + scan do filesystem, não autorada. Materializado pelo gerador (scripts/ci/generate-structure-index.py) e mantido em sync por gate de drift no PR (validate.yml, via scripts/ci/regenerate-derived.sh --check structure-index) per adr-152, que substituiu o auto-commit pós-merge (incompatível com main-exige-PR). O gerador faz self-exclusão do próprio índice, evitando auto-referência. Consumo pelo config.cue e a virada do sync em gate (passo v do cutover adr-090) estão realizados por adr-152."
 		}, {
 			path:      "governance/readme/tree-generated.cue"
 			source:    "_meta.cue (#DirectoryMeta) por diretório + scan do filesystem (repoStructure.scope)"
