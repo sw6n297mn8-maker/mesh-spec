@@ -1030,6 +1030,17 @@ domainModel: artifact_schemas.#DomainModel & {
 			"BRL é default para rails domésticos (Pix/TED/boleto); SWIFT permite multi-currency",
 		]
 		rationale: "Money type básico. Imutável; mutação de valor é vector adversarial (inv-anti-decision-boundary)."
+
+		// adr-151 Forma B (Peça 3b): elo ao primitivo compartilhado canônico.
+		// SettlementValue é Money NARROWADO (amount > 0, exclui zero — ver bloco
+		// constraints acima, INTOCADO). O elo Forma B abaixo é IDÊNTICO ao dos
+		// vo-money puros: aponta #Money + term-money. A especialização FORMAL
+		// (specializes/localConstraint, Forma B.2) está deferida em def-062; a
+		// divergência é concern de Forma A/gate futuro (coreNoun), não da Forma B
+		// — 3b é Forma B apenas.
+		shared:             true
+		canonicalSchemaRef: "#Money"
+		canonicalTermRef:   "term-money"
 	}, {
 		code:        "vo-settlement-state"
 		name:        "SettlementState"

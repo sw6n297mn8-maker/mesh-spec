@@ -345,6 +345,13 @@ domainModel: artifact_schemas.#DomainModel & {
 			"currency uniforme entre Limite e Comprometimentos do mesmo Centro de Custo",
 		]
 		rationale: "Tipo fundamental para todo valor numérico monetário no BDG. Centralizá-lo evita drift de representação entre eventos, comandos e fields do aggregate. Currency explícita (ISO 4217) preserva vertical-agnostic mode do canvas BDG; uso prático no bootstrap pré-revenue será predominantemente BRL, mas multi-moeda é mantido para evolução futura sem refactor de tipo."
+
+		// adr-151 Forma B (Peça 3b): elo ao primitivo compartilhado canônico.
+		// Money puro (amount+currency) — aponta #Money + term-money como lar
+		// canônico (P0: ponteiro, não cópia; os fields locais permanecem).
+		shared:             true
+		canonicalSchemaRef: "#Money"
+		canonicalTermRef:   "term-money"
 	}, {
 		code:        "vo-budget-commitment-id"
 		name:        "BudgetCommitmentId"
