@@ -387,6 +387,7 @@ structureIndex: {
 		{
 			"canonicalPathRegex": "^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\\.cue$",
 			"files": [
+				"architecture/shared-schemas/glossary.cue",
 				"contexts/bdg/glossary.cue",
 				"contexts/bkr/glossary.cue",
 				"contexts/cmt/glossary.cue",
