@@ -620,6 +620,108 @@ def ev_flow_event_closure(rule,c):
                     v.append(f"{f}: consumedBy.phase '{ph}' inexistente em phases[].{pnf}")
     return v
 
+def ev_first_class_traceability(rule, c):
+    # adr-153: gate de rastreabilidade semantica first-class (adr-151 D1). UM evaluator
+    # constroi o indice conceito-termo 1x e emite os 9 findings: G1-G5 (Forma A owned,
+    # porte de sim/firstclass-fce gate.py) + B1-B4 (Forma B shared, porte de
+    # sim/firstclass-shared gate_shared.py). norm() exato + pertinencia de conjunto, zero
+    # heuristica/LLM (P10). Reading A NAO portada (rejeitada pelo adr-151, viola P0).
+    # G5 (razao-tipada) NAO re-checado aqui: ja enforcado por cue vet via enum
+    # #FirstClassReason (adr-151 3a) -- cue vet e a camada de G5.
+    # CUE real (nao JSON do piloto): markers EMBEDDED inline; shared:false defaulted em
+    # VO; firstClass/coreNoun opcionais => ausentes (None via .get).
+    def _n(s): return "".join(ch for ch in (s or "").lower() if ch.isalnum())
+    kernel = rule.get("kernelGlossaryPath", "architecture/shared-schemas/glossary.cue")
+    wlpath = rule.get("worklistPath", "governance/build-time/first-class-backfill-worklist.cue")
+    v = []
+    idx = {}        # conceitos com marker (agg/evt/cmd/vo/pol/prj): firstClass/shared/coreNoun
+    valid = set()   # TODOS os codes referenciaveis (G3 ref-resolution): idx + invariants + entities nested
+    dmf = files_for_at(c["artifactType"])
+    if dmf is None: return ["(artifactType '%s' nao resolve)" % c["artifactType"]]
+    for f in dmf:
+        dm = load_artifact(f)
+        if not isinstance(dm, dict): continue
+        bc = dm.get("boundedContextRef") or dm.get("code")
+        for kind, key in (("aggregate","aggregates"),("event","events"),("command","commands"),
+                          ("value-object","valueObjects"),("policy","policies"),("projection","projections")):
+            for it in dm.get(key) or []:
+                code = it.get("code")
+                if not code: continue
+                idx[code] = {"kind":kind,"bc":bc,"sourceContext":it.get("sourceContext"),
+                    "firstClass":it.get("firstClass"),"firstClassReason":it.get("firstClassReason"),
+                    "coreNoun":it.get("coreNoun"),"shared":it.get("shared"),
+                    "canonicalTermRef":it.get("canonicalTermRef"),"crosses":False}
+                valid.add(code)
+                if kind == "aggregate":                       # entities nested sao referenciaveis pelo glossario
+                    for ent in it.get("entities") or []:
+                        if ent.get("code"): valid.add(ent["code"])
+        for inv in dm.get("invariants") or []:                # invariants top-level (pilot gate.py linha 36)
+            if inv.get("code"): valid.add(inv["code"])
+    terms = []
+    for f in sorted(glob.glob("contexts/*/glossary.cue")):
+        gl = load_artifact(f)
+        if isinstance(gl, dict):
+            for t in gl.get("terms") or []:
+                terms.append({"code":t.get("code"),"termEn":t.get("termEn"),"refs":t.get("domainModelRefs") or []})
+    kg = load_artifact(kernel); canon = []
+    if isinstance(kg, dict):
+        for t in kg.get("terms") or []: canon.append({"code":t.get("code"),"termEn":t.get("termEn")})
+    canon_codes = {t["code"] for t in canon}
+    # cruza-contrato V1 = SO aggregate-manifest (agg/cmd/evt; invariants EXCLUIDOS =
+    # alvos-nao-sujeitos). port-manifest (def-063) e assertion (def-049) deferidos -- adr-153 decisao (5).
+    for f in sorted(glob.glob("contexts/*/aggregate-manifests/*.cue")):
+        am = load_artifact(f)
+        if not isinstance(am, dict): continue
+        for code in (([am["aggregateRef"]] if am.get("aggregateRef") else []) +
+                     (am.get("commandsAccepted") or []) + (am.get("eventsEmitted") or [])):
+            if code in idx: idx[code]["crosses"] = True
+    worklisted = set(); wl = load_artifact(wlpath)
+    if isinstance(wl, dict):
+        for e in wl.get("entries") or []:
+            if isinstance(e, dict) and e.get("conceptCode"): worklisted.add(e["conceptCode"])
+    # G2 classificacao-forcada: cruza-contrato sem firstClass declarado, fora da worklist
+    for code, a in idx.items():
+        if a["crosses"] and not (a["firstClass"] is not None and a["firstClassReason"]) and code not in worklisted:
+            v.append("G2 cruza-contrato sem firstClass (nem na worklist): %s (%s/%s)" % (code, a["bc"], a["kind"]))
+    # G1 cobertura-dedicada: owned firstClass:true -> termo termEn==coreNoun que o referencie
+    for code, a in idx.items():
+        if not a["firstClass"]: continue
+        if a["sourceContext"] and a["sourceContext"] != a["bc"]: continue   # estrangeiro isento
+        cn = _n(a["coreNoun"])
+        if not any(_n(t["termEn"]) == cn and code in t["refs"] for t in terms):
+            v.append("G1 owned firstClass:true sem termo dedicado: %s (coreNoun=%r)" % (code, a["coreNoun"]))
+    # G3 ref-existe (dangling) + correspondencia
+    for t in terms:
+        for r in t["refs"]:
+            if r not in valid: v.append("G3 dangling: termo %s -> conceito inexistente %s" % (t["code"], r))
+    for t in terms:
+        tn = _n(t["termEn"])
+        for code, a in idx.items():
+            if a["coreNoun"] and _n(a["coreNoun"]) == tn and code not in t["refs"]:
+                v.append("G3 correspondencia: termo %s nomeia coreNoun de %s sem referencia-lo" % (t["code"], code))
+    # G4 consistencia-bidir: termo nunca aponta conceito firstClass:false
+    for t in terms:
+        for r in t["refs"]:
+            a = idx.get(r)
+            if a and a["firstClass"] is False:
+                v.append("G4 contradicao: termo %s -> conceito firstClass:false %s" % (t["code"], r))
+    # fila owned: firstClass:false E cruza-contrato (suspeita p/ humano)
+    for code, a in idx.items():
+        if a["firstClass"] is False and a["crosses"]:
+            v.append("FILA owned: firstClass:false em conceito que cruza contrato: %s" % code)
+    # B1-B4 Forma B (shared). coreNoun=Forma A => B4 SO quando coreNoun SET (ausente=N/A).
+    if len(canon) < 1: v.append("B1 nenhum termo canonico no kernel (%s)" % kernel)
+    for code, a in idx.items():
+        if not a["shared"]: continue                    # so shared:true (defaulted false ignorado)
+        ref = a["canonicalTermRef"]
+        if not ref: v.append("B2 shared:true sem canonicalTermRef: %s" % code); continue
+        if ref not in canon_codes: v.append("B3 canonicalTermRef nao resolve no kernel: %s -> %s" % (code, ref)); continue
+        if a["coreNoun"]:
+            ct = next((t for t in canon if t["code"] == ref), None)
+            if ct and _n(a["coreNoun"]) != _n(ct["termEn"]):
+                v.append("B4 fila: coreNoun %r diverge do canonico %r: %s" % (a["coreNoun"], ct["termEn"], code))
+    return v
+
 EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_singleton,
  "production-guide-coverage":ev_pg_coverage,"required-block":ev_required_block,
  "at-least-one-block-present":ev_at_least_one,"filesystem-path-exists":ev_fs_path_exists,
@@ -633,7 +735,8 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "regex-pattern-match":ev_regex_pattern_match,
  "instance-scoped-cross-file-id-exists":ev_instance_scoped_cross_file_id_exists,
  "directed-acyclicity":ev_directed_acyclicity,
- "flow-event-closure":ev_flow_event_closure}
+ "flow-event-closure":ev_flow_event_closure,
+ "first-class-traceability":ev_first_class_traceability}
 
 # adr-098: exclusoes da classificacao por artifact-schema-instance lidas de
 # fontes DECLARADAS (nao hardcoded) — repoStructure.scope.schemaExemptZones +

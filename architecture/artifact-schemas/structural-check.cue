@@ -93,6 +93,9 @@ package artifact_schemas
 } | {
 	kind: "flow-event-closure"
 	rule: #FlowEventClosureRule
+} | {
+	kind: "first-class-traceability"
+	rule: #FirstClassTraceabilityRule
 })
 
 _#StructuralCheckBase: {
@@ -171,9 +174,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "directed-acyclicity" | "flow-event-closure"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "directed-acyclicity" | "flow-event-closure" | "first-class-traceability"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #DirectedAcyclicityRule | #FlowEventClosureRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #DirectedAcyclicityRule | #FlowEventClosureRule | #FirstClassTraceabilityRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -700,4 +703,18 @@ _#StructuralCheckBase: {
 	phaseNameField: string & !="" | *"name"
 	// true: completionSignal da ultima phase e emissao terminal isenta de consumidor.
 	terminalCompletionSignalExempt: bool | *true
+}
+
+// Rule shape para kind=first-class-traceability (adr-153).
+// Gate de rastreabilidade semântica first-class (adr-151 D1: G1–G5 owned + B1–B4
+// shared). Paths no dado (com defaults), per schema "rule como dado": o evaluator
+// ev_first_class_traceability constrói o índice conceito↔termo a partir dos
+// domain-models + glossaries de BC + glossário-kernel + aggregate-manifests (cruza-
+// contrato V1; port-manifest e assertion deferidos em def-063/def-049) + a worklist,
+// e emite os 9 findings. norm() exato + pertinência de conjunto, zero heurística (P10).
+#FirstClassTraceabilityRule: {
+	// Glossário-kernel: lar dos termos canônicos compartilhados (ex. term-money).
+	kernelGlossaryPath: string & !="" | *"architecture/shared-schemas/glossary.cue"
+	// Worklist de pendências reconhecidas: cross-contract sem firstClass é aceito se nela.
+	worklistPath: string & !="" | *"governance/build-time/first-class-backfill-worklist.cue"
 }
