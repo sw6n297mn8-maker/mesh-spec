@@ -157,7 +157,8 @@ structureIndex: {
 				"architecture/adrs/adr-148-mesh-runtime-bootstrap-handoff.cue",
 				"architecture/adrs/adr-149-consumption-contract-cross-bc.cue",
 				"architecture/adrs/adr-150-frontend-ai-first-invariants.cue",
-				"architecture/adrs/adr-151-first-class-semantic-traceability.cue"
+				"architecture/adrs/adr-151-first-class-semantic-traceability.cue",
+				"architecture/adrs/adr-152-derived-drift-gate.cue"
 			],
 			"schema": "#ADRBase"
 		},

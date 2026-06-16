@@ -24,6 +24,15 @@ jobs:
             exit 1
           }
 
+      - name: Check structure-index sync (drift gate, adr-152)
+        run: bash scripts/ci/regenerate-derived.sh --check structure-index
+
+      - name: Check repo tree sync (drift gate, adr-152)
+        run: bash scripts/ci/regenerate-derived.sh --check tree
+
+      - name: Check README sync (drift gate, adr-152)
+        run: bash scripts/ci/regenerate-derived.sh --check readme
+
       - name: Structural-check runner (enforcement por-check; bloqueia em reject)
         run: |
           set +e
