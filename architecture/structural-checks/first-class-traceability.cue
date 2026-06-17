@@ -8,9 +8,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // 9 findings: G1–G5 (Forma A owned) + B1–B4 (Forma B shared). Determinístico:
 // norm() exato + pertinência de conjunto, zero heurística/LLM (P10).
 //
-// Born-warn (catraca adr-097): a Forma A não foi backfillada (48 conceitos
-// cross-contract, 0 firstClass), todos reconhecidos na worklist; promove a reject
-// (passo vi do adr-151) quando a worklist fechar.
+// Promovido a reject (passo vi do adr-151): a campanha de backfill Forma A fechou a
+// worklist -- os 48 conceitos cross-contract cobertos nas 4 ondas (cmt 20, dlv 11,
+// fce 8, rew 9). O gate agora BLOQUEIA cross-contract sem Forma A.
 
 structuralChecks: {
 	"sc-fct-01": artifact_schemas.#StructuralCheck & {
@@ -21,7 +21,7 @@ structuralChecks: {
 		kind:         "first-class-traceability"
 		rule: {}
 		errorMessage: "first-class-traceability: conceito que cruza contrato sem firstClass declarado (nem na worklist), OU termo dedicado ausente/incorreto (coreNoun↔termEn), OU ref de glossário quebrado, OU link Forma B inválido (canonicalTermRef sem âncora no kernel). Declare firstClass+firstClassReason+coreNoun + termo dedicado no glossário, OU registre a pendência em governance/build-time/first-class-backfill-worklist.cue."
-		rationale:    "adr-153: a obrigação de rastreabilidade first-class (adr-151) vira gate determinístico no CI (P12), não boa intenção. O conceito-central-sem-termo (gatilho do adr-151: Payment no FCE) não reaparece em silêncio. Born-warn enquanto a campanha de backfill Forma A drena a worklist; promove a reject (passo vi do adr-151) quando todo cross-contract estiver declarado-ou-na-worklist."
-		enforcement:  "warn"
+		rationale:    "adr-153: a obrigação de rastreabilidade first-class (adr-151) vira gate determinístico no CI (P12), não boa intenção. O conceito-central-sem-termo (gatilho do adr-151: Payment no FCE) não reaparece em silêncio. Promovido a reject (passo vi do adr-151) com a worklist fechada: a campanha de backfill Forma A cobriu os 48 conceitos cross-contract (4 ondas cmt/dlv/fce/rew); o conceito-central-sem-termo agora é barrado, não apenas sinalizado."
+		enforcement:  "reject"
 	}
 }
