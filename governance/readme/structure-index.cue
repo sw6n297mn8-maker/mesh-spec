@@ -159,7 +159,8 @@ structureIndex: {
 				"architecture/adrs/adr-150-frontend-ai-first-invariants.cue",
 				"architecture/adrs/adr-151-first-class-semantic-traceability.cue",
 				"architecture/adrs/adr-152-derived-drift-gate.cue",
-				"architecture/adrs/adr-153-add-first-class-traceability-kind.cue"
+				"architecture/adrs/adr-153-add-first-class-traceability-kind.cue",
+				"architecture/adrs/adr-154-runtime-repo-criterion.cue"
 			],
 			"schema": "#ADRBase"
 		},
