@@ -444,6 +444,96 @@ rewGlossary: artifact_schemas.#Glossary & {
 			}]
 			relatedTerms: ["term-risk-alert"]
 		},
+		{
+			code:     "term-avaliacao-de-risco"
+			name:     "Avaliação de Risco"
+			termEn:   "Risk Evaluation"
+			category: "entity"
+			definition: "Aggregate central do REW: a avaliação de risco que owns o lifecycle (compute -> emit -> stale|superseded), o snapshot de sinais e a reasoning trace. Identity por evaluationId surrogate ('identidade != determinismo')."
+			rationale: "Conceito raiz do REW; toda operação do BC produz, transiciona ou consulta uma Risk Evaluation. Identity surrogate (evaluationId) porque o determinismo vive no replayHash, não na identidade."
+			relatedTerms: ["term-risk-score", "term-eligibility-decision", "term-confidence-interval", "term-solicitar-avaliacao-de-risco"]
+			domainModelRefs: ["agg-risk-evaluation"]
+		},
+		{
+			code:     "term-solicitar-avaliacao-de-risco"
+			name:     "Solicitar Avaliação de Risco"
+			termEn:   "Request Risk Evaluation"
+			category: "command"
+			definition: "Ação canônica pela qual um consumer (CMT/FCE/SCF) solicita uma risk evaluation. Duplo anchor: raiz da correlation chain + congelamento imutável de modelVersion/policyVersion (inv-rew-version-frozen-at-request) -- swap mid-flow não afeta a evaluation in-flight."
+			rationale: "Command de entrada do lifecycle; o duplo anchor (correlation root + version freeze) elimina órfãos de correlação e collapse de comparabilidade por swap de modelo/policy mid-flow."
+			relatedTerms: ["term-avaliacao-de-risco", "term-applicable-context"]
+			domainModelRefs: ["cmd-request-risk-evaluation"]
+		},
+		{
+			code:     "term-superseder-avaliacao-de-risco"
+			name:     "Superseder Avaliação de Risco"
+			termEn:   "Supersede Risk Evaluation"
+			category: "command"
+			definition: "Ação canônica de substituição EXPLÍCITA de uma risk evaluation por outra; o caller declara intenção + reason (vo-decision-reason). O REW nunca supersede automaticamente (inv-rew-explicit-supersede-only) -- race conditions eliminadas por design."
+			rationale: "Supersede explicit-only (inv-rew-explicit-supersede-only) porque substituição sem razão é corrupção silenciosa do histórico de decisão; distinto de stale, que é automático e não-decisão."
+			relatedTerms: ["term-avaliacao-de-risco", "term-avaliacao-de-risco-superseded"]
+			domainModelRefs: ["cmd-supersede-risk-evaluation"]
+		},
+		{
+			code:     "term-marcar-avaliacao-stale"
+			name:     "Marcar Avaliação como Stale"
+			termEn:   "Mark Evaluation Stale"
+			category: "command"
+			definition: "Ação canônica interna emitida exclusivamente pela policy pol-mark-stale-on-relevant-signal (actorAuthority='automated-policy') que marca uma risk evaluation como stale quando um sinal relevante chega. Automática, sem intent humano."
+			rationale: "Command interno (automated-policy) que resolve a restrição #Policy.issuesCommand preservando o framing 'staleness é automático'; distinto de supersede, que é decisão explícita."
+			relatedTerms: ["term-avaliacao-de-risco", "term-avaliacao-de-risco-marcada-stale", "term-signal"]
+			domainModelRefs: ["cmd-mark-evaluation-stale"]
+		},
+		{
+			code:     "term-sinal-recebido"
+			name:     "Sinal Recebido"
+			termEn:   "Signal Received"
+			category: "event"
+			definition: "Fato da ingestão em REW (via ACL) de um sinal interpretado por um upstream BC (NPM/DLV/NIM/FCE). Idempotency split: (signalId, sourceContext) é identity; signalHash é validação de integridade. 'Received' (ingestão, REW) != 'observed' (upstream)."
+			rationale: "'Received' (REW) vs 'observed' (upstream): a observação pertence ao upstream, a ingestão ao REW. O idempotency split (identity vs integrity) elimina mutation undetected; distinto do VO Signal (o conteúdo) -- este é o fato da recepção."
+			relatedTerms: ["term-signal", "term-avaliacao-de-risco"]
+			domainModelRefs: ["evt-signal-received"]
+		},
+		{
+			code:     "term-avaliacao-de-risco-computada"
+			name:     "Avaliação de Risco Computada"
+			termEn:   "Risk Evaluation Computed"
+			category: "event"
+			definition: "Fato de que o cálculo de uma risk evaluation foi finalizado internamente (score+eligibility+confidence). Computed != Emitted ('decidir != publicar'): permite shadow mode, retry sem recompute, isolamento de falha. Carrega signalSnapshotIds (inputs explícitos) para replay determinístico."
+			rationale: "Computed != Emitted: o split elimina a classe de bug 'failure de emission gera duplicate compute no retry'; signalSnapshotIds dá inputs explícitos sem os quais não há explicação, só resultado."
+			relatedTerms: ["term-avaliacao-de-risco", "term-avaliacao-de-risco-emitida", "term-risk-score"]
+			domainModelRefs: ["evt-risk-evaluation-computed"]
+		},
+		{
+			code:     "term-avaliacao-de-risco-emitida"
+			name:     "Avaliação de Risco Emitida"
+			termEn:   "Risk Evaluation Emitted"
+			category: "event"
+			definition: "Fato da publicação cross-BC de uma risk evaluation: UM fato atômico unificando score + eligibility + confidence (consolidação do adr-149 / PR #139, ex-RiskScoreEmitted + EligibilityEmitted), consumido por CMT/FCE/SCF. evaluationId é identity anchor; dedupe por evaluationId ('o evento pode duplicar; a decisão não')."
+			rationale: "Contract event público. evaluationId estável garante que consumers nunca contam a decisão 2x por retry de emission; a unificação (adr-149) substitui os ex-RiskScoreEmitted + EligibilityEmitted por um fato atômico."
+			relatedTerms: ["term-avaliacao-de-risco", "term-avaliacao-de-risco-computada", "term-eligibility-decision", "term-risk-score"]
+			domainModelRefs: ["evt-risk-evaluation-emitted"]
+		},
+		{
+			code:     "term-avaliacao-de-risco-superseded"
+			name:     "Avaliação de Risco Superseded"
+			termEn:   "Risk Evaluation Superseded"
+			category: "event"
+			definition: "Fato de que uma risk evaluation foi substituída EXPLICITAMENTE por outra (via cmd-supersede-risk-evaluation), com supersedeReason obrigatório. Decisão histórica num fact log append-only -- race conditions e last-write-wins eliminadas por design."
+			rationale: "Superseding é decisão histórica (!= active-state read-rule); supersedeReason obrigatório porque substituição sem razão corrompe o histórico. Distinto de stale, que é válido-mas-flagged."
+			relatedTerms: ["term-avaliacao-de-risco", "term-superseder-avaliacao-de-risco"]
+			domainModelRefs: ["evt-risk-evaluation-superseded"]
+		},
+		{
+			code:     "term-avaliacao-de-risco-marcada-stale"
+			name:     "Avaliação de Risco Marcada Stale"
+			termEn:   "Risk Evaluation Marked Stale"
+			category: "event"
+			definition: "Fato de que uma risk evaluation foi marcada stale AUTOMATICAMENTE porque um sinal relevante chegou. Stale != Superseded: a evaluation continua VÁLIDA, apenas FLAGGED para review/refresh (não é decisão). No máximo 1 por evaluation por janela (inv-rew-event-emission-boundedness)."
+			rationale: "Staleness sinaliza, supersede decide: stale torna o frescor observável sem mutar o histórico append-only; boundedness (inv-rew-event-emission-boundedness) evita ruído de re-marcação."
+			relatedTerms: ["term-avaliacao-de-risco", "term-marcar-avaliacao-stale", "term-signal"]
+			domainModelRefs: ["evt-risk-evaluation-marked-stale"]
+		},
 	]
 
 	rationale: """

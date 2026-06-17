@@ -101,6 +101,10 @@ domainModel: artifact_schemas.#DomainModel & {
 	events: [
 		{
 			code:        "evt-signal-received"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Signal Received"
 			name:        "SignalReceivedFromUpstreamBC"
 			description: "Signal interpretado por upstream BC (NPM/DLV/NIM/FCE) INGESTADO em REW via ACL. Idempotency split crítico: (signalId, sourceContext) é IDENTITY (idempotency key); signalHash é INTEGRITY VALIDATION (não identity). Same identity + same hash → ignored. Same identity + different hash → triggera evt-signal-corruption-detected. causationKind/causationRef discriminados porque nem todo upstream tem eventId (batch ingestion, polling, backfill, manual import) — forçar causalidade inexistente cria mentira estrutural."
 			rationale:   "'Received' (REW) vs 'observed' (upstream) — observação pertence ao upstream, ingestão pertence ao REW (founder Phase 3 insight). Idempotency split (identity vs integrity) elimina classe de bug onde upstream mutation passa undetected. errorClassEliminated: 'signal corruption silently accepted as new signal' + 'forced causality on causation-less signals'."
@@ -136,6 +140,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-computed"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Risk Evaluation Computed"
 			name:        "RiskEvaluationComputed"
 			description: "Evaluation calculation finalizada internamente. Computed ≠ Emitted (founder insight 'decidir ≠ publicar'). Split permite: shadow mode (compute sem emit), retry (re-emit sem recompute), failure isolation (compute success ≠ emit success). signalSnapshotIds carrega lista de signalIds capturados — replay determinístico inviável sem inputs explícitos. parentEvaluationId opcional referencia evaluation predecessora no lineage tree (chain de superseding); empty quando evaluation root."
 			rationale:   "Sem inputs explícitos, não existe explicação — só resultado (founder Phase 3 insight). Split compute/emit elimina classe de bug: failure de emission gerando duplicate compute on retry. parentEvaluationId materializa lineage navegável — sem lineage, histórico vira lista, não estrutura. errorClassEliminated: 'compute and emit conflated as single atomic event causing replay corruption' + 'evaluation history without traversable lineage'."
@@ -160,6 +168,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-emitted"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Risk Evaluation Emitted"
 			name:        "RiskEvaluationEmitted"
 			description: "Evaluation publicada cross-BC para consumers (CMT, FCE, SCF). evaluationId IDENTITY anchor; eventId varia per re-emission (network retry), evaluationId NÃO. Consumer dedupe via evaluationId. Alinhamento com canvas: Phase 3 design evolved para evaluation atômica unificando score + eligibility + confidence em fact único (ex-RiskScoreEmitted + EligibilityEmitted); canvas alinhado em 245c056 (PR #139)."
 			rationale:   "Public contract event. Founder insight: 'evento pode duplicar; decisão não pode' — evaluationId stable identity garante consumers nunca contam decision 2× por retry de emission. errorClassEliminated: 'consumer treating retried emission as new evaluation'."
@@ -180,6 +192,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-superseded"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Risk Evaluation Superseded"
 			name:        "RiskEvaluationSuperseded"
 			description: "Substituição EXPLÍCITA via cmd-supersede-risk-evaluation. REW NUNCA supersede automaticamente (inv-rew-explicit-supersede-only). supersedeReason via vo-decision-reason obrigatório. Concurrency rule garantida: race conditions e last-write-wins ELIMINADAS por design — evaluation history é append-only fact log."
 			rationale:   "Substituição sem razão = corrupção silenciosa (founder Phase 3 insight). Superseding é decisão histórica (≠ active state read-rule). errorClassEliminated: 'implicit supersede causing decision history corruption' + 'concurrent signals causing non-deterministic supersession'."
@@ -197,6 +213,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-risk-evaluation-marked-stale"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Risk Evaluation Marked Stale"
 			name:        "RiskEvaluationMarkedStale"
 			description: "Evaluation marcada STALE AUTOMATICAMENTE porque novo signal relevante chegou. Stale ≠ Superseded: stale signal arrived; evaluation continua VÁLIDA mas FLAGGED para review/refresh (não é decisão). Supersede separado (explicit-only). Causation: pol-mark-stale-on-relevant-signal triggered por evt-signal-received quando signal.context match evaluation.applicableContext per RiskPolicy.stalenessTriggerCriteria. Boundedness: NO MÁXIMO 1 evt-marked-stale por evaluation por window (inv-rew-event-emission-boundedness)."
 			rationale:   "Supersede decide; staleness sinaliza (founder Phase 3 insight — o mais importante de S4). Sem staleness tracking, evaluation envelhece silenciosamente. Staleness automática (policy-driven) preserva append-only history enquanto torna freshness observable. errorClassEliminated: 'evaluation aging silently — consumer using stale decision without awareness'."
@@ -401,6 +421,10 @@ domainModel: artifact_schemas.#DomainModel & {
 	commands: [
 		{
 			code:        "cmd-request-risk-evaluation"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Request Risk Evaluation"
 			name:        "Request Risk Evaluation (correlation root + version freeze anchor)"
 			description: "Consumer (CMT/FCE/SCF) solicita evaluation. Command é DUPLO ANCHOR: (a) correlation chain root — correlationId nasce aqui; (b) version freeze anchor — modelVersion E policyVersion são SNAPSHOT IMUTÁVEIS aqui (per inv-rew-version-frozen-at-request). Toda compute/emit/replay subsequent usa esses snapshots; new model/policy activated mid-flow NÃO afeta in-flight evaluation."
 			rationale:   "errorClassEliminated: 'correlation chain orphans preventing flow reconstruction' + 'mid-flow model/policy swap causing comparability collapse + non-deterministic replay'."
@@ -417,6 +441,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "cmd-supersede-risk-evaluation"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Supersede Risk Evaluation"
 			name:        "Supersede Risk Evaluation (explicit replacement)"
 			description: "Comando EXPLÍCITO de substituição. REW NUNCA supersede automaticamente (inv-rew-explicit-supersede-only). Caller (CMT analyst, FCE compliance, automated review policy) declara intenção + reason. Concurrency e race conditions ELIMINADAS por design."
 			rationale:   "Concurrency rule explicit-supersede-only. errorClassEliminated: 'implicit supersede on signal arrival causing decision history corruption'."
@@ -433,6 +461,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "cmd-mark-evaluation-stale"
+			// adr-151 Forma A (onda rew, passo vi)
+			firstClass:       true
+			firstClassReason: "risk"
+			coreNoun:         "Mark Evaluation Stale"
 			name:        "Mark Evaluation Stale (INTERNAL orchestration)"
 			description: "Command INTERNAL emitido EXCLUSIVAMENTE por pol-mark-stale-on-relevant-signal (automated-policy issuer). NÃO exposto via canvas inbound — não é command de domínio externo. Schema #Policy.issuesCommand exige command target; cmd-mark-evaluation-stale resolve essa restrição preservando founder framing 'staleness é automático, sem intent humano' via actorAuthority='automated-policy'. Pattern paralelo a CQRS process manager → command → aggregate."
 			rationale:   "Opção 6 founder ratified: schema-aligned (issuesCommand obrigatório); founder framing parcialmente honrado via classification automated-policy. errorClassEliminated: 'staleness emission via direct event-from-policy violando schema OR via aggregate reactive behavior não modelável em #DomainModel atual'."
@@ -1190,6 +1222,10 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	aggregates: [{
 		code:        "agg-risk-evaluation"
+		// adr-151 Forma A (onda rew, passo vi)
+		firstClass:       true
+		firstClassReason: "risk"
+		coreNoun:         "Risk Evaluation"
 		name:        "Risk Evaluation Aggregate"
 		description: "Aggregate central de REW — owns evaluation lifecycle (compute → emit → stale | superseded), signal snapshot, reasoning trace. Consistency boundary: evaluation lifecycle + snapshot integrity + reasoning trace ownership. Identity por evaluationId surrogate (não tupla composta — 'identidade ≠ determinismo' founder Phase 3 directive)."
 

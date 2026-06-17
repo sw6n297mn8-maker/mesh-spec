@@ -18,20 +18,11 @@ package build_time
 // coreNoun + termo dedicado (Forma A). Quando entries esvaziar (todo cross-contract
 // declarado-OU-aqui), o gate promove warn->reject (passo vi do adr-151).
 // Gerado deterministicamente dos aggregate-manifests (mesma fonte do evaluator).
-// DRENAGEM (passo vi): ondas cmt+dlv+fce cobriram 39 conceitos (Forma A + termos) -> removidos.
-// Restantes: 9 (rew 9). Quando entries esvaziar, gate promove warn->reject.
+// DRENAGEM (passo vi): ondas cmt+dlv+fce+rew cobriram os 48 conceitos cross-contract (Forma A + termos) -> removidos.
+// Worklist VAZIA: campanha de backfill completa (4 ondas). Pre-requisito do flip warn->reject (ato final do adr-151).
 
 
 firstClassBackfillWorklist: {
 	entries: [
-		{conceptCode: "agg-risk-evaluation", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-mark-evaluation-stale", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-request-risk-evaluation", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-supersede-risk-evaluation", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-risk-evaluation-computed", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-risk-evaluation-emitted", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-risk-evaluation-marked-stale", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-risk-evaluation-superseded", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-signal-received", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 	]
 }
