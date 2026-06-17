@@ -18,20 +18,12 @@ package build_time
 // coreNoun + termo dedicado (Forma A). Quando entries esvaziar (todo cross-contract
 // declarado-OU-aqui), o gate promove warn->reject (passo vi do adr-151).
 // Gerado deterministicamente dos aggregate-manifests (mesma fonte do evaluator).
-// DRENAGEM (passo vi): ondas cmt+dlv cobriram 31 conceitos (Forma A + termos) -> removidos.
-// Restantes: 17 (fce 8, rew 9). Quando entries esvaziar, gate promove warn->reject.
+// DRENAGEM (passo vi): ondas cmt+dlv+fce cobriram 39 conceitos (Forma A + termos) -> removidos.
+// Restantes: 9 (rew 9). Quando entries esvaziar, gate promove warn->reject.
 
 
 firstClassBackfillWorklist: {
 	entries: [
-		{conceptCode: "agg-payment", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-authorize-payment", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-dispatch-payment-instruction", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-materialize-payment", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-settle-payment", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-payment-authorized", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-payment-instruction-dispatched", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-payment-settled", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "agg-risk-evaluation", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "cmd-mark-evaluation-stale", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "cmd-request-risk-evaluation", bc: "rew", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},

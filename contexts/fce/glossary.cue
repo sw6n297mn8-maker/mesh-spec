@@ -272,6 +272,78 @@ glossary: artifact_schemas.#Glossary & {
 		}]
 		relatedTerms: ["term-guarda-pre-pagamento"]
 		domainModelRefs: ["inv-money-moves-only-on-proof"]
+	}, {
+		code:   "term-pagamento"
+		name:   "Pagamento"
+		termEn: "Payment"
+		definition: "Aggregate raiz do FCE: a execução de um compromisso financeiro no caminho guarded->authorized->dispatched->settled. Distinto de Financialization (o processo amplo) -- Payment é a entidade executada."
+		category: "entity"
+		rationale: "Conceito raiz do FCE; toda operação do BC produz, transiciona ou consulta o Payment. Distinto de Financialization (processo) -- Payment é a entidade."
+		relatedTerms: ["term-financializacao", "term-autorizar-pagamento", "term-liquidar-pagamento"]
+		domainModelRefs: ["agg-payment"]
+	}, {
+		code:   "term-materializar-pagamento"
+		name:   "Materializar Pagamento"
+		termEn: "Materialize Payment"
+		definition: "Ação canônica que cria o aggregate Payment em estado guarded ao consumir uma fatura emitida (InvoiceIssued), idempotente por (commitmentRef, invoice). Comando -- o ato pontual de criação, distinto do processo Financialization."
+		category: "command"
+		rationale: "Command de entrada do caminho de execução; cria o Payment em guarded (idempotente por tupla). Distinto de Financialization (processo) -- materializar é o ato de criação."
+		relatedTerms: ["term-pagamento", "term-financializacao"]
+		domainModelRefs: ["cmd-materialize-payment"]
+	}, {
+		code:   "term-autorizar-pagamento"
+		name:   "Autorizar Pagamento"
+		termEn: "Authorize Payment"
+		definition: "Ação canônica que, após o PrePaymentGuard aprovar as 3 condições (fatura válida + elegibilidade de risco + cadeia de evidência íntegra), toma a decisão econômica de pagar. Comando -- distinto do termo-processo Authorization e do fato Payment Authorized."
+		category: "command"
+		rationale: "Command que materializa a autoridade econômica do FCE (bd-economic-authority-not-rails); distinto do termo-processo Authorization e do fato Payment Authorized -- ato/processo/fato."
+		relatedTerms: ["term-pagamento", "term-autorizacao", "term-pagamento-autorizado", "term-guarda-pre-pagamento"]
+		domainModelRefs: ["cmd-authorize-payment"]
+	}, {
+		code:   "term-despachar-instrucao-de-pagamento"
+		name:   "Despachar Instrução de Pagamento"
+		termEn: "Dispatch Payment Instruction"
+		definition: "Ação canônica que despacha a PaymentInstruction ao rail bancário após a autorização (authorized->dispatched). Comando -- o ato de dispatch, distinto da decisão econômica (Authorize Payment)."
+		category: "command"
+		rationale: "Command que separa o dispatch ao rail da decisão econômica (Authorize Payment); o FCE decide, o rail executa."
+		relatedTerms: ["term-pagamento", "term-instrucao-de-pagamento-despachada", "term-autorizar-pagamento"]
+		domainModelRefs: ["cmd-dispatch-payment-instruction"]
+	}, {
+		code:   "term-liquidar-pagamento"
+		name:   "Liquidar Pagamento"
+		termEn: "Settle Payment"
+		definition: "Ação canônica que liquida o pagamento ao confirmar a liquidação física do rail (SettlementFinalized). Comando -- distinto do termo-processo Settlement e do fato Payment Settled."
+		category: "command"
+		rationale: "Command que fecha o caminho do guard ao confirmar a liquidação; distinto de Settlement (processo) e Payment Settled (fato) -- ato/processo/fato."
+		relatedTerms: ["term-pagamento", "term-liquidacao", "term-pagamento-liquidado"]
+		domainModelRefs: ["cmd-settle-payment"]
+	}, {
+		code:   "term-pagamento-autorizado"
+		name:   "Pagamento Autorizado"
+		termEn: "Payment Authorized"
+		definition: "Fato de que o PrePaymentGuard aprovou e o FCE tomou a decisão econômica de pagar, emitindo a authorization proof. Evento -- distinto do comando Authorize Payment e do processo Authorization."
+		category: "event"
+		rationale: "Fato que separa a decisão econômica (autoridade FCE) do ato de dispatch; distinto do comando Authorize Payment e do processo Authorization."
+		relatedTerms: ["term-pagamento", "term-autorizar-pagamento", "term-autorizacao"]
+		domainModelRefs: ["evt-payment-authorized"]
+	}, {
+		code:   "term-instrucao-de-pagamento-despachada"
+		name:   "Instrução de Pagamento Despachada"
+		termEn: "Payment Instruction Dispatched"
+		definition: "Fato de que a PaymentInstruction foi despachada ao rail bancário. Evento -- o fato do dispatch, distinto do comando Dispatch Payment Instruction."
+		category: "event"
+		rationale: "Fato do dispatch ao rail; distinto do comando Dispatch Payment Instruction -- fato vs ato."
+		relatedTerms: ["term-pagamento", "term-despachar-instrucao-de-pagamento"]
+		domainModelRefs: ["evt-payment-instruction-dispatched"]
+	}, {
+		code:   "term-pagamento-liquidado"
+		name:   "Pagamento Liquidado"
+		termEn: "Payment Settled"
+		definition: "Fato terminal de sucesso: o pagamento foi liquidado (liquidação física do rail confirmada). Evento -- distinto do comando Settle Payment e do termo-processo Settlement."
+		category: "event"
+		rationale: "Fato terminal de sucesso do caminho do guard; distinto do comando Settle Payment e do processo Settlement."
+		relatedTerms: ["term-pagamento", "term-liquidar-pagamento", "term-liquidacao"]
+		domainModelRefs: ["evt-payment-settled"]
 	}]
 
 	rationale: """

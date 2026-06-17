@@ -111,6 +111,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-payment-authorized"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Payment Authorized"
 		name:        "PaymentAuthorized"
 		visibility:  "internal"
 		description: """
@@ -133,6 +137,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-payment-instruction-dispatched"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Payment Instruction Dispatched"
 		name:        "PaymentInstructionDispatched"
 		visibility:  "internal"
 		description: """
@@ -155,6 +163,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-payment-settled"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Payment Settled"
 		name:        "PaymentSettled"
 		visibility:  "published"
 		description: """
@@ -215,6 +227,10 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	commands: [{
 		code:        "cmd-materialize-payment"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Materialize Payment"
 		name:        "Materialize Payment"
 		description: """
 			Cria o Payment em guarded para (commitmentRef, invoice) ao
@@ -237,6 +253,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-authorize-payment"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Authorize Payment"
 		name:        "Authorize Payment"
 		description: """
 			Avalia o PrePaymentGuard (fatura válida + elegibilidade +
@@ -256,6 +276,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-dispatch-payment-instruction"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Dispatch Payment Instruction"
 		name:        "Dispatch Payment Instruction"
 		description: """
 			Emite a PaymentInstruction ao BKR sob authorization proof
@@ -274,6 +298,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-settle-payment"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Settle Payment"
 		name:        "Settle Payment"
 		description: """
 			Transiciona o Payment para settled ao consumir
@@ -452,6 +480,10 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	aggregates: [{
 		code:        "agg-payment"
+		// adr-151 Forma A (onda fce, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Payment"
 		name:        "Payment"
 		description: """
 			Ledger de execução do FCE: estado canônico do pagamento de um
