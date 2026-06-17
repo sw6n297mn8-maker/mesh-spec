@@ -71,6 +71,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		// --- PUBLISHED (cross-BC; BD14 atomic emit; BD10 categorical payload) ---
 		{
 			code:        "evt-delivery-verified"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "delivery"
+			coreNoun:         "Delivery Verified"
 			name:        "DeliveryVerified"
 			description: "Verification atinge state terminal verified. Cross-BC published event consumido por INV (faturamento gate), REW (qualidade-de-execução signal), NIM (mecanismos design signal), DRC (post-verification dispute context per BD8 within finality window). Payload categórico determinístico per BD10 (NO scoring fields)."
 			rationale:   "Terminal event canonical do happy path DLV. Hard binding cross-BC: INV consume como precondition de invoice issuance; REW como input categórico para credit scoring (BD10 boundary preserved); NIM como signal para mechanism design; DRC como contexto pós-verification."
@@ -89,6 +93,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-delivery-rejected"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "delivery"
+			coreNoun:         "Delivery Rejected"
 			name:        "DeliveryRejected"
 			description: "Verification atinge state terminal rejected. Cross-BC published event mesmo conjunto de consumers que DeliveryVerified com semantics distintas: INV bloqueia invoice path; REW signal negativo para scoring; NIM signal para mechanism design (e.g., padrões sustained de rejection sinalizam criteria evolution need); DRC entry point IMEDIATO de dispute Phase 0 per BD8. reasonCode + retryPath MANDATORY per BD13 (silent rejection proibido)."
 			rationale:   "Terminal event canonical do rejection path DLV. Mandatory reasonCode + retryPath fornece accountability + actionable contract com sh-02 fornecedor (retry path determinístico via mapping table per BD13)."
@@ -111,6 +119,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		// --- INTERNAL (DLV-only; NÃO publicados cross-BC per BD4) ---
 		{
 			code:        "evt-evidence-recorded"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "delivery"
+			coreNoun:         "Evidence Recorded"
 			name:        "EvidenceRecorded"
 			description: "EvidenceRecord entity criada via RecordEvidence command OR EvidenceCommitted LOG ACL consumption. Marker de aggregate creation per BD4 ingestion-evaluation-separation. INTERNAL — NÃO publicado cross-BC (visibility=internal per BD4)."
 			rationale:   "Marker de Verification aggregate creation com EvidenceRecord embedded; trigger interno de evaluation eligibility. Phase 0 evaluation requer cmd-evaluate-verification subsequent (sync). Phase 1+ eventual evaluation policy poderia consumir este event."
@@ -125,6 +137,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-exception-entered"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "governance"
+			coreNoun:         "Exception Entered"
 			name:        "ExceptionEntered"
 			description: "Verification transiciona de evaluating para exception-pending state. Marca primeiro entry em exceptionHistory per BD6. INTERNAL — exception states são internos a DLV (NÃO publicados cross-BC; expostos apenas via QueryVerificationStatus query-surface internal-consumers-only)."
 			rationale:   "Trigger de timer 14d mandatory transition (BD6). Inicia tracking de exceptionHistory append-only. Estado intermediário internal preserva contract público limpo (apenas terminal events cross-BC)."
@@ -138,6 +154,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-exception-extended"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "governance"
+			coreNoun:         "Exception Extended"
 			name:        "ExceptionExtended"
 			description: "Extension de timer aplicada via supervisedDecision extend-exception-window (BD6). Adiciona entry em exceptionHistory; cumulative duration cap 30d TOTAL desde primeiro entry preservado por construção. INTERNAL."
 			rationale:   "Trigger de extension cumulativa bounded por construção (BD6 cap absoluto). exceptionHistory append-only preserva granularidade temporal + actor + justification per audit."
@@ -152,6 +172,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-exception-resolved"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "governance"
+			coreNoun:         "Exception Resolved"
 			name:        "ExceptionResolved"
 			description: "Verification transiciona de exception-pending para terminal (verified | rejected) — humano resolveu OU timer fired auto-rejection per BD6 fail-safe. Marca último entry em exceptionHistory com resolvedAt + resolution. INTERNAL — terminal event público correspondente é DeliveryVerified | DeliveryRejected emitido atomicamente."
 			rationale:   "Marker de exception lifecycle closure. Distinct de DeliveryVerified | DeliveryRejected: aquele é cross-BC public (BD14 atomic emit); este é DLV-internal tracking de exception transition (paralelo + atomic)."
@@ -167,6 +191,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "evt-supersession-applied"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "delivery"
+			coreNoun:         "Supersession Applied"
 			name:        "SupersessionApplied"
 			description: "Linkage de supersession aplicada per BD5: evidenceRef-N+1 supersedes evidenceRef-N para mesmo commitmentRef. Trigger de nova Verification aggregate creation com nova IdempotencyIdentity (commitmentRef, evidenceRef-N+1). INTERNAL — public correspondence é nova DeliveryVerified | DeliveryRejected da nova evaluation."
 			rationale:   "Marker de supersession lineage explícita. Trigger primário: EvidenceSuperseded LOG event consumed via ACL (Policy pol-supersession-applied-handler — Part 3); fallback: DLV ordering canonical eventLogOffset em ausência de LOG event (BD5 robust-against-failure-of-adjacent-BC)."
@@ -188,6 +216,10 @@ domainModel: artifact_schemas.#DomainModel & {
 	commands: [
 		{
 			code:        "cmd-record-evidence"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "delivery"
+			coreNoun:         "Record Evidence"
 			name:        "Record Evidence"
 			description: "Ingestion command: cria Verification aggregate com EvidenceRecord embedded. Sync. Trigger primário: EvidenceCommitted LOG event consumption (ACL); alternative: direct submission por sh-02/sh-01 (Phase 0 manual; Phase 1+ supplier API). Layer 1 integrity check parser-time per BD11 (local-first; network-independent). Falha integridade → command rejected sem side effects."
 			rationale:   "Entry point ingestion path per BD4 separation. Cria Verification em state=evaluating com pendingCriteria flag derivada de criteriaVersion absence. INV-7 (verified requires evidence) é precondition por construção: sem cmd-record-evidence success, NÃO existe EvidenceRecord, e cmd-evaluate-verification não pode emit verified."
@@ -199,6 +231,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "cmd-evaluate-verification"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "qualification"
+			coreNoun:         "Evaluate Verification"
 			name:        "Evaluate Verification"
 			description: "Core function execution: avalia EvidenceRecord contra criteriaVersion vigente (sync via QueryCommitmentCriteria Phase 0). Sync. Função pura sobre tripla causal (evidence ingerida, criteriaVersion snapshot, integrityProof) per BD1 RECTOR + BD9 Layer 1+2. Outcome binário verified | rejected; OR transição para exception-pending (estado intermediário internal per BD12)."
 			rationale:   "Trigger primário do gate determinístico. Função pura per BD1 (sem julgamento, sem inferência probabilística, sem estado externo). Cache miss criteria → estado evaluating com pendingCriteria=true (await criteria activation). INV-13 retry path deterministic via mapping table aplicado em rejected outcome."
@@ -209,6 +245,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		},
 		{
 			code:        "cmd-transition-exception-state"
+			// adr-151 Forma A (onda dlv, passo vi)
+			firstClass:       true
+			firstClassReason: "governance"
+			coreNoun:         "Transition Exception State"
 			name:        "Transition Exception State"
 			description: "Timer-driven internal command: força transição de exception-pending para terminal state quando 14d timer fires per BD6. Resultado: humano resolveu (terminal verified | rejected) OR auto-rejection forçada (rejected com reasonCode=exception-unresolved-timeout per BD6 fail-safe). Timer baseado em DLV system time (NÃO wall-clock) — replay-safe per BD3."
 			rationale:   "P5 anti-paralysis materialização: garante forward motion sob indecisão humana sem comprometer invariante 'no evidence verified → no economic progression' (auto-rejection é fail-safe, NÃO fail-open). Timer-driven preserva determinismo replay (events ingerida sob mesma timeline produzem mesmas transições)."
@@ -481,6 +521,10 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	aggregates: [{
 		code:        "agg-verification"
+		// adr-151 Forma A (onda dlv, passo vi)
+		firstClass:       true
+		firstClassReason: "delivery"
+		coreNoun:         "Verification"
 		name:        "Verification"
 		description: "Aggregate raiz DLV materializando decisão emitida sobre suficiência de evidência contra critério versionado. Carrega outcome (verified | rejected) + reasonCode + retryPath (em rejected) + criteriaVersion (attribute) + finalityAt + decidedAt + decidedBy + supersededByRef? + exceptionHistory? + finalityReached flag (estrutural per micro-ajuste 3). Imutável após emit (BD2 idempotency); supersedida via supersededByRef (BD5) sem mutação. Identity canonical: vo-idempotency-identity (commitmentRef, evidenceRef)."
 		rootIdentity: {

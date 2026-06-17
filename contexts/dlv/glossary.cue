@@ -62,6 +62,7 @@ glossary: artifact_schemas.#Glossary & {
 			name:       "Verificação"
 			termEn:     "Verification"
 			category:   "entity"
+			domainModelRefs: ["agg-verification"]
 			definition: """
 				Aggregate raiz DLV materializando decisão emitida sobre
 				suficiência de evidência contra critério versionado.
@@ -753,6 +754,106 @@ glossary: artifact_schemas.#Glossary & {
 					violation via aggregation.
 					"""
 			}]
+		},
+		{
+			code:       "term-registrar-evidencia"
+			name:       "Registrar Evidência"
+			termEn:     "Record Evidence"
+			definition: "Ação canônica que ingere evidência e cria o aggregate Verification (EvidenceRecord embedded) em estado evaluating; checagem de integridade Layer 1 em parser-time, síncrona."
+			category:   "command"
+			rationale:  "Command de entrada do caminho de ingestão (BD4 separação ingestão-avaliação); distinto do fato resultante (Evidência Registrada) e da entidade (Registro de Evidência)."
+			domainModelRefs: ["cmd-record-evidence"]
+			relatedTerms: ["term-verificacao", "term-evidencia-registrada", "term-ingestao"]
+		},
+		{
+			code:       "term-avaliar-verificacao"
+			name:       "Avaliar Verificação"
+			termEn:     "Evaluate Verification"
+			definition: "Ação canônica que avalia a evidência ingerida contra o critério versionado vigente (função pura), emitindo outcome binário verified|rejected ou transicionando para exception-pending."
+			category:   "command"
+			rationale:  "Command do gate determinístico (função pura sobre evidência e critério, BD1); distingue o ato de avaliar do resultado terminal (Entrega Verificada ou Rejeitada)."
+			domainModelRefs: ["cmd-evaluate-verification"]
+			relatedTerms: ["term-verificacao", "term-criterio-versionado", "term-funcao-de-verificacao-deterministica"]
+		},
+		{
+			code:       "term-transicionar-estado-de-excecao"
+			name:       "Transicionar Estado de Exceção"
+			termEn:     "Transition Exception State"
+			definition: "Ação canônica timer-driven que força a saída de exception-pending para terminal ao expirar o timer de 14d (resolução humana ou auto-rejeição fail-safe per BD6)."
+			category:   "command"
+			rationale:  "Command timer-driven que materializa o anti-paralisia P5 (forward motion sob indecisão humana via fail-safe, não fail-open)."
+			domainModelRefs: ["cmd-transition-exception-state"]
+			relatedTerms: ["term-verificacao", "term-estado-de-excecao", "term-excecao-resolvida"]
+		},
+		{
+			code:       "term-entrega-verificada"
+			name:       "Entrega Verificada"
+			termEn:     "Delivery Verified"
+			definition: "Fato de que a Verification atingiu o terminal verified; evento published cross-BC, gate de faturamento (INV) e sinal para REW/NIM/DRC."
+			category:   "event"
+			rationale:  "Evento terminal canônico do happy path; binding cross-BC (gate de faturamento INV); distinto do marcador interno Exceção Resolvida."
+			domainModelRefs: ["evt-delivery-verified"]
+			relatedTerms: ["term-verificacao", "term-entrega-rejeitada"]
+		},
+		{
+			code:       "term-entrega-rejeitada"
+			name:       "Entrega Rejeitada"
+			termEn:     "Delivery Rejected"
+			definition: "Fato de que a Verification atingiu o terminal rejected, com reasonCode e retryPath mandatórios (anti-rejeição-silenciosa, BD13); published cross-BC."
+			category:   "event"
+			rationale:  "Evento terminal canônico do rejection path; reasonCode e retryPath mandatórios dão accountability e contrato acionável (BD13), distinguindo rejeição legítima de bias."
+			domainModelRefs: ["evt-delivery-rejected"]
+			relatedTerms: ["term-verificacao", "term-entrega-verificada", "term-codigo-de-motivo", "term-caminho-de-retentativa"]
+		},
+		{
+			code:       "term-evidencia-registrada"
+			name:       "Evidência Registrada"
+			termEn:     "Evidence Recorded"
+			definition: "Fato de que um EvidenceRecord foi criado (via cmd-record-evidence ou ACL do LOG), marcando a criação do aggregate Verification; interno (BD4)."
+			category:   "event"
+			rationale:  "Fato (evento) da criação do EvidenceRecord; distinto do comando que o dispara (Registrar Evidência) e da entidade criada (Registro de Evidência) — coisa, ato e fato."
+			domainModelRefs: ["evt-evidence-recorded"]
+			relatedTerms: ["term-verificacao", "term-registrar-evidencia", "term-registro-de-evidencia"]
+		},
+		{
+			code:       "term-supersessao-aplicada"
+			name:       "Supersessão Aplicada"
+			termEn:     "Supersession Applied"
+			definition: "Fato de que uma linhagem de supersessão foi aplicada (evidência N+1 supersede N para o mesmo commitmentRef), disparando nova Verification; interno."
+			category:   "event"
+			rationale:  "Fato da aplicação de linhagem de supersessão (ordering canônico por eventLogOffset, BD5); distinto do conceito-processo Supersessão."
+			domainModelRefs: ["evt-supersession-applied"]
+			relatedTerms: ["term-verificacao", "term-supersessao"]
+		},
+		{
+			code:       "term-excecao-iniciada"
+			name:       "Exceção Iniciada"
+			termEn:     "Exception Entered"
+			definition: "Fato de que a Verification transicionou de evaluating para exception-pending, iniciando o timer mandatório de 14d e o primeiro entry do exceptionHistory; interno."
+			category:   "event"
+			rationale:  "Fato da entrada em exception-pending; inicia o timer mandatório de 14d (BD6), distinguindo o início do estado das suas extensões e resolução."
+			domainModelRefs: ["evt-exception-entered"]
+			relatedTerms: ["term-verificacao", "term-estado-de-excecao", "term-excecao-estendida", "term-excecao-resolvida"]
+		},
+		{
+			code:       "term-excecao-estendida"
+			name:       "Exceção Estendida"
+			termEn:     "Exception Extended"
+			definition: "Fato de que uma extensão de timer foi aplicada por decisão supervisionada, dentro do cap cumulativo absoluto de 30d (BD6); interno."
+			category:   "event"
+			rationale:  "Fato de extensão supervisionada do timer dentro do cap cumulativo absoluto de 30d (BD6 — cap por cumulativo evita escape por extensões pequenas)."
+			domainModelRefs: ["evt-exception-extended"]
+			relatedTerms: ["term-verificacao", "term-excecao-iniciada", "term-excecao-resolvida"]
+		},
+		{
+			code:       "term-excecao-resolvida"
+			name:       "Exceção Resolvida"
+			termEn:     "Exception Resolved"
+			definition: "Fato de que a Verification saiu de exception-pending para terminal (verified|rejected), por resolução humana ou auto-rejeição por timeout; interno."
+			category:   "event"
+			rationale:  "Fato do fechamento do lifecycle de exceção (humano ou timeout); marcador interno paralelo ao evento público terminal correspondente."
+			domainModelRefs: ["evt-exception-resolved"]
+			relatedTerms: ["term-verificacao", "term-excecao-iniciada", "term-historico-de-excecao"]
 		},
 	]
 
