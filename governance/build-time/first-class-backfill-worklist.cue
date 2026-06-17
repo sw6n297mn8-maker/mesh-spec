@@ -18,29 +18,12 @@ package build_time
 // coreNoun + termo dedicado (Forma A). Quando entries esvaziar (todo cross-contract
 // declarado-OU-aqui), o gate promove warn->reject (passo vi do adr-151).
 // Gerado deterministicamente dos aggregate-manifests (mesma fonte do evaluator).
+// DRENAGEM (passo vi): onda cmt cobriu os 20 conceitos do cmt (Forma A + termos) -> removidos.
+// Restantes: 28 (dlv 11, fce 8, rew 9). Quando entries esvaziar, gate promove warn->reject.
+
 
 firstClassBackfillWorklist: {
 	entries: [
-		{conceptCode: "agg-commitment", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-cancel-commitment", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-clear-risk-flag", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-confirm-commitment-acceptance", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-flag-at-risk", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-handle-dispute-resolution", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-propose-commitment", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-reactivate-commitment", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-suspend-commitment", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-commitment-accepted", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-commitment-proposed", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-commitment-state-changed", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-contract-terms-activated-received", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-contract-terms-cancelled-received", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-contract-terms-superseded-received", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-counterparty-risk-cleared", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-counterparty-risk-signaled", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-dispute-resolved-received", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-purchase-order-received", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-suspension-ordered-received", bc: "cmt", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "agg-verification", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "cmd-evaluate-verification", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "cmd-record-evidence", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},

@@ -55,6 +55,10 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	events: [{
 		code:        "evt-commitment-proposed"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Commitment Proposed"
 		name:        "CommitmentProposed"
 		visibility:  "internal"
 		description: "Proposta de compromisso registrada com termos, partes e escopo. Trigger para workflows internos de preparação de aceite."
@@ -74,6 +78,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-commitment-accepted"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Commitment Accepted"
 		name:        "CommitmentAccepted"
 		visibility:  "published"
 		description: "Gate de aceite mútuo bilateral aprovado com sucesso. Sinal canônico de entrada no commitment lifecycle — BDG inicia aprovação orçamentária, DRC registra contexto para disputas futuras, TCM projeta obrigação futura na posição de caixa."
@@ -98,6 +106,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-commitment-state-changed"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Commitment State Changed"
 		name:        "CommitmentStateChanged"
 		visibility:  "published"
 		description: "Estado do compromisso transicionou por sinal externo (risco, disputa) ou ação interna (suspensão, cancelamento, reativação). Consumido por DRC para atualizar contexto de disputas e por TCM para atualizar projeções de caixa."
@@ -114,6 +126,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-counterparty-risk-signaled"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "risk"
 		name:          "CounterpartyRiskSignaled"
 		visibility:    "internal"
 		sourceContext: "rew"
@@ -127,6 +142,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-dispute-resolved-received"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
 		name:          "DisputeResolvedReceived"
 		visibility:    "internal"
 		sourceContext: "drc"
@@ -140,6 +158,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-suspension-ordered-received"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
 		name:          "SuspensionOrderedReceived"
 		visibility:    "internal"
 		sourceContext: "drc"
@@ -153,6 +174,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-counterparty-risk-cleared"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "risk"
 		name:          "CounterpartyRiskCleared"
 		visibility:    "internal"
 		sourceContext: "rew"
@@ -163,6 +187,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-purchase-order-received"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
 		name:          "PurchaseOrderReceived"
 		visibility:    "internal"
 		sourceContext: "p2p"
@@ -180,6 +207,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-contract-terms-activated-received"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
 		name:          "ContractTermsActivatedReceived"
 		visibility:    "internal"
 		sourceContext: "ctr"
@@ -194,6 +224,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-contract-terms-superseded-received"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
 		name:          "ContractTermsSupersededReceived"
 		visibility:    "internal"
 		sourceContext: "ctr"
@@ -208,6 +241,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:          "evt-contract-terms-cancelled-received"
+		// adr-151 Forma A (onda cmt) -- ACL/estrangeiro: G1-isento (termo canonico vive no BC dono), sem coreNoun/termo local
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
 		name:          "ContractTermsCancelledReceived"
 		visibility:    "internal"
 		sourceContext: "ctr"
@@ -231,6 +267,10 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	commands: [{
 		code:        "cmd-propose-commitment"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Propose Commitment"
 		name:        "ProposeCommitment"
 		description: "Proponente submete proposta de compromisso com termos, partes, escopo e referência a termos contratuais de CTR. Async — proponente não espera aceite imediato. Validação de CTR é sync em propose-time e fail-closed: se QueryContractTerms não responde, ProposeCommitment é rejeitado (sem lastro → sem compromisso). Fixa o termsHash de referência = sha256(canonical({contractTermsRef, scope}))."
 		rationale:   "Separado de cmd-confirm-commitment-acceptance porque proposta e aceite são atos de partes distintas em momentos distintos. Validação de CTR no momento da proposta evita propostas órfãs de lastro contratual. Fail-closed protege lastro (dp-10); SLA numérico de indisponibilidade deferido a def-046."
@@ -243,6 +283,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-confirm-commitment-acceptance"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Confirm Commitment Acceptance"
 		name:        "ConfirmCommitmentAcceptance"
 		description: "Contraparte confirma aceite dos mesmos termos propostos pelo proponente. Sync — contraparte recebe confirmação imediata. Completa gate bilateral. Gate compara AcceptanceConfirmation.termsHash com o hash dos termos fixados no ProposeCommitment. Idempotente no-op (P6): se o compromisso já está accepted, retorna o CommitmentAccepted existente — não erro, não segundo evento."
 		rationale:   "Par direto de cmd-propose-commitment. Sync por exigência de confirmação imediata (canvas inbound[1]). Gate determinístico: inv-mutual-bilateral-acceptance. Idempotência por P6 (chave: commitmentId)."
@@ -254,6 +298,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-flag-at-risk"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "risk"
+		coreNoun:         "Flag At Risk"
 		name:        "FlagAtRisk"
 		description: "Sinaliza compromisso ativo cuja contraparte recebeu alerta de risco de REW. Decisão autônoma — não altera estado do compromisso, apenas marca para supervisão."
 		rationale:   "Canvas governance scope: flag-at-risk-commitments é autonomousDecision. Sinalização é reação determinística a evento externo. Distinto de suspensão (que é supervisedDecision)."
@@ -264,6 +312,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-clear-risk-flag"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "risk"
+		coreNoun:         "Clear Risk Flag"
 		name:        "ClearRiskFlag"
 		description: "Remove sinalização de risco de compromisso at-risk, retornando ao estado accepted. Decisão autônoma — simétrica com cmd-flag-at-risk."
 		rationale:   "Se sinalizar risco é autonomousDecision, limpar a sinalização quando REW resolve o alerta também é. Simetria operacional: flag e clear são par determinístico. Distinto de cmd-reactivate-commitment que retorna de suspended (estado parado) — at-risk nunca parou."
@@ -274,6 +326,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-suspend-commitment"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Suspend Commitment"
 		name:        "SuspendCommitment"
 		description: "Suspende compromisso ativo por sinalização de risco ou determinação de disputa. SupervisedDecision — agente recomenda, gate de supervisão humana autoriza."
 		rationale:   "Canvas governance scope: suspend-commitment é supervisedDecision porque afeta todo o commitment lifecycle downstream. mech-agent-gate garante que agente nunca suspende unilateralmente."
@@ -284,6 +340,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-reactivate-commitment"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Reactivate Commitment"
 		name:        "ReactivateCommitment"
 		description: "Reativa compromisso suspenso após resolução favorável de disputa ou redução de risco. Retorna ao estado accepted. Exclusivo para transição suspended → accepted."
 		rationale:   "Reativação implica retorno de estado parado — aplica-se apenas a suspended, não a at-risk (que usa cmd-clear-risk-flag). SupervisedDecision — mesma severidade que suspensão."
@@ -294,6 +354,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-handle-dispute-resolution"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Handle Dispute Resolution"
 		name:        "HandleDisputeResolution"
 		description: "Processa resolução de disputa do DRC (enum #DisputeResolution {cancel | modify_terms | maintain}). O aggregate inspeciona o tipo e executa: cancel → cmd-cancel-commitment (terminal); modify_terms → revalida os novos termos sync contra o CTR (fail-closed se indisponível: modificação rejeitada, estado preservado), recomputa o termsHash, e aplica como override autoritativo do DRC (sem novo AcceptanceConfirmation; carve-out de inv-mutual-bilateral-acceptance, ten-014); maintain → não auto-reativa um compromisso suspended (reativação fica em cmd-reactivate-commitment supervisionado), é no-op sobre accepted, mantém a marcação sobre at-risk, e é inválido sobre cancelled (terminal)."
 		rationale:   "Existe porque #Policy exige exatamente um issuesCommand, mas resolução de disputa é sinal externo com múltiplos outcomes. Routing vive no aggregate porque ele é o consistency boundary que preserva a decisão final — nenhum orchestrator externo decide a transição. modify_terms é gateado por inv-dispute-modify-terms-revalidates-ctr (sc-cmt-09): disputa não pode criar termo material fora do CTR. maintain não adiciona transição suspended→accepted — a reativação permanece supervisionada (inv-reactivation-requires-supervision)."
@@ -305,6 +369,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-cancel-commitment"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Cancel Commitment"
 		name:        "CancelCommitment"
 		description: "Cancela compromisso definitivamente. Decisão terminal — compromisso cancelado não pode ser reativado."
 		rationale:   "Estado terminal do lifecycle. Pode originar de disputa resolvida com cancelamento ou decisão operacional. Irreversibilidade exige supervisão."
@@ -481,6 +549,10 @@ domainModel: artifact_schemas.#DomainModel & {
 
 	aggregates: [{
 		code:        "agg-commitment"
+		// adr-151 Forma A (onda cmt, passo vi)
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
+		coreNoun:         "Commitment"
 		name:        "Commitment"
 		description: "Aggregate root do compromisso. Único consistency boundary do CMT. Encapsula estado, partes, termos e lifecycle do compromisso."
 

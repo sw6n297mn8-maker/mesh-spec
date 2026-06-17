@@ -261,6 +261,60 @@ glossary: artifact_schemas.#Glossary & {
 			clarification: "Contrato é o instrumento jurídico completo em CTR. Termos contratuais são as cláusulas específicas que um compromisso referencia."
 		}]
 		relatedTerms: ["term-compromisso"]
+	}, {
+		code:       "term-cancelar-compromisso"
+		name:       "Cancelar Compromisso"
+		termEn:     "Cancel Commitment"
+		definition: "Ação canônica que cancela definitivamente um compromisso. Decisão terminal — um compromisso cancelado não pode ser reativado."
+		category:   "command"
+		rationale:  "Command terminal do lifecycle do compromisso; distingue-se da suspensão (reversível) por ser irreversível."
+		domainModelRefs: ["cmd-cancel-commitment"]
+		relatedTerms: ["term-compromisso", "term-suspender-compromisso"]
+	}, {
+		code:       "term-suspender-compromisso"
+		name:       "Suspender Compromisso"
+		termEn:     "Suspend Commitment"
+		definition: "Ação canônica que suspende um compromisso ativo, disparada por sinalização de risco ou determinação de disputa. Pausa o compromisso preservando-o para reativação."
+		category:   "command"
+		rationale:  "Command de transição reversível (oposto de cancelar). Forma-verbo do ato, distinta do substantivo-estado Commitment Suspension (term-suspensao-compromisso) — norm() exato não colide."
+		domainModelRefs: ["cmd-suspend-commitment"]
+		relatedTerms: ["term-compromisso", "term-reativar-compromisso"]
+	}, {
+		code:       "term-reativar-compromisso"
+		name:       "Reativar Compromisso"
+		termEn:     "Reactivate Commitment"
+		definition: "Ação canônica que reativa um compromisso suspenso após resolução favorável de disputa ou redução de risco. Retorna o compromisso ao estado ativo."
+		category:   "command"
+		rationale:  "Command de retorno ao estado ativo (oposto de suspender); só aplicável a compromissos suspensos."
+		domainModelRefs: ["cmd-reactivate-commitment"]
+		relatedTerms: ["term-compromisso", "term-suspender-compromisso"]
+	}, {
+		code:       "term-sinalizar-risco"
+		name:       "Sinalizar Risco"
+		termEn:     "Flag At Risk"
+		definition: "Ação canônica que sinaliza um compromisso ativo como em-risco quando a contraparte recebe alerta de risco do REW."
+		category:   "command"
+		rationale:  "Command de gestão de risco de contraparte; marca o compromisso sem suspendê-lo (a suspensão é decisão separada)."
+		domainModelRefs: ["cmd-flag-at-risk"]
+		relatedTerms: ["term-compromisso", "term-limpar-flag-risco"]
+	}, {
+		code:       "term-limpar-flag-risco"
+		name:       "Limpar Sinalização de Risco"
+		termEn:     "Clear Risk Flag"
+		definition: "Ação canônica que remove a sinalização de risco de um compromisso at-risk, retornando-o ao estado aceito."
+		category:   "command"
+		rationale:  "Command oposto de Flag At Risk; aplica-se a compromissos previamente sinalizados como em-risco."
+		domainModelRefs: ["cmd-clear-risk-flag"]
+		relatedTerms: ["term-compromisso", "term-sinalizar-risco"]
+	}, {
+		code:       "term-tratar-resolucao-disputa"
+		name:       "Tratar Resolução de Disputa"
+		termEn:     "Handle Dispute Resolution"
+		definition: "Ação canônica que processa a resolução de uma disputa do DRC (cancel | modify_terms | maintain) sobre um compromisso, aplicando o efeito determinado no lifecycle do compromisso."
+		category:   "command"
+		rationale:  "Command que materializa no compromisso a decisão de disputa do DRC; CMT executa o efeito (cancelar/modificar/manter), não decide a disputa."
+		domainModelRefs: ["cmd-handle-dispute-resolution"]
+		relatedTerms: ["term-compromisso"]
 	}]
 
 	rationale: "Glossário do CMT cobre os conceitos centrais do commitment lifecycle: a entidade (Compromisso), sua identidade (CommitmentId), a invariante de aceite bilateral, os papéis funcionais (Proponente, Contraparte), os commands do fluxo bilateral (ProposeCommitment, ConfirmCommitmentAcceptance), os estados e transições, os eventos internos (CommitmentProposed) e cross-context (CommitmentAccepted, CommitmentStateChanged), e a dependência de termos contratuais de CTR. domainModelRefs prospectivos vinculam termos aos building blocks táticos previstos (WI-025). Lenses aplicadas: domain-language (bilingual mapping pt-BR/en, term selection criteria, cross-layer consistency) e contractual-legal (precisão jurídica de termos que criam obrigações — especialmente Aceite e Compromisso)."
