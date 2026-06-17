@@ -18,23 +18,12 @@ package build_time
 // coreNoun + termo dedicado (Forma A). Quando entries esvaziar (todo cross-contract
 // declarado-OU-aqui), o gate promove warn->reject (passo vi do adr-151).
 // Gerado deterministicamente dos aggregate-manifests (mesma fonte do evaluator).
-// DRENAGEM (passo vi): onda cmt cobriu os 20 conceitos do cmt (Forma A + termos) -> removidos.
-// Restantes: 28 (dlv 11, fce 8, rew 9). Quando entries esvaziar, gate promove warn->reject.
+// DRENAGEM (passo vi): ondas cmt+dlv cobriram 31 conceitos (Forma A + termos) -> removidos.
+// Restantes: 17 (fce 8, rew 9). Quando entries esvaziar, gate promove warn->reject.
 
 
 firstClassBackfillWorklist: {
 	entries: [
-		{conceptCode: "agg-verification", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-evaluate-verification", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-record-evidence", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "cmd-transition-exception-state", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-delivery-rejected", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-delivery-verified", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-evidence-recorded", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-exception-entered", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-exception-extended", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-exception-resolved", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
-		{conceptCode: "evt-supersession-applied", bc: "dlv", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "agg-payment", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "cmd-authorize-payment", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
 		{conceptCode: "cmd-dispatch-payment-instruction", bc: "fce", reason: "backfill Forma A pendente (campanha pos-adr-153)", status: "pending"},
