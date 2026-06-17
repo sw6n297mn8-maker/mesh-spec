@@ -303,9 +303,9 @@ glossary: artifact_schemas.#Glossary & {
 		code:   "term-despachar-instrucao-de-pagamento"
 		name:   "Despachar Instrução de Pagamento"
 		termEn: "Dispatch Payment Instruction"
-		definition: "Ação canônica que despacha a PaymentInstruction ao rail bancário após a autorização (authorized->dispatched). Comando -- o ato de dispatch, distinto da decisão econômica (Authorize Payment)."
+		definition: "Ação canônica que despacha a PaymentInstruction ao BKR após a autorização (authorized->dispatched). Comando -- o ato de dispatch, distinto da decisão econômica (Authorize Payment)."
 		category: "command"
-		rationale: "Command que separa o dispatch ao rail da decisão econômica (Authorize Payment); o FCE decide, o rail executa."
+		rationale: "Command que separa o dispatch ao BKR da decisão econômica (Authorize Payment); o FCE decide, o BKR executa no rail."
 		relatedTerms: ["term-pagamento", "term-instrucao-de-pagamento-despachada", "term-autorizar-pagamento"]
 		domainModelRefs: ["cmd-dispatch-payment-instruction"]
 	}, {
@@ -330,9 +330,9 @@ glossary: artifact_schemas.#Glossary & {
 		code:   "term-instrucao-de-pagamento-despachada"
 		name:   "Instrução de Pagamento Despachada"
 		termEn: "Payment Instruction Dispatched"
-		definition: "Fato de que a PaymentInstruction foi despachada ao rail bancário. Evento -- o fato do dispatch, distinto do comando Dispatch Payment Instruction."
+		definition: "Fato de que a PaymentInstruction foi despachada ao BKR. Evento -- o fato do dispatch, distinto do comando Dispatch Payment Instruction."
 		category: "event"
-		rationale: "Fato do dispatch ao rail; distinto do comando Dispatch Payment Instruction -- fato vs ato."
+		rationale: "Fato do dispatch ao BKR; distinto do comando Dispatch Payment Instruction -- fato vs ato."
 		relatedTerms: ["term-pagamento", "term-despachar-instrucao-de-pagamento"]
 		domainModelRefs: ["evt-payment-instruction-dispatched"]
 	}, {
