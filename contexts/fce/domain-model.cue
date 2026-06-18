@@ -223,6 +223,111 @@ domainModel: artifact_schemas.#DomainModel & {
 			name:           "commitmentRef"
 			valueObjectRef: "vo-commitment-ref"
 		}]
+	}, {
+		code: "evt-payment-guard-escalated"
+		// adr-155 materialização — first-class governance (intervenção de supervisão)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Payment Guard Escalated"
+		name:        "PaymentGuardEscalated"
+		visibility:  "internal"
+		description: """
+			O PrePaymentGuard não passou de forma limpa — uma das 3 condições
+			(fatura / elegibilidade / evidência) está stale, incompleta ou
+			ambígua-mas-PRESENTE — e o Payment foi escalado para julgamento
+			humano. NÃO é breach: evidência ausente ou com integridade
+			criptográfica falha permanece em guarded e dispara o freeze
+			(escalationCriterion p11-invariant-breach-detected), não escala.
+			"""
+		rationale: """
+			Outcome-split do PrePaymentGuard (tq-dmg-06): separa o caminho
+			overridável (stale/ambíguo) do bloqueio-limpo (T2 — permanece
+			guarded) e do breach (freeze). Materializa o estado escalated do
+			adr-155 — evidência auditável de que a máquina parou e esperou um
+			humano.
+			"""
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "paymentId"
+			valueObjectRef: "vo-payment-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "escalatedConditions"
+			valueObjectRef: "vo-overridden-guard-conditions"
+		}]
+	}, {
+		code: "evt-payment-guard-overridden"
+		// adr-155 materialização — first-class governance
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Payment Guard Overridden"
+		name:        "PaymentGuardOverridden"
+		visibility:  "internal"
+		description: """
+			O supervisor APROVOU o override de um Payment escalado — autorizou
+			o pagamento com atribuição nominal (quem / por quê / quais condições
+			foram sobrepostas). O Payment reentra no trilho (authorized) e segue
+			para dispatch sob a authorization proof.
+			"""
+		rationale: """
+			O ato humano sancionado (adr-155): carrega a atribuição (supervisorId
+			/ reason / overriddenConditions) para o audit trail. Distinto de
+			evt-payment-authorized (autônomo) — o audit separa override humano de
+			gate-pass autônomo (fronteira P10).
+			"""
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "paymentId"
+			valueObjectRef: "vo-payment-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supervisorId"
+			valueObjectRef: "vo-supervisor-id"
+		}, {
+			kind: "primitive"
+			name: "reason"
+			type: "string"
+		}, {
+			kind:           "value-object-ref"
+			name:           "overriddenConditions"
+			valueObjectRef: "vo-overridden-guard-conditions"
+		}, {
+			kind:           "value-object-ref"
+			name:           "proof"
+			valueObjectRef: "vo-authorization-proof"
+		}]
+	}, {
+		code: "evt-payment-guard-override-refused"
+		// adr-155 materialização — first-class governance
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Payment Guard Override Refused"
+		name:        "PaymentGuardOverrideRefused"
+		visibility:  "internal"
+		description: """
+			O supervisor NEGOU o override de um Payment escalado — o Payment vai
+			ao terminal refused. O destino da obrigação (default, reissuance,
+			encerramento) é a supervisedDecision confirm-payment-obligation-default
+			(#4), fora desta fatia.
+			"""
+		rationale: """
+			Caminho de recusa (adr-155 item 3): terminal próprio, NÃO acoplado a
+			default — mantém a fatia coesa. Registra supervisorId + reason para o
+			audit trail.
+			"""
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "paymentId"
+			valueObjectRef: "vo-payment-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supervisorId"
+			valueObjectRef: "vo-supervisor-id"
+		}, {
+			kind: "primitive"
+			name: "reason"
+			type: "string"
+		}]
 	}]
 
 	commands: [{
@@ -322,6 +427,50 @@ domainModel: artifact_schemas.#DomainModel & {
 			name: "railReferenceId"
 			type: "string"
 		}]
+	}, {
+		code: "cmd-resolve-guard-escalation"
+		// adr-155 materialização — first-class governance
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Resolve Guard Escalation"
+		name:        "Resolve Guard Escalation"
+		description: """
+			Resolução humana de um Payment escalado: o supervisor APROVA
+			(decision=approve → authorized, emite PaymentGuardOverridden) OU NEGA
+			(decision=deny → refused, emite PaymentGuardOverrideRefused). Um ato
+			de julgamento supervisionado, dois outcomes. Alcançável SÓ de
+			escalated.
+			"""
+		rationale: """
+			Materializa a supervisedDecision override-prepayment-guard como command
+			de domínio (adr-155). overriddenConditions é campo deste command e o
+			command só é alcançável de escalated → breach (que nunca escala,
+			inv-breach-bypasses-escalation) nunca chega aqui: o piso por construção.
+			A enforcement humano-only (o agente não pode emiti-lo autonomamente) é
+			o estágio 2 (agent-spec autonomyLevel propose-and-wait, oq-fce-3) — não
+			vive no domain-model.
+			"""
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "paymentId"
+			valueObjectRef: "vo-payment-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supervisorId"
+			valueObjectRef: "vo-supervisor-id"
+		}, {
+			kind: "primitive"
+			name: "reason"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "decision"
+			type: "string"
+		}, {
+			kind:           "value-object-ref"
+			name:           "overriddenConditions"
+			valueObjectRef: "vo-overridden-guard-conditions"
+		}]
 	}]
 
 	invariants: [{
@@ -389,6 +538,44 @@ domainModel: artifact_schemas.#DomainModel & {
 			bd-settlement-fact-canonical (P0 + ax-07): fonte concorrente
 			de liquidação criaria divergência silenciosa entre risco,
 			contábil e tesouraria.
+			"""
+	}, {
+		code: "inv-override-requires-attribution"
+		name: "Override exige atribuição nominal ao supervisor"
+		rule: """
+			A transição escalated → authorized (override) ocorre EXCLUSIVAMENTE
+			via cmd-resolve-guard-escalation (decision=approve) com supervisorId
+			nominal + reason + overriddenConditions registrados em
+			evt-payment-guard-overridden. Nenhum caminho autônomo transiciona
+			escalated → authorized. A recusa (decision=deny) vai a refused com
+			supervisorId + reason.
+			"""
+		rationale: """
+			P10 (aprovações humanas como parte do gate) + a supervisedDecision
+			override-prepayment-guard: o override é ato humano sancionado,
+			nominalmente atribuído e auditável. A enforcement de que o AGENTE não
+			pode emitir o command vive no agent-governance (estágio 2, oq-fce-3);
+			aqui o domain-model registra a atribuição obrigatória.
+			"""
+	}, {
+		code: "inv-breach-bypasses-escalation"
+		name: "Breach de P11 nunca escala — vai a freeze"
+		rule: """
+			Evidência AUSENTE ou com integridade criptográfica FALHA (breach de
+			P11) nunca transiciona para escalated. Permanece em guarded e dispara
+			o escalationCriterion p11-invariant-breach-detected (freeze fail-safe,
+			canvas governanceScope). Só condição stale, ambígua ou
+			incompleta-mas-PRESENTE escala (guarded → escalated).
+			overriddenConditions é alcançável só de escalated → breach nunca chega
+			ao override.
+			"""
+		rationale: """
+			O piso inoverridável (adr-155 item 4; P11 nível-1 não-tensionável): o
+			override cobre o presente-mas-não-confirmável, jamais o ausente/forjado.
+			O roteamento breach → freeze JÁ EXISTE (canvas p11-invariant-breach-
+			detected) — esta invariante o REFERENCIA, não o cria. Reforçada por
+			construção: vo-overridden-guard-conditions não tem flag de
+			integridade-criptográfica.
 			"""
 	}]
 
@@ -476,6 +663,58 @@ domainModel: artifact_schemas.#DomainModel & {
 			#EligibilityConsumption (def-057 opção d, adr-149); REW
 			materializou na Etapa 2 — projeção-de-parte, não fixture.
 			"""
+	}, {
+		code:        "vo-supervisor-id"
+		name:        "Supervisor Id"
+		description: """
+			Identidade nominal do supervisor humano que autorizou ou negou um
+			override do PrePaymentGuard.
+			"""
+		fields: [{
+			kind: "primitive"
+			name: "value"
+			type: "string"
+		}]
+		constraints: ["não-vazio"]
+		rationale: """
+			A atribuição nominal (QUEM) que torna o override auditável e
+			não-anônimo (adr-155; P10). A identidade é governada pelo
+			agent-governance (estágio 2); aqui é o slot de domínio que o command e
+			os events do override carregam.
+			"""
+	}, {
+		code:        "vo-overridden-guard-conditions"
+		name:        "Overridden Guard Conditions"
+		description: """
+			Subconjunto das condições do PrePaymentGuard que estavam stale/ambíguas
+			e foram sobrepostas pelo supervisor: três flags — fatura, elegibilidade,
+			frescor-de-evidência. NÃO há flag para integridade-criptográfica de
+			evidência.
+			"""
+		fields: [{
+			kind: "primitive"
+			name: "invoiceStaleOverridden"
+			type: "boolean"
+		}, {
+			kind: "primitive"
+			name: "eligibilityStaleOverridden"
+			type: "boolean"
+		}, {
+			kind: "primitive"
+			name: "evidenceFreshnessOverridden"
+			type: "boolean"
+		}]
+		constraints: [
+			"ao menos uma flag true (override vazio é incoerente)",
+			"SEM campo de integridade-criptográfica — breach nunca é overridável: evidência ausente/forjada vai a freeze (p11-invariant-breach-detected), não a este VO",
+		]
+		rationale: """
+			O QUÊ foi sobreposto, auditável. A AUSÊNCIA de flag para
+			integridade-criptográfica é o piso REALIZADO por construção (não só
+			prosa): o supervisor não consegue sequer NOMEAR override de breach —
+			evidência ausente/forjada vai a p11-invariant-breach-detected (freeze),
+			não a este VO. Reforça inv-breach-bypasses-escalation.
+			"""
 	}]
 
 	aggregates: [{
@@ -509,17 +748,46 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "primitive"
 			name: "amount"
 			type: "decimal"
+		}, {
+			// adr-155 — carimbo do estado escalated (outcome state).
+			kind: "primitive"
+			name: "escalatedAt"
+			type: "datetime"
+		}, {
+			// adr-155 — atribuição do override aprovado (quem sobrepôs).
+			kind:           "value-object-ref"
+			name:           "overriddenBy"
+			valueObjectRef: "vo-supervisor-id"
+		}, {
+			// adr-155 — carimbo do override aprovado (authorized via escalada).
+			kind: "primitive"
+			name: "overriddenAt"
+			type: "datetime"
+		}, {
+			// adr-155 — atribuição da recusa (quem negou).
+			kind:           "value-object-ref"
+			name:           "refusedBy"
+			valueObjectRef: "vo-supervisor-id"
+		}, {
+			// adr-155 — carimbo do estado refused (outcome state).
+			kind: "primitive"
+			name: "refusedAt"
+			type: "datetime"
 		}]
 		handlesCommands: [
 			"cmd-materialize-payment",
 			"cmd-authorize-payment",
 			"cmd-dispatch-payment-instruction",
 			"cmd-settle-payment",
+			"cmd-resolve-guard-escalation",
 		]
 		emitsEvents: [
 			"evt-payment-authorized",
 			"evt-payment-instruction-dispatched",
 			"evt-payment-settled",
+			"evt-payment-guard-escalated",
+			"evt-payment-guard-overridden",
+			"evt-payment-guard-override-refused",
 		]
 		protectsInvariants: [
 			"inv-money-moves-only-on-proof",
@@ -527,20 +795,26 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-at-most-once-dispatch",
 			"inv-no-partial-settlement",
 			"inv-settled-fact-canonical",
+			"inv-override-requires-attribution",
+			"inv-breach-bypasses-escalation",
 		]
 		usesValueObjects: [
 			"vo-payment-id",
 			"vo-commitment-ref",
 			"vo-authorization-proof",
 			"vo-eligibility-decision",
+			"vo-supervisor-id",
+			"vo-overridden-guard-conditions",
 		]
 		lifecycle: {
 			initialState: "guarded"
 			states: [
 				"guarded",
+				"escalated",
 				"authorized",
 				"dispatched",
 				"settled",
+				"refused",
 			]
 			transitions: [{
 				from:               "guarded"
@@ -552,9 +826,54 @@ domainModel: artifact_schemas.#DomainModel & {
 					"inv-guard-deterministic",
 				]
 				description: """
-					PrePaymentGuard aprova as 3 condições → decisão
-					econômica de pagar + emissão da proof. Reprovação NÃO
-					transiciona (permanece guarded com motivo, T2).
+					PrePaymentGuard aprova as 3 condições de forma limpa →
+					decisão econômica de pagar + emissão da proof. Reprovação
+					limpa NÃO transiciona (permanece guarded com motivo, T2);
+					reprovação não-limpa escala (guarded → escalated).
+					"""
+			}, {
+				// adr-155 — outcome-split do guard: caminho não-limpo.
+				from:               "guarded"
+				to:                 "escalated"
+				triggeredByCommand: "cmd-authorize-payment"
+				emitsEvents: ["evt-payment-guard-escalated"]
+				guards: [
+					"inv-guard-deterministic",
+					"inv-breach-bypasses-escalation",
+				]
+				description: """
+					Uma das 3 condições está stale / incompleta / ambígua-mas-
+					PRESENTE → Payment escala para julgamento humano. O piso
+					inv-breach-bypasses-escalation barra o breach (evidência
+					ausente ou com integridade criptográfica falha): este vai a
+					freeze (p11-invariant-breach-detected), nunca a escalated.
+					"""
+			}, {
+				// adr-155 — saída bilateral da escalada: override aprovado.
+				from:               "escalated"
+				to:                 "authorized"
+				triggeredByCommand: "cmd-resolve-guard-escalation"
+				emitsEvents: ["evt-payment-guard-overridden"]
+				guards: ["inv-override-requires-attribution"]
+				description: """
+					Supervisor APROVA o override (decision approve) → Payment
+					reentra no trilho com atribuição nominal (supervisorId /
+					reason / overriddenConditions) + proof. Converge ao mesmo
+					authorized do caminho autônomo; o audit distingue a origem
+					(override humano vs gate-pass autônomo, fronteira P10).
+					"""
+			}, {
+				// adr-155 — saída bilateral da escalada: override recusado.
+				from:               "escalated"
+				to:                 "refused"
+				triggeredByCommand: "cmd-resolve-guard-escalation"
+				emitsEvents: ["evt-payment-guard-override-refused"]
+				guards: ["inv-override-requires-attribution"]
+				description: """
+					Supervisor NEGA o override (decision deny) → terminal
+					refused com atribuição (supervisorId / reason). O destino da
+					obrigação (default, reissuance, encerramento) é decisão
+					supervisionada fora desta fatia (T2).
 					"""
 			}, {
 				from:               "authorized"
@@ -583,25 +902,33 @@ domainModel: artifact_schemas.#DomainModel & {
 			}]
 		}
 		rationale: """
-			Consistency boundary único da fatia: as 5 invariantes são
+			Consistency boundary único da fatia: as 7 invariantes são
 			intra-Payment e as transições são serializadas pelo aggregate
 			(bd-payment-canonical-state — ownership exclusivo). O caminho
-			modelado é exatamente o que o cenário do WI-138 exercita:
-			guard-pass até settled + 1 bloqueio (permanência em guarded).
+			autônomo é o que o cenário do WI-138 exercita (guard-pass até
+			settled + bloqueio-limpo em guarded); o adr-155 acrescenta a
+			exceção sancionada — escalada a julgamento humano (escalated)
+			com saída bilateral: override atribuído (→ authorized) ou recusa
+			(→ refused). O piso inv-breach-bypasses-escalation mantém o breach
+			fora da escalada — vai a freeze, nunca a humano.
 			"""
 	}]
 
 	rationale: """
 		Fatia do domain-model do FCE recortada no caminho do
 		PrePaymentGuard (claim parcial WI-043; precedente WI-140),
-		derivada integralmente do canvas: 6 events (1 consumido — INV
-		real espelho; 1 fixture BKR — SettlementFinalized; 2 internos;
-		1 publicado — PaymentSettled; 1 catálogo — PaymentObligationDefaulted;
-		eligibility consumida via contrato-de-consumo #EligibilityConsumption,
-		fora do events[]), 4 commands, 5 invariantes (subconjunto
-		declarado das 11), 4 VOs e o agg-payment com lifecycle de 4
-		estados. Gaps T1/T2 declarados no header; expansão (estados de
-		falha, retenção, realização orçamentária, default) segue nos
-		próximos incrementos do WI-043/WI futuro com BDG na composição.
+		derivada do canvas e estendida pelo adr-155 (exceção de override
+		humano): 9 events (1 consumido — INV espelho; 1 fixture BKR —
+		SettlementFinalized; 5 internos — authorized/dispatched + os 3 de
+		governança escalated/overridden/override-refused; 1 publicado —
+		PaymentSettled; 1 catálogo — PaymentObligationDefaulted; eligibility
+		consumida via contrato-de-consumo #EligibilityConsumption, fora do
+		events[]), 5 commands, 7 invariantes (5 do subconjunto declarado das
+		11 do canvas + 2 do adr-155: atribuição do override e o piso
+		inoverridável), 6 VOs e o agg-payment com lifecycle de 6 estados
+		(guard autônomo + escalada bilateral). Gaps T1/T2 declarados no
+		header; expansão (demais estados de falha, retenção, realização
+		orçamentária, default) segue nos próximos incrementos do WI-043/WI
+		futuro com BDG na composição.
 		"""
 }
