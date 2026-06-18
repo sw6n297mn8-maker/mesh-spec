@@ -6,7 +6,24 @@ def060: artifact_schemas.#DeferredDecision & {
 	id:     "def-060"
 	title:  "Stack de vendor de cliente de frontend deferida ao frontend-runtime"
 	date:   "2026-06-14"
-	status: "open"
+	status: "triggered"
+
+	triggeredAt: "2026-06-17"
+	triggeredCondition: """
+		adr-154 (em main, merge 031e6328) formalizou o criterio de runtime
+		subordinado virar repo proprio e AUTORIZOU a existencia do
+		frontend-runtime. A pre-condicao manual-review deste deferimento esta
+		satisfeita no sentido que importa: o repo esta autorizado a nascer — a
+		decisao que o def-060 pressupunha ("quando esse repo nascer") agora existe.
+
+		Deferimento MANTIDO — NAO resolvido. adr-154 autoriza a EXISTENCIA do
+		repo; NAO escolhe o vendor de cliente (framework web, motor de sync,
+		runtime de orquestracao de agente IA, design system). A resolucao — a
+		selecao JIT do stack — permanece deferida ate o frontend-runtime
+		bootstrar de fato e escolher seu vendor atras da fronteira (P2). Status
+		'triggered' registra que a pre-condicao de autorizacao foi atingida;
+		resolvedBy fica vazio por construcao (o vendor concreto ainda nao existe).
+		"""
 
 	description: """
 		A selecao de vendor de cliente de frontend fica deferida ao
