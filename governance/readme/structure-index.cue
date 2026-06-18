@@ -160,7 +160,8 @@ structureIndex: {
 				"architecture/adrs/adr-151-first-class-semantic-traceability.cue",
 				"architecture/adrs/adr-152-derived-drift-gate.cue",
 				"architecture/adrs/adr-153-add-first-class-traceability-kind.cue",
-				"architecture/adrs/adr-154-runtime-repo-criterion.cue"
+				"architecture/adrs/adr-154-runtime-repo-criterion.cue",
+				"architecture/adrs/adr-155-human-override-prepayment-guard-fce.cue"
 			],
 			"schema": "#ADRBase"
 		},
