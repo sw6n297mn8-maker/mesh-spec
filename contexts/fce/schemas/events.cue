@@ -2,7 +2,8 @@ package fce
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared_schemas"
 
-// schemas/events.cue — Payload schemas dos 8 eventos do domain-model FCE.
+// schemas/events.cue — Payload schemas dos 9 eventos do domain-model FCE
+// (+ contrato-de-consumo #EligibilityConsumption, fora do events[]).
 //
 // FATIA FCE DO WI-140 (claim WI-140-claim-fatia-fce — NÃO conclui o WI;
 // precedente: fatia-2 DLV). Espelha o pattern DLV/CMT: #Envelope
@@ -53,13 +54,16 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #PaymentId:       string & !=""
 #InstructionId:   string & !="" // novo por tentativa de dispatch (InstructionRejected é terminal)
 #RailReferenceId: string & !="" // referência do rail, devolvida pelo BKR na reconciliação
+#SupervisorId:    string & !="" // identidade do supervisor humano que resolve a escalada (adr-155)
 
 // Estado do Payment — disjunção FECHADA: o gerador REUSA este enum
 // (schemas-preference, rtd-013) e valida contra lifecycle.states do
-// am-payment (idênticos por construção). 4 estados da fatia (T2 do
-// domain-model: failed/indeterminate/cancelled entram com os fluxos de
-// exceção).
-#PaymentState: "guarded" | "authorized" | "dispatched" | "settled"
+// am-payment (idênticos por construção; ordem espelha agg-payment.lifecycle.
+// states do domain-model). 6 estados da fatia: 4 do caminho autônomo
+// (guarded → authorized → dispatched → settled) + 2 do override humano do
+// adr-155 (escalated, refused). T2 do domain-model:
+// failed/indeterminate/cancelled entram com os fluxos de exceção.
+#PaymentState: "guarded" | "escalated" | "authorized" | "dispatched" | "settled" | "refused"
 
 // Prova de Autorização (glossário term-prova-de-autorizacao; as-fce-3):
 // artefato verificável que acompanha toda PaymentInstruction.
@@ -68,6 +72,19 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	nonce:      string & !="" // uso único por instrução
 	validUntil: #RFC3339Timestamp
 	claimChain: string & !=""
+}
+
+// Condições do guard sobrepostas no override (adr-155; glossário/domain-model
+// vo-overridden-guard-conditions). SEM flag de integridade-criptográfica POR
+// CONSTRUÇÃO: breach (evidência ausente/forjada) nunca é overridável — vai a
+// freeze (p11-invariant-breach-detected), não a este VO. Reforça
+// inv-breach-bypasses-escalation. "Ao menos uma flag true" é invariante de
+// domínio (handler), não shape — alinhado ao padrão do arquivo (constraints
+// de domínio ficam em prose, não em CUE; cf. nonce uso-único de #AuthorizationProof).
+#OverriddenGuardConditions: {
+	invoiceStaleOverridden:      bool
+	eligibilityStaleOverridden:  bool
+	evidenceFreshnessOverridden: bool
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -118,7 +135,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 }
 
 // ════════════════════════════════════════════════════════════════════
-// EVENTOS PRÓPRIOS DO FCE (4)
+// EVENTOS PRÓPRIOS DO FCE (7)
 // ════════════════════════════════════════════════════════════════════
 
 // evt-payment-authorized — guard aprovou as 3 condições; decisão
@@ -161,5 +178,43 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	data: {
 		paymentId:     #PaymentId
 		commitmentRef: #CommitmentRef
+	}
+}
+
+// evt-payment-guard-escalated — guard não-limpo (stale/incompleto/ambíguo-
+// mas-PRESENTE) → Payment escala para julgamento humano (interno ao BC;
+// adr-155). NÃO é breach: evidência ausente/forjada vai a freeze, não escala.
+#PaymentGuardEscalated: #Envelope & {
+	type: "mesh.fce.payment-guard-escalated.v1"
+	data: {
+		paymentId:           #PaymentId
+		escalatedConditions: #OverriddenGuardConditions
+	}
+}
+
+// evt-payment-guard-overridden — supervisor APROVOU o override (interno ao
+// BC; adr-155). Carrega a atribuição nominal (quem / por quê / o que foi
+// sobreposto) + a proof para o audit trail. Distinto de evt-payment-authorized
+// (autônomo): separa override humano de gate-pass autônomo (fronteira P10).
+#PaymentGuardOverridden: #Envelope & {
+	type: "mesh.fce.payment-guard-overridden.v1"
+	data: {
+		paymentId:            #PaymentId
+		supervisorId:         #SupervisorId
+		reason:               string & !=""
+		overriddenConditions: #OverriddenGuardConditions
+		proof:                #AuthorizationProof
+	}
+}
+
+// evt-payment-guard-override-refused — supervisor NEGOU o override → terminal
+// refused (interno ao BC; adr-155). O destino da obrigação (default,
+// reissuance, encerramento) é decisão supervisionada fora desta fatia (T2).
+#PaymentGuardOverrideRefused: #Envelope & {
+	type: "mesh.fce.payment-guard-override-refused.v1"
+	data: {
+		paymentId:    #PaymentId
+		supervisorId: #SupervisorId
+		reason:       string & !=""
 	}
 }

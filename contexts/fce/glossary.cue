@@ -344,6 +344,77 @@ glossary: artifact_schemas.#Glossary & {
 		rationale: "Fato terminal de sucesso do caminho do guard; distinto do comando Settle Payment e do processo Settlement."
 		relatedTerms: ["term-pagamento", "term-liquidar-pagamento", "term-liquidacao"]
 		domainModelRefs: ["evt-payment-settled"]
+	}, {
+		code:   "term-pagamento-escalado-no-guard"
+		name:   "Pagamento Escalado no Guard"
+		termEn: "Payment Guard Escalated"
+		definition: """
+			Fato de que o PrePaymentGuard não passou de forma limpa — uma das 3
+			condições está stale, incompleta ou ambígua-mas-presente — e o
+			Payment foi escalado para julgamento humano (estado escalated). NÃO é
+			breach: evidência ausente/forjada vai a freeze, não escala.
+			"""
+		category: "event"
+		rationale: """
+			Fato que materializa o outcome-split do guard (adr-155): separa o
+			caminho overridável do bloqueio-limpo e do breach. termEn == coreNoun
+			do evt-payment-guard-escalated (elo G1, adr-151).
+			"""
+		relatedTerms: ["term-guarda-pre-pagamento", "term-resolver-escalada-do-guard"]
+		domainModelRefs: ["evt-payment-guard-escalated"]
+	}, {
+		code:   "term-pagamento-com-guard-sobreposto"
+		name:   "Pagamento com Guard Sobreposto"
+		termEn: "Payment Guard Overridden"
+		definition: """
+			Fato de que o supervisor aprovou o override de um Payment escalado —
+			autorizou o pagamento com atribuição nominal (quem / por quê / quais
+			condições). O Payment reentra no trilho (authorized).
+			"""
+		category: "event"
+		rationale: """
+			Fato do ato humano sancionado (adr-155); distinto de Payment Authorized
+			(autônomo) — o audit separa override de gate-pass. termEn == coreNoun do
+			evt-payment-guard-overridden (elo G1, adr-151).
+			"""
+		relatedTerms: ["term-resolver-escalada-do-guard", "term-guarda-pre-pagamento"]
+		domainModelRefs: ["evt-payment-guard-overridden"]
+	}, {
+		code:   "term-override-do-guard-recusado"
+		name:   "Override do Guard Recusado"
+		termEn: "Payment Guard Override Refused"
+		definition: """
+			Fato de que o supervisor negou o override de um Payment escalado — o
+			Payment vai ao terminal refused. O destino da obrigação é a
+			supervisedDecision confirm-payment-obligation-default, fora desta fatia.
+			"""
+		category: "event"
+		rationale: """
+			Fato do caminho de recusa (adr-155 item 3): terminal próprio, não
+			acoplado a default. termEn == coreNoun do
+			evt-payment-guard-override-refused (elo G1, adr-151).
+			"""
+		relatedTerms: ["term-resolver-escalada-do-guard"]
+		domainModelRefs: ["evt-payment-guard-override-refused"]
+	}, {
+		code:   "term-resolver-escalada-do-guard"
+		name:   "Resolver Escalada do Guard"
+		termEn: "Resolve Guard Escalation"
+		definition: """
+			Ação canônica de resolução humana de um Payment escalado: o supervisor
+			APROVA (→ authorized, override sancionado) OU NEGA (→ refused). Comando
+			— um ato de julgamento supervisionado, dois outcomes; alcançável só de
+			escalated.
+			"""
+		category: "command"
+		rationale: """
+			Command que materializa a supervisedDecision override-prepayment-guard
+			(adr-155); overriddenConditions só é alcançável daqui → breach nunca
+			chega (o piso). termEn == coreNoun do cmd-resolve-guard-escalation (elo
+			G1, adr-151).
+			"""
+		relatedTerms: ["term-pagamento-escalado-no-guard", "term-guarda-pre-pagamento", "term-pagamento-com-guard-sobreposto"]
+		domainModelRefs: ["cmd-resolve-guard-escalation"]
 	}]
 
 	rationale: """
