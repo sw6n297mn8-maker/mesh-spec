@@ -15,7 +15,7 @@ adr154: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	context: """
 		DEPENDÊNCIA QUEBRADA (a motivação). def-060 (frontend client vendor stack)

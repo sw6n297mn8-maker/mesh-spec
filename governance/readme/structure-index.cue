@@ -162,7 +162,8 @@ structureIndex: {
 				"architecture/adrs/adr-153-add-first-class-traceability-kind.cue",
 				"architecture/adrs/adr-154-runtime-repo-criterion.cue",
 				"architecture/adrs/adr-155-human-override-prepayment-guard-fce.cue",
-				"architecture/adrs/adr-156-openquestion-resolution-lifecycle.cue"
+				"architecture/adrs/adr-156-openquestion-resolution-lifecycle.cue",
+				"architecture/adrs/adr-157-frontend-runtime-bootstrap-handoff.cue"
 			],
 			"schema": "#ADRBase"
 		},
