@@ -41,6 +41,8 @@ treeAscii: """
 	│   │   └── agents/              # Specs e governance envelopes dos agentes do BC Contract & Terms Registry.
 	│   ├── dlv/                     # Bounded Context Delivery & Verification: verifica execução operacional contra critérios versionados acordados em CMT e decide deterministicamente a suficiência de evidência para progressão econômica.
 	│   │   └── agents/              # Specs e governance envelopes dos agentes do BC Delivery & Verification.
+	│   ├── fce/
+	│   │   └── agents/              # Specs e governance envelopes dos agentes do BC Financial Commitment Execution.
 	│   ├── idc/                     # Bounded Context Identity & Data Governance: identidade de participantes e governança de dados pessoais (LGPD, integridade criptográfica).
 	│   │   └── agents/              # Specs e governance envelopes dos agentes do BC Identity & Data Governance.
 	│   ├── inv/                     # Bounded Context Invoicing: materializa a obrigação de faturamento (InvoiceIssued) e o direito creditório a partir de DeliveryVerified, sob regime fiscal regulado determinístico.
@@ -369,6 +371,16 @@ treeEntries: [
 		],
 		"path": "contexts/dlv/agents",
 		"purpose": "Specs e governance envelopes dos agentes do BC Delivery & Verification.",
+		"rationale": "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
+	},
+	{
+		"conventions": [
+			"Um par de arquivos por agente: {agent-slug}.cue e {agent-slug}.governance.cue.",
+			"Specs conformam com architecture/artifact-schemas/agent-spec.cue.",
+			"Governance envelopes conformam com architecture/artifact-schemas/agent-governance.cue."
+		],
+		"path": "contexts/fce/agents",
+		"purpose": "Specs e governance envelopes dos agentes do BC Financial Commitment Execution.",
 		"rationale": "Container de instâncias: mesmo padrão dos demais BCs — agentes permanecem localizados no contexto que governa seus invariants e decisões operacionais."
 	},
 	{
