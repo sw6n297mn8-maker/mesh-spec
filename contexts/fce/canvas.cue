@@ -810,12 +810,18 @@ canvas: artifact_schemas.#Canvas & {
 		impact:   "ubiquitousLanguageRef aponta para arquivo ainda inexistente; structural-check de glossary validará quando autorado."
 		deadline: "2026-06-30"
 		rationale: "Glossary consolida a ubiquitous language (settlement, financialization, PrePaymentGuard, retention) — precondição para domain-model."
+		status:            "resolved"
+		resolvedBy:        "contexts/fce/glossary.cue"
+		resolvedCondition: "glossary de 19 termos autorado (contexts/fce/glossary.cue) — a ubiquitous language do FCE está materializada; o ubiquitousLanguageRef deixou de ser forward-ref (adr-156, 1º uso do lifecycle)."
 	}, {
 		id:       "oq-fce-3"
 		question: "Quando autorar contexts/fce/agents/fce-primary-agent.cue (domainAgentSpec forward-ref)?"
 		impact:   "domainAgentSpec referencia agent spec não-materializado; o agente operacional + autonomy envelope formal dependem dele."
 		deadline: "2026-08-31"
 		rationale: "Agent spec materializa o operador que executa o governanceScope; forward-ref consciente (pattern inv/bdg)."
+		status:            "resolved"
+		resolvedBy:        "contexts/fce/agents/fce-primary-agent.cue"
+		resolvedCondition: "par primary-agent do FCE autorado (#170: agent-spec + governance envelope) e adr-155 accepted (#171) — o operador do PrePaymentGuard existe sob autonomy envelope formal; o domainAgentSpec deixou de ser forward-ref (adr-156)."
 	}, {
 		id:       "oq-fce-4"
 		question: "Quando o canvas REW enumera o consumo de PaymentObligationDefaulted (WI-043)?"

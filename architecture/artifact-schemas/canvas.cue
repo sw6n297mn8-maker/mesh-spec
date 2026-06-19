@@ -199,6 +199,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 			test:        "Para cada verificationMetrics[].onBreach.escalationRef declarado, o id correspondente DEVE existir em ownership.governanceScope.escalationCriteria[].id. Validação por runner/unificação. Phase 1 advisory: campo onBreach é opcional. Ausência explícita de onBreach NÃO é oversight — significa observability-only metric (signal sem escalation direta; exige avaliação contextual human-in-the-loop). Compatibilidade semântica entre metric e escalation referenciada é responsabilidade do design (validação manual Phase 1; potencial automação Phase 2 via validation-prompt advisory). Phase 2 ADR posterior promove tq-cv-14 a fail após backfill completo."
 			severity:    "warn"
 			rationale:   "Metric sem ligação à action é dashboard, não governance. Link unidirecional metric → escalation (uma escalation pode ser acionada por múltiplas métricas) fecha loop determinístico de governance executável. Phase 1 advisory permite onboarding gradual sem breaking nos canvases existentes; observability-only é decisão de design legítima (não falha)."
+		}, {
+			id:          "tq-cv-15"
+			description: "openQuestions[].resolvedCondition (quando status=resolved) diz O QUE resolveu, não placeholder vazio/genérico"
+			test:        "Para cada openQuestions[] com status==\"resolved\", resolvedCondition descreve substantivamente o que cumpriu a resolução (o artefato autorado, a decisão tomada, a condição satisfeita) — não termos vazios de conteúdo (\"feito\", \"resolvido\", \"ok\", \"concluído\"). Teste de substituição: se o texto serve para QUALQUER oq resolvido, é genérico demais e falha. Análogo a tq-def-01 (deferralRationale). Advisory: substância é interpretativa (julgamento humano/agente), não mecanicamente decidível; o piso estrutural (resolvedBy + resolvedCondition presentes e não-vazios) já é garantido por cue vet."
+			severity:    "warn"
+			rationale:   "cue vet garante resolvedCondition não-vazio (estrutura), não substantivo (substância). Sem este critério, \"feito\"/\"resolvido\" passam e o lifecycle perde o que o distingue da remoção: preservar o PORQUÊ da resolução para auditoria. tq-cv-15 protege resolvedCondition de resolução travestida, como tq-def-01 protege deferralRationale de procrastinação travestida. warn (não fail): substância exige julgamento (P10 — estrutura valida o garantível, agentes recomendam o interpretativo) e não há MinRunes a ancorar um fail mecânico (diferente de tq-def-01)."
 		}]
 		rationale: "Critérios cobrem contorno (purpose), rastreabilidade (stakeholders, costs, communication refs), alinhamento econômico (incentive analysis, costsEliminated condicional), identidade operacional (archetypes, communication discriminada, governance), completude condicional (capability flags) e estado epistêmico (assumptions, open questions)."
 	}
@@ -493,6 +499,24 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_t
 	impact:    string & !=""
 	deadline?: string & =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 	rationale: string & !=""
+
+	// Lifecycle de resolução (adr-156): binário open→resolved, additive — o default
+	// "open" mantém os oq legados válidos sem edição (retrocompat). Mais magro que o
+	// #DeferredDecision (sem triggered/triggers/runner) porque um oq é fechado por um
+	// HUMANO autorando o artefato que a pergunta antecipava, não por condição
+	// automática. Forma if-conditional (não disjunção-de-structs) porque o default a
+	// exige — a disjunção-de-structs quebra com default ("unresolved disjunction").
+	// resolvedBy reusa #OriginRef (deferred-decision.cue, mesmo package — P0);
+	// resolvedCondition diz O QUE resolveu (substância advisory via tq-cv-15).
+	status: *"open" | "resolved"
+	if status == "resolved" {
+		resolvedBy:        #OriginRef
+		resolvedCondition: string & !=""
+	}
+	if status == "open" {
+		resolvedBy?:        _|_
+		resolvedCondition?: _|_
+	}
 }
 
 // ==============================
