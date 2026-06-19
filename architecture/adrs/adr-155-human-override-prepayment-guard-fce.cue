@@ -16,7 +16,7 @@ adr155: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	context: """
 		LACUNA T2. A fatia do guard-path do FCE (claim parcial do WI-043, decisão
