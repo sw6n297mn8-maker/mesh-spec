@@ -163,7 +163,8 @@ structureIndex: {
 				"architecture/adrs/adr-154-runtime-repo-criterion.cue",
 				"architecture/adrs/adr-155-human-override-prepayment-guard-fce.cue",
 				"architecture/adrs/adr-156-openquestion-resolution-lifecycle.cue",
-				"architecture/adrs/adr-157-frontend-runtime-bootstrap-handoff.cue"
+				"architecture/adrs/adr-157-frontend-runtime-bootstrap-handoff.cue",
+				"architecture/adrs/adr-158-frontend-codegen-contract.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -589,7 +590,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-060-frontend-client-vendor-stack.cue",
 				"architecture/deferred-decisions/def-061-capture-provenance-data-contract.cue",
 				"architecture/deferred-decisions/def-062-local-specialization-shared-primitive.cue",
-				"architecture/deferred-decisions/def-063-port-manifest-crosses-contract-mapping.cue"
+				"architecture/deferred-decisions/def-063-port-manifest-crosses-contract-mapping.cue",
+				"architecture/deferred-decisions/def-064-spec-runtime-propagation-ladder.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
