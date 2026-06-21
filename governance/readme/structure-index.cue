@@ -591,7 +591,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-061-capture-provenance-data-contract.cue",
 				"architecture/deferred-decisions/def-062-local-specialization-shared-primitive.cue",
 				"architecture/deferred-decisions/def-063-port-manifest-crosses-contract-mapping.cue",
-				"architecture/deferred-decisions/def-064-spec-runtime-propagation-ladder.cue"
+				"architecture/deferred-decisions/def-064-spec-runtime-propagation-ladder.cue",
+				"architecture/deferred-decisions/def-065-frontend-codegen-validation-harness.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
