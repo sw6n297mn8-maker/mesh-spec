@@ -7,7 +7,8 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // contrato de geração (item 7). Irmão-frontend do adr-140/146 (que fundaram o
 // codegen do mesh-runtime). Cria governance/build-time/frontend-codegen-contract.cue
 // (schema-exempt, precedente codegen-contract.cue) + def-064 (defere a ladder de
-// propagação). Status proposed: a relação CUE→TS é hipótese falsificável, flipa a
+// propagação) + def-065 (defere o harness de validação + write-back de evidência que
+// carrega o flip). Status proposed: a relação CUE→TS é hipótese falsificável, flipa a
 // accepted no 1º golden-example do frontend — molde adr-140 (proposed até run-001),
 // não adr-156 (same-commit accepted).
 
@@ -55,11 +56,16 @@ adr158: artifact_schemas.#ADR & {
 
 		A FRONTEIRA QUE=spec / COMO=runtime (adr-148 item 3). O spec decide a SUPERFÍCIE
 		gerada (quais artefatos de domínio FCE viram tipos) + o gate + P1-estrito; o
-		frontend-runtime decide o COMO — CUE→TS, a linguagem do gerador, a forma TS —
-		atrás da fronteira (def-060). A família Rust WASM (paridade de cálculo
-		cliente/servidor, FF-FE-05) JÁ é governada por adr-150 item 6 (fonte Rust única,
-		sob adr-147): este contrato ESCOPA a família TS de domain-types e APONTA para
-		adr-150 item 6 pela família Rust — não re-decide o que já existe.
+		frontend-runtime decide o COMO — a linguagem do gerador, a FORMA/SINTAXE dos tipos,
+		o componente, o stack — atrás da fronteira (def-060). DISTINÇÃO ALVO vs FORMA: o
+		ALVO ser TS (CUE→TS) é contexto estabelecido (o frontend é stack TS por adr-150 +
+		def-060: web = JS/TS), não decisão fresca deste contrato; o que fica runtime-local é
+		a FORMA/sintaxe TS concreta (interface vs type, branded type, etc.), nunca o fato de
+		o alvo ser TS. A falsificação (d) abaixo mira a FORMA, não o nome do alvo. A família
+		Rust WASM (paridade de cálculo cliente/servidor, FF-FE-05) JÁ é governada por
+		adr-150 item 6 (fonte Rust única, sob adr-147): este contrato ESCOPA a família TS de
+		domain-types e APONTA para adr-150 item 6 pela família Rust — não re-decide o que já
+		existe.
 		"""
 	decision: """
 		(1) CRIAR o contrato de codegen do frontend em
@@ -75,16 +81,17 @@ adr158: artifact_schemas.#ADR & {
 
 		(2) REFORÇAR o contractGate, frontend-scoped, com TRÊS capabilities que o codegen
 		do mesh-runtime não enforça por construção (são gaps de implementação dele,
-		rtd-014/017/018) — o que torna "nasce mais forte" ENFORÇADO, não prosa: (a)
-		DETECTAR REMOÇÃO de artefato consumido (poda de órfãos) — remoção no spec é
-		detectada, não silenciada por gerado órfão; (b) COMPILAR O HAND (a tela) contra
-		o gerado ANTES de declarar verde — quebra de tela contra contrato novo falha o
-		build NO runtime, não só no pipeline do spec; (c) REVALIDÁVEL no avanço da spec —
-		capability do trigger (avanço da spec-main DEVE poder disparar revalidação do
-		runtime). As três são CAPACIDADES declaradas; o MECANISMO (repository_dispatch vs
-		cron; poda via git vs checksum; em qual job compila) é runtime-local (def-060).
-		Frontend-scoped: NÃO retroage no mesh-runtime, cujos buracos seguem dívida
-		runtime-local própria (rtd-018).
+		rtd-014/017/018) — as três viram REQUISITO VINCULANTE do contractGate (o build do
+		frontend-runtime CI falha sem elas), não prosa aspiracional; o enforcement vive no
+		runtime CI e materializa quando o mecanismo é construído (ver N4): (a) DETECTAR
+		REMOÇÃO de artefato consumido (poda de órfãos) — remoção no spec é detectada, não
+		silenciada por gerado órfão; (b) COMPILAR O HAND (a tela) contra o gerado ANTES de
+		declarar verde — quebra de tela contra contrato novo falha o build NO runtime, não
+		só no pipeline do spec; (c) REVALIDÁVEL no avanço da spec — capability do trigger
+		(avanço da spec-main DEVE poder disparar revalidação do runtime). As três são
+		CAPACIDADES declaradas; o MECANISMO (repository_dispatch vs cron; poda via git vs
+		checksum; em qual job compila) é runtime-local (def-060). Frontend-scoped: NÃO
+		retroage no mesh-runtime, cujos buracos seguem dívida runtime-local própria (rtd-018).
 
 		(3) CRIAR def-064, que defere a LADDER DE PROPAGAÇÃO (níveis crescentes de
 		automação do bump spec→runtime: detectar/preparar automático → auto-merge de
@@ -96,10 +103,15 @@ adr158: artifact_schemas.#ADR & {
 		de auto-merge defere.
 
 		(4) NASCER proposed (este ADR e o contrato): a relação CUE→TS é hipótese
-		falsificável sem run validador (o frontend-runtime não existe). Flipa a accepted
-		no 1º golden-example do frontend que gere a superfície FCE e compile — molde
-		adr-140 (proposed→accepted no run-001), não adr-156 (same-commit). O contrato
-		nasce com status "proposed" + nota de migração tipada.
+		falsificável sem run validador (o frontend-runtime não existe). O flip
+		proposed→accepted exige EVIDÊNCIA spec-side do 1º golden-example do frontend
+		(precedente: codegen-validation-evidence.cue registrou o run-001 + revisão de
+		causa-raiz do founder + write-back gated, adr-148 item 8 — o veículo do flip do
+		adr-140). O HARNESS de codegen-validation + write-back de evidência do frontend é
+		prerequisite downstream que o adr-157 NÃO estabeleceu — DEFERIDO em def-065 (a fonte
+		da verdade do mecanismo; este ADR aponta, não descreve, para evitar duplicação). Molde
+		adr-140 (proposed→accepted no run-001), não adr-156 (same-commit). O contrato nasce
+		com status "proposed" + nota de migração tipada.
 
 		ALTERNATIVAS CONSIDERADAS.
 		(a) Não criar artefato agora; deixar a 1ª sessão do frontend-runtime criar o
@@ -125,22 +137,23 @@ adr158: artifact_schemas.#ADR & {
 		(P2c) O princípio P1 do adr-157 ("código de tela derivado da spec") ganha a MÁQUINA
 		que faltava: deixa de ser asserção em principlesApplied e vira contrato com
 		inputs/transform/output + gate determinístico.
-		(P3c) O gate nasce MAIS FORTE que o do mesh-runtime e ENFORÇADO, não aspiracional: os
-		3 buracos (rtd-014/017/018) viram requisito frontend-scoped — poda de órfãos,
-		hand-compile antes do verde, revalidação no avanço da spec.
+		(P3c) O gate nasce MAIS FORTE que o do mesh-runtime: os 3 buracos (rtd-014/017/018)
+		viram REQUISITO VINCULANTE de gate frontend-scoped — o build do runtime CI falha sem
+		poda-de-órfãos, hand-compile e revalidação. O enforcement é build-failing (real), mas
+		materializa quando o runtime constrói o mecanismo, não ativo na spec hoje (N4 own a janela).
 		(P4c) A superfície battle-tested estreita o risco da hipótese: os inputs já geram em
 		Kotlin (rtd-018); só o alvo CUE→TS falta validar — o proposed é estreito, não
 		especulativo.
 
 		Negativas (limites intrínsecos).
 		(N1) REVISITA o adr-157, que ficou um degrau curto (fechou o contrato semântico, não
-		o de geração) — honesto e registrado, não silenciado; mas é admitir que o adr-157 não
-		fechou tudo que a 1ª sessão precisa.
+		o de geração nem o harness de validação) — honesto e registrado (def-065), não
+		silenciado; mas é admitir que o adr-157 não fechou tudo que a 1ª sessão precisa.
 		(N2) O contrato nasce proposed: a hipótese CUE→TS só valida no 1º run downstream
 		(frontend-runtime inexistente) — a lei existe sem prova de execução até lá.
-		(N3) Criar o contrato e o def agora tem custo de autoria — aceito porque a alternativa
-		de não-criar empurra para a 1ª sessão o degrau de inferência, mais caro numa relação
-		que move dinheiro.
+		(N3) Criar o contrato e os defs agora tem custo de autoria — aceito porque a
+		alternativa de não-criar empurra para a 1ª sessão o degrau de inferência, mais caro
+		numa relação que move dinheiro.
 		(N4) Poda/hand-compile/trigger são CAPACIDADES declaradas; a 1ª sessão ainda CONSTRÓI
 		os mecanismos — o gate EXIGE, não implementa. Há janela entre o requisito (agora) e o
 		mecanismo (downstream).
@@ -159,8 +172,9 @@ adr158: artifact_schemas.#ADR & {
 			Observável no 1º golden-example do frontend: (a) o gerador emite a superfície FCE e o
 			compile TS falha; (b) escalação ao founder por lacuna do contrato (ou, pior, inferência
 			silenciosa em vez de escalar); (c) uma remoção/rename no domínio FCE passa o gate sem
-			ser detectada (órfão ou quebra de hand em verde); (d) um artefato do mesh-spec ganha
-			uma decisão de forma TS nascida no runtime (drift cross-repo por review da fronteira).
+			ser detectada (órfão ou quebra de hand em verde); (d) o contrato (transform[].to / output)
+			nomeia um tipo/framework/componente TS concreto em vez de descrever uma CAPACIDADE —
+			observável lendo o próprio contrato, no 1º run ou antes (não depende do runtime).
 			(a)/(b)/(c) → PIVOTAR (revisar contrato/gate); (d) → fronteira furada (revisar QUE/COMO).
 			"""
 	}
@@ -171,14 +185,14 @@ adr158: artifact_schemas.#ADR & {
 		"architecture/deferred-decisions/def-064-spec-runtime-propagation-ladder.cue",
 	]
 	derivedArtifacts: []
-	defersTo: ["def-060", "def-064"]
+	defersTo: ["def-060", "def-064", "def-065"]
 
 	principlesApplied: [
-		"P0 — localização canônica única: o contrato APONTA para adr-150 (lei), adr-155 + contexts/fce/domain-model.cue (domínio), codegen-contract.cue (precedente) e def-060/064 — nunca copia.",
+		"P0 — localização canônica única: o contrato APONTA para adr-150 (lei), adr-155 + contexts/fce/domain-model.cue (domínio), codegen-contract.cue (precedente) e def-060/064/065 — nunca copia; o mecanismo de flip mora em def-065, não duplicado aqui.",
 		"P1 — código gerado, CUE SoT: a superfície de frontend é GERADA do domínio CUE, P1-estrito (committedHere false); dá ao 'código de tela derivado da spec' (adr-157 P1) a máquina que faltava.",
 		"P2 — vendor atrás de fronteira: o stack TS (framework, gerador, forma) fica atrás da fronteira (def-060), runtime-local — P2 aplicado ao cliente, como adr-150 o aplicou ao vendor de cliente.",
-		"P10 — gates determinísticos validam: o contractGate reforçado é gate determinístico (as 3 capabilities); Approval-as-Confirmation traduz P10 à superfície (herdado de adr-150/157).",
-		"P12 — governança é código: as 3 capabilities do gate são fitness functions impostas no CI do runtime — o que torna 'nasce mais forte' enforçado, não prosa.",
+		"P10 — gates determinísticos validam: o contractGate reforçado é gate determinístico (as 3 capabilities); o flip do contrato é por evidência determinística (golden-example) + decisão do founder, não edição solta; Approval-as-Confirmation traduz P10 à superfície (herdado de adr-150/157).",
+		"P12 — governança é código: as 3 capabilities são requisito VINCULANTE de fitness function no CI do runtime (build-failing quando o mecanismo existe) — governança-como-código; o enforcement vive no runtime CI, não na spec.",
 		"P14 — fidelidade de forma: a superfície TS gerada preserva toda distinção compile-time-verificável do domínio FCE (especializa P1); o gerador CUE→TS honra P14 como o CUE→Kotlin do mesh-runtime.",
 	]
 
@@ -187,19 +201,26 @@ adr158: artifact_schemas.#ADR & {
 		do mesh-runtime nascer (adr-140); criar o contrato do frontend agora honra esse
 		precedente — a relação de geração mais crítica (a tela que move dinheiro) nasce
 		governada, não reconstruída por arqueologia na 1ª sessão. O gate-mais-forte-por-construção:
-		os 3 buracos do mesh-runtime (rtd-014/017/018) fecham como CAPABILITY frontend-scoped
-		(não retroativa) — P12 (governança-é-código) materializa as 3 como fitness function no CI
-		do runtime; P10 (gate determinístico) governa o desfecho. Proposed-até-golden-example:
-		P1/P14 são hipótese de geração (CUE→TS) que só o 1º run valida — molde adr-140
-		(proposed→accepted no run-001), não adr-156 (same-commit). A fronteira QUE/COMO honrada:
-		superfície + gate + P1-estrito = spec; forma TS + linguagem do gerador + stack = runtime
-		(def-060) — P14 + filtro adr-139. P2 aloca o stack TS atrás da fronteira; P0 ancora o
-		apontar-não-copiar. reversibility medium / blastRadius cross-cutting coerentes:
-		cross-cutting porque funda o PADRÃO de codegen de todo frontend (não 1 tela); medium
-		porque é reversível enquanto proposed e sem run validador, mais caro após a forma do
-		gerador materializar.
+		os 3 buracos do mesh-runtime (rtd-014/017/018) fecham como REQUISITO VINCULANTE de gate
+		frontend-scoped (não retroativo) — P12 (governança-é-código) materializa as 3 como fitness
+		function build-failing no CI do runtime; P10 (gate determinístico) governa o desfecho.
+		Proposed-até-golden-example: P1/P14 são hipótese de geração (CUE→TS) que só o 1º run valida
+		— molde adr-140 (proposed→accepted no run-001), não adr-156 (same-commit). O flip é por
+		EVIDÊNCIA spec-side (precedente codegen-validation-evidence.cue), e o harness que a produz é
+		deferido em def-065 (não uma dependência pendurada: dono = bootstrap do frontend-runtime
+		autorizado pelo adr-157, trigger = nascimento do runtime). A fronteira QUE/COMO honrada:
+		superfície + gate + P1-estrito = spec; forma/sintaxe TS + linguagem do gerador + stack =
+		runtime (def-060) — P14 + filtro adr-139; o ALVO ser TS é contexto estabelecido (def-060),
+		não decisão deste contrato. P2 aloca o stack TS atrás da fronteira; P0 ancora o
+		apontar-não-copiar. reversibility medium / blastRadius cross-cutting coerentes: cross-cutting
+		porque funda o PADRÃO de codegen de todo frontend (não 1 tela); medium porque é reversível
+		enquanto proposed e sem run validador, mais caro após a forma do gerador materializar.
 
 		Tensão com axiomas: nenhuma. O contrato defere ao runtime só o runtime-local (def-060,
-		def-064); o piso (breach não-overridável) é herdado do adr-155, não tensionado.
+		def-064, def-065). O piso (breach não-overridável) é garantido PRIMARIAMENTE pelo domínio
+		(cmd só alcançável de escalated, ao qual breach nunca chega por inv-breach-bypasses-escalation;
+		+ vo-overridden-guard-conditions sem flag cripto), herdado à superfície por geração fiel (P14);
+		o check piso-herdado do contractGate é DEFESA-EM-PROFUNDIDADE contra gerador infiel, não a
+		garantia primária. Herdado do adr-155, não tensionado.
 		"""
 }

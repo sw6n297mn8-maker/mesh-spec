@@ -43,9 +43,12 @@ def064: artifact_schemas.#DeferredDecision & {
 		anotação que pede ao founder revisitar a ladder com 2 runtimes de evidência. Pattern é o
 		valor literal do campo (status: "accepted"), que só casa o campo flipado — prosa que
 		menciona "accepted" sem o prefixo do campo não casa, e o contrato tem um único campo
-		status:. Diferença vs def-060 (sibling, manual-review): def-060 não tinha sinal
-		mesh-spec-local (seleção de vendor vive no runtime, invisível ao grep); def-064 TEM (o
-		flip do status do contrato), então usa trigger automático em vez de manual-review.
+		status:. BACKSTOP manual-review: o file-contains pode quebrar EM SILÊNCIO se o contrato
+		for renomeado/movido ou o campo status reformatado (ex.: espaçamento) — o backstop garante
+		que o founder ainda revisita quando o frontend-runtime for o 2º runtime real, mesmo se o
+		sinal automático falhar (cinto-e-suspensório). Diferença vs def-060 (sibling): def-060 não
+		tinha sinal mesh-spec-local (vendor vive no runtime, invisível ao grep); def-064 TEM (o flip
+		do status), então usa automático+backstop em vez de só manual-review.
 		"""
 
 	originatingArtifacts: [
@@ -71,5 +74,8 @@ def064: artifact_schemas.#DeferredDecision & {
 			path:    "governance/build-time/frontend-codegen-contract.cue"
 			pattern: "status: \"accepted\""
 		}
+	}, {
+		kind:   "manual-review"
+		reason: "Backstop do file-contains primário: se o contrato for renomeado/movido ou o campo status reformatado, o sinal automático quebra em silêncio e a ladder ficaria deferida para sempre; o founder revisita quando o frontend-runtime for o 2º runtime real, independentemente do sinal automático."
 	}]
 }
