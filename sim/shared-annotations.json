@@ -1,0 +1,19 @@
+{
+  "_note": "SIMULACAO 2 descartavel (sim/firstclass-shared). Caso compartilhado: Money cruzando inv/p2p/bdg/bkr. Fields novos que o piloto 1 NAO previu: shared, canonicalTermRef, canonicalSchemaRef. _trueSemantic e ORACULO (juiz do 4e); o gate NUNCA o le — so coreNoun/canonicalTermRef/shared/sourceContext. Estado-disco real: nenhum uso declara canonicalTermRef, nenhum BC tem termo de Money, mas #Money schema existe em architecture/shared-schemas/money.cue.",
+  "positiveReasons": ["financial", "risk", "eligibility", "compliance", "governance", "delivery", "qualification", "reputation", "cross-artifact-contract", "transversal-primitive"],
+  "negativeReasons": ["transport-envelope", "persistence", "derived-mechanical", "internal-temporary", "id-ref-only"],
+
+  "canonical": {
+    "_homeNote": "Lar canonico do TERMO compartilhado. Schema #Glossary atual proibe glossario fora de contexts/<bc>/ (canonicalPathRegex). Logo este termo NAO TEM LAR LEGAL hoje — e o schema-need central do Caso 3.",
+    "terms": [
+      {"code": "term-money", "termEn": "Money", "schemaRef": "#Money", "schemaHome": "architecture/shared-schemas/money.cue", "termHome": "PROPOSTO (inexistente — schema proibe)"}
+    ]
+  },
+
+  "usages": [
+    {"bc": "inv", "code": "vo-money",            "coreNoun": "Money",          "firstClass": true, "shared": true, "sourceContext": "inv", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "_trueSemantic": "money"},
+    {"bc": "p2p", "code": "vo-money",            "coreNoun": "Money",          "firstClass": true, "shared": true, "sourceContext": "p2p", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "_trueSemantic": "money"},
+    {"bc": "bdg", "code": "vo-money",            "coreNoun": "Money",          "firstClass": true, "shared": true, "sourceContext": "bdg", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "_trueSemantic": "money"},
+    {"bc": "bkr", "code": "vo-settlement-value", "coreNoun": "SettlementValue","firstClass": true, "shared": true, "sourceContext": "bkr", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "_trueSemantic": "money-specialized"}
+  ]
+}
