@@ -2,7 +2,7 @@ package build_time
 
 // frontend-codegen-contract.cue -- Contrato declarativo de codegen spec->frontend-runtime (adr-158).
 //
-// STATUS: V1 PROPOSED -- hipótese falsificável (CUE->TS); migra para accepted no
+// STATUS: V1 PROPOSED -- hipótese falsificável (CUE->superfície-de-frontend); migra para accepted no
 // 1º golden-example do frontend-runtime que gere a superfície FCE e compile. O flip
 // é por EVIDÊNCIA spec-side (precedente codegen-validation-evidence.cue + revisão de
 // causa-raiz do founder + write-back gated, adr-148 item 8); o HARNESS que produz essa
@@ -16,9 +16,10 @@ package build_time
 // #Type/_schema.location; precedente subagent-execution-log). Promoção a schema só
 // se >1 família de frontend o exigir.
 //
-// ESCOPO: contrato DECLARATIVO (mapa inputs->outputs) da família TS de domain-types.
-// O ALVO ser TS é contexto estabelecido (def-060/adr-150: web = JS/TS); o que fica
-// runtime-local é a FORMA/sintaxe TS, não o fato de o alvo ser TS. A família Rust WASM
+// ESCOPO: contrato DECLARATIVO (mapa inputs->outputs) da família de domain-types de
+// frontend. O QUE o contrato fixa é a CAPACIDADE da superfície (agnóstica de linguagem,
+// P14); a LINGUAGEM-ALVO e a FORMA/sintaxe são runtime-local (def-060), não nomeadas
+// aqui. A família Rust WASM
 // (paridade de cálculo cliente/servidor, FF-FE-05) é governada por adr-150 item 6 (sob
 // adr-147) -- este contrato APONTA, não re-decide. Output vive no frontend-runtime,
 // nunca committado aqui (P1 estrito).
@@ -26,7 +27,7 @@ package build_time
 frontendCodegenContract: {
 	version: "v1"
 
-	// Nasce proposed (hipótese CUE->TS); migra para o estado validado no 1º golden-example
+	// Nasce proposed (hipótese CUE->superfície-de-frontend); migra para o estado validado no 1º golden-example
 	// do frontend, por evidência spec-side + decisão do founder (harness em def-065; molde
 	// adr-140). O flip deste campo no golden-example é o sinal observado por def-064.
 	status: "proposed"
@@ -59,12 +60,12 @@ frontendCodegenContract: {
 
 	// (2) TRANSFORM -- estágios declarativos (de -> para + ADR que autoriza); NÃO engine.
 	// O "to" descreve a CAPACIDADE (tipos que preservam as distinções do domínio, P14),
-	// NÃO a sintaxe TS (forma = runtime-local, def-060).
+	// NÃO a forma/sintaxe da linguagem-alvo (runtime-local, def-060).
 	transform: [
 		{
 			stage:     "domain-types"
 			from:      "contexts/fce/domain-model.cue (cmd-resolve-guard-escalation + vo-supervisor-id + vo-overridden-guard-conditions + os 3 events)"
-			to:        "tipos de frontend que PRESERVAM as distinções compile-time-verificáveis do domínio (P14): value-class inescapável para os VOs, presença non-null dos campos required, union fechada onde o domínio fecha. A CAPACIDADE, não a sintaxe TS."
+			to:        "tipos de frontend que PRESERVAM as distinções compile-time-verificáveis do domínio (P14): value-class inescapável para os VOs, presença non-null dos campos required, union fechada onde o domínio fecha. A CAPACIDADE, não a forma/sintaxe da linguagem-alvo."
 			authority: "adr-146 (P14) + adr-158"
 			// Transparência (propriedade do domínio, não gap do contrato): o campo `decision`
 			// de cmd-resolve-guard-escalation é type:"string" no domain-model -- o domínio NÃO
@@ -83,7 +84,7 @@ frontendCodegenContract: {
 		{
 			stage:     "action-surface"
 			from:      "cmd-resolve-guard-escalation + adr-150 (Action-as-Tool, Generative Form, Approval-as-Confirmation)"
-			to:        "a definição de ação (botão humano = tool de agente, de UMA definição) que TERMINA em confirmação estruturada, com form pré-preenchível pelos campos do command -- a CAPACIDADE de Approval-as-Confirmation na superfície, não o componente TS."
+			to:        "a definição de ação (botão humano = tool de agente, de UMA definição) que TERMINA em confirmação estruturada, com form pré-preenchível pelos campos do command -- a CAPACIDADE de Approval-as-Confirmation na superfície, não o componente concreto."
 			authority: "adr-150 + adr-158"
 		},
 	]
@@ -120,9 +121,9 @@ frontendCodegenContract: {
 	}
 
 	// (5) FRONTEIRAS ATIVAS -- deferrals que este contrato pressupõe.
-	// def-060 (stack/forma TS), def-064 (ladder de auto-merge), def-065 (harness +
+	// def-060 (stack/linguagem-alvo/forma), def-064 (ladder de auto-merge), def-065 (harness +
 	// write-back de evidência que carrega o flip).
 	activeBoundaries: ["def-060", "def-064", "def-065"]
 
-	rationale: "Autorizado por adr-158 (esta relação de codegen) sobre adr-140/146 (contrato/P14) + adr-150 (lei) + adr-155 (domínio). Materializa P1 (superfície de frontend gerada da spec, nunca escrita à mão, nunca committada aqui) com fidelidade de forma P14 (a geração preserva as distinções compile-time do domínio FCE). Nasce proposed = hipótese CUE->TS falsificável, validada pelo 1º golden-example do frontend por evidência spec-side + flip do founder (harness em def-065; molde adr-140, run-001). Fronteira QUE=spec (superfície + gate + P1-estrito) / COMO=runtime (forma/sintaxe TS + linguagem do gerador + stack, def-060); o ALVO ser TS é contexto estabelecido (def-060), não decisão deste contrato. Família TS escopada; Rust WASM (FF-FE-05) governada por adr-150 item 6, apontada não re-decidida."
+	rationale: "Autorizado por adr-158 (esta relação de codegen) sobre adr-140/146 (contrato/P14) + adr-150 (lei) + adr-155 (domínio). Materializa P1 (superfície de frontend gerada da spec, nunca escrita à mão, nunca committada aqui) com fidelidade de forma P14 (a geração preserva as distinções compile-time do domínio FCE). Nasce proposed = hipótese CUE->superfície-de-frontend falsificável, validada pelo 1º golden-example do frontend por evidência spec-side + flip do founder (harness em def-065; molde adr-140, run-001). Fronteira QUE=spec (superfície + gate + P1-estrito) / COMO=runtime (linguagem-alvo + forma/sintaxe + gerador + stack, def-060); a linguagem-alvo é runtime-local (def-060), não decisão deste contrato. Família de domain-types de frontend escopada; Rust WASM (FF-FE-05) governada por adr-150 item 6, apontada não re-decidida."
 }
