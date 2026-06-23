@@ -650,6 +650,51 @@ wavePlan: artifact_schemas.#WavePlan & {
 					type:     "create"
 				}]
 				rationale: "Planeja a autoria dos shared-schemas referenciados na narrativa do config (infraestrutura de interacao/decisao de agentes). Dir ja reservado por stub; este WI registra a intencao (plannedIn), removendo os 4 paths de phantomCandidates. O desenho de cada schema fica para a execucao do WI. NOTA: o assertion-schema.cue foi relocado deste WI para WI-133 (wave W006-foundation) por estar no caminho critico do runtime bootstrap (per adr-138) — single-ownership do path."
+			}, {
+				id:         "WI-142"
+				title:      "Avaliar promoção de gates de qualidade de artefatos de decisão (ADR/DeferredDecision) de warn/disciplina para gate determinístico"
+				tshirtSize: "L"
+				dependsOn: []
+				semanticPrerequisites: [
+					"adr-040 (separação categórica gate determinístico vs advisory; P10) vigente",
+					"framework de structural-checks + runner (adr-090/096/097, enforcement por-check warn|reject) vigente",
+					"governance/build-time/quality-gate.cue + scripts/ci/check-self-review.sh vigentes",
+				]
+				outputs: [{
+					artifact: "architecture/adrs/adr-decision-quality-gate-promotion.cue"
+					type:     "create"
+				}]
+				affects: [
+					"architecture/structural-checks/adr.cue",
+					"architecture/structural-checks/deferred-decision.cue",
+					"architecture/artifact-schemas/structural-check.cue",
+					"governance/build-time/quality-gate.cue",
+					".github/workflows/validate.yml",
+				]
+				rationale: """
+					Avaliar quais dimensões de qualidade de ADR/DeferredDecision devem subir de
+					warn/disciplina para GATE determinístico, ao nível de qualidade que o founder exige.
+
+					LACUNA: só cue vet (forma) e check-self-review.sh (SRR existe) bloqueiam.
+					tq-adr-01/02/03 vivem no _qualityCriteria mas NÃO são executados; sc-adr-01
+					(tq-adr-04, at-least-one-block) é warn — não bloqueia; structural-checks/
+					deferred-decision.cue é placeholder vazio (sc-def-01/02/03 deferidos). Um ADR/DD
+					de baixa qualidade de conteúdo passa o CI.
+
+					FRONTEIRA P10 (adr-040): só o machine-decidable pode virar gate. Promovível:
+					existência de paths (filesystem-path-exists, kind já no runner) para
+					affectedArtifacts/plannedOutputs e originatingArtifacts/resolvedBy do DD;
+					at-least-one-block (sc-adr-01 warn→reject); sc-def-01/02/03. NÃO promovível
+					(fica advisory): genuinidade de alternativas (tq-adr-01), honestidade da
+					metadata de risco (tq-adr-02) — usar LLM como gate viola P10.
+
+					TRADE-OFF: mais gates = menos drift de qualidade + menos dependência de founder
+					review, MAS risco de fricção/falsos-positivos e de gates cerimoniais.
+
+					DECISÃO (output ADR): (a) promover o subconjunto machine-decidable a reject;
+					(b) reforçar só a camada advisory; ou (c) aceitar o gap como risco gerenciável.
+					O ADR escolhe e justifica, com a fronteira determinístico/interpretativo explícita.
+					"""
 			}]
 		}
 
