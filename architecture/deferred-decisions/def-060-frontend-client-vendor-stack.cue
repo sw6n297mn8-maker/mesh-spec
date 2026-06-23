@@ -6,7 +6,7 @@ def060: artifact_schemas.#DeferredDecision & {
 	id:     "def-060"
 	title:  "Stack de vendor de cliente de frontend deferida ao frontend-runtime"
 	date:   "2026-06-14"
-	status: "triggered"
+	status: "withdrawn"
 
 	triggeredAt: "2026-06-17"
 	triggeredCondition: """
@@ -23,6 +23,17 @@ def060: artifact_schemas.#DeferredDecision & {
 		bootstrar de fato e escolher seu vendor atras da fronteira (P2). Status
 		'triggered' registra que a pre-condicao de autorizacao foi atingida;
 		resolvedBy fica vazio por construcao (o vendor concreto ainda nao existe).
+		"""
+
+	withdrawalRationale: """
+		def-060 era dívida de modelagem — quatro vendors de cliente de frontend
+		independentes num único DD agrupado, vs o padrão per-peça do backend
+		(def-041..045). Decomposto por adr-159 nos quatro destinos: framework →
+		reconhecido em adr-159 (resolvido no frontend-runtime via rtd-004, React 19+TS /
+		RN+Expo); sync mobile offline → def-066; orquestração de agente IA → def-067;
+		design system → def-068. def-060 PERMANECE no disco (withdrawn, charneira
+		histórica) para que os ponteiros existentes — defersTo de adr-150/157/158 e o
+		foundation pointer cross-repo do frontend-runtime — sigam resolvendo.
 		"""
 
 	description: """
