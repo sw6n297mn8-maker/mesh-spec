@@ -164,7 +164,8 @@ structureIndex: {
 				"architecture/adrs/adr-155-human-override-prepayment-guard-fce.cue",
 				"architecture/adrs/adr-156-openquestion-resolution-lifecycle.cue",
 				"architecture/adrs/adr-157-frontend-runtime-bootstrap-handoff.cue",
-				"architecture/adrs/adr-158-frontend-codegen-contract.cue"
+				"architecture/adrs/adr-158-frontend-codegen-contract.cue",
+				"architecture/adrs/adr-159-decompose-grouped-deferred-decision.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -592,7 +593,10 @@ structureIndex: {
 				"architecture/deferred-decisions/def-062-local-specialization-shared-primitive.cue",
 				"architecture/deferred-decisions/def-063-port-manifest-crosses-contract-mapping.cue",
 				"architecture/deferred-decisions/def-064-spec-runtime-propagation-ladder.cue",
-				"architecture/deferred-decisions/def-065-frontend-codegen-validation-harness.cue"
+				"architecture/deferred-decisions/def-065-frontend-codegen-validation-harness.cue",
+				"architecture/deferred-decisions/def-066-frontend-mobile-sync-vendor.cue",
+				"architecture/deferred-decisions/def-067-frontend-ai-orchestration-vendor.cue",
+				"architecture/deferred-decisions/def-068-frontend-design-system-vendor.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
