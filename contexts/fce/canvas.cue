@@ -284,11 +284,19 @@ canvas: artifact_schemas.#Canvas & {
 		}, {
 			type:       "query-surface"
 			query:      "QueryPaymentSettlementStatus"
-			returnType: "PaymentSettlementStatusView (paymentId + commitmentRef + status ∈ {guarded,authorized,dispatched,settled,failed,indeterminate,cancelled} + settledAt? + railReferenceId?)"
+			returnType: "PaymentSettlementStatusView (paymentId + commitmentRef + status ∈ {guarded,escalated,authorized,dispatched,settled,refused} + settledAt? + railReferenceId?)"
 			description: """
 				Superfície síncrona exposta por FCE; consumida por SCF para
 				reconciliar fechamento de antecipação (fce-to-scf, queries).
 				Read model do event log; não emite outcome sob estado não-final.
+
+				Nota de contrato (adr-155): o enum de status expõe APENAS os
+				estados materializados no lifecycle do agg-payment (domain-model):
+				guarded, escalated, authorized, dispatched, settled, refused.
+				Estados T2 de roadmap — failed, indeterminate, cancelled — são
+				intencionalmente excluídos do enum até serem materializados no
+				lifecycle do FCE; o contrato de API expõe lifecycle vivo, não
+				roadmap. Materializa contexts/fce/api.yaml (WI-143).
 				"""
 		}]
 

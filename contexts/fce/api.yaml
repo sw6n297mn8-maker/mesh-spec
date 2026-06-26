@@ -1,0 +1,159 @@
+openapi: 3.0.3
+
+info:
+  title: Financial Commitment Execution sync surface
+  version: 0.1.0
+  description: >
+    Superfície síncrona do BC Financial Commitment Execution.
+    Source canônica de identidade: contexts/fce/canvas.cue.
+    Queries → GET. Não usa REST resource-oriented.
+
+    RECORTE DE LEITURA (WI-143): expõe APENAS a query de estado do Payment
+    (QueryPaymentSettlementStatus), a única superfície síncrona declarada no
+    canvas (communication.inbound é event/query-only). Deferidos — oq-fce-1
+    permanece aberta: (a) o endpoint de resolve-guard-escalation (override
+    humano) exige primeiro um command surface na communication.inbound do
+    canvas (hoje inexistente) + def-024 (auth/scopes para o supervisorId
+    nominal na borda); (b) os comandos do caminho autônomo
+    (materialize/authorize/dispatch/settle) — o canvas declara inbound
+    event-driven, sem command surface; (c) async-api.yaml (real-time,
+    FF-FE-06) — sc-cv-03 segue insatisfeito.
+
+    O enum de status reflete APENAS o lifecycle materializado do agg-payment
+    (#PaymentState em contexts/fce/schemas/events.cue): estados T2 de roadmap
+    (failed, indeterminate, cancelled) não são expostos como contrato.
+
+    security e servers ausentes por design — ver
+    architecture/deferred-decisions/def-024.
+
+tags:
+  - name: mesh
+    description: bc=fce
+
+paths:
+  /v1/fce/queries/payment-settlement-status/{paymentId}:
+    get:
+      operationId: queryPaymentSettlementStatus
+      summary: Consultar o estado de liquidação do Payment por PaymentId
+      description: >
+        Implementa a query-surface QueryPaymentSettlementStatus do canvas FCE.
+        Leitura pura sem side-effects (read model do event log). paymentId em
+        path para cache-friendly. Não emite outcome sob estado não-final.
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PaymentId'
+      responses:
+        '200':
+          description: Estado de liquidação do Payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSettlementStatusView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  responses:
+    BadRequest:
+      description: Request malformado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Erro interno
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      description: >
+        RFC 7807 Problem Details. Cross-BC shared contract; NÃO customizar
+        por BC. additionalProperties=true porque RFC 7807 §3.2 permite
+        extensões por problem type — mas extensões só por coordenação
+        cross-BC (tension-entry), nunca fork local.
+      additionalProperties: true
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        traceId:
+          type: string
+          description: Correlation id para auditoria
+
+    # ── Value-objects do FCE (mirror de schemas/events.cue) ──
+    PaymentId:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#PaymentId'
+      type: string
+      minLength: 1
+    CommitmentRef:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#CommitmentRef'
+      type: string
+      minLength: 1
+      description: owned by CMT
+    RailReferenceId:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#RailReferenceId'
+      type: string
+      minLength: 1
+      description: referência do rail, devolvida pelo BKR na reconciliação
+    PaymentState:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#PaymentState'
+      type: string
+      enum: [guarded, escalated, authorized, dispatched, settled, refused]
+      description: >
+        Estado canônico do Payment no lifecycle materializado do agg-payment
+        (adr-155). Espelha #PaymentState (disjunção fechada). Estados T2 de
+        roadmap (failed, indeterminate, cancelled) não são expostos.
+
+    # ── Projection response (query-surface QueryPaymentSettlementStatus) ──
+    PaymentSettlementStatusView:
+      type: object
+      description: >
+        Read model da query QueryPaymentSettlementStatus (canvas FCE
+        communication.inbound). View de nível de API — o FCE não declara
+        projection no domain-model; os tipos de campo referenciam as value
+        classes canônicas de contexts/fce/schemas/events.cue. settledAt e
+        railReferenceId presentes apenas quando o Payment atingiu settled.
+      required: [paymentId, commitmentRef, status]
+      properties:
+        paymentId:
+          $ref: '#/components/schemas/PaymentId'
+        commitmentRef:
+          $ref: '#/components/schemas/CommitmentRef'
+        status:
+          $ref: '#/components/schemas/PaymentState'
+        settledAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        railReferenceId:
+          $ref: '#/components/schemas/RailReferenceId'
