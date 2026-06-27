@@ -825,6 +825,20 @@ domainModel: artifact_schemas.#DomainModel & {
 					"inv-money-moves-only-on-proof",
 					"inv-guard-deterministic",
 				]
+				selector: {
+					name:         "sel-prepayment-clean"
+					readsPayload: false
+					rationale: """
+						Roteia o caso LIMPO: as 3 condições do PrePaymentGuard (invoice +
+						eligibility + integridade) presentes e válidas, sem ressalva.
+						Complemento exato de sel-prepayment-not-clean — o par {clean,
+						not-clean} particiona todo o espaço de (guarded,
+						cmd-authorize-payment), exatamente um casa (sem AmbiguousTransition
+						nem NoApplicableTransition). Não lê payload: o roteamento decide pelo
+						estado das condições, não por campo do comando. Per adr-160 (selector
+						roteia, guard termina).
+						"""
+				}
 				description: """
 					PrePaymentGuard aprova as 3 condições de forma limpa →
 					decisão econômica de pagar + emissão da proof. Reprovação
@@ -841,6 +855,21 @@ domainModel: artifact_schemas.#DomainModel & {
 					"inv-guard-deterministic",
 					"inv-breach-bypasses-escalation",
 				]
+				selector: {
+					name:         "sel-prepayment-not-clean"
+					readsPayload: false
+					rationale: """
+						Roteia o RESIDUAL AMPLO — todo caso NÃO-limpo, INCLUSIVE breach — ao
+						candidato escalated. O piso NÃO mora neste selector: é o guard
+						TERMINAL inv-breach-bypasses-escalation que barra o breach APÓS a
+						seleção (breach → not-clean casa → candidato escalated → guard falha →
+						fica guarded → freeze p11-invariant-breach-detected). Excluir breach
+						aqui moveria a barreira do piso para fora do guard e violaria a
+						falsificationCondition 'vazamento do piso' do adr-160. Complemento de
+						sel-prepayment-clean: {clean, not-clean} é mutuamente exclusivo e
+						exaustivo. Per adr-160.
+						"""
+				}
 				description: """
 					Uma das 3 condições está stale / incompleta / ambígua-mas-
 					PRESENTE → Payment escala para julgamento humano. O piso
@@ -855,6 +884,18 @@ domainModel: artifact_schemas.#DomainModel & {
 				triggeredByCommand: "cmd-resolve-guard-escalation"
 				emitsEvents: ["evt-payment-guard-overridden"]
 				guards: ["inv-override-requires-attribution"]
+				selector: {
+					name:         "sel-override-approve"
+					readsPayload: true
+					rationale: """
+						Discrimina por PAYLOAD: command.decision == approve. Os dois ramos de
+						escalated→ têm guards IDÊNTICOS (inv-override-requires-attribution),
+						logo nenhum guard distingue o destino — só o campo decision do
+						cmd-resolve-guard-escalation roteia. Par mutuamente exclusivo com
+						sel-override-deny sobre o valor de decision. Per adr-160 (selector PODE
+						ler payload).
+						"""
+				}
 				description: """
 					Supervisor APROVA o override (decision approve) → Payment
 					reentra no trilho com atribuição nominal (supervisorId /
@@ -869,6 +910,16 @@ domainModel: artifact_schemas.#DomainModel & {
 				triggeredByCommand: "cmd-resolve-guard-escalation"
 				emitsEvents: ["evt-payment-guard-override-refused"]
 				guards: ["inv-override-requires-attribution"]
+				selector: {
+					name:         "sel-override-deny"
+					readsPayload: true
+					rationale: """
+						Discrimina por PAYLOAD: command.decision == deny. Par com
+						sel-override-approve: mutuamente exclusivo (approve ≠ deny) e exaustivo
+						sobre o domínio pretendido {approve, deny} do cmd-resolve-guard-escalation.
+						Per adr-160 (selector PODE ler payload).
+						"""
+				}
 				description: """
 					Supervisor NEGA o override (decision deny) → terminal
 					refused com atribuição (supervisorId / reason). O destino da
