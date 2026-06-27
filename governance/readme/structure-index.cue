@@ -165,7 +165,8 @@ structureIndex: {
 				"architecture/adrs/adr-156-openquestion-resolution-lifecycle.cue",
 				"architecture/adrs/adr-157-frontend-runtime-bootstrap-handoff.cue",
 				"architecture/adrs/adr-158-frontend-codegen-contract.cue",
-				"architecture/adrs/adr-159-decompose-grouped-deferred-decision.cue"
+				"architecture/adrs/adr-159-decompose-grouped-deferred-decision.cue",
+				"architecture/adrs/adr-160-outcome-split-selector-semantics.cue"
 			],
 			"schema": "#ADRBase"
 		},

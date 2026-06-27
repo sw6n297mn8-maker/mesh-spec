@@ -586,6 +586,23 @@ _#DomainEventBase: {
 	transitions: [#StateTransition, ...#StateTransition]
 }
 
+// Selector de roteamento de uma transição colidente (mesmo (from,
+// triggeredByCommand) com >1 destino): predicado nomeado sobre
+// (state, command, context) que decide se ESTE destino é o aplicável,
+// separado dos guards (invariantes terminais). O corpo do predicado é
+// hand-authored no runtime; a spec nomeia e justifica o roteamento.
+// Per adr-160 (outcome-split: selector roteia, guards terminam).
+#TransitionSelector: {
+	// Identificador do predicado de roteamento (resolvido no runtime).
+	name: string & !=""
+
+	// true se o predicado lê o payload do comando para rotear (ex.:
+	// command.decision approve/deny em escalated→authorized/refused).
+	readsPayload?: bool
+
+	rationale: string & !=""
+}
+
 #StateTransition: {
 	from: string & !=""
 	to:   string & !=""
@@ -598,6 +615,12 @@ _#DomainEventBase: {
 
 	// Invariants verificadas antes de permitir a transição (guards).
 	guards?: [...#InvariantRef]
+
+	// Roteamento de transição colidente (adr-160). Opcional: transição de
+	// par único (a maioria; CMT/REW inteiros) dispensa selector. Obrigatório
+	// de facto só em par colidente — enforcement determinístico de
+	// presença/exclusividade é structural-check de fatia posterior.
+	selector?: #TransitionSelector
 
 	description?: string & !=""
 }
