@@ -475,5 +475,21 @@ config: #AgentConfig & {
 				atual (deferimento esquecido em prose).
 				"""
 		},
+		{
+			title:           "Vigilância de Deferred-Decisions (briefing de abertura)"
+			canonicalSource: "self"
+			content: #"""
+				Antes de qualquer trabalho substantivo numa sessão, o agente roda `bash scripts/ci/evaluate-deferred-triggers.sh` e `bash scripts/ci/dd-status.sh` e reporta, como PRIMEIRA coisa — antes de propor trabalho:
+				1. Defs `open` com trigger DISPARADO ALÉM da carência (gate de carência, adr-162): bloqueiam o CI quando o gate estiver ligado; exigem ação (resolver / reconhecer via `triggered` / `withdrawn` / re-adiar com gatilho novo) antes de novo merge.
+				2. Defs `open` com trigger disparado DENTRO da carência: janela aberta; sinalizar.
+				3. Defs `triggered` STALE (parados além do limiar do dd-status): reconhecidos mas não-resolvidos — risco de limbo; visibilidade, não trava.
+				Se nada disparou: uma linha "vigilância de defs: limpa". O agente NÃO inicia trabalho substantivo sem este reporte. Operações triviais (status report, leitura, cue vet) dispensam.
+
+				Esta seção é a Camada 3 do sistema de vigilância (adr-162). Camada 1 = o gate de carência no runner (instalado; ligação futura via DD_GATE_ENABLED no workflow, após triagem do backlog). Camada 2 = canal de notificação externa, deferida em def-070.
+				"""#
+			rationale: """
+				O disparo de trigger era um ::warning:: de CI que ninguém lê (8 defs apodreceram 18 dias disparados-e-não-agidos — adr-162). O briefing automático na abertura torna o sinal a primeira coisa que o agente vê, sem depender de hábito do founder: fricção na entrada substitui ruído ignorável. Aponta para os scripts canônicos em vez de duplicar a lógica de avaliação (P0).
+				"""
+		},
 	]
 }

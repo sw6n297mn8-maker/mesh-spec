@@ -21,4 +21,8 @@ jobs:
           version: v0.16.0
 
       - name: Run deferred-trigger evaluation
+        # Gate de carência INSTALADO-MAS-DESLIGADO (adr-162): o runner suporta
+        # modo-gate (exit 1 em def open disparado-além-da-carência de 7d), mas neste
+        # arco roda advisory (exit 0). ATIVAÇÃO (arco futuro, após triagem dos 8 defs
+        # já disparados): adicionar a este step `env:\n  DD_GATE_ENABLED: "1"`.
         run: bash scripts/ci/evaluate-deferred-triggers.sh
