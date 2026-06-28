@@ -237,7 +237,11 @@ domainModel: artifact_schemas.#DomainModel & {
 			ambígua-mas-PRESENTE — e o Payment foi escalado para julgamento
 			humano. NÃO é breach: evidência ausente ou com integridade
 			criptográfica falha permanece em guarded e dispara o freeze
-			(escalationCriterion p11-invariant-breach-detected), não escala.
+			(escalationCriterion p11-invariant-breach-detected), não escala. Tampouco
+			escala a AUSÊNCIA de invoice ou eligibility (fact não materializado): sem
+			substância para julgar, o Payment fica guarded (waiting-for-information),
+			não escalated — distinto do breach (freeze) e do stale-presente (escala)
+			(per adr-161).
 			"""
 		rationale: """
 			Outcome-split do PrePaymentGuard (tq-dmg-06): separa o caminho
@@ -830,13 +834,14 @@ domainModel: artifact_schemas.#DomainModel & {
 					readsPayload: false
 					rationale: """
 						Roteia o caso LIMPO: as 3 condições do PrePaymentGuard (invoice +
-						eligibility + integridade) presentes e válidas, sem ressalva.
-						Complemento exato de sel-prepayment-not-clean — o par {clean,
-						not-clean} particiona todo o espaço de (guarded,
-						cmd-authorize-payment), exatamente um casa (sem AmbiguousTransition
-						nem NoApplicableTransition). Não lê payload: o roteamento decide pelo
-						estado das condições, não por campo do comando. Per adr-160 (selector
-						roteia, guard termina).
+						eligibility + integridade) presentes, válidas E frescas, sem ressalva.
+						Mutuamente exclusivo com sel-prepayment-not-clean; o par NÃO é
+						exaustivo (per adr-161): a ausência de invoice/eligibility (fact não
+						materializado) casa NENHUM selector → NoApplicableTransition → fica
+						guarded (waiting-for-information). Não lê payload: o roteamento decide
+						pelo estado das condições, não por campo do comando. Per adr-160
+						(selector roteia, guard termina) + adr-161 (tétrade clean /
+						stale-presente / breach / ausente).
 						"""
 				}
 				description: """
@@ -859,15 +864,22 @@ domainModel: artifact_schemas.#DomainModel & {
 					name:         "sel-prepayment-not-clean"
 					readsPayload: false
 					rationale: """
-						Roteia o RESIDUAL AMPLO — todo caso NÃO-limpo, INCLUSIVE breach — ao
-						candidato escalated. O piso NÃO mora neste selector: é o guard
-						TERMINAL inv-breach-bypasses-escalation que barra o breach APÓS a
-						seleção (breach → not-clean casa → candidato escalated → guard falha →
-						fica guarded → freeze p11-invariant-breach-detected). Excluir breach
-						aqui moveria a barreira do piso para fora do guard e violaria a
-						falsificationCondition 'vazamento do piso' do adr-160. Complemento de
-						sel-prepayment-clean: {clean, not-clean} é mutuamente exclusivo e
-						exaustivo. Per adr-160.
+						Roteia o residual NÃO-LIMPO com invoice e eligibility PRESENTES — toda
+						condição presente-mas-stale/ambígua, MAIS o breach de evidência
+						(ausente ou cripto-falha) — ao candidato escalated. O piso NÃO mora
+						neste selector: é o guard TERMINAL inv-breach-bypasses-escalation que
+						barra o breach de evidência APÓS a seleção (breach → casa not-clean →
+						candidato escalated → guard falha → fica guarded, failedGuard
+						inv-breach-bypasses-escalation → freeze p11-invariant-breach-detected).
+						Excluir o breach de evidência daqui moveria a barreira do piso para fora
+						do guard e violaria a falsificationCondition 'vazamento do piso' do
+						adr-160. A AUSÊNCIA de invoice ou eligibility (fact não materializado)
+						NÃO é roteada por este selector nem por sel-prepayment-clean: sem
+						substância para julgar, fica guarded (waiting-for-information) via
+						NoApplicableTransition — distinto de breach (freeze) e de stale-presente
+						(escalated). Mutuamente exclusivo com sel-prepayment-clean, mas o par
+						NÃO é exaustivo (a ausência casa nenhum). Per adr-160 + adr-161
+						(tétrade clean / stale-presente / breach / ausente).
 						"""
 				}
 				description: """
