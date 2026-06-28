@@ -14,7 +14,11 @@ set -euo pipefail
 #   3. Para cada def-XXX com status=open, avalia cada trigger por kind
 #   4. Triggers que disparam emitem GitHub Action annotations (::warning::)
 #      + entrada em workflow output. NÃO muta arquivos.
-#   5. Exit 0 sempre (advisory; não bloqueia CI).
+#   5. Gate de carência (adr-162): advisory por default (exit 0). Com
+#      DD_GATE_ENABLED setado, def open cujo trigger gateável (file-exists ou
+#      temporal) disparou há > GRACE_DAYS (7) dias → ::error:: + exit 1. O
+#      relógio é git-derivado (não armazenado; preserva não-mutação). O workflow
+#      NÃO seta a flag neste arco (gate instalado-mas-desligado, adr-162).
 #
 # Triggers machine-evaluable (per adr-062 + adr-071):
 #   - recurrence:       grep do pattern no scope (filename/file-content/
@@ -65,7 +69,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 json_data = os.environ.get("JSON_DATA", "")
 if not json_data:
@@ -134,6 +138,46 @@ triggered_count = 0
 output_lines = []
 
 today = date.today()
+
+# ── Gate mode (adr-162) ──
+# Advisory por default (exit 0, postura de adr-062). Quando DD_GATE_ENABLED está
+# setado, um def status=open cujo trigger GATEÁVEL disparou há mais de GRACE_DAYS
+# dias trava o CI (exit 1). O relógio é GIT-DERIVADO (não armazenado) — preserva a
+# invariante de não-mutação do runner do adr-062. V1: gateáveis só file-exists e
+# temporal (os defs de produção são file-exists); demais kinds seguem warn-only.
+# Neste arco o workflow NÃO seta a flag (gate instalado-mas-desligado, adr-162);
+# a ligação é arco futuro após triagem do backlog.
+GRACE_DAYS = 7
+GATE_ENABLED = os.environ.get("DD_GATE_ENABLED", "") not in ("", "0", "false", "False", "no")
+gate_blocking = []
+
+
+def fire_age_days(trigger, d):
+    """(gateable, age_days|None) do trigger que disparou. age_days = idade do
+    disparo em dias, git-derivada. Só file-exists e temporal são gateáveis no V1."""
+    kind = trigger.get("kind")
+    if kind == "adjacent-need" and trigger.get("condition", {}).get("kind") == "file-exists":
+        path = trigger["condition"]["path"]
+        try:
+            out = subprocess.run(
+                ["git", "log", "--diff-filter=A", "--format=%cs", "-1", "--", path],
+                capture_output=True, text=True,
+            )
+            s = out.stdout.strip()
+            if not s:
+                return True, 0  # gateável, sem data git (path novo não-commitado) → idade 0
+            fd = datetime.strptime(s, "%Y-%m-%d").date()
+            return True, (today - fd).days
+        except Exception:
+            return True, None
+    if kind == "temporal":
+        try:
+            dd = datetime.strptime(d.get("date", ""), "%Y-%m-%d").date()
+            fire = dd + timedelta(days=int(trigger["maxAgeDays"]))
+            return True, (today - fire).days
+        except Exception:
+            return True, None
+    return False, None  # warn-only no V1
 
 
 def evaluate_recurrence(trigger):
@@ -287,6 +331,14 @@ for def_id, d in defs.items():
         if ok and not fired:
             fired = True
             fired_condition = msg
+            gateable, age = fire_age_days(trigger, d)
+            if gateable and age is not None and age > GRACE_DAYS:
+                gate_blocking.append((def_id, d.get("title", ""), age, msg))
+                print(f"    -> BEYOND GRACE: fired {age}d ago > {GRACE_DAYS}d (gateable)")
+            elif gateable and age is not None:
+                print(f"    -> within grace: fired {age}d ago <= {GRACE_DAYS}d")
+            elif not gateable:
+                print(f"    -> warn-only (kind not gateable in V1)")
 
     if fired:
         triggered_count += 1
@@ -312,7 +364,19 @@ if gh_summary and triggered_count > 0:
         for line in output_lines:
             f.write(f"- {line}\n")
 
-# Always exit 0 (advisory)
+# ── Gate (adr-162) ── advisory por default; bloqueante só com DD_GATE_ENABLED.
+if gate_blocking:
+    print(f"\n{len(gate_blocking)} def(s) open com trigger gateável disparado ALÉM da carência de {GRACE_DAYS}d:")
+    for def_id, title, age, cond in gate_blocking:
+        print(f"::error title=Deferred Decision Beyond Grace::{def_id}: {title} | fired {age}d ago > {GRACE_DAYS}d grace | {cond}")
+    if GATE_ENABLED:
+        print(f"\nGATE ENABLED (DD_GATE_ENABLED): blocking CI. Aja sobre os {len(gate_blocking)} def(s) acima")
+        print("(resolver / triggered / withdrawn / re-adiar) para destravar.")
+        sys.exit(1)
+    print("\nGATE INSTALLED BUT OFF (DD_GATE_ENABLED unset): advisory apenas")
+    print("(adr-162 nascimento desligado). Ligar é arco futuro após triagem do backlog.")
+
+# Advisory default (postura de adr-062 preservada quando o gate está desligado).
 sys.exit(0)
 PYEOF
 
