@@ -2,6 +2,10 @@ package self_reviews
 
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
+// SRR do def-038 — re-deferimento pós-triagem (adr-162): trigger file-exists esgotado
+// substituído por manual-review (evento real no runtime/infra) + temporal 180d backstop.
+// Revisado em subagente ISOLADO (batch das 9 re-adiações). 1 round, stable, 0 fail.
+
 def038: build_time.#SelfReviewReport & {
 	reportId: "srr-def-038-compute-platform-deploy-topology"
 
@@ -10,8 +14,8 @@ def038: build_time.#SelfReviewReport & {
 	artifactType:       "deferred-decision"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
-	executionMode:   "self-reported"
-	generatedAt:     "2026-06-03"
+	executionMode:   "isolated-subagent"
+	generatedAt:     "2026-06-28"
 
 	roundsExecuted: 1
 	maxRounds:      4
@@ -23,48 +27,35 @@ def038: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			Self-review do def-038 (compute platform + topologia FÍSICA de deploy — k8s/serverless/VMs,
-			mapeamento módulo→runtime físico — deferida per adr-139). Avaliado contra universalCriteria
-			+ tq-def-01..04.
-
-			tq-def-01 (deferralRationale = trade-off concreto): custo evitado (inventar mapeamento físico
-			+ plataforma antes de haver kernel materializado e carga real) vs custo de continuar (kernel
-			lógico sem contraparte física, mitigado porque nenhum deploy real ocorre antes do
-			golden-example). Não é "fazer depois". Pass.
-			tq-def-02 (triggers codificados): trigger adjacent-need file-exists em adr-141 — a topologia
-			física só faz sentido depois da lógica existir; kind + path machine-evaluable. Pass.
-			tq-def-03 (≥1 non-manual-review): SIM — adjacent-need non-manual, path adr-141 conhecido. Pass.
-			tq-def-04 (coerência custo-escopo): severity medium + blastRadius cross-cutting — medium (não
-			low, distinto de def-037) porque deferir compute/deploy eventualmente bloqueia o deploy real
-			do runtime (custo cumulativo quando o golden-example sair do local); cross-cutting porque
-			plataforma + granularidade de deploy afetam todos os módulos/BCs. Coerente. Pass.
-			uq-01 (WHY): deferralRationale registra POR QUE (topologia física é runtime/deploy, vive no
-			mesh-runtime fora de escopo, depende de vendor de compute não-escolhido). Pass.
-			uq-02 (Mesh): topologia lógica BC→módulo, Ports, mesh-runtime, adr-138, golden-example —
-			específico. Pass.
-			uq-03 (refs): originatingArtifacts (adr-139, wave-plan) existem; trigger adr-141 (forward-ref
-			intencional). Pass.
-			uq-07 (zero placeholder): nenhum. Pass.
-			uq-08 (conforma #DeferredDecision): status open, description≥50, deferralRationale≥100,
-			triggerCalibrationRationale≥50, originatingArtifacts, costOfDeferral{medium,cross-cutting,
-			desc≥50}, triggers≥1; cue vet EXIT=0. Pass.
+			Re-review isolated-subagent (batch das 9 re-adiações, triagem adr-162) do def-038 após
+			re-deferimento. O trigger original adjacent-need file-exists em adr-141 (proxy-prematuro)
+			foi substituído por manual-review + temporal 180d. Verificado: status open; triggers ==
+			[manual-review, temporal(180)]; manual-review.reason >=40 runes nomeando o evento real
+			(1º workload runtime a precisar de deploy persistente fora de in-memory — compute +
+			topologia física), evento de infra/runtime no mesh-runtime sem sensor honesto no runner de
+			mesh-spec; tq-def-03 satisfeito (temporal). date refrescada para 2026-06-28 (idade 0 — não
+			re-dispara) com a data ORIGINAL (2026-06-03) preservada no triggerCalibrationRationale.
+			deferralRationale/description/costOfDeferral inalterados e íntegros (severity medium mantida).
+			tq-def-01/02/04 PASS; anti-catch-all OK. cue vet ./... EXIT=0.
 			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		def-038 defere a plataforma de compute + a topologia FÍSICA de deploy per adr-139 — a spec fixa
-		a topologia LÓGICA (BC→módulo, em adr-141); COMO os módulos rodam fisicamente é runtime/deploy,
-		no mesh-runtime fora de escopo. Trigger adjacent-need file-exists em adr-141 (a física segue a
-		lógica). medium/cross-cutting: no caminho crítico do runtime sair do local (custo cumulativo),
-		afeta todos os módulos/BCs. Estável em 1 round, 0 findings.
+		def-038 RE-ADIADO na triagem do backlog disparado (adr-162): o trigger file-exists esgotado
+		(proxy-prematuro em adr-141) deu lugar a manual-review (1º workload com deploy persistente fora
+		de in-memory — evento de infra/runtime sem sensor honesto no mesh-spec) + temporal 180d
+		backstop; status segue open; date refrescada com proveniência preservada. Re-review isolado
+		(batch): 0 fail / 0 warn, stable em 1 round; cue vet EXIT=0.
 		"""
 
 	singleRoundRationale: """
-		Deferral com calibração travada pelo founder (medium/cross-cutting, trigger adjacent-need→adr-141);
-		conformance a #DeferredDecision verificável por inspeção direta (MinRunes, shape do trigger, cue
-		vet EXIT=0). Trade-off concreto + trigger non-manual machine-evaluable; severity medium justificada
-		pelo custo cumulativo de deploy — sem ambiguidade que rounds adicionais resolveriam.
+		1 round: a re-adiação é troca de calibração de gatilho de escopo estreito e uniforme entre os 9
+		defs, revisada por subagente ISOLADO em batch (viés de auto-ratificação reduzido) com PASS
+		direto. O eixo de risco — gatilho desonesto — foi verificado ausente: o manual-review nomeia o
+		evento real de runtime (deploy persistente do 1º workload) e o temporal 180d é o backstop
+		gateável (adr-162). Shape, reason>=40, temporal presente e proveniência da data verificados;
+		sem delta a re-rodar.
 		"""
 }

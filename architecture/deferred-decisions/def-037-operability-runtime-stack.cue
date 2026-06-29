@@ -5,7 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 def037: artifact_schemas.#DeferredDecision & {
 	id:     "def-037"
 	title:  "Stack de operability runtime (backend de observabilidade + CI/CD + IaC) deferida até o kernel/golden-example"
-	date:   "2026-06-03"
+	date:   "2026-06-28"
 	status: "open"
 
 	description: """
@@ -29,13 +29,18 @@ def037: artifact_schemas.#DeferredDecision & {
 		"""
 
 	triggerCalibrationRationale: """
-		Trigger adjacent-need file-exists em adr-141 (kernel/Port contracts): quando o kernel e
-		os 5 Ports estão definidos, a observabilidade DESSE runtime (telemetria em torno dos
-		Ports) vira decisão viva — checkpoint natural de revisita. Path conhecido (assinado por
-		adr-139 a WI-103), logo machine-evaluable — melhor calibrado que manual-review (diferente
-		de def-023, onde o id do ADR futuro era imprevisível). Não é fire forte (kernel existir ≠
-		observability obrigatória), mas é o gatilho determinístico mais fiel ao momento em que a
-		decisão deixa de ser prematura.
+		Re-deferimento pós-triagem do backlog de defs disparados (adr-162, Camada 3). O trigger
+		original (adjacent-need file-exists em architecture/adrs/adr-141-runtime-kernel-port-
+		contracts.cue) ERA proxy-prematuro: disparou quando o kernel/Port contracts (adr-141)
+		materializou, mas a decisão real — existe deploy/runtime a operar (mesmo evento de mundo
+		do def-038) — só fica devida em evento de runtime/infra que vive no mesh-runtime e NÃO tem
+		sensor honesto no runner repo-local de mesh-spec. Substituído por manual-review (o evento
+		real, founder revisita) + temporal 180d (backstop gateável; único kind além de file-exists
+		que o gate V1 de adr-162 enforça; impede limbo, mesmo desenho do def-070). Data refrescada
+		para 2026-06-28 para o backstop contar a partir de agora (idade 0, não re-dispara na hora);
+		deferido ORIGINALMENTE em 2026-06-03 — proveniência preservada aqui porque #DeferredDecision
+		tem campo `date` único, sem slot estruturado para "última revisão" (triggeredAt é proibido
+		em status open).
 		"""
 
 	originatingArtifacts: [
@@ -56,10 +61,10 @@ def037: artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind: "adjacent-need"
-		condition: {
-			kind: "file-exists"
-			path: "architecture/adrs/adr-141-runtime-kernel-port-contracts.cue"
-		}
+		kind:   "manual-review"
+		reason: "Existe deploy/runtime real a operar — mesmo evento de mundo do def-038. Operability (telemetria/CI-CD/IaC) só vira decisão viva com runtime deployado a observar; esse evento vive no mesh-runtime/infra, sem sensor honesto no runner repo-local de mesh-spec."
+	}, {
+		kind:       "temporal"
+		maxAgeDays: 180
 	}]
 }

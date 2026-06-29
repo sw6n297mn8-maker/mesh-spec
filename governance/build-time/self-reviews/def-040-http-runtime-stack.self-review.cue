@@ -2,6 +2,10 @@ package self_reviews
 
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
+// SRR do def-040 — re-deferimento pós-triagem (adr-162): trigger file-exists esgotado
+// substituído por manual-review (evento real no runtime/infra) + temporal 180d backstop.
+// Revisado em subagente ISOLADO (batch das 9 re-adiações). 1 round, stable, 0 fail.
+
 def040: build_time.#SelfReviewReport & {
 	reportId: "srr-def-040-http-runtime-stack"
 
@@ -10,8 +14,8 @@ def040: build_time.#SelfReviewReport & {
 	artifactType:       "deferred-decision"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
-	executionMode:   "self-reported"
-	generatedAt:     "2026-06-04"
+	executionMode:   "isolated-subagent"
+	generatedAt:     "2026-06-28"
 
 	roundsExecuted: 1
 	maxRounds:      4
@@ -23,37 +27,35 @@ def040: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			Self-review do def-040 (stack de runtime HTTP — framework/IdP/ingress — deferida de adr-140).
-			Avaliado contra universalCriteria + tq-def-01..04.
-			tq-def-01 (trade-off concreto): custo evitado (especular stack HTTP — servidor+auth+ingress —
-			antes de existir runtime que os exercite, lock-in prematuro que real-options/adr-138 evita) vs
-			custo de continuar (spec sem runtime HTTP, mitigado porque o golden-example não expõe HTTP per
-			def-039 e o contrato adr-140 basta como âncora). Não é "fazer depois". Pass.
-			tq-def-02: adjacent-need file-exists conforme #Trigger, machine-evaluable. Pass.
-			tq-def-03 (≥1 non-manual): trigger non-manual (adjacent-need). Pass.
-			tq-def-04 (coerência): low + cross-cutting — coerente (runtime puro fora do caminho crítico =
-			low; ponto de entrada de TODOS os BCs sobre HTTP quando materializar = cross-cutting; não é o
-			par suspeito low+repo-wide; mesmo par de def-037). Pass.
-			uq-02 (Mesh): framework HTTP/IdP/ingress atrás de Port (P2), golden-example sem HTTP,
-			def-037/adr-138/adr-139 — específico. uq-08 (conforma #DeferredDecision): status=open
-			(auxiliary fields ausentes); MinRunes em description/deferralRationale/triggerCalibrationRationale;
-			cue vet EXIT=0.
+			Re-review isolated-subagent (batch das 9 re-adiações, triagem adr-162) do def-040 após
+			re-deferimento. O trigger original adjacent-need file-exists em adr-141 (proxy-prematuro)
+			foi substituído por manual-review + temporal 180d. Verificado: status open; triggers ==
+			[manual-review, temporal(180)]; manual-review.reason >=40 runes nomeando o evento real
+			(1ª superfície que precisa expor ou consumir rede — framework HTTP/IdP/ingress), evento de
+			runtime no mesh-runtime sem sensor honesto no runner de mesh-spec; tq-def-03 satisfeito
+			(temporal). date refrescada para 2026-06-28 (idade 0 — não re-dispara) com a data ORIGINAL
+			(2026-06-04) preservada no triggerCalibrationRationale. deferralRationale/description/
+			costOfDeferral inalterados e íntegros. tq-def-01/02/04 PASS; anti-catch-all OK. cue vet
+			./... EXIT=0.
 			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		def-040 defere a seleção de framework HTTP, IdP e ingress (runtime que serve o slice de contrato
-		HTTP de adr-140) — tooling de runtime atrás dos Ports (P2), não contrato de domínio. Trigger
-		adjacent-need file-exists em adr-141 (mesmo checkpoint de def-037, machine-evaluable). low/
-		cross-cutting. Estável em 1 round, 0 findings.
+		def-040 RE-ADIADO na triagem do backlog disparado (adr-162): o trigger file-exists esgotado
+		(proxy-prematuro em adr-141) deu lugar a manual-review (1ª superfície a expor/consumir rede —
+		evento de runtime sem sensor honesto no mesh-spec) + temporal 180d backstop; status segue open;
+		date refrescada com proveniência preservada. Re-review isolado (batch): 0 fail / 0 warn, stable
+		em 1 round; cue vet EXIT=0.
 		"""
 
 	singleRoundRationale: """
-		Deferral com calibração travada pelo founder (low/cross-cutting; trigger adjacent-need adr-141
-		espelhando def-037, machine-evaluable); conformance a #DeferredDecision verificável por inspeção
-		(MinRunes, shape do trigger, união discriminada status=open, cue vet EXIT=0). Trade-off concreto
-		articulado — sem ambiguidade que rounds adicionais resolveriam.
+		1 round: a re-adiação é troca de calibração de gatilho de escopo estreito e uniforme entre os 9
+		defs, revisada por subagente ISOLADO em batch (viés de auto-ratificação reduzido) com PASS
+		direto. O eixo de risco — gatilho desonesto — foi verificado ausente: o manual-review nomeia o
+		evento real de runtime (1ª superfície de rede) e o temporal 180d é o backstop gateável
+		(adr-162). Shape, reason>=40, temporal presente e proveniência da data verificados; sem delta
+		a re-rodar.
 		"""
 }

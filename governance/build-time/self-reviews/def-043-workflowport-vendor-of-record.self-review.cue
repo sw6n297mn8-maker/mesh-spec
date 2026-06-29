@@ -2,6 +2,10 @@ package self_reviews
 
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
+// SRR do def-043 — re-deferimento pós-triagem (adr-162): trigger file-exists esgotado
+// substituído por manual-review (evento real no runtime/infra) + temporal 180d backstop.
+// Revisado em subagente ISOLADO (batch das 9 re-adiações). 1 round, stable, 0 fail.
+
 def043: build_time.#SelfReviewReport & {
 	reportId: "srr-def-043-workflowport-vendor-of-record"
 
@@ -10,8 +14,8 @@ def043: build_time.#SelfReviewReport & {
 	artifactType:       "deferred-decision"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
-	executionMode:   "self-reported"
-	generatedAt:     "2026-06-04"
+	executionMode:   "isolated-subagent"
+	generatedAt:     "2026-06-28"
 
 	roundsExecuted: 1
 	maxRounds:      4
@@ -23,39 +27,35 @@ def043: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			Self-review do def-043 (vendor-of-record do WorkflowPort — SoT da execução, categoria
-			workflow / durable-execution engine — deferido). Avaliado contra tq-def-01..04 +
-			universalCriteria.
-			tq-def-01 (trade-off concreto): deferralRationale articula custo evitado (especular um durable
-			execution engine antes de o harness WI-137 exercitar o Port = lock-in prematuro per
-			P2/real-options) vs custo de continuar (spec sem vendor, mitigado porque o reference adapter
-			in-memory destrava o golden-example). Não é "fazer depois". Pass.
-			tq-def-02 (trigger codificado): adjacent-need file-exists em scripts/ci/validate-codegen.sh
-			conforme #Trigger, machine-evaluable. Pass.
-			tq-def-03 (≥1 non-manual): sim — adjacent-need é non-manual. Pass.
-			tq-def-04 (custo coerente): low + cross-cutting — reference adapter destrava o golden-example
-			(low, fora do caminho crítico) e o WorkflowPort é consumido por todos os BCs (cross-cutting);
-			não é o par suspeito low+repo-wide; mesmo par de def-040. Pass.
-			uq (Mesh): WorkflowPort, três SoTs, reference adapter, harness WI-137 — específico e agnóstico
-			de vendor (zero produto nomeado). uq-08: status=open (auxiliares ausentes), MinRunes em
-			description/deferralRationale/triggerCalibrationRationale, cue vet EXIT=0.
+			Re-review isolated-subagent (batch das 9 re-adiações, triagem adr-162) do def-043 após
+			re-deferimento. O trigger original adjacent-need file-exists em validate-codegen.sh
+			(proxy-prematuro) foi substituído por manual-review + temporal 180d. Verificado: status
+			open; triggers == [manual-review, temporal(180)]; manual-review.reason >=40 runes nomeando
+			o evento real (1º adapter persistente não-in-memory do WorkflowPort em construção), que vive
+			no mesh-runtime (convenção platform/adapters/workflow-<vendor>/) sem sensor honesto no
+			runner de mesh-spec — o vendor É a decisão; tq-def-03 satisfeito (temporal). date refrescada
+			para 2026-06-28 (idade 0 — não re-dispara) com a data ORIGINAL (2026-06-04) preservada no
+			triggerCalibrationRationale. deferralRationale/description/costOfDeferral inalterados e
+			íntegros. tq-def-01/02/04 PASS; anti-catch-all OK. cue vet ./... EXIT=0.
 			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		def-043 defere a seleção do vendor de durable execution que implementa o WorkflowPort (SoT da
-		execução) — categoria de runtime atrás do Port (P2), não contrato de domínio. Agnóstico (nenhum
-		produto nomeado), forma def-040/049, deferimento JIT ancorado no harness de codegen-validation
-		(WI-137). Estável em 1 round, 0 findings.
+		def-043 RE-ADIADO na triagem do backlog disparado (adr-162): o trigger file-exists esgotado
+		(proxy-prematuro em validate-codegen.sh) deu lugar a manual-review (1º adapter persistente do
+		WorkflowPort — evento de runtime no mesh-runtime sem sensor honesto no mesh-spec) + temporal
+		180d backstop; status segue open; date refrescada com proveniência preservada. Re-review
+		isolado (batch): 0 fail / 0 warn, stable em 1 round; cue vet EXIT=0.
 		"""
 
 	singleRoundRationale: """
-		Self-reported: deferred-decision estrutural simples espelhando o precedente def-040/def-049 do
-		mesmo arco (adr-141); deferred-decisions não têm workOrder multi-gate como ADRs. Conformance a
-		#DeferredDecision verificável por inspeção (MinRunes, shape do trigger adjacent-need, união
-		discriminada status=open, cue vet EXIT=0); trade-off concreto articulado — sem ambiguidade que
-		rounds adicionais resolveriam.
+		1 round: a re-adiação é troca de calibração de gatilho de escopo estreito e uniforme entre os 9
+		defs, revisada por subagente ISOLADO em batch (viés de auto-ratificação reduzido) com PASS
+		direto. O eixo de risco — gatilho desonesto (file-exists artificial; o vendor É a decisão) —
+		foi verificado ausente: o manual-review nomeia o evento real (1º adapter persistente do
+		WorkflowPort) e o temporal 180d é o backstop gateável (adr-162). Shape, reason>=40, temporal
+		presente e proveniência da data verificados; sem delta a re-rodar.
 		"""
 }

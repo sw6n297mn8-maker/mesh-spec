@@ -5,7 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 def040: artifact_schemas.#DeferredDecision & {
 	id:     "def-040"
 	title:  "Stack de runtime HTTP (framework, IdP, ingress) deferida até o kernel (adr-141)"
-	date:   "2026-06-04"
+	date:   "2026-06-28"
 	status: "open"
 
 	description: """
@@ -29,14 +29,18 @@ def040: artifact_schemas.#DeferredDecision & {
 		"""
 
 	triggerCalibrationRationale: """
-		Trigger adjacent-need file-exists em adr-141 (kernel/Port contracts): quando o kernel e os
-		5 Ports estão definidos, o runtime que os EXPÕE sobre HTTP vira decisão viva — mesmo
-		checkpoint que def-037 usa para observability, pelo mesmo motivo (a camada que serve os
-		Ports só faz sentido depois que os Ports existem). Path conhecido (assinado por adr-139 a
-		WI-103), logo machine-evaluable — melhor calibrado que manual-review e que um anchor em
-		artefato de mesh-runtime (não visível ao runner de mesh-spec). Não é fire forte (kernel
-		existir ≠ runtime HTTP obrigatório), mas é o gatilho determinístico mais fiel ao momento
-		em que a decisão deixa de ser prematura.
+		Re-deferimento pós-triagem do backlog de defs disparados (adr-162, Camada 3). O trigger
+		original (adjacent-need file-exists em architecture/adrs/adr-141-runtime-kernel-port-
+		contracts.cue) ERA proxy-prematuro: disparou quando o kernel/Port contracts (adr-141)
+		materializou, mas a decisão real — 1ª superfície que precisa expor ou consumir rede
+		(framework HTTP/IdP/ingress) — só fica devida em evento de runtime que vive no mesh-runtime
+		e NÃO tem sensor honesto no runner repo-local de mesh-spec. Substituído por manual-review
+		(o evento real, founder revisita) + temporal 180d (backstop gateável; único kind além de
+		file-exists que o gate V1 de adr-162 enforça; impede limbo, mesmo desenho do def-070). Data
+		refrescada para 2026-06-28 para o backstop contar a partir de agora (idade 0, não re-dispara
+		na hora); deferido ORIGINALMENTE em 2026-06-04 — proveniência preservada aqui porque
+		#DeferredDecision tem campo `date` único, sem slot estruturado para "última revisão"
+		(triggeredAt é proibido em status open).
 		"""
 
 	originatingArtifacts: [
@@ -57,10 +61,10 @@ def040: artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind: "adjacent-need"
-		condition: {
-			kind: "file-exists"
-			path: "architecture/adrs/adr-141-runtime-kernel-port-contracts.cue"
-		}
+		kind:   "manual-review"
+		reason: "1ª superfície que precisa expor ou consumir rede (framework HTTP/IdP/ingress). Evento de runtime no mesh-runtime, invisível ao runner de mesh-spec — nenhum file-exists honesto neste repo o sinaliza."
+	}, {
+		kind:       "temporal"
+		maxAgeDays: 180
 	}]
 }

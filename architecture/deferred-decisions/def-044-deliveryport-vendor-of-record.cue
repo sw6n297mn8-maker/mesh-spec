@@ -5,7 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 def044: artifact_schemas.#DeferredDecision & {
 	id:     "def-044"
 	title:  "Vendor-of-record do DeliveryPort deferido até o golden-example (decisão JIT)"
-	date:   "2026-06-04"
+	date:   "2026-06-28"
 	status: "open"
 
 	description: """
@@ -29,14 +29,18 @@ def044: artifact_schemas.#DeferredDecision & {
 		"""
 
 	triggerCalibrationRationale: """
-		Trigger adjacent-need file-exists no harness de codegen-validation (output de WI-137): a
-		existência do harness é o sinal exato de que o Port deixou de ser contrato no papel e passou a
-		ser EXERCITADO de verdade — momento em que a seleção do vendor vira decidível com evidência,
-		não especulação. Ancorar no harness que EXECUTA (não no schema #GoldenExample de WI-136 nem na
-		instância) evita o erro-gêmeo já corrigido na falsificationCondition de adr-141. Mesmo padrão
-		de def-040/def-049 (file-exists no artefato que destrava a decisão), machine-evaluable; melhor
-		que manual-review e que um anchor em artefato de mesh-runtime (invisível ao runner de
-		mesh-spec).
+		Re-deferimento pós-triagem do backlog de defs disparados (adr-162, Camada 3). O trigger
+		original (adjacent-need file-exists em scripts/ci/validate-codegen.sh) ERA proxy-prematuro:
+		disparou quando o harness de codegen-validation materializou, mas a decisão real — 1º adapter
+		persistente (não-in-memory) do DeliveryPort a entrar em construção — só fica devida em evento
+		de runtime que vive no mesh-runtime (convenção platform/adapters/delivery-<vendor>/) e NÃO tem
+		sensor honesto no runner repo-local de mesh-spec: o nome do vendor É a própria decisão (sem
+		file-exists exato possível). Substituído por manual-review (o evento real, founder revisita) +
+		temporal 180d (backstop gateável; único kind além de file-exists que o gate V1 de adr-162
+		enforça; impede limbo, mesmo desenho do def-070). Data refrescada para 2026-06-28 para o
+		backstop contar a partir de agora (idade 0, não re-dispara na hora); deferido ORIGINALMENTE em
+		2026-06-04 — proveniência preservada aqui porque #DeferredDecision tem campo `date` único, sem
+		slot estruturado para "última revisão" (triggeredAt é proibido em status open).
 		"""
 
 	originatingArtifacts: [
@@ -57,10 +61,10 @@ def044: artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind: "adjacent-need"
-		condition: {
-			kind: "file-exists"
-			path: "scripts/ci/validate-codegen.sh"
-		}
+		kind:   "manual-review"
+		reason: "1º adapter persistente (não-in-memory) do DeliveryPort a entrar em construção. A convenção platform/adapters/delivery-<vendor>/ vive no mesh-runtime e o vendor É a decisão — sem file-exists honesto a partir do mesh-spec."
+	}, {
+		kind:       "temporal"
+		maxAgeDays: 180
 	}]
 }

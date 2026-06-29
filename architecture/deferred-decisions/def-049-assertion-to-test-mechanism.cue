@@ -5,7 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 def049: artifact_schemas.#DeferredDecision & {
 	id:     "def-049"
 	title:  "Mecanismo concreto de assertion-to-test deferido até o contrato de codegen (WI-134)"
-	date:   "2026-06-04"
+	date:   "2026-06-28"
 	status: "open"
 
 	description: """
@@ -31,12 +31,20 @@ def049: artifact_schemas.#DeferredDecision & {
 		"""
 
 	triggerCalibrationRationale: """
-		Trigger adjacent-need file-exists em governance/build-time/codegen-contract.cue (output de
-		WI-134): a existência desse arquivo é o sinal exato de que a transformação spec→runtime foi
-		desenhada e o mecanismo de assertion-to-test deixa de ser prematuro — mesmo padrão de
-		def-039 (file-exists no artefato que destrava a decisão). Path canônico assinado a WI-134
-		no wave-plan, machine-evaluable. Fire forte: codegen-contract.cue não existe até WI-134, e
-		WI-137 (golden-example) depende dele — o trigger garante revisita ANTES de o consumidor precisar.
+		Re-deferimento pós-triagem do backlog de defs disparados (adr-162, Camada 3). O trigger
+		original (adjacent-need file-exists em governance/build-time/codegen-contract.cue) ERA
+		proxy-prematuro: disparou quando o contrato de codegen (WI-134) materializou, mas a decisão
+		real — volume de contract-tests hand-encoded que justifique automatizar a transformação
+		assertion→test — só fica devida em fenômeno de runtime que vive no mesh-runtime e NÃO tem
+		sensor honesto no runner repo-local de mesh-spec: os testes hand-encoded vivem no mesh-runtime
+		(contexts/*/src/test, marcador *AssertionTest/*CompositionTest) e o volume-threshold do runner
+		só conta 10 artifactTypes hardcoded, sem "assertion-test". Substituído por manual-review (o
+		evento real, founder revisita) + temporal 180d (backstop gateável; único kind além de
+		file-exists que o gate V1 de adr-162 enforça; impede limbo, mesmo desenho do def-070). Data
+		refrescada para 2026-06-28 para o backstop contar a partir de agora (idade 0, não re-dispara na
+		hora); deferido ORIGINALMENTE em 2026-06-04 — proveniência preservada aqui porque
+		#DeferredDecision tem campo `date` único, sem slot estruturado para "última revisão"
+		(triggeredAt é proibido em status open).
 		"""
 
 	originatingArtifacts: [
@@ -58,10 +66,10 @@ def049: artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind: "adjacent-need"
-		condition: {
-			kind: "file-exists"
-			path: "governance/build-time/codegen-contract.cue"
-		}
+		kind:   "manual-review"
+		reason: "Volume de contract-tests hand-encoded que justifique automatizar assertion→test (≥N testes, ou ≥2 Ports com adapter a testar). Os testes vivem no mesh-runtime (contexts/*/src/test, marcador *AssertionTest/*CompositionTest) e o volume-threshold do runner só conta 10 artifactTypes hardcoded sem 'assertion-test' — sem sensor honesto aqui."
+	}, {
+		kind:       "temporal"
+		maxAgeDays: 180
 	}]
 }
