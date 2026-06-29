@@ -168,7 +168,8 @@ structureIndex: {
 				"architecture/adrs/adr-159-decompose-grouped-deferred-decision.cue",
 				"architecture/adrs/adr-160-outcome-split-selector-semantics.cue",
 				"architecture/adrs/adr-161-absent-fact-conduct-prepayment-guard.cue",
-				"architecture/adrs/adr-162-deferred-decision-vigilance-grace-gate.cue"
+				"architecture/adrs/adr-162-deferred-decision-vigilance-grace-gate.cue",
+				"architecture/adrs/adr-163-compile-probe-p14-mandatory-gate.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -601,7 +602,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-067-frontend-ai-orchestration-vendor.cue",
 				"architecture/deferred-decisions/def-068-frontend-design-system-vendor.cue",
 				"architecture/deferred-decisions/def-069-absent-fact-prolonged-conduct.cue",
-				"architecture/deferred-decisions/def-070-external-notification-channel.cue"
+				"architecture/deferred-decisions/def-070-external-notification-channel.cue",
+				"architecture/deferred-decisions/def-071-compile-probe-runtime-implementation.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},

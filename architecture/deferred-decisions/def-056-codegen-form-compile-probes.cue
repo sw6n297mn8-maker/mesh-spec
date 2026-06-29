@@ -3,10 +3,11 @@ package deferred_decisions
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
 def056: artifact_schemas.#DeferredDecision & {
-	id:     "def-056"
-	title:  "Check-(a) compile-probes dos domain-types gerados deferido ate a geracao viva"
-	date:   "2026-06-10"
-	status: "open"
+	id:         "def-056"
+	title:      "Check-(a) compile-probes dos domain-types gerados deferido ate a geracao viva"
+	date:       "2026-06-10"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-163-compile-probe-p14-mandatory-gate.cue"
 
 	description: """
 		P14 (adr-146) exige que todo invariante compile-time-verificavel seja forcado pelo compilador nos
