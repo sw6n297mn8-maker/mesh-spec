@@ -5,7 +5,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 def038: artifact_schemas.#DeferredDecision & {
 	id:     "def-038"
 	title:  "Compute platform + topologia FÍSICA de deploy (k8s/serverless/VMs; mapeamento módulo→runtime físico) deferida até o kernel"
-	date:   "2026-06-03"
+	date:   "2026-06-28"
 	status: "open"
 
 	description: """
@@ -30,12 +30,18 @@ def038: artifact_schemas.#DeferredDecision & {
 		"""
 
 	triggerCalibrationRationale: """
-		Trigger adjacent-need file-exists em adr-141: a topologia física só faz sentido depois da
-		lógica existir — quando adr-141 (kernel + topologia lógica módulo) é autorado, o mapeamento
-		físico vira a próxima pergunta. Path conhecido (WI-103), machine-evaluable. medium (não low
-		como def-037) porque deferir compute/deploy indefinidamente eventualmente bloqueia o deploy
-		real do runtime — há custo cumulativo quando o golden-example sair do local para execução
-		real, então o checkpoint no kernel é deliberado, não cosmético.
+		Re-deferimento pós-triagem do backlog de defs disparados (adr-162, Camada 3). O trigger
+		original (adjacent-need file-exists em architecture/adrs/adr-141-runtime-kernel-port-
+		contracts.cue) ERA proxy-prematuro: disparou quando o kernel lógico (adr-141) materializou,
+		mas a decisão real — 1º workload runtime a precisar de deploy persistente fora de in-memory
+		(compute + topologia física) — só fica devida em evento de infra/runtime que vive no
+		mesh-runtime e NÃO tem sensor honesto no runner repo-local de mesh-spec. Substituído por
+		manual-review (o evento real, founder revisita) + temporal 180d (backstop gateável; único
+		kind além de file-exists que o gate V1 de adr-162 enforça; impede limbo, mesmo desenho do
+		def-070). Data refrescada para 2026-06-28 para o backstop contar a partir de agora (idade 0,
+		não re-dispara na hora); deferido ORIGINALMENTE em 2026-06-03 — proveniência preservada aqui
+		porque #DeferredDecision tem campo `date` único, sem slot estruturado para "última revisão"
+		(triggeredAt é proibido em status open).
 		"""
 
 	originatingArtifacts: [
@@ -56,10 +62,10 @@ def038: artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind: "adjacent-need"
-		condition: {
-			kind: "file-exists"
-			path: "architecture/adrs/adr-141-runtime-kernel-port-contracts.cue"
-		}
+		kind:   "manual-review"
+		reason: "1º workload runtime a precisar de deploy persistente fora de in-memory (compute + topologia física). Evento de infra/runtime no mesh-runtime; não há artefato no mesh-spec cuja existência o marque honestamente."
+	}, {
+		kind:       "temporal"
+		maxAgeDays: 180
 	}]
 }

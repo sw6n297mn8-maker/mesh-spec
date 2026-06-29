@@ -2,6 +2,10 @@ package self_reviews
 
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
+// SRR do def-049 — re-deferimento pós-triagem (adr-162): trigger file-exists esgotado
+// substituído por manual-review (evento real no runtime) + temporal 180d backstop.
+// Revisado em subagente ISOLADO (batch das 9 re-adiações). 1 round, stable, 0 fail.
+
 def049: build_time.#SelfReviewReport & {
 	reportId: "srr-def-049-assertion-to-test-mechanism"
 
@@ -10,8 +14,8 @@ def049: build_time.#SelfReviewReport & {
 	artifactType:       "deferred-decision"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
-	executionMode:   "self-reported"
-	generatedAt:     "2026-06-04"
+	executionMode:   "isolated-subagent"
+	generatedAt:     "2026-06-28"
 
 	roundsExecuted: 1
 	maxRounds:      4
@@ -23,39 +27,39 @@ def049: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			Self-review do def-049 (mecanismo concreto de assertion-to-test deferido de adr-140).
-			Avaliado contra universalCriteria + tq-def-01..04.
-			tq-def-01 (trade-off concreto): custo evitado (comprometer abordagem de geração de teste antes
-			de WI-134 desenhar a transformação spec→runtime, arriscando retrabalho) vs custo de continuar
-			(o golden-example precisa do path de teste — mitigado porque WI-137 depende de WI-134, onde o
-			trigger dispara, e o mecanismo provisório hand-encoded prova o conceito). Não é "fazer depois". Pass.
-			tq-def-02: adjacent-need file-exists em governance/build-time/codegen-contract.cue conforme
-			#Trigger, machine-evaluable. Pass.
-			tq-def-03 (≥1 non-manual): trigger non-manual (adjacent-need). Pass.
-			tq-def-04 (coerência): medium + cross-artifact — coerente: medium porque está no caminho crítico
-			do golden-example completo e é bounded à janela WI-134 (não low/indefinido; não high pois
-			mecanismo provisório + WI-137-depende-de-WI-134 evitam bloqueio duro); cross-artifact porque toca
-			codegen-contract + harness WI-137 + gramática #Assertion. Pass.
-			uq-02 (Mesh): #Assertion como fonte canônica de teste, FF-04/compat 3-camadas, codegen-contract
-			WI-134, golden-example WI-137 — específico. uq-08 (conforma #DeferredDecision): status=open;
-			MinRunes; cue vet EXIT=0.
+			Re-review isolated-subagent (batch das 9 re-adiações, triagem adr-162) do def-049 após
+			re-deferimento. O trigger original adjacent-need file-exists em codegen-contract.cue
+			(proxy-prematuro) foi substituído por manual-review + temporal 180d. Verificado: status
+			open; triggers == [manual-review, temporal(180)]; manual-review.reason >=40 runes nomeando
+			o evento real (volume de contract-tests hand-encoded que justifique automatizar a
+			transformação assertion→test), fenômeno de runtime que vive no mesh-runtime (testes em
+			contexts/*/src/test, marcador *AssertionTest/*CompositionTest) sem sensor honesto no runner
+			de mesh-spec — e o volume-threshold do runner só conta 10 artifactTypes hardcoded, sem
+			"assertion-test"; tq-def-03 satisfeito (temporal). date refrescada para 2026-06-28 (idade 0
+			— não re-dispara) com a data ORIGINAL (2026-06-04) preservada no triggerCalibrationRationale.
+			deferralRationale/description/costOfDeferral inalterados e íntegros (severity medium/cross-
+			artifact mantida). tq-def-01/02/04 PASS; anti-catch-all OK. cue vet ./... EXIT=0.
 			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		def-049 defere o MECANISMO concreto de assertion-to-test (adr-140 fixa a ponte: #Assertion é
-		fonte canônica de teste; o COMO depende do codegen-contract de WI-134). Trigger adjacent-need
-		file-exists em governance/build-time/codegen-contract.cue. medium/cross-artifact (caminho crítico
-		do golden-example, bounded à janela WI-134). Estável em 1 round, 0 findings.
+		def-049 RE-ADIADO na triagem do backlog disparado (adr-162): o trigger file-exists esgotado
+		(proxy-prematuro em codegen-contract.cue) deu lugar a manual-review (volume de testes hand-
+		encoded que justifique automatizar — fenômeno de runtime no mesh-runtime; o volume-threshold do
+		runner nem conta "assertion-test") + temporal 180d backstop; status segue open; date refrescada
+		com proveniência preservada. Re-review isolado (batch): 0 fail / 0 warn, stable em 1 round; cue
+		vet EXIT=0.
 		"""
 
 	singleRoundRationale: """
-		Deferral com calibração travada pelo founder (medium/cross-artifact — severity subida de low por
-		estar no caminho crítico do golden-example; trigger adjacent-need em codegen-contract.cue,
-		machine-evaluable); conformance a #DeferredDecision verificável por inspeção (MinRunes, shape do
-		trigger, status=open, cue vet EXIT=0). Trade-off concreto — sem ambiguidade que rounds adicionais
-		resolveriam.
+		1 round: a re-adiação é troca de calibração de gatilho de escopo estreito e uniforme entre os 9
+		defs, revisada por subagente ISOLADO em batch (viés de auto-ratificação reduzido) com PASS
+		direto. O eixo de risco — gatilho desonesto (volume-threshold não consegue contar os testes
+		hand-encoded, que vivem no mesh-runtime e fora da whitelist do runner) — foi verificado ausente:
+		o manual-review nomeia o evento real (volume que justifique automatizar) e o temporal 180d é o
+		backstop gateável (adr-162). Shape, reason>=40, temporal presente e proveniência da data
+		verificados; sem delta a re-rodar.
 		"""
 }

@@ -2,6 +2,10 @@ package self_reviews
 
 import "github.com/sw6n297mn8-maker/mesh-spec/governance/build-time:build_time"
 
+// SRR do def-037 — re-deferimento pós-triagem (adr-162): trigger file-exists esgotado
+// substituído por manual-review (evento real no runtime/infra) + temporal 180d backstop.
+// Revisado em subagente ISOLADO (batch das 9 re-adiações). 1 round, stable, 0 fail.
+
 def037: build_time.#SelfReviewReport & {
 	reportId: "srr-def-037-operability-runtime-stack"
 
@@ -10,8 +14,8 @@ def037: build_time.#SelfReviewReport & {
 	artifactType:       "deferred-decision"
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
-	executionMode:   "self-reported"
-	generatedAt:     "2026-06-03"
+	executionMode:   "isolated-subagent"
+	generatedAt:     "2026-06-28"
 
 	roundsExecuted: 1
 	maxRounds:      4
@@ -23,47 +27,35 @@ def037: build_time.#SelfReviewReport & {
 		warnCount: 0
 		infoCount: 0
 		summary: """
-			Self-review do def-037 (stack de operability runtime — backend de observabilidade +
-			CI/CD + IaC — deferida per adr-139). Avaliado contra universalCriteria + tq-def-01..04.
-
-			tq-def-01 (deferralRationale = trade-off concreto): custo evitado (especular stack de
-			telemetria/CI/IaC antes de haver runtime a observar) vs custo de continuar (spec sem
-			backend de observabilidade, mitigado por OTel vendor-neutro + mesh-runtime como operador).
-			Não é "fazer depois". Pass.
-			tq-def-02 (triggers codificados): trigger adjacent-need file-exists em adr-141 — kind +
-			path machine-evaluable. Pass.
-			tq-def-03 (≥1 non-manual-review): SIM — adjacent-need é non-manual (melhor que def-023,
-			que só conseguia manual-review por id imprevisível; aqui o path adr-141 é conhecido,
-			assinado por adr-139 a WI-103). Pass.
-			tq-def-04 (coerência custo-escopo): severity low + blastRadius cross-cutting — low porque
-			observability é runtime puro (não bloqueia codegen P1 nem Port contracts P7); cross-cutting
-			porque toca a operação de todos os BCs no runtime ao materializar. Coerente. Pass.
-			uq-01 (WHY): deferralRationale registra POR QUE deferir (operability é runtime/ops, atrás
-			do Port — P2; buy/generic — theory-of-firm), não o que faz. Pass.
-			uq-02 (Mesh): Ports/P2/P7, mesh-runtime, real-options, adr-138 — específico. Pass.
-			uq-03 (refs): originatingArtifacts (adr-139, wave-plan) existem; trigger aponta adr-141
-			(forward-ref intencional — file-exists dispara quando o kernel for autorado). Pass.
-			uq-07 (zero placeholder): nenhum. Pass.
-			uq-08 (conforma #DeferredDecision): status open, description≥50, deferralRationale≥100,
-			triggerCalibrationRationale≥50, originatingArtifacts, costOfDeferral{low,cross-cutting,
-			desc≥50}, triggers≥1; cue vet EXIT=0. Pass.
+			Re-review isolated-subagent (batch das 9 re-adiações, triagem adr-162) do def-037 após
+			re-deferimento. O trigger original adjacent-need file-exists em adr-141 (proxy-prematuro)
+			foi substituído por manual-review + temporal 180d. Verificado: status open; triggers ==
+			[manual-review, temporal(180)]; manual-review.reason >=40 runes nomeando o evento real
+			(deploy/runtime real a operar — mesmo evento do def-038), que vive no mesh-runtime/infra
+			sem sensor honesto no runner repo-local de mesh-spec; tq-def-03 satisfeito (temporal é
+			non-manual-review). date refrescada para 2026-06-28 (backstop conta de agora, idade 0 —
+			não re-dispara) com a data ORIGINAL (2026-06-03) preservada no triggerCalibrationRationale
+			(schema tem campo date único). deferralRationale/description/costOfDeferral inalterados e
+			íntegros. tq-def-01/02/04 PASS; anti-catch-all OK (deferimento genuíno). cue vet ./... EXIT=0.
 			"""
 	}]
 
 	findings: {}
 
 	summary: """
-		def-037 defere a stack de operability runtime (backend de telemetria, CI/CD, IaC) per adr-139
-		filtro spec×runtime — é seleção de vendor atrás do Port (P2), não decisão de spec. Trigger
-		adjacent-need file-exists em adr-141 (revisita quando o kernel/Ports existirem). low/cross-cutting:
-		runtime puro, não bloqueia codegen/Port contracts, mas toca a operação de todos os BCs ao
-		materializar. Estável em 1 round, 0 findings.
+		def-037 RE-ADIADO na triagem do backlog disparado (adr-162): o trigger file-exists esgotado
+		(proxy-prematuro em adr-141) deu lugar a manual-review (deploy/runtime real a operar — evento
+		de runtime/infra sem sensor honesto no mesh-spec) + temporal 180d backstop; status segue open;
+		date refrescada com proveniência preservada. Re-review isolado (batch): 0 fail / 0 warn, stable
+		em 1 round; cue vet EXIT=0.
 		"""
 
 	singleRoundRationale: """
-		Deferral com calibração travada pelo founder (low/cross-cutting, trigger adjacent-need→adr-141);
-		conformance a #DeferredDecision verificável por inspeção direta (MinRunes dos campos, shape do
-		trigger, cue vet EXIT=0). Trade-off concreto articulado + trigger non-manual machine-evaluable —
-		sem ambiguidade que rounds adicionais resolveriam.
+		1 round: a re-adiação é troca de calibração de gatilho de escopo estreito e uniforme entre os 9
+		defs, revisada por subagente ISOLADO em batch (viés de auto-ratificação reduzido) com PASS
+		direto. O eixo de risco — gatilho desonesto (file-exists artificial onde o evento real não tem
+		sensor) — foi verificado ausente: o manual-review nomeia o evento real de runtime (deploy a
+		operar) e o temporal 180d é o backstop gateável (adr-162). Shape, reason>=40, temporal presente
+		e proveniência da data verificados; sem delta a re-rodar.
 		"""
 }
