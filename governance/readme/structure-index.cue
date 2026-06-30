@@ -169,7 +169,8 @@ structureIndex: {
 				"architecture/adrs/adr-160-outcome-split-selector-semantics.cue",
 				"architecture/adrs/adr-161-absent-fact-conduct-prepayment-guard.cue",
 				"architecture/adrs/adr-162-deferred-decision-vigilance-grace-gate.cue",
-				"architecture/adrs/adr-163-compile-probe-p14-mandatory-gate.cue"
+				"architecture/adrs/adr-163-compile-probe-p14-mandatory-gate.cue",
+				"architecture/adrs/adr-164-durability-across-restart-capability-contract.cue"
 			],
 			"schema": "#ADRBase"
 		},
