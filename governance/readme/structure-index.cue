@@ -170,7 +170,8 @@ structureIndex: {
 				"architecture/adrs/adr-161-absent-fact-conduct-prepayment-guard.cue",
 				"architecture/adrs/adr-162-deferred-decision-vigilance-grace-gate.cue",
 				"architecture/adrs/adr-163-compile-probe-p14-mandatory-gate.cue",
-				"architecture/adrs/adr-164-durability-across-restart-capability-contract.cue"
+				"architecture/adrs/adr-164-durability-across-restart-capability-contract.cue",
+				"architecture/adrs/adr-165-eventlogport-trajectory-postgres-vendor.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -604,7 +605,9 @@ structureIndex: {
 				"architecture/deferred-decisions/def-068-frontend-design-system-vendor.cue",
 				"architecture/deferred-decisions/def-069-absent-fact-prolonged-conduct.cue",
 				"architecture/deferred-decisions/def-070-external-notification-channel.cue",
-				"architecture/deferred-decisions/def-071-compile-probe-runtime-implementation.cue"
+				"architecture/deferred-decisions/def-071-compile-probe-runtime-implementation.cue",
+				"architecture/deferred-decisions/def-072-eventlog-vendor-scale-revisit.cue",
+				"architecture/deferred-decisions/def-073-causal-graph-envelope-materialization.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
