@@ -31,8 +31,19 @@ else
 fi
 
 # ── Step 1: Identificar artefatos governados alterados ──
-
-changed_files="$(git diff --name-only origin/main...HEAD)"
+#
+# Duas fontes, unidas e deduplicadas:
+#   (1) git diff origin/main...HEAD — o que já foi COMMITADO nesta branch vs main.
+#   (2) git status --porcelain -uall — o WORKING TREE (staged + unstaged + untracked).
+# Sem (2) o gate é cego a mudanças NÃO-commitadas e dá FALSO-VERDE em execução local
+# (o diff-vs-main vem vazio → nada é checado → passa). Remédio portado do
+# scripts/regenerate.sh do mesh-runtime (rtd-014: `git diff` é cego a untracked;
+# unir `git status --porcelain -uall`). Em CI o working tree == HEAD, então (2) é
+# vazio e o comportamento é IDÊNTICO ao anterior — o conserto só ADICIONA cobertura
+# local, sem alterar a política de enforcement.
+changed_committed="$(git diff --name-only origin/main...HEAD)"
+changed_worktree="$(git status --porcelain -uall | cut -c4- | sed 's/.* -> //')"
+changed_files="$(printf '%s\n%s\n' "$changed_committed" "$changed_worktree" | sort -u)"
 
 artifact_type_for_path() {
   local path="$1"
