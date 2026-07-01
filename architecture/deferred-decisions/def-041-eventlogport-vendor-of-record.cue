@@ -6,7 +6,8 @@ def041: artifact_schemas.#DeferredDecision & {
 	id:     "def-041"
 	title:  "Vendor-of-record do EventLogPort deferido até o golden-example (decisão JIT)"
 	date:   "2026-06-28"
-	status: "open"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-165-eventlogport-trajectory-postgres-vendor.cue"
 
 	description: """
 		adr-141 fixa o contrato do EventLogPort — o Port da SoT dos fatos (categoria: event store
