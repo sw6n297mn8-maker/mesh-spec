@@ -8,16 +8,19 @@ info:
     Source canônica de identidade: contexts/fce/canvas.cue.
     Queries → GET. Não usa REST resource-oriented.
 
-    RECORTE DE LEITURA (WI-143): expõe APENAS a query de estado do Payment
-    (QueryPaymentSettlementStatus), a única superfície síncrona declarada no
-    canvas (communication.inbound é event/query-only). Deferidos — oq-fce-1
-    permanece aberta: (a) o endpoint de resolve-guard-escalation (override
-    humano) exige primeiro um command surface na communication.inbound do
-    canvas (hoje inexistente) + def-024 (auth/scopes para o supervisorId
-    nominal na borda); (b) os comandos do caminho autônomo
-    (materialize/authorize/dispatch/settle) — o canvas declara inbound
-    event-driven, sem command surface; (c) async-api.yaml (real-time,
-    FF-FE-06) — sc-cv-03 segue insatisfeito.
+    RECORTE DE LEITURA (WI-143 + WI-144): expõe as queries de leitura do
+    Payment — estado por id (QueryPaymentSettlementStatus, WI-143) e a fila
+    de escalados aguardando decisão humana (QueryEscalatedPayments, WI-144;
+    alarme rico FCE-local — o dossiê profundo compõe-se no CLIENTE via as
+    queries já existentes do CMT/DLV seguindo o commitmentRef; dossiê
+    servidor cross-BC é projeção Phase 1+/NIM, fora deste contrato).
+    Deferidos — oq-fce-1 permanece aberta: (a) o endpoint de
+    resolve-guard-escalation (override humano) exige primeiro um command
+    surface na communication.inbound do canvas (hoje inexistente) + def-024
+    (auth/scopes para o supervisorId nominal na borda); (b) os comandos do
+    caminho autônomo (materialize/authorize/dispatch/settle) — o canvas
+    declara inbound event-driven, sem command surface; (c) async-api.yaml
+    (real-time, FF-FE-06) — sc-cv-03 segue insatisfeito.
 
     O enum de status reflete APENAS o lifecycle materializado do agg-payment
     (#PaymentState em contexts/fce/schemas/events.cue): estados T2 de roadmap
@@ -56,6 +59,29 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/fce/queries/escalated-payments:
+    get:
+      operationId: queryEscalatedPayments
+      summary: Listar os Payments escalados aguardando decisão humana
+      description: >
+        Implementa a query-surface QueryEscalatedPayments do canvas FCE
+        (WI-144): a fila de dúvidas da cadeia esperando decisão humana —
+        Payments em estado escalated (adr-155) com o contexto FCE-local de
+        triagem (valor, idade da escalação, condições que escalaram).
+        Leitura pura sem side-effects (read model do event log). Envelope
+        {items} desde o v1; paginação/filtros/metadados entram aditivamente
+        como campos irmãos — NENHUM no v1. Fila vazia devolve items vazio
+        (200), não 404.
+      responses:
+        '200':
+          description: Fila de Payments escalados (possivelmente vazia)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalatedPaymentsView'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -133,6 +159,36 @@ components:
         Estado canônico do Payment no lifecycle materializado do agg-payment
         (adr-155). Espelha #PaymentState (disjunção fechada). Estados T2 de
         roadmap (failed, indeterminate, cancelled) não são expostos.
+    Money:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#Money'
+      type: object
+      description: >
+        Espelho do #Money shared (def-025); mesma forma do mirror no
+        contexts/cmt/api.yaml — cross-BC shared contract, não divergir.
+      required: [amount, currency]
+      properties:
+        amount:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+    OverriddenGuardConditions:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#OverriddenGuardConditions'
+      type: object
+      description: >
+        O piso de EXATAMENTE 3 condições overridáveis (adr-155); a condição
+        de integridade criptográfica é inoverridável e NÃO aparece aqui.
+        additionalProperties false espelha a disjunção fechada do CUE.
+      additionalProperties: false
+      required: [invoiceStaleOverridden, eligibilityStaleOverridden, evidenceFreshnessOverridden]
+      properties:
+        invoiceStaleOverridden:
+          type: boolean
+        eligibilityStaleOverridden:
+          type: boolean
+        evidenceFreshnessOverridden:
+          type: boolean
 
     # ── Projection response (query-surface QueryPaymentSettlementStatus) ──
     PaymentSettlementStatusView:
@@ -157,3 +213,45 @@ components:
           pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
         railReferenceId:
           $ref: '#/components/schemas/RailReferenceId'
+
+    # ── Projection response (query-surface QueryEscalatedPayments, WI-144) ──
+    EscalatedPaymentItem:
+      type: object
+      description: >
+        Um Payment escalado aguardando decisão humana — alarme rico FCE-local:
+        projeção do MESMO event log misturando estado do agg-payment (amount,
+        escalatedAt, invoiceId, commitmentRef — campos do domain-model,
+        adr-155) e o fato de escalação (escalatedConditions, de
+        PaymentGuardEscalated). O dossiê profundo compõe-se no cliente via as
+        queries do CMT (commitment-state) e do DLV (evidence-ledger,
+        verification-status) seguindo o commitmentRef.
+      required: [paymentId, commitmentRef, invoiceId, amount, escalatedAt, escalatedConditions]
+      properties:
+        paymentId:
+          $ref: '#/components/schemas/PaymentId'
+        commitmentRef:
+          $ref: '#/components/schemas/CommitmentRef'
+        invoiceId:
+          type: string
+          minLength: 1
+          description: owned by INV
+        amount:
+          $ref: '#/components/schemas/Money'
+        escalatedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        escalatedConditions:
+          $ref: '#/components/schemas/OverriddenGuardConditions'
+    EscalatedPaymentsView:
+      type: object
+      description: >
+        Read model da query QueryEscalatedPayments (canvas FCE). Envelope de
+        objeto desde o v1: paginação/filtros/metadados entram ADITIVAMENTE
+        como campos irmãos de items em versões futuras — nenhum no v1.
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EscalatedPaymentItem'

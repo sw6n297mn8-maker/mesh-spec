@@ -298,6 +298,30 @@ canvas: artifact_schemas.#Canvas & {
 				lifecycle do FCE; o contrato de API expõe lifecycle vivo, não
 				roadmap. Materializa contexts/fce/api.yaml (WI-143).
 				"""
+		}, {
+			type:       "query-surface"
+			query:      "QueryEscalatedPayments"
+			returnType: "EscalatedPaymentsView ({items: [{paymentId + commitmentRef + invoiceId + amount + escalatedAt + escalatedConditions}]})"
+			description: """
+				A fila de dúvidas da cadeia esperando decisão humana: lista os
+				Payments em estado escalated (adr-155) com o contexto FCE-local
+				de triagem — valor, idade da escalação e as condições que
+				escalaram. Read model do event log, mesma natureza da
+				PaymentSettlementStatusView (o FCE não declara projection no
+				domain-model). Consumidor imediato: a tela de override
+				(frontend-runtime, adr-157) — o degrau de LEITURA do transporte
+				(oq-fce-1).
+
+				Alarme rico FCE-local + referências navegáveis: o dossiê
+				profundo compõe-se no CLIENTE seguindo o commitmentRef para as
+				queries já existentes do CMT (commitment-state) e do DLV
+				(evidence-ledger, verification-status). Dossiê servidor
+				cross-BC é projeção cross-agregado Phase 1+ (NIM, adr-165) —
+				explicitamente fora deste contrato. Envelope {items} desde o
+				v1 (objeto, não array nu): paginação/filtros/metadados entram
+				aditivamente; NENHUM no v1. Materializa a extensão do
+				contexts/fce/api.yaml (WI-144).
+				"""
 		}]
 
 		outbound: [{
@@ -809,7 +833,7 @@ canvas: artifact_schemas.#Canvas & {
 	openQuestions: [{
 		id:       "oq-fce-1"
 		question: "Quando autorar contexts/fce/api.yaml e contexts/fce/async-api.yaml (superfícies declaradas hasSyncSurface/hasAsyncSurface=true)?"
-		impact:   "sc-cv-02/sc-cv-03 esperam os specs; o canvas materializa com flags true/true espelhando o precedente do bdg (gap conhecido, não-bloqueante per decisão de scaffold)."
+		impact:   "PARCIALMENTE materializada: api.yaml existe como recorte de LEITURA — estado por id (WI-143) + fila de escalados (WI-144, o degrau de leitura do transporte da tela de override). Seguem em aberto: o command surface do resolve-guard-escalation (exige command-handler no inbound + def-024/auth para supervisorId na borda), os commands do caminho autônomo, e async-api.yaml (sc-cv-03 segue insatisfeito — flags true/true per precedente do bdg, gap conhecido não-bloqueante per decisão de scaffold)."
 		deadline: "2026-07-31"
 		rationale: "Spec authoring é trabalho rotineiro pendente sem trade-off (WI, não deferred-decision); flags refletem a verdade das superfícies."
 	}, {
