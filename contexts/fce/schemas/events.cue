@@ -41,6 +41,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 
 #Envelope:         shared_schemas.#Envelope
 #Money:            shared_schemas.#Money
+#DecimalString:    shared_schemas.#DecimalString
 #RFC3339Timestamp: shared_schemas.#RFC3339Timestamp
 
 // ── Opaque refs cross-BC ──
@@ -189,6 +190,18 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	data: {
 		paymentId:           #PaymentId
 		escalatedConditions: #OverriddenGuardConditions
+		// Contexto de triagem (WI-145): o fato da escalação carrega o que a fila
+		// (QueryEscalatedPayments, WI-144) precisa — o produtor TEM estes dados no
+		// momento da decisão (MaterializedPayment + invoiceFact). REQUIRED com
+		// fundamento: wire provisório pré-Ion (def-074 / mesh-runtime rtd-026) —
+		// dado sintético descarta-e-regera; type permanece v1. amount é
+		// #DecimalString puro, espelhando o aggregate (Ion-4 satisfeito):
+		// aggregate/evento sem currency declarado; correção = enriquecer
+		// aggregate com #Money completo em fatia própria; gatilho = entrada de
+		// dado retido (mesmo do def-074). Nota registrada no WI-145.
+		commitmentRef: #CommitmentRef
+		invoiceId:     #InvoiceId
+		amount:        #DecimalString
 	}
 }
 
