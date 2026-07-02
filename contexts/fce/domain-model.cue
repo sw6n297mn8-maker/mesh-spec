@@ -258,6 +258,18 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:           "value-object-ref"
 			name:           "escalatedConditions"
 			valueObjectRef: "vo-overridden-guard-conditions"
+		}, {
+			kind:           "value-object-ref"
+			name:           "commitmentRef"
+			valueObjectRef: "vo-commitment-ref"
+		}, {
+			kind: "primitive"
+			name: "invoiceId"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "amount"
+			type: "decimal"
 		}]
 	}, {
 		code: "evt-payment-guard-overridden"
