@@ -51,6 +51,15 @@ def024: artifact_schemas.#DeferredDecision & {
 			contrato lógico de paths/operations/schemas/errors, só não fixa auth nem
 			endpoint. Reversível mecanicamente quando ADRs existirem (adicionar
 			securitySchemes + servers sem mudar paths nem payloads).
+
+			AMENDMENT (2026-07-02, WI-146): o custo subiu de posto — a superfície
+			agora inclui um WRITE SUPERVISIONADO (POST resolve-guard-escalation do
+			FCE): supervisorId é atribuição nominal NÃO-verificada na borda até o
+			ADR de auth. A garantia estrutural (impossível emitir sem supervisorId)
+			permanece no schema; o que falta é VERIFICAÇÃO de identidade —
+			exatamente o que este deferimento cobre. Severity permanece low no
+			regime atual (organismo sintético, def-074); reavaliar na entrada de
+			dado real.
 			"""
 	}
 

@@ -6,20 +6,19 @@ info:
   description: >
     Superfície síncrona do BC Financial Commitment Execution.
     Source canônica de identidade: contexts/fce/canvas.cue.
-    Queries → GET. Não usa REST resource-oriented.
+    Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
 
-    RECORTE DE LEITURA (WI-143 + WI-144): expõe as queries de leitura do
-    Payment — estado por id (QueryPaymentSettlementStatus, WI-143) e a fila
-    de escalados aguardando decisão humana (QueryEscalatedPayments, WI-144;
+    RECORTE (WI-143 + WI-144 + WI-146): as queries de leitura do Payment —
+    estado por id (QueryPaymentSettlementStatus, WI-143) e a fila de
+    escalados aguardando decisão humana (QueryEscalatedPayments, WI-144;
     alarme rico FCE-local — o dossiê profundo compõe-se no CLIENTE via as
     queries já existentes do CMT/DLV seguindo o commitmentRef; dossiê
-    servidor cross-BC é projeção Phase 1+/NIM, fora deste contrato).
-    Deferidos — oq-fce-1 permanece aberta: (a) o endpoint de
-    resolve-guard-escalation (override humano) exige primeiro um command
-    surface na communication.inbound do canvas (hoje inexistente) + def-024
-    (auth/scopes para o supervisorId nominal na borda); (b) os comandos do
-    caminho autônomo (materialize/authorize/dispatch/settle) — o canvas
-    declara inbound event-driven, sem command surface; (c) async-api.yaml
+    servidor cross-BC é projeção Phase 1+/NIM, fora deste contrato) — e o
+    primeiro COMMAND supervisionado: resolve-guard-escalation (WI-146,
+    molde CMT; adr-155), sob a postura do def-024.
+    Deferidos — oq-fce-1 permanece aberta: (b) os comandos do caminho
+    autônomo (materialize/authorize/dispatch/settle) — o canvas declara
+    inbound event-driven, sem command surface; (c) async-api.yaml
     (real-time, FF-FE-06) — sc-cv-03 segue insatisfeito.
 
     O enum de status reflete APENAS o lifecycle materializado do agg-payment
@@ -85,7 +84,66 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /v1/fce/commands/resolve-guard-escalation:
+    post:
+      operationId: resolveGuardEscalation
+      summary: Resolver um Payment escalado — override supervisionado (approve|deny)
+      description: >
+        Materializa cmd-resolve-guard-escalation (adr-155): um ato de
+        julgamento humano, dois outcomes — approve transiciona
+        escalated→authorized e emite PaymentGuardOverridden (com a proof para
+        o audit trail); deny transiciona escalated→refused e emite
+        PaymentGuardOverrideRefused. 200 devolve O EVENTO emitido (oneOf),
+        molde CMT. Alcançável só de escalated (409 para qualquer outro
+        estado); breach nunca escala (inv-breach-bypasses-escalation), logo
+        nunca chega aqui. POSTURA (def-024): supervisorId é atribuição
+        nominal NÃO-verificada nesta borda até o ADR de auth — a verificação
+        de identidade é exatamente o que def-024 defere; security ausente por
+        design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveGuardEscalationRequest'
+      responses:
+        '200':
+          description: Escalação resolvida — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PaymentGuardOverridden'
+                  - $ref: '#/components/schemas/PaymentGuardOverrideRefused'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Chave única gerada pelo cliente (UUID v4 recomendado) usada pelo
+        servidor para cachear resultado dentro de uma janela curta e detectar
+        retry — request repetido com mesma key retorna mesmo resultado sem
+        executar de novo. Padrão informal de mercado (RFC draft); janela
+        exata definida quando ADR de stack chegar.
+      schema:
+        type: string
+        minLength: 1
+
   responses:
     BadRequest:
       description: Request malformado
@@ -95,6 +153,18 @@ components:
             $ref: '#/components/schemas/Problem'
     NotFound:
       description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Transição de estado não permitida
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Invariante de domínio violado
       content:
         application/problem+json:
           schema:
@@ -189,6 +259,31 @@ components:
           type: boolean
         evidenceFreshnessOverridden:
           type: boolean
+    SupervisorId:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#SupervisorId'
+      type: string
+      minLength: 1
+      description: >
+        Atribuição nominal do supervisor (adr-155: QUEM autorizou). Na borda,
+        NÃO-verificada até ADR de auth (def-024).
+    AuthorizationProof:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#AuthorizationProof'
+      type: object
+      required: [signature, nonce, validUntil, claimChain]
+      properties:
+        signature:
+          type: string
+          minLength: 1
+        nonce:
+          type: string
+          minLength: 1
+        validUntil:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        claimChain:
+          type: string
+          minLength: 1
 
     # ── Projection response (query-surface QueryPaymentSettlementStatus) ──
     PaymentSettlementStatusView:
@@ -263,3 +358,102 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EscalatedPaymentItem'
+
+    # ── Command request (cmd-resolve-guard-escalation, WI-146) ──
+    ResolveGuardEscalationRequest:
+      x-mesh-cue-ref: 'contexts/fce/domain-model.cue#commands.cmd-resolve-guard-escalation'
+      type: object
+      required: [paymentId, supervisorId, reason, decision, overriddenConditions]
+      properties:
+        paymentId:
+          $ref: '#/components/schemas/PaymentId'
+        supervisorId:
+          $ref: '#/components/schemas/SupervisorId'
+        reason:
+          type: string
+          minLength: 1
+        decision:
+          type: string
+          enum: [approve, deny]
+          description: >
+            Disjunção das 2 transições legais de escalated (domain-model);
+            enum no mirror por fidelidade ao adr-155 — o campo do command é
+            primitive string no domain-model.
+        overriddenConditions:
+          $ref: '#/components/schemas/OverriddenGuardConditions'
+
+    # ── Event envelopes (200 do resolve; molde CMT: devolve o evento emitido) ──
+    PaymentGuardOverridden:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#PaymentGuardOverridden'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/fce
+        type:
+          type: string
+          const: mesh.fce.payment-guard-overridden.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/fce/schemas/events.cue#PaymentGuardOverridden
+        data:
+          type: object
+          required: [paymentId, supervisorId, reason, overriddenConditions, proof]
+          properties:
+            paymentId:
+              $ref: '#/components/schemas/PaymentId'
+            supervisorId:
+              $ref: '#/components/schemas/SupervisorId'
+            reason:
+              type: string
+              minLength: 1
+            overriddenConditions:
+              $ref: '#/components/schemas/OverriddenGuardConditions'
+            proof:
+              $ref: '#/components/schemas/AuthorizationProof'
+    PaymentGuardOverrideRefused:
+      x-mesh-cue-ref: 'contexts/fce/schemas/events.cue#PaymentGuardOverrideRefused'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/fce
+        type:
+          type: string
+          const: mesh.fce.payment-guard-override-refused.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/fce/schemas/events.cue#PaymentGuardOverrideRefused
+        data:
+          type: object
+          required: [paymentId, supervisorId, reason]
+          properties:
+            paymentId:
+              $ref: '#/components/schemas/PaymentId'
+            supervisorId:
+              $ref: '#/components/schemas/SupervisorId'
+            reason:
+              type: string
+              minLength: 1

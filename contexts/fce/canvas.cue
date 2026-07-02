@@ -322,6 +322,27 @@ canvas: artifact_schemas.#Canvas & {
 				aditivamente; NENHUM no v1. Materializa a extensão do
 				contexts/fce/api.yaml (WI-144).
 				"""
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Supervisor humano resolve um Payment escalado: aprova o override (decision=approve) ou nega (decision=deny)."
+			command:         "ResolveGuardEscalation"
+			resultingEvents: ["PaymentGuardOverridden", "PaymentGuardOverrideRefused"]
+			description: """
+				Materializa cmd-resolve-guard-escalation (adr-155) na borda sync:
+				um ato de julgamento supervisionado, dois outcomes (approve →
+				authorized, emite PaymentGuardOverridden com proof; deny →
+				refused, emite PaymentGuardOverrideRefused). Sync porque o
+				supervisor espera confirmação imediata (espelho do
+				ConfirmCommitmentAcceptance do CMT). Alcançável SÓ de escalated;
+				breach nunca chega aqui (inv-breach-bypasses-escalation). Na
+				borda, supervisorId é atribuição nominal NÃO-verificada até o
+				ADR de auth (def-024) — a verificação é exatamente o que o
+				def-024 defere; a garantia estrutural (impossível emitir sem
+				supervisorId) vive no schema do command. Enforcement humano-only
+				é o estágio 2 (oq-fce-3), fora desta superfície. Materializa a
+				extensão do contexts/fce/api.yaml (WI-146).
+				"""
 		}]
 
 		outbound: [{
@@ -414,10 +435,13 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 
 		rationale: """
-			Inbound event-driven (sem command-handler): FCE é acionado por
-			InvoiceIssued, não comandado — interface event/query-only no
-			inbound. Inbound: 7 event-consumers (inv ×2, bkr ×4, rew ×1) + 1
-			query-surface exposta. Outbound: 2 event-publishers + 2
+			Inbound majoritariamente event-driven: FCE é acionado por
+			InvoiceIssued, não comandado — o caminho autônomo NÃO tem command
+			surface. Única exceção: o command-handler SUPERVISIONADO do
+			resolve-guard-escalation (WI-146, adr-155) — não comanda o caminho
+			autônomo, resolve a exceção humana. Inbound: 8 event-consumers
+			(inv ×2, bkr ×4, rew ×1, scf ×1) + 2 query-surfaces expostas + 1
+			command-handler supervisionado. Outbound: 2 event-publishers + 2
 			command-invocations sync ao BKR (sob authorization proof) + 4
 			query-dependencies (rew ×2 PrePaymentGuard real-time; tcm ×2
 			otimização read-only). Outbound alto (8) é esperado: FCE é o
@@ -833,7 +857,7 @@ canvas: artifact_schemas.#Canvas & {
 	openQuestions: [{
 		id:       "oq-fce-1"
 		question: "Quando autorar contexts/fce/api.yaml e contexts/fce/async-api.yaml (superfícies declaradas hasSyncSurface/hasAsyncSurface=true)?"
-		impact:   "PARCIALMENTE materializada: api.yaml existe como recorte de LEITURA — estado por id (WI-143) + fila de escalados (WI-144, o degrau de leitura do transporte da tela de override). Seguem em aberto: o command surface do resolve-guard-escalation (exige command-handler no inbound + def-024/auth para supervisorId na borda), os commands do caminho autônomo, e async-api.yaml (sc-cv-03 segue insatisfeito — flags true/true per precedente do bdg, gap conhecido não-bloqueante per decisão de scaffold)."
+		impact:   "PARCIALMENTE materializada: api.yaml tem a LEITURA — estado por id (WI-143) + fila de escalados (WI-144) — e o primeiro COMMAND supervisionado: resolve-guard-escalation (WI-146, sob def-024 — supervisorId nominal não-verificado na borda até ADR de auth). Seguem em aberto: os commands do caminho autônomo, e async-api.yaml (sc-cv-03 segue insatisfeito — flags true/true per precedente do bdg, gap conhecido não-bloqueante per decisão de scaffold)."
 		deadline: "2026-07-31"
 		rationale: "Spec authoring é trabalho rotineiro pendente sem trade-off (WI, não deferred-decision); flags refletem a verdade das superfícies."
 	}, {
