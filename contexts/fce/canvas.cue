@@ -435,10 +435,13 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 
 		rationale: """
-			Inbound event-driven (sem command-handler): FCE é acionado por
-			InvoiceIssued, não comandado — interface event/query-only no
-			inbound. Inbound: 7 event-consumers (inv ×2, bkr ×4, rew ×1) + 1
-			query-surface exposta. Outbound: 2 event-publishers + 2
+			Inbound majoritariamente event-driven: FCE é acionado por
+			InvoiceIssued, não comandado — o caminho autônomo NÃO tem command
+			surface. Única exceção: o command-handler SUPERVISIONADO do
+			resolve-guard-escalation (WI-146, adr-155) — não comanda o caminho
+			autônomo, resolve a exceção humana. Inbound: 8 event-consumers
+			(inv ×2, bkr ×4, rew ×1, scf ×1) + 2 query-surfaces expostas + 1
+			command-handler supervisionado. Outbound: 2 event-publishers + 2
 			command-invocations sync ao BKR (sob authorization proof) + 4
 			query-dependencies (rew ×2 PrePaymentGuard real-time; tcm ×2
 			otimização read-only). Outbound alto (8) é esperado: FCE é o
