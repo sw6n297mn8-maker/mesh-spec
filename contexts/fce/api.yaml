@@ -236,7 +236,15 @@ components:
           minLength: 1
           description: owned by INV
         amount:
-          $ref: '#/components/schemas/Money'
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+          description: >
+            Decimal string pura (espelho do #DecimalString shared; Ion-4) — a
+            forma que o evento produtor carrega (WI-145). Lacuna registrada:
+            aggregate/evento sem currency declarado; correção futura =
+            aggregate ganha #Money completo em fatia própria; gatilho =
+            entrada de dado retido (mesmo do def-074). Quando corrigido, a
+            View volta a Money.
         escalatedAt:
           type: string
           format: date-time
