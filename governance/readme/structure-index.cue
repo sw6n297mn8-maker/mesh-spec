@@ -607,7 +607,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-070-external-notification-channel.cue",
 				"architecture/deferred-decisions/def-071-compile-probe-runtime-implementation.cue",
 				"architecture/deferred-decisions/def-072-eventlog-vendor-scale-revisit.cue",
-				"architecture/deferred-decisions/def-073-causal-graph-envelope-materialization.cue"
+				"architecture/deferred-decisions/def-073-causal-graph-envelope-materialization.cue",
+				"architecture/deferred-decisions/def-074-ion-canonical-wire-materialization.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
