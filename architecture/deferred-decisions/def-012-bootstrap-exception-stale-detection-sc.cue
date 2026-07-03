@@ -68,6 +68,14 @@ deferredDecisions: "def-012": artifact_schemas.#DeferredDecision & {
 		candidato da futura fatia de spec-hygiene, na mesma janela do
 		def-014 (que vai primeiro) se couber. Sinal atual: count 24 >= 20.
 		Nada agendado agora; a fatia abre por ordem do founder.
+		
+		CORREÇÃO DE REGISTRO (2026-07-03 — decisão do founder): a ordem da
+		janela na nota acima ('mesma janela do def-014, que vai primeiro')
+		CAI — as contagens que ordenaram a triagem eram defeituosas
+		(artefatos do runner; ver amendments em def-014 e def-010). O sinal
+		DESTE def (count 24>=20 em arquivo específico) foi re-verificado e é
+		GENUÍNO — def-012 segue como o único candidato real da janela de
+		spec-hygiene, aguardando ordem do founder.
 		"""
 
 	triggerCalibrationRationale: """
