@@ -167,6 +167,26 @@ config: #AgentConfig & {
 			rationale:       "Commits atômicos facilitam bisect e auditoria."
 		},
 		{
+			title:           "Freshness de Materialização (gate de escrita)"
+			canonicalSource: "self"
+			content: #"""
+				O disco decide no ato da escrita (adr-168). Antes de qualquer commit de materialização, o agente roda `bash scripts/ci/materialization-freshness.sh` — enforcement no ponto de uso, não memória humana. A frescura da árvore NÃO é acidente do container efêmero: é condição verificada.
+
+				Três regras (o script é a fonte de verdade operacional; o agente NÃO reimplementa nem simplifica por memória):
+
+				G1 (tip): a branch DEVE partir do tip de origin/main. O gate faz git fetch e compara; branch atrás → o gate PÁRA nomeando os commits novos. Parta do tip (rebase/merge) antes de materializar.
+
+				G2 (renumeração): os números das famílias sequenciais-globais (WI/adr/def/ten) citados na proposta aprovada são re-derivados do REMOTO no ato da escrita via `--assert FAM=N` (repetível). Divergência do número citado vs próximo-livre → STOP e reporte de renumeração; a confirmação da renumeração é do arquiteto (1 linha). O gate não renumera sozinho. Famílias escopadas (oq-{bc}-N, sc-*, tq-*, ddp-*) e PRs ficam fora — sem corrida cross-sessão.
+
+				G3 (eco): todo reporte de proposta ao founder abre com o eco de estado do gate (`--echo`): "assumo main @ hash; últimos consumidos: WI-n, adr-n, def-n, ten-n". Torna a base da proposta visível e auditável antes da escrita. rtd é echo-only via relay (vive no mesh-runtime, fora do alcance do gate) — o arquiteto informa, o eco repassa.
+
+				O modo `--ci` roda no workflow como rede durável (pega número adicionado que reuse número vivo na base — o add/add — antes do merge-surpresa). Complementa o gate local, não o substitui.
+
+				NON-GOAL (adr-168): ordem de mensagens perdida no relay (Modo 2) não é governada por este gate — é resíduo do desenho de relay, mitigado por ordens consolidadas + o eco G3.
+				"""#
+			rationale: "Materializa adr-168 no contrato do agente. A regra de sincronização com o remoto não existia escrita — a frescura decaía silenciosamente pela vida da sessão (incidente WI-147-stale). Enforcement no ponto de uso (padrão adr-167): gate determinístico substitui o hábito de abertura que não alcançava o ato da escrita. Script é SoT operacional; consumir diretamente, não reimplementar por memória (padrão das seções de authoring/self-review)."
+		},
+		{
 			title:           "Referências por Tipo de Operação"
 			canonicalSource: "self"
 			content: #"""
