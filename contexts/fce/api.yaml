@@ -19,7 +19,7 @@ info:
     Deferido — oq-fce-1 permanece aberta: (b) os comandos do caminho
     autônomo (materialize/authorize/dispatch/settle) — o canvas declara
     inbound event-driven, sem command surface. O item (c) materializou:
-    async-api.yaml autorado (WI-147, gatilho browser-live) — sc-cv-03
+    async-api.yaml autorado (WI-149, gatilho browser-live) — sc-cv-03
     satisfeito.
 
     O enum de status reflete APENAS o lifecycle materializado do agg-payment

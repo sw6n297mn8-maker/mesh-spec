@@ -1,6 +1,6 @@
 package task_specs
 
-taskSpecs: "WI-147": {
+taskSpecs: "WI-149": {
 	version:     1
 	title:       "async-api.yaml do FCE — superfície assíncrona publicada (2 channels), o degrau async do oq-fce-1 (item c, gatilho browser-live)"
 	templateRef: "tmpl-create-instance@v1"
