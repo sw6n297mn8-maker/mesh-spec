@@ -117,6 +117,38 @@ deferredDecisions: "def-014": artifact_schemas.#DeferredDecision & {
 		crescente: recurrence visibility= atingiu 11 ocorrências em prosa,
 		threshold 3). Nada agendado agora; a fatia abre por ordem do
 		founder, com def-012 e def-010 na mesma janela se couberem.
+		
+		AMENDMENT (2026-07-03, correção de registro — decisão do founder,
+		sobre pre-flight verificado em disco @ d6c5032):
+		(i) O DISPARO FOI ARTEFATO DE CONTAGEM: o runner avalia recurrence
+		scope=file-content como `git grep -l` REPO-WIDE
+		(scripts/ci/evaluate-deferred-triggers.sh:192-198), contando
+		arquivos de qualquer path — incluindo ESTE def e seus self-reviews
+		(self-match). A premissa de filtro-por-path registrada no
+		self-review deste def estava ERRADA. Fato: ZERO ocorrências de
+		'visibility=' em qualquer contexts/*/canvas.cue (grep
+		arquivo-a-arquivo, exit 1 em todos os 14); os 11 arquivos contados
+		são domain-models (ecoando o campo TIPADO adjacente), ADR, PG e
+		este próprio def.
+		(ii) O item (a)/visibility foi RESOLVIDO POR EVOLUÇÃO em outra
+		morada: o domain-model tipou visibility: "internal" | "published"
+		(92 usos) com a regra cross-artifact tq-dm-11/12 (evento published
+		⇔ event-publisher no canvas.communication.outbound) e o
+		consumerProtocol do REW (adr-081/084). O vocabulário que este def
+		propunha (public | internal-consumers-only | internal-only)
+		DIVERGE do estabelecido — NÃO adotar. O def ESTREITA para os itens
+		(b) dedupKey e (c) fallback.
+		(iii) Sinais reais dos 2 restantes: 'dedup canonical' = 1 canvas
+		(contexts/inv/canvas.cue:371); 'fail-safe fallback' = 1 canvas
+		(contexts/dlv/canvas.cue, 4 ocorrências) — abaixo do critério ≥3
+		canvases do próprio def. Permanecem open, sub-limiar.
+		(iv) TRIGGERS: os 3 recurrence foram REMOVIDOS. manual-review é a
+		forma FINAL deste def, não interina: o sinal aqui é prosa informal
+		não-estruturável — sinal de prosa não se conta, se REVISA
+		(fundamento da correção do runner, fatia própria).
+		A NOTA DE TRIAGEM acima (housekeeping) fica CORRIGIDA por este
+		amendment: a ordem 'def-014 primeiro' foi decidida sobre contagem
+		defeituosa e CAI; def-012 segue como único sinal genuíno da janela.
 		"""
 
 	triggerCalibrationRationale: """
@@ -183,24 +215,15 @@ deferredDecisions: "def-014": artifact_schemas.#DeferredDecision & {
 			"""
 	}
 
+	// AMENDMENT 2026-07-03 (decisão do founder): os 3 triggers recurrence
+	// foram REMOVIDOS — dispararam por artefato de contagem (runner
+	// repo-wide + self-match; ver deferralRationale). manual-review é a
+	// forma FINAL deste def, não interina: o sinal remanescente (dedupKey/
+	// fallback em prosa de canvas) é prosa informal não-estruturável —
+	// sinal de prosa não se conta, se REVISA.
 	triggers: [{
-		kind:      "recurrence"
-		pattern:   "visibility="
-		scope:     "file-content"
-		threshold: 3
-	}, {
-		kind:      "recurrence"
-		pattern:   "dedup canonical"
-		scope:     "file-content"
-		threshold: 3
-	}, {
-		kind:      "recurrence"
-		pattern:   "fail-safe fallback"
-		scope:     "file-content"
-		threshold: 3
-	}, {
 		kind:   "manual-review"
-		reason: "Founder revisita quando arquitetura cross-BC madura suficientemente para formalizar canvas communication contract typing como camada dedicada — e.g., separate ADR sobre integration contract semantics + structural-checks dedicados validating visibility/dedup/fallback consistency cross-canvas + tooling support para queries programáticas. Maturação arquitetural é judgment founder (signal: ≥3 canvases declarando + tooling demand crescente), não condição machine-evaluable. Trigger manual-review preserva opção de promotion antecipada se outras razões emergirem (e.g., compliance regulatório requer typed contracts; security review identifica risk em prosaic-only declarations)."
+		reason: "Forma FINAL (não interina) per amendment 2026-07-03: o sinal deste def é prosa informal de canvas — não-estruturável, logo não-contável; sinal de prosa se revisa, não se conta. Founder revisita quando arquitetura cross-BC madura suficientemente para formalizar canvas communication contract typing como camada dedicada (escopo pós-amendment: dedupKey + fallback; visibility resolvido por evolução no domain-model) — e.g., separate ADR sobre integration contract semantics + structural-checks dedicados + tooling para queries programáticas. Sinal humano: ≥3 canvases declarando os patterns em prosa (hoje: 1 cada), ou compliance/security exigindo typed contracts."
 	}]
 
 	status: "open"

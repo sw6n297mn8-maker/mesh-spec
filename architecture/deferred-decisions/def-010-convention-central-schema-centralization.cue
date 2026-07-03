@@ -45,6 +45,16 @@ deferredDecisions: "def-010": artifact_schemas.#DeferredDecision & {
 		def-014 (que vai primeiro) se couber. Sinal atual: n=2 conventions
 		(threshold atingido). Nada agendado agora; a fatia abre por ordem
 		do founder.
+		
+		CORREÇÃO DE REGISTRO (2026-07-03 — decisão do founder): o 'n=2' da
+		nota de triagem acima é ARTEFATO de contagem — o trigger recurrence
+		scope=filename '^architecture/conventions/' casa QUALQUER arquivo do
+		diretório e contou _meta.cue junto da única convention concreta
+		(api-spec-convention.cue). Sinal real = 1 convention; o threshold
+		substantivo do def (2ª convention CONCRETA) NÃO foi atingido.
+		Permanece open, sub-limiar; a candidatura à janela de spec-hygiene
+		decidida no housekeeping CAI (contagem defeituosa). Mecânica do
+		trigger a corrigir na fatia do runner (fatia própria).
 		"""
 
 	triggerCalibrationRationale: """
