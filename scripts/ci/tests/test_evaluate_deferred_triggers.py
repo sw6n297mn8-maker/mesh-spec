@@ -255,16 +255,13 @@ class TestFrozenPredicateCalibration(unittest.TestCase):
         pred = self.predicates[pid]
         return edt.cue_export_expr(pred["package"], pred["expr"])
 
-    def test_registry_has_exactly_the_four_founding_predicates(self):
+    def test_registry_has_exactly_the_three_live_predicates(self):
+        # Recalibração CONSCIENTE 4→3 (2026-07-03, adr-167): ddp-001
+        # aposentado — def-012 resolveu via Regras A+B no check-self-review
+        # (gate substitui sinal); predicado sem consumidor seria
+        # declared-but-unused. Tripwire do adr-166 (N2) como desenhado.
         self.assertEqual(sorted(self.predicates.keys()),
-                         ["ddp-001", "ddp-002", "ddp-003", "ddp-004"])
-
-    def test_ddp_001_transient_exceptions_count_frozen_21(self):
-        # Recalibração CONSCIENTE 24→21 (2026-07-03, fatia def-012 PR-A):
-        # quitação das 3 entries stale com SRR matching per exitCondition
-        # declarado (PG structural-check, canvas CMT, glossary CMT).
-        # Tripwire do adr-166 (N2) funcionando como desenhado.
-        self.assertEqual(self._value("ddp-001"), 21)  # ≥20 → def-012 segue disparado (honesto)
+                         ["ddp-002", "ddp-003", "ddp-004"])
 
     def test_ddp_002_declared_flows_frozen_1(self):
         self.assertEqual(self._value("ddp-002"), 1)  # <2 → def-031 não dispara

@@ -5,9 +5,18 @@ set -euo pipefail
 #
 # Estratégia:
 #   1. cue vet valida self-reviews package (inclui união discriminada)
-#   2. Para cada artefato governado alterado, verifica existência e
-#      associação do self-review report correspondente.
-#   3. Bootstrap exceptions consultadas antes de exigir report.
+#   2. REGRA A (adr-167, invariante global de staleness): em TODO run,
+#      nenhuma entry transient da bootstrap policy pode ter SRR matching
+#      já existente. Violação → falha alto nomeando a entry ("exceção
+#      stale: quitar"). Independe do que o PR toca — detecção no primeiro
+#      PR após o SRR nascer (mata a invisibilidade; caso real: 7 semanas
+#      da PG structural-check, fatia def-012).
+#   3. Para cada artefato governado alterado, verifica existência e
+#      associação do self-review report correspondente. REGRA B
+#      (adr-167): isenção perdoa o passado, não o presente — artefato
+#      listado na bootstrap policy NÃO recebe SKIP; o SRR é exigido
+#      normalmente. A policy é proveniência histórica (permanent) + fila
+#      de quitação enforçada (transient), não mecanismo de isenção.
 #
 # Limitação conhecida: campos extraídos via regex Python.
 # Migrar para cue export quando pipeline suportar.
@@ -68,21 +77,35 @@ artifact_type_for_path() {
   esac
 }
 
-# ── Step 2: Bootstrap exceptions ──
+# ── Step 2: Regra A (adr-167) — invariante global de staleness ──
+#
+# Transient-only por contrato: permanent não tem exitCondition (proveniência
+# histórica, não dívida). Roda em TODO run, independente de changed_files.
 
-is_bootstrap_exempt() {
-  local path="$1"
-  [[ ! -f "$BOOTSTRAP_POLICY" ]] && { echo "false"; return; }
+check_stale_transient_exceptions() {
+  [[ ! -f "$BOOTSTRAP_POLICY" ]] && return 0
+  python3 - "$BOOTSTRAP_POLICY" "$REPORT_DIR" <<'PYEOF'
+import glob, re, sys
 
-  python3 -c "
-import re, sys
-text = open(sys.argv[1]).read()
-mode = re.search(r'mode:\s*\"([^\"]+)\"', text)
-if not mode or mode.group(1) != 'bootstrap-exception':
-    print('false'); sys.exit(0)
-paths = re.findall(r'artifactPath:\s*\"([^\"]+)\"', text)
-print('true' if sys.argv[2] in paths else 'false')
-" "$BOOTSTRAP_POLICY" "$path"
+policy_path, report_dir = sys.argv[1], sys.argv[2]
+text = open(policy_path).read()
+# Pares (artifactPath, lifecycle) por entry: artifactPath abre o bloco;
+# [^}]*? não atravessa entries (blocos não contêm '}' interno).
+entries = re.findall(
+    r'artifactPath:\s*"([^"]+)"[^}]*?lifecycle:\s*"([^"]+)"', text, re.S)
+srr_paths = set()
+for report in glob.glob(f"{report_dir}/*.self-review.cue"):
+    for m in re.finditer(r'artifactPath:\s*"([^"]+)"', open(report).read()):
+        srr_paths.add(m.group(1))
+stale = [p for p, lc in entries if lc == "transient" and p in srr_paths]
+for p in stale:
+    print(f"  ERROR: exceção stale: quitar {p} (SRR matching existe; "
+          f"exitCondition satisfeito — remover a entry da bootstrap policy)")
+if stale:
+    sys.exit(1)
+n = sum(1 for _, lc in entries if lc == "transient")
+print(f"  Regra A: {n} transient entries, 0 stale.")
+PYEOF
 }
 
 # ── Step 3: Associação report↔artefato ──
@@ -134,6 +157,11 @@ if entries != rounds:
 echo "Checking self-review enforcement..."
 failed=0
 
+echo "Regra A: checking transient bootstrap exceptions for staleness..."
+if ! check_stale_transient_exceptions; then
+  failed=1
+fi
+
 while IFS= read -r file; do
   [[ -z "$file" ]] && continue
 
@@ -143,11 +171,8 @@ while IFS= read -r file; do
   # Self-review reports não são governados por si mesmos.
   [[ "$file" == governance/build-time/self-reviews/* ]] && continue
 
-  exempt="$(is_bootstrap_exempt "$file")"
-  if [[ "$exempt" == "true" ]]; then
-    echo "  SKIP (bootstrap-exempt): $file"
-    continue
-  fi
+  # Regra B (adr-167): sem SKIP para artefatos na bootstrap policy —
+  # isenção perdoa o passado, não o presente. O SRR é exigido normalmente.
 
   echo "  CHECK: $file ($artifact_type)"
 

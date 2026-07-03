@@ -104,7 +104,7 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores."
-		}, {
+	}, {
 		artifactPath:  "architecture/structural-checks/canvas.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -164,7 +164,7 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "VP em main pre-adr-069 path-mapping; cobertura indireta por SRR do ADR originador."
-		}, {
+	}, {
 		artifactPath:  "contexts/ctr/canvas.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -182,7 +182,7 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "Canvas BC em main pre-adr-072 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
-		}, {
+	}, {
 		artifactPath:  "contexts/ctr/glossary.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -215,6 +215,14 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 	}]
 
 	rationale: """
+		NATUREZA (per adr-167): esta policy NÃO é mecanismo de isenção —
+		é PROVENIÊNCIA HISTÓRICA (entries permanent: por que commits do
+		bootstrap não têm SRR) + FILA DE QUITAÇÃO ENFORÇADA (entries
+		transient: dívidas com saída cobrada pela Regra A do
+		check-self-review.sh). A Regra B eliminou o SKIP: modificação de
+		artefato listado exige SRR normalmente — isenção perdoa o
+		passado, não o presente.
+
 		Schema first-class per adr-070: cada exception declara category +
 		lifecycle + exitCondition (opcional, presente em transient).
 		Três categorias atuais:
@@ -232,9 +240,11 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		quando próxima modificação criar SRR matching path — quitação
 		executada em 2026-07-03 para as 3 entries com SRR matching já
 		existente (PG structural-check, canvas CMT, glossary CMT), per
-		exitCondition declarado de cada uma. Cleanup mecânico (stale
-		detection) deferido per def-012 até primeira stale exception
-		observada.
+		exitCondition declarado de cada uma. Saída ENFORÇADA per adr-167
+		(def-012 resolved): a Regra B exige o SRR na modificação (sem
+		SKIP) e a Regra A falha o CI nomeando qualquer entry transient
+		com SRR matching não-quitada — cleanup deixou de depender de
+		memória.
 
 		Artefatos build-time não precisam de exceção porque não são
 		governedTypes.
