@@ -20,8 +20,16 @@ jobs:
         # Suite do core do runner (exclusões por construção, pathScope, gate
         # multi-trigger, structural-predicates + calibração congelada dos 4
         # ddp-NNN). Após Install CUE: os testes de calibração exportam
-        # predicados reais via cue.
+        # predicados reais via cue. Inclui também as fixtures do gate de
+        # frescura de materialização (adr-168, test_materialization_freshness).
         run: python3 -m unittest discover -s scripts/ci/tests -v
+
+      - name: Freshness gate — invariante durável (adr-168 --ci)
+        # Rede durável: nenhum arquivo numerado (WI/adr/def/ten) ADICIONADO por
+        # este diff pode reusar número já vivo em origin/main (colisão add/add,
+        # a classe do incidente WI-147-stale) — pega antes do merge-surpresa.
+        # Complementa o gate local no ato da escrita, não o substitui.
+        run: bash scripts/ci/materialization-freshness.sh --ci
 
       - name: Check CLAUDE.md sync
         run: |

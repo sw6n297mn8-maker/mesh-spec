@@ -173,7 +173,8 @@ structureIndex: {
 				"architecture/adrs/adr-164-durability-across-restart-capability-contract.cue",
 				"architecture/adrs/adr-165-eventlogport-trajectory-postgres-vendor.cue",
 				"architecture/adrs/adr-166-deferred-trigger-scoped-counting-and-structural-predicates.cue",
-				"architecture/adrs/adr-167-bootstrap-exception-staleness-invariant-and-no-skip.cue"
+				"architecture/adrs/adr-167-bootstrap-exception-staleness-invariant-and-no-skip.cue",
+				"architecture/adrs/adr-168-materialization-freshness-gate.cue"
 			],
 			"schema": "#ADRBase"
 		},
