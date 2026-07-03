@@ -13,6 +13,9 @@ def068: artifact_schemas.#DeferredDecision & {
 		marca — mais as specs de tela. A capacidade (confirmar override em ação estruturada, P10 na
 		superfície) é lei de spec (adr-150 Approval-as-Confirmation); o design system que a veste
 		vive atrás da fronteira P2 no frontend-runtime.
+
+		Input de partida (auditoria Mesh-Old 2026-07-03, sem decidir nada): shadcn/ui+Radix+
+		Tailwind 4 red-teamed no Mesh-Old §2.9.
 		"""
 
 	deferralRationale: """

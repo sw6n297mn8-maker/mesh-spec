@@ -13,6 +13,9 @@ def066: artifact_schemas.#DeferredDecision & {
 		implementa FF-FE-07 (operações criadas offline — inspeção, aceite de entrega —
 		sincronizam sem perda quando a conexão é restaurada). O vendor vive atrás da fronteira
 		P2 no frontend-runtime; adr-150 ratifica o comportamento (FF-FE-07), não o vendor.
+
+		Input (auditoria Mesh-Old 2026-07-03, sem decidir nada): PowerSync (Mesh-Old, offline
+		mobile).
 		"""
 
 	deferralRationale: """
