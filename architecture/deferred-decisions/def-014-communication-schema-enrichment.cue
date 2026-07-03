@@ -111,6 +111,12 @@ deferredDecisions: "def-014": artifact_schemas.#DeferredDecision & {
 		misused); preferir explicitude à conveniência
 		(description text Phase 0 é explícito, embora não
 		tipado).
+		
+		NOTA DE TRIAGEM (2026-07-03, housekeeping — decisão do founder):
+		candidato PRIMEIRO da futura fatia de spec-hygiene (pressão
+		crescente: recurrence visibility= atingiu 11 ocorrências em prosa,
+		threshold 3). Nada agendado agora; a fatia abre por ordem do
+		founder, com def-012 e def-010 na mesma janela se couberem.
 		"""
 
 	triggerCalibrationRationale: """

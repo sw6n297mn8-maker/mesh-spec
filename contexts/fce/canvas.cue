@@ -857,8 +857,8 @@ canvas: artifact_schemas.#Canvas & {
 	openQuestions: [{
 		id:       "oq-fce-1"
 		question: "Quando autorar contexts/fce/api.yaml e contexts/fce/async-api.yaml (superfícies declaradas hasSyncSurface/hasAsyncSurface=true)?"
-		impact:   "PARCIALMENTE materializada: api.yaml tem a LEITURA — estado por id (WI-143) + fila de escalados (WI-144) — e o primeiro COMMAND supervisionado: resolve-guard-escalation (WI-146, sob def-024 — supervisorId nominal não-verificado na borda até ADR de auth). Seguem em aberto: os commands do caminho autônomo, e async-api.yaml (sc-cv-03 segue insatisfeito — flags true/true per precedente do bdg, gap conhecido não-bloqueante per decisão de scaffold)."
-		deadline: "2026-07-31"
+		impact:   "PARCIALMENTE materializada: api.yaml tem a LEITURA — estado por id (WI-143) + fila de escalados (WI-144) — e o primeiro COMMAND supervisionado: resolve-guard-escalation (WI-146, sob def-024 — supervisorId nominal não-verificado na borda até ADR de auth). Seguem em aberto, RE-DATADOS com gatilho real (housekeeping 2026-07-03, decisão do founder): (b) commands do caminho autônomo — SEM consumidor materializado e contra o inbound event-driven declarado (o organismo os dirige por eventos); re-avaliar SE um consumidor HTTP real aparecer, não autorar por prazo; (c) async-api.yaml — autorar JUNTO da fatia browser-live do frontend-runtime (o consumidor real é FF-FE-06/adr-150), quando ela abrir (sc-cv-03 segue insatisfeito — flags true/true per precedente do bdg, gap conhecido não-bloqueante per decisão de scaffold)."
+		deadline: "2026-09-30"
 		rationale: "Spec authoring é trabalho rotineiro pendente sem trade-off (WI, não deferred-decision); flags refletem a verdade das superfícies."
 	}, {
 		id:       "oq-fce-2"

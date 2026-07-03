@@ -63,6 +63,11 @@ deferredDecisions: "def-012": artifact_schemas.#DeferredDecision & {
 		Trade-off favorável a aguardar primeira stale empirical OR
 		volume cumulativo significativo (threshold codificado em
 		trigger 1).
+		
+		NOTA DE TRIAGEM (2026-07-03, housekeeping — decisão do founder):
+		candidato da futura fatia de spec-hygiene, na mesma janela do
+		def-014 (que vai primeiro) se couber. Sinal atual: count 24 >= 20.
+		Nada agendado agora; a fatia abre por ordem do founder.
 		"""
 
 	triggerCalibrationRationale: """
