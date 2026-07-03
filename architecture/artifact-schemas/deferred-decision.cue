@@ -28,7 +28,13 @@ import (
 )
 
 #DeferredDecision: _#DeferredDecisionBase & ({
-	status:               "open"
+	status: "open"
+	// Forma estrita exigida enquanto o sensor está VIVO (adr-166): todo def
+	// nasce open (lifecycle adr-062), logo todo sensor vivo passa pela forma
+	// estrita POR CONSTRUÇÃO — o alcance exato do P1, por tipo e não por
+	// disciplina. Defs não-open preservam a forma da época (registro
+	// histórico, ethos append-only); o runner só avalia defs open.
+	triggers:             [#TriggerStrict, ...#TriggerStrict]
 	triggeredAt?:         _|_
 	triggeredCondition?:  _|_
 	resolvedBy?:          _|_
@@ -195,8 +201,9 @@ _#DeferredDecisionBase: {
 // nunca conta para o próprio sensor.
 //
 // pathScope (adr-166): regex ancorado em '^' sobre paths que restringe ONDE
-// recurrence scope=file-content conta. Opcional nesta fase aditiva; torna-se
-// required no tightening da migração (mesmo PR, commit seguinte).
+// recurrence scope=file-content conta. Opcional no #Trigger base (forma
+// histórica de defs não-open); REQUIRED na forma estrita #TriggerStrict,
+// exigida no branch open do #DeferredDecision.
 #Trigger:
 	{kind: "recurrence", pattern: string & !="", scope:          #RecurrenceScope, threshold: int & >=2, pathScope?: string & =~"^\\^"} |
 	{kind: "adjacent-need", condition:    #AdjacentCondition} |
@@ -205,6 +212,17 @@ _#DeferredDecisionBase: {
 	{kind: "manual-review", reason:       string & strings.MinRunes(40)} |
 	{kind: "file-content-occurrence-count", path: string & =~"^.+/.+$", pattern: string & !="", threshold: int & >=1} |
 	{kind: "structural-predicate", predicate: string & =~"^ddp-[0-9]{3}$"}
+
+// TriggerStrict — forma estrita (adr-166), exigida no branch status "open"
+// do #DeferredDecision: recurrence scope=filename exige pattern ancorado em
+// '^'; scope=file-content exige pathScope (ancorado); demais kinds idênticos
+// ao #Trigger. Trigger sem escopo num def open é malformado — cue vet é o
+// gate, antes do runner (P1 por tipo, não por disciplina).
+#TriggerStrict: #Trigger & (
+	{kind: "recurrence", scope: "filename", pattern: string & =~"^\\^"} |
+	{kind: "recurrence", scope: "file-content", pathScope: string & =~"^\\^"} |
+	{kind: "recurrence", scope: "commit-message"} |
+	{kind: "adjacent-need" | "volume-threshold" | "temporal" | "manual-review" | "file-content-occurrence-count" | "structural-predicate"})
 
 // RecurrenceScope — onde o pattern é buscado pelo runner.
 //   filename:       grep nos paths de arquivo

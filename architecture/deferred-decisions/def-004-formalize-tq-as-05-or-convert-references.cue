@@ -82,6 +82,10 @@ deferredDecisions: "def-004": artifact_schemas.#DeferredDecision & {
 		kind:      "recurrence"
 		pattern:   "tq-as-05"
 		scope:     "file-content"
+		// pathScope per adr-166: o sinal são referências nos SCHEMAS
+		// (_qualityCriteria são hidden fields — predicado CUE inviável);
+		// def + self-reviews excluídos por construção pelo engine.
+		pathScope: "^architecture/artifact-schemas/"
 		threshold: 35
 	}, {
 		kind:   "manual-review"

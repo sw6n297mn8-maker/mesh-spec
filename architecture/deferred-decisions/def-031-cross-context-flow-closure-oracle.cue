@@ -82,15 +82,16 @@ def031: artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind:      "adjacent-need"
-		condition: {
-			kind:    "file-contains"
-			path:    "strategic/context-map.cue"
-			pattern: "declaredFlows:[^]]*,[^]]*\""
-		}
+		// Migrado per adr-166: ddp-002 lê len(declaredFlows) do campo
+		// TIPADO do context-map via cue export (substitui regex frágil
+		// sobre o texto; baseline na migração: 1 < 2).
+		kind:      "structural-predicate"
+		predicate: "ddp-002"
 	}, {
 		kind:      "recurrence"
-		pattern:   "contexts/[a-z0-9-]+/canvas\\.cue$"
+		// Âncora '^' anexada no tightening do adr-166 (contagem idêntica:
+		// nenhum path fora da raiz casava).
+		pattern:   "^contexts/[a-z0-9-]+/canvas\\.cue$"
 		scope:     "filename"
 		threshold: 16
 	}]

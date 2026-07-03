@@ -80,11 +80,20 @@ adr166: artifact_schemas.#ADR & {
 		(2) ESCOPO DECLARADO OBRIGATÓRIO: recurrence scope=file-content
 		ganha campo pathScope (regex ancorado em '^' sobre paths,
 		required); recurrence scope=filename passa a exigir pattern
-		ancorado em '^'. Enforcement primário: cue vet (schema) — trigger
-		sem escopo é malformado e falha ANTES do runner. Enforcement
-		secundário: runner falha ALTO (::error + exit 1) em malformação
-		que escape (predicate id não resolvido, package/expr que não
-		avalia). Malformação NUNCA degrada para count 0 silencioso.
+		ancorado em '^'. A forma estrita (#TriggerStrict) é exigida no
+		branch status "open" da união discriminada do #DeferredDecision
+		— decisão do founder (2026-07-03, resolução do STOP do c2): todo
+		def NASCE open (lifecycle adr-062), logo todo sensor VIVO passa
+		pela forma estrita POR CONSTRUÇÃO — o alcance exato do P1, por
+		tipo e não por disciplina. Defs não-open (def-002/def-003
+		resolved; def-029 triggered, com triggers na forma antiga)
+		preservam a forma da época como registro histórico (ethos
+		append-only); o runner só avalia defs open. Enforcement
+		primário: cue vet (schema) — trigger sem escopo em def open é
+		malformado e falha ANTES do runner. Enforcement secundário:
+		runner falha ALTO (::error + exit 1) em malformação que escape
+		(predicate id não resolvido, package/expr que não avalia).
+		Malformação NUNCA degrada para count 0 silencioso.
 
 		(3) NOVO KIND structural-predicate no #Trigger:
 		    {kind: "structural-predicate", predicate: "ddp-NNN"}

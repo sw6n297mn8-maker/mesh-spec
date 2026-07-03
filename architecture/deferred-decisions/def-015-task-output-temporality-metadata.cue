@@ -92,6 +92,10 @@ deferredDecisions: "def-015-task-output-temporality-metadata": artifact_schemas.
 		kind:      "recurrence"
 		pattern:   "OUTPUTS STATUS [(]structured[)]:"
 		scope:     "file-content"
+		// pathScope per adr-166: o marker vive em task-specs; def +
+		// self-review excluídos por construção (contagem real na
+		// migração: 1 — wi-070).
+		pathScope: "^governance/build-time/task-specs/"
 		threshold: 5
 	}]
 

@@ -75,6 +75,10 @@ deferredDecisions: "def-009": artifact_schemas.#DeferredDecision & {
 		kind:      "recurrence"
 		pattern:   "version:\\s+[2-9]"
 		scope:     "file-content"
+		// pathScope per adr-166: o sinal são version increments de
+		// POLICIES; sem escopo o pattern casava lenses e task-specs
+		// (verificado 2026-07-03: zero policies, 2 falsos).
+		pathScope: "^domain/policies/"
 		threshold: 3
 	}, {
 		kind:   "manual-review"

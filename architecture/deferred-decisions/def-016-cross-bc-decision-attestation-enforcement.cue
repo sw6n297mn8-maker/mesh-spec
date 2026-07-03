@@ -104,6 +104,18 @@ deferredDecisions: "def-016": artifact_schemas.#DeferredDecision & {
 		violation) — UNDETECTABLE at runtime in Phase 3'. Founder
 		ratified durante S5 production-safety pressure test:
 		'governança organizacional ≠ garantia de sistema'.
+
+		AMENDMENT (2026-07-03, migração adr-166 — decisão do founder): o
+		trigger recurrence foi REMOVIDO como PROSA não-contável. O disparo
+		verificado em disco era artefato: os matches do pattern
+		'rew.*override|ignore.*risk-evaluation|bypass.*risk-eval' eram o
+		próprio def + self-reviews (self-match, morto por construção no
+		adr-166) e os artefatos que DEFINEM a proteção (rew canvas +
+		structural-check) — contagem sintática não distingue DEFINIÇÃO de
+		TRANSGRESSÃO (mesmo caso do visibility/def-014, #196). O sinal que
+		este def espera (audit evidence de violation cases) é evidência de
+		mundo, não pattern de texto no repo — manual-review (já declarado
+		abaixo) vira a forma única.
 		"""
 
 	triggerCalibrationRationale: """
@@ -176,12 +188,11 @@ deferredDecisions: "def-016": artifact_schemas.#DeferredDecision & {
 			"""
 	}
 
+	// AMENDMENT 2026-07-03 (migração adr-166, decisão do founder): o
+	// recurrence foi REMOVIDO — os matches eram os artefatos que DEFINEM a
+	// proteção + self-match, não evidência de violação (ver
+	// deferralRationale). manual-review é a forma única.
 	triggers: [{
-		kind:      "recurrence"
-		pattern:   "rew.*override|ignore.*risk-evaluation|bypass.*risk-eval"
-		scope:     "file-content"
-		threshold: 2
-	}, {
 		kind:   "manual-review"
 		reason: "Founder revisita quando ≥3 consumers declarando authoritative dependency + audit evidence de violation cases recorrentes + compliance pressure (Bacen, security audit) emergir. Maturação arquitetural é judgment founder não machine-evaluable em isolamento — combinação de signals (volume + violation evidence + external pressure) requires human assessment. Trigger manual-review preserva opção de promotion antecipada se Bacen/regulator requer technical attestation OR security audit identifica risk em governance-only enforcement."
 	}]

@@ -178,11 +178,16 @@ deferredDecisions: "def-013": artifact_schemas.#DeferredDecision & {
 		kind:      "recurrence"
 		pattern:   "scopedBySignal:\\s*\""
 		scope:     "file-content"
+		// pathScope per adr-166: o sinal é 'quantos BCs declaram' nos
+		// agent-governance TIPADOS (packages por-BC — predicado único não
+		// cruza packages; contagem de arquivos escopada É o sinal).
+		pathScope: "^contexts/[a-z0-9-]+/agents/"
 		threshold: 2
 	}, {
 		kind:      "recurrence"
 		pattern:   "clearanceCondition:\\s*\\{"
 		scope:     "file-content"
+		pathScope: "^contexts/[a-z0-9-]+/agents/"
 		threshold: 3
 	}, {
 		kind:   "manual-review"
