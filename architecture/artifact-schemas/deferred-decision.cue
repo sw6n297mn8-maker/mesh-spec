@@ -167,6 +167,16 @@ _#DeferredDecisionBase: {
 //   manual-review:    bypass automático — runner não dispara; founder revisa
 //                     periodicamente. reason MinRunes(40) força articulação
 //                     de por que manual-only é apropriado.
+//   structural-predicate:
+//                     (per adr-166) referencia predicado CUE nomeado e
+//                     versionado no registry governance/build-time/
+//                     dd-predicates.cue (ddp-NNN). O runner avalia via
+//                     `cue export <package> -e <expr> --out json` — sinal
+//                     lido da ESTRUTURA de artefatos tipados, não de regex
+//                     sobre o texto deles. Preferir este kind a recurrence
+//                     file-content sempre que o alvo for campo tipado
+//                     exportável. Predicado não-resolvível = malformação =
+//                     runner falha ALTO (nunca count 0 silencioso).
 //   file-content-occurrence-count:
 //                     conta occurrences do pattern (regex) DENTRO de UM
 //                     arquivo singleton (path único). Distinto de
@@ -179,13 +189,22 @@ _#DeferredDecisionBase: {
 //                     (b) o sinal é quantidade de occurrences dentro
 //                     desse arquivo; (c) recurrence scope=file-content
 //                     não serve porque conta arquivos não occurrences.
+// Exclusões de engine (adr-166, por construção — não configuráveis por
+// trigger): toda contagem recurrence exclui architecture/deferred-decisions/,
+// governance/build-time/self-reviews/ e basenames iniciando em '_'. Um def
+// nunca conta para o próprio sensor.
+//
+// pathScope (adr-166): regex ancorado em '^' sobre paths que restringe ONDE
+// recurrence scope=file-content conta. Opcional nesta fase aditiva; torna-se
+// required no tightening da migração (mesmo PR, commit seguinte).
 #Trigger:
-	{kind: "recurrence", pattern: string & !="", scope:          #RecurrenceScope, threshold: int & >=2} |
+	{kind: "recurrence", pattern: string & !="", scope:          #RecurrenceScope, threshold: int & >=2, pathScope?: string & =~"^\\^"} |
 	{kind: "adjacent-need", condition:    #AdjacentCondition} |
 	{kind: "volume-threshold", artifactType: string & !="", threshold:    int & >=1} |
 	{kind: "temporal", maxAgeDays: int & >=1} |
 	{kind: "manual-review", reason:       string & strings.MinRunes(40)} |
-	{kind: "file-content-occurrence-count", path: string & =~"^.+/.+$", pattern: string & !="", threshold: int & >=1}
+	{kind: "file-content-occurrence-count", path: string & =~"^.+/.+$", pattern: string & !="", threshold: int & >=1} |
+	{kind: "structural-predicate", predicate: string & =~"^ddp-[0-9]{3}$"}
 
 // RecurrenceScope — onde o pattern é buscado pelo runner.
 //   filename:       grep nos paths de arquivo
