@@ -39,6 +39,12 @@ deferredDecisions: "def-010": artifact_schemas.#DeferredDecision & {
 		schema) vs commitment prematuro a estrutura sem evidence (custo:
 		schema errado bloqueia 2ª convention OR migration custosa
 		retroativa).
+		
+		NOTA DE TRIAGEM (2026-07-03, housekeeping — decisão do founder):
+		candidato da futura fatia de spec-hygiene, na mesma janela do
+		def-014 (que vai primeiro) se couber. Sinal atual: n=2 conventions
+		(threshold atingido). Nada agendado agora; a fatia abre por ordem
+		do founder.
 		"""
 
 	triggerCalibrationRationale: """

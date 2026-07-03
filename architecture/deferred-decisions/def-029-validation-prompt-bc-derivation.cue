@@ -25,6 +25,22 @@ def029: artifact_schemas.#DeferredDecision & {
 		review per scaffold. Status 'triggered' registra que o sinal de
 		recorrência foi atingido; a resolução (criar o prompt) permanece
 		deferida por decisão explícita do founder.
+		
+		AMENDMENT (2026-07-03, janela de housekeeping — decisão do founder;
+		encerra o stale de 34d do dd-status com decisão explícita): N=3
+		derivações reais (FCE + DRC + SCF, o único scaffold novo desde o
+		disparo; método de contagem: 13→14 canvases + a lista de futuros
+		deste def — o histórico foi squashado no baseline, datação por git
+		indisponível). Critério N>=4-5 NÃO atingido; prazo 2026-09-30
+		MANTIDO. Evidência nova da FAMÍLIA para quando a fatia abrir: o
+		precedente do PR #194 (WI-146) — a prosa do communication.rationale
+		do canvas FCE ficou auto-contraditória ("sem command-handler" +
+		contagens stale em 3 camadas) e os structural-checks passaram VERDES
+		com a contradição no lugar (estrutura alcança forma, não prosa;
+		adr-040) — pega por leitura, não por gate. Nota de escopo: é caso de
+		same-artifact consistency, NÃO de derivação de BC; quando o prompt
+		nascer, cobrir TAMBÉM coerência interna de prosa do canvas, ou
+		prompt irmão dedicado.
 		"""
 
 	description: """

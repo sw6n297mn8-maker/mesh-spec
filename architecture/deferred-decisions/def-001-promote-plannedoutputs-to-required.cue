@@ -35,6 +35,14 @@ deferredDecisions: "def-001": artifact_schemas.#DeferredDecision & {
 		ANTES de revisitar a decisão. Custo evitado: cerimônia sem
 		enforcement. Custo de continuar deferindo: drift baixo enquanto
 		regime atual estabiliza.
+		
+		RE-DEFERIMENTO (2026-07-03, janela de housekeeping — decisão do
+		founder; triggers adjacent-need fired warn-only há 61d): mantido
+		deferido COM a nota explícita de custo — promover plannedOutputs a
+		required QUEBRA os ADRs antigos que não carregam o campo; a
+		resolução exige BACKFILL da base de ADRs, não é mudança de 1 linha
+		no schema. Revisitar quando uma janela de backfill for aberta por
+		decisão do founder.
 		"""
 
 	triggerCalibrationRationale: """
