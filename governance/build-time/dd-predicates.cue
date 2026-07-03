@@ -18,6 +18,11 @@ package build_time
 // Localização canônica única (P0): triggers referenciam ddp-NNN por id;
 // a expressão vive apenas aqui. Registry é singleton em schemaExemptZone
 // (governance/build-time/, adr-098) — engine/config, não artifact type.
+//
+// ddp-001 APOSENTADO per adr-167 (2026-07-03): def-012 resolveu — o
+// enforcement das Regras A+B no check-self-review substitui o sensor
+// (gate > sinal); predicado sem consumidor seria declared-but-unused
+// (anti-pattern do def-014). A série histórica vive no git.
 
 #DDPredicate: {
 	id: string & =~"^ddp-[0-9]{3}$"
@@ -43,13 +48,6 @@ package build_time
 ddPredicates: [ID=string]: #DDPredicate & {id: ID}
 
 ddPredicates: {
-	"ddp-001": {
-		package:    "./governance/build-time/"
-		expr:       "len([for e in selfReviewBootstrapPolicy.exceptions if e.lifecycle == \"transient\" {e}])"
-		comparator: ">="
-		threshold:  20
-		rationale:  "def-012: crescimento da categoria pre-mapping-transient lido das entries TIPADAS da bootstrap policy (substitui file-content-occurrence-count sobre o mesmo arquivo — mesmo sinal, fonte estrutural). Baseline na migração (2026-07-03): 24."
-	}
 	"ddp-002": {
 		package:    "./strategic/"
 		expr:       "len(meshContextMap.declaredFlows)"

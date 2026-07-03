@@ -76,6 +76,20 @@ deferredDecisions: "def-012": artifact_schemas.#DeferredDecision & {
 		DESTE def (count 24>=20 em arquivo específico) foi re-verificado e é
 		GENUÍNO — def-012 segue como o único candidato real da janela de
 		spec-hygiene, aguardando ordem do founder.
+
+		RESOLUÇÃO (2026-07-03, adr-167 — decisão do founder): as opções
+		(a)/(b)/(c) especuladas na description NÃO foram implementadas; a
+		FUNÇÃO (stale nunca invisível) é entregue por enforcement no PONTO
+		DE USO — Regra A (invariante global de staleness em todo run do
+		check-self-review.sh, falha nomeando 'exceção stale: quitar') +
+		Regra B (fim do SKIP: a modificação que gera o SRR passa a ser
+		cobrada, tornando o exitCondition das entries enforçado; ciclo
+		completo num único PR). Nenhum sc-be-01 nasce em architecture/
+		structural-checks/. Evidência que destravou o design: 3 stales
+		empíricas (a 1ª invisível ~7 semanas), quitadas no PR #198 ANTES
+		da Regra A nascer. ddp-001 aposentado junto (predicado sem
+		consumidor pós-resolução; gate substitui sinal; git preserva a
+		série).
 		"""
 
 	triggerCalibrationRationale: """
@@ -137,5 +151,6 @@ deferredDecisions: "def-012": artifact_schemas.#DeferredDecision & {
 		reason: "Founder pode querer acionar sc-be-01 antes do threshold (e.g., observar primeira stale exception empiricamente; OR maturação de outras decisões sobre sc kinds que faciliten design; OR re-priorização). Trigger automático é signal conservador, não gate de obrigação."
 	}]
 
-	status: "open"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-167-bootstrap-exception-staleness-invariant-and-no-skip.cue"
 }
