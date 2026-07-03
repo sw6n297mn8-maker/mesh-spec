@@ -259,8 +259,12 @@ class TestFrozenPredicateCalibration(unittest.TestCase):
         self.assertEqual(sorted(self.predicates.keys()),
                          ["ddp-001", "ddp-002", "ddp-003", "ddp-004"])
 
-    def test_ddp_001_transient_exceptions_count_frozen_24(self):
-        self.assertEqual(self._value("ddp-001"), 24)  # ≥20 → def-012 dispara (genuíno)
+    def test_ddp_001_transient_exceptions_count_frozen_21(self):
+        # Recalibração CONSCIENTE 24→21 (2026-07-03, fatia def-012 PR-A):
+        # quitação das 3 entries stale com SRR matching per exitCondition
+        # declarado (PG structural-check, canvas CMT, glossary CMT).
+        # Tripwire do adr-166 (N2) funcionando como desenhado.
+        self.assertEqual(self._value("ddp-001"), 21)  # ≥20 → def-012 segue disparado (honesto)
 
     def test_ddp_002_declared_flows_frozen_1(self):
         self.assertEqual(self._value("ddp-002"), 1)  # <2 → def-031 não dispara
