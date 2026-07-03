@@ -104,13 +104,7 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores."
-	}, {
-		artifactPath:  "architecture/production-guides/structural-check.cue"
-		category:      "pre-mapping-transient"
-		lifecycle:     "transient"
-		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
-		rationale:     "PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores."
-	}, {
+		}, {
 		artifactPath:  "architecture/structural-checks/canvas.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -170,13 +164,7 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "VP em main pre-adr-069 path-mapping; cobertura indireta por SRR do ADR originador."
-	}, {
-		artifactPath:  "contexts/cmt/canvas.cue"
-		category:      "pre-mapping-transient"
-		lifecycle:     "transient"
-		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
-		rationale:     "Canvas BC em main pre-adr-072 path-mapping. Foi revisada no contexto dos ADRs originadores (adr-028 canvas schema + ADRs de evolução do BC), mas não havia SRR path-matching porque o mapping ainda não existia."
-	}, {
+		}, {
 		artifactPath:  "contexts/ctr/canvas.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -194,13 +182,7 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "Canvas BC em main pre-adr-072 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
-	}, {
-		artifactPath:  "contexts/cmt/glossary.cue"
-		category:      "pre-mapping-transient"
-		lifecycle:     "transient"
-		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
-		rationale:     "Glossary BC em main pre-adr-073 path-mapping. Foi revisada no contexto dos ADRs originadores (adr-036 glossary schema + ADRs de evolução do BC), mas não havia SRR path-matching porque o mapping ainda não existia."
-	}, {
+		}, {
 		artifactPath:  "contexts/ctr/glossary.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -241,15 +223,18 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		(2) predecessor-supersession-only (permanent, 2 entries): ADRs
 		predecessores ao mecanismo, editados apenas para supersession
 		mecânica (ADR-016/017).
-		(3) pre-mapping-transient (transient, 24 entries): artefatos em
-		main pre-path-mapping. 4 PGs original adr-067 (adr/agent-
-		governance/agent-spec/structural-check) + 1 SC (canvas via
-		adr-068) + 9 VPs (validate-* via adr-069) + 4 canvas BC (cmt/
-		ctr/idc/npm via adr-072) + 4 glossary BC (cmt/ctr/idc/npm via
-		adr-073) + 2 PG cleanup oportunista adr-073 (domain-model +
-		glossary). Sai quando próxima modificação criar SRR matching
-		path. Cleanup mecânico (stale detection) deferido per def-012
-		até primeira stale exception observada.
+		(3) pre-mapping-transient (transient, 21 entries): artefatos em
+		main pre-path-mapping. 3 PGs original adr-067 (adr/agent-
+		governance/agent-spec) + 1 SC (canvas via adr-068) + 9 VPs
+		(validate-* via adr-069) + 3 canvas BC (ctr/idc/npm via
+		adr-072) + 3 glossary BC (ctr/idc/npm via adr-073) + 2 PG
+		cleanup oportunista adr-073 (domain-model + glossary). Sai
+		quando próxima modificação criar SRR matching path — quitação
+		executada em 2026-07-03 para as 3 entries com SRR matching já
+		existente (PG structural-check, canvas CMT, glossary CMT), per
+		exitCondition declarado de cada uma. Cleanup mecânico (stale
+		detection) deferido per def-012 até primeira stale exception
+		observada.
 
 		Artefatos build-time não precisam de exceção porque não são
 		governedTypes.
