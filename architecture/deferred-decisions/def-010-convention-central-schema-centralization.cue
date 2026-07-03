@@ -87,7 +87,11 @@ deferredDecisions: "def-010": artifact_schemas.#DeferredDecision & {
 
 	triggers: [{
 		kind:      "recurrence"
-		pattern:   "^architecture/conventions/"
+		// Pattern estreitado per adr-166: a forma anterior
+		// '^architecture/conventions/' contava _meta.cue (n=2 artefato,
+		// corrigido no registro em #196); engine também exclui '_*' por
+		// construção — dupla proteção.
+		pattern:   "^architecture/conventions/[a-z0-9][a-z0-9-]*\\.cue$"
 		scope:     "filename"
 		threshold: 2
 	}, {

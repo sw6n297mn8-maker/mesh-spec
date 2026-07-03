@@ -16,6 +16,13 @@ jobs:
       - name: Validate all CUE
         run: cue vet ./...
 
+      - name: Deferred-trigger runner tests (adr-166)
+        # Suite do core do runner (exclusões por construção, pathScope, gate
+        # multi-trigger, structural-predicates + calibração congelada dos 4
+        # ddp-NNN). Após Install CUE: os testes de calibração exportam
+        # predicados reais via cue.
+        run: python3 -m unittest discover -s scripts/ci/tests -v
+
       - name: Check CLAUDE.md sync
         run: |
           cue export ./governance/claude -e output --out text > /tmp/CLAUDE.md.generated

@@ -485,7 +485,7 @@ config: #AgentConfig & {
 				3. Defs `triggered` STALE (parados além do limiar do dd-status): reconhecidos mas não-resolvidos — risco de limbo; visibilidade, não trava.
 				Se nada disparou: uma linha "vigilância de defs: limpa". O agente NÃO inicia trabalho substantivo sem este reporte. Operações triviais (status report, leitura, cue vet) dispensam.
 
-				Esta seção é a Camada 3 do sistema de vigilância (adr-162). Camada 1 = o gate de carência no runner (instalado; ligação futura via DD_GATE_ENABLED no workflow, após triagem do backlog). Camada 2 = canal de notificação externa, deferida em def-070.
+				Esta seção é a Camada 3 do sistema de vigilância (adr-162). Camada 1 = o gate de carência no runner — LIGADO no workflow via DD_GATE_ENABLED desde o PR #184 (pós-triagem do backlog); mecânica de contagem/escopo/predicados per adr-166. Camada 2 = canal de notificação externa, deferida em def-070.
 				"""#
 			rationale: """
 				O disparo de trigger era um ::warning:: de CI que ninguém lê (8 defs apodreceram 18 dias disparados-e-não-agidos — adr-162). O briefing automático na abertura torna o sinal a primeira coisa que o agente vê, sem depender de hábito do founder: fricção na entrada substitui ruído ignorável. Aponta para os scripts canônicos em vez de duplicar a lógica de avaliação (P0).

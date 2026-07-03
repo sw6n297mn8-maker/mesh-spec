@@ -70,6 +70,10 @@ deferredDecisions: "def-005": artifact_schemas.#DeferredDecision & {
 		kind:      "recurrence"
 		pattern:   "scope:\\s+\"cross-bc\""
 		scope:     "file-content"
+		// pathScope per adr-166: o sinal são POLICIES declarando scope
+		// cross-bc, não menções em prosa; upgrade a structural-predicate
+		// quando domain/policies/ materializar package exportável.
+		pathScope: "^domain/policies/"
 		threshold: 2
 	}, {
 		kind:   "manual-review"

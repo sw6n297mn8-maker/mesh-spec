@@ -125,10 +125,13 @@ deferredDecisions: "def-012": artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind:      "file-content-occurrence-count"
-		path:      "governance/build-time/self-review-bootstrap-policy.cue"
-		pattern:   "lifecycle:\\s+\"transient\""
-		threshold: 20
+		// Migrado per adr-166: mesmo sinal (crescimento da categoria
+		// pre-mapping-transient, threshold 20), fonte agora ESTRUTURAL —
+		// ddp-001 conta as entries tipadas da bootstrap policy via cue
+		// export (substitui regex sobre o texto do mesmo arquivo; contagem
+		// re-verificada idêntica na migração: 24).
+		kind:      "structural-predicate"
+		predicate: "ddp-001"
 	}, {
 		kind:   "manual-review"
 		reason: "Founder pode querer acionar sc-be-01 antes do threshold (e.g., observar primeira stale exception empiricamente; OR maturação de outras decisões sobre sc kinds que faciliten design; OR re-priorização). Trigger automático é signal conservador, não gate de obrigação."
