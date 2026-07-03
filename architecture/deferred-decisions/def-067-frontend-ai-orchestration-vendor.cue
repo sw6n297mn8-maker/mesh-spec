@@ -14,6 +14,11 @@ def067: artifact_schemas.#DeferredDecision & {
 		cujo isolamento adr-150 fixa como lei (FF-FE-01/02/08: acesso só por bridge dedicado, zero
 		business logic no orquestrador, camada de IA não penetra o domínio); o vendor que a
 		implementa vive atrás da fronteira P2 no frontend-runtime.
+
+		Nota rtd (auditoria Mesh-Old 2026-07-03, sem decidir nada): R1 do mesh-runtime (SSE no
+		serve) tem gatilho adicional futuro — ecossistema AI é SSE-native (Mesh-Old §2.9.5) —
+		quando este def materializar. O rtd vive no mesh-runtime (fora deste repo); a nota mora
+		aqui porque o gatilho é a materialização deste def.
 		"""
 
 	deferralRationale: """

@@ -248,7 +248,7 @@ Amazon Ion governa a serialização de payloads com quatro regras canônicas doc
 - **Ion-3 — Compatibility 3 camadas.** Backward, forward e full compatibility por schema.
 - **Ion-4 — Decimal normalization.** Decimais financeiros normalizados (sem trailing zeros espúrios).
 
-Money em REST JSON é sempre `type: string` (decimal string), conforme ADR-C4-2.11 §2.11.5. Em payloads Ion, Money usa o tipo nativo `decimal`. Eventos seguem o envelope CloudEvents; cada BC define seus `type` e `source` em `schemas/cloudevents.cue`.
+Money em REST JSON é sempre `type: string` (decimal string), conforme `architecture/shared-schemas/money.cue` (def-025) e a regra Ion-4 do contrato de codegen (adr-140); a presença dos specs REST/async por BC é governada pela `architecture/conventions/api-spec-convention.cue` (origem histórica da regra Money-string: prior-art Mesh-Old ADR-C4-2.11). Em payloads Ion, Money usa o tipo nativo `decimal`. Eventos seguem o envelope CloudEvents; cada BC define seus `type` e `source` em `schemas/cloudevents.cue`.
 
 ## Artifact Schemas — Validação de Conformidade
 

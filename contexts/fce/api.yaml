@@ -16,10 +16,11 @@ info:
     servidor cross-BC é projeção Phase 1+/NIM, fora deste contrato) — e o
     primeiro COMMAND supervisionado: resolve-guard-escalation (WI-146,
     molde CMT; adr-155), sob a postura do def-024.
-    Deferidos — oq-fce-1 permanece aberta: (b) os comandos do caminho
+    Deferido — oq-fce-1 permanece aberta: (b) os comandos do caminho
     autônomo (materialize/authorize/dispatch/settle) — o canvas declara
-    inbound event-driven, sem command surface; (c) async-api.yaml
-    (real-time, FF-FE-06) — sc-cv-03 segue insatisfeito.
+    inbound event-driven, sem command surface. O item (c) materializou:
+    async-api.yaml autorado (WI-149, gatilho browser-live) — sc-cv-03
+    satisfeito.
 
     O enum de status reflete APENAS o lifecycle materializado do agg-payment
     (#PaymentState em contexts/fce/schemas/events.cue): estados T2 de roadmap
