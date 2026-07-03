@@ -84,7 +84,8 @@ def032: artifact_schemas.#DeferredDecision & {
 			"""
 	}, {
 		kind:      "recurrence"
-		pattern:   "architecture/adrs/adr-[0-9]+-derive-[a-z0-9-]+-bounded-context\\.cue$"
+		// Âncora '^' anexada no tightening do adr-166 (contagem idêntica).
+		pattern:   "^architecture/adrs/adr-[0-9]+-derive-[a-z0-9-]+-bounded-context\\.cue$"
 		scope:     "filename"
 		threshold: 5
 	}]

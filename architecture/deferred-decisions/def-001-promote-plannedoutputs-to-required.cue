@@ -43,6 +43,17 @@ deferredDecisions: "def-001": artifact_schemas.#DeferredDecision & {
 		resolução exige BACKFILL da base de ADRs, não é mudança de 1 linha
 		no schema. Revisitar quando uma janela de backfill for aberta por
 		decisão do founder.
+
+		AMENDMENT (2026-07-03, migração adr-166 — decisão do founder): os
+		2 triggers adjacent-need foram REMOVIDOS como EXAURIDOS — a
+		condição que vigiavam tornou-se permanentemente verdadeira desde
+		adr-076 (sc-adr-01 existe; adr.cue menciona os tokens em prosa de
+		quality-criteria): o sensor virou alarme perpétuo, e com o fix do
+		gate multi-trigger (adr-166 item 4) o file-exists além da carência
+		passaria a travar o CI por um deferimento que o founder JÁ
+		re-deferiu conscientemente acima. O que resta vigiar não tem
+		condição detectável: é decisão de PRIORIDADE do founder (abrir a
+		janela de backfill) — manual-review é a forma final.
 		"""
 
 	triggerCalibrationRationale: """
@@ -73,19 +84,13 @@ deferredDecisions: "def-001": artifact_schemas.#DeferredDecision & {
 			"""
 	}
 
+	// AMENDMENT 2026-07-03 (migração adr-166, decisão do founder): os 2
+	// adjacent-need foram REMOVIDOS como EXAURIDOS — condição permanentemente
+	// verdadeira desde adr-076; sensor virou alarme perpétuo (ver
+	// deferralRationale). manual-review é a forma final.
 	triggers: [{
-		kind: "adjacent-need"
-		condition: {
-			kind:    "file-contains"
-			path:    "architecture/artifact-schemas/adr.cue"
-			pattern: "(at-least-one|MinItems\\(1\\)|disjunction)"
-		}
-	}, {
-		kind: "adjacent-need"
-		condition: {
-			kind: "file-exists"
-			path: "architecture/structural-checks/adr.cue"
-		}
+		kind:   "manual-review"
+		reason: "Forma FINAL per amendment 2026-07-03 (adr-166): as 2 condições que os triggers vigiavam JÁ aconteceram (sc-adr-01 existe; constraint at-least-one expressa via structural-check) e o founder re-deferiu mesmo assim pelo custo de backfill — o que resta não tem condição detectável: é decisão de PRIORIDADE do founder abrir a janela de backfill da base de ADRs. Founder revisita quando decidir abrir essa janela."
 	}]
 
 	status: "open"

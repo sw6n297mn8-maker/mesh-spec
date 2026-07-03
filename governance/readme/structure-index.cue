@@ -171,7 +171,9 @@ structureIndex: {
 				"architecture/adrs/adr-162-deferred-decision-vigilance-grace-gate.cue",
 				"architecture/adrs/adr-163-compile-probe-p14-mandatory-gate.cue",
 				"architecture/adrs/adr-164-durability-across-restart-capability-contract.cue",
-				"architecture/adrs/adr-165-eventlogport-trajectory-postgres-vendor.cue"
+				"architecture/adrs/adr-165-eventlogport-trajectory-postgres-vendor.cue",
+				"architecture/adrs/adr-166-deferred-trigger-scoped-counting-and-structural-predicates.cue",
+				"architecture/adrs/adr-167-bootstrap-exception-staleness-invariant-and-no-skip.cue"
 			],
 			"schema": "#ADRBase"
 		},

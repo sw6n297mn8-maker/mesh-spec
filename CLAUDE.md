@@ -375,4 +375,4 @@ Antes de qualquer trabalho substantivo numa sessão, o agente roda `bash scripts
 3. Defs `triggered` STALE (parados além do limiar do dd-status): reconhecidos mas não-resolvidos — risco de limbo; visibilidade, não trava.
 Se nada disparou: uma linha "vigilância de defs: limpa". O agente NÃO inicia trabalho substantivo sem este reporte. Operações triviais (status report, leitura, cue vet) dispensam.
 
-Esta seção é a Camada 3 do sistema de vigilância (adr-162). Camada 1 = o gate de carência no runner (instalado; ligação futura via DD_GATE_ENABLED no workflow, após triagem do backlog). Camada 2 = canal de notificação externa, deferida em def-070.
+Esta seção é a Camada 3 do sistema de vigilância (adr-162). Camada 1 = o gate de carência no runner — LIGADO no workflow via DD_GATE_ENABLED desde o PR #184 (pós-triagem do backlog); mecânica de contagem/escopo/predicados per adr-166. Camada 2 = canal de notificação externa, deferida em def-070.

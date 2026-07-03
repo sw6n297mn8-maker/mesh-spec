@@ -28,7 +28,13 @@ import (
 )
 
 #DeferredDecision: _#DeferredDecisionBase & ({
-	status:               "open"
+	status: "open"
+	// Forma estrita exigida enquanto o sensor está VIVO (adr-166): todo def
+	// nasce open (lifecycle adr-062), logo todo sensor vivo passa pela forma
+	// estrita POR CONSTRUÇÃO — o alcance exato do P1, por tipo e não por
+	// disciplina. Defs não-open preservam a forma da época (registro
+	// histórico, ethos append-only); o runner só avalia defs open.
+	triggers:             [#TriggerStrict, ...#TriggerStrict]
 	triggeredAt?:         _|_
 	triggeredCondition?:  _|_
 	resolvedBy?:          _|_
@@ -167,6 +173,16 @@ _#DeferredDecisionBase: {
 //   manual-review:    bypass automático — runner não dispara; founder revisa
 //                     periodicamente. reason MinRunes(40) força articulação
 //                     de por que manual-only é apropriado.
+//   structural-predicate:
+//                     (per adr-166) referencia predicado CUE nomeado e
+//                     versionado no registry governance/build-time/
+//                     dd-predicates.cue (ddp-NNN). O runner avalia via
+//                     `cue export <package> -e <expr> --out json` — sinal
+//                     lido da ESTRUTURA de artefatos tipados, não de regex
+//                     sobre o texto deles. Preferir este kind a recurrence
+//                     file-content sempre que o alvo for campo tipado
+//                     exportável. Predicado não-resolvível = malformação =
+//                     runner falha ALTO (nunca count 0 silencioso).
 //   file-content-occurrence-count:
 //                     conta occurrences do pattern (regex) DENTRO de UM
 //                     arquivo singleton (path único). Distinto de
@@ -179,13 +195,34 @@ _#DeferredDecisionBase: {
 //                     (b) o sinal é quantidade de occurrences dentro
 //                     desse arquivo; (c) recurrence scope=file-content
 //                     não serve porque conta arquivos não occurrences.
+// Exclusões de engine (adr-166, por construção — não configuráveis por
+// trigger): toda contagem recurrence exclui architecture/deferred-decisions/,
+// governance/build-time/self-reviews/ e basenames iniciando em '_'. Um def
+// nunca conta para o próprio sensor.
+//
+// pathScope (adr-166): regex ancorado em '^' sobre paths que restringe ONDE
+// recurrence scope=file-content conta. Opcional no #Trigger base (forma
+// histórica de defs não-open); REQUIRED na forma estrita #TriggerStrict,
+// exigida no branch open do #DeferredDecision.
 #Trigger:
-	{kind: "recurrence", pattern: string & !="", scope:          #RecurrenceScope, threshold: int & >=2} |
+	{kind: "recurrence", pattern: string & !="", scope:          #RecurrenceScope, threshold: int & >=2, pathScope?: string & =~"^\\^"} |
 	{kind: "adjacent-need", condition:    #AdjacentCondition} |
 	{kind: "volume-threshold", artifactType: string & !="", threshold:    int & >=1} |
 	{kind: "temporal", maxAgeDays: int & >=1} |
 	{kind: "manual-review", reason:       string & strings.MinRunes(40)} |
-	{kind: "file-content-occurrence-count", path: string & =~"^.+/.+$", pattern: string & !="", threshold: int & >=1}
+	{kind: "file-content-occurrence-count", path: string & =~"^.+/.+$", pattern: string & !="", threshold: int & >=1} |
+	{kind: "structural-predicate", predicate: string & =~"^ddp-[0-9]{3}$"}
+
+// TriggerStrict — forma estrita (adr-166), exigida no branch status "open"
+// do #DeferredDecision: recurrence scope=filename exige pattern ancorado em
+// '^'; scope=file-content exige pathScope (ancorado); demais kinds idênticos
+// ao #Trigger. Trigger sem escopo num def open é malformado — cue vet é o
+// gate, antes do runner (P1 por tipo, não por disciplina).
+#TriggerStrict: #Trigger & (
+	{kind: "recurrence", scope: "filename", pattern: string & =~"^\\^"} |
+	{kind: "recurrence", scope: "file-content", pathScope: string & =~"^\\^"} |
+	{kind: "recurrence", scope: "commit-message"} |
+	{kind: "adjacent-need" | "volume-threshold" | "temporal" | "manual-review" | "file-content-occurrence-count" | "structural-predicate"})
 
 // RecurrenceScope — onde o pattern é buscado pelo runner.
 //   filename:       grep nos paths de arquivo

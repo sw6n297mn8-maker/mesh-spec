@@ -71,7 +71,8 @@ def035: artifact_schemas.#DeferredDecision & {
 			"""
 	}, {
 		kind:      "recurrence"
-		pattern:   "architecture/agent-probes/records/[a-z0-9-]+\\.cue$"
+		// Âncora '^' anexada no tightening do adr-166 (contagem idêntica).
+		pattern:   "^architecture/agent-probes/records/[a-z0-9-]+\\.cue$"
 		scope:     "filename"
 		threshold: 2
 	}]

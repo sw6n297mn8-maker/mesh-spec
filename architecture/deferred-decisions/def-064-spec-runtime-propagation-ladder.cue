@@ -68,12 +68,12 @@ def064: artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind: "adjacent-need"
-		condition: {
-			kind:    "file-contains"
-			path:    "governance/build-time/frontend-codegen-contract.cue"
-			pattern: "status: \"accepted\""
-		}
+		// Migrado per adr-166: ddp-003 lê o campo status TIPADO do
+		// frontend-codegen-contract via cue export (o file-contains
+		// quebrava em silêncio com reformatação — exatamente o risco que
+		// o manual-review backstop abaixo registrava; baseline: proposed).
+		kind:      "structural-predicate"
+		predicate: "ddp-003"
 	}, {
 		kind:   "manual-review"
 		reason: "Backstop do file-contains primário: se o contrato for renomeado/movido ou o campo status reformatado, o sinal automático quebra em silêncio e a ladder ficaria deferida para sempre; o founder revisita quando o frontend-runtime for o 2º runtime real, independentemente do sinal automático."

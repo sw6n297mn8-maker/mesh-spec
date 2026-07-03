@@ -71,11 +71,11 @@ def030: artifact_schemas.#DeferredDecision & {
 			completude de cobertura). Não machine-evaluable.
 			"""
 	}, {
-		kind: "adjacent-need"
-		condition: {
-			kind:    "file-contains"
-			path:    "architecture/structural-checks/production-guide.cue"
-			pattern: "design-principle"
-		}
+		// Migrado per adr-166: ddp-004 lê a whitelist coveredSchemas
+		// TIPADA do sc-pg-01 via cue export (o file-contains casaria
+		// qualquer menção em prosa do arquivo; baseline na migração:
+		// ausente).
+		kind:      "structural-predicate"
+		predicate: "ddp-004"
 	}]
 }

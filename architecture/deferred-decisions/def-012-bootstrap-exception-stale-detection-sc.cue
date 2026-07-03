@@ -68,6 +68,28 @@ deferredDecisions: "def-012": artifact_schemas.#DeferredDecision & {
 		candidato da futura fatia de spec-hygiene, na mesma janela do
 		def-014 (que vai primeiro) se couber. Sinal atual: count 24 >= 20.
 		Nada agendado agora; a fatia abre por ordem do founder.
+		
+		CORREÇÃO DE REGISTRO (2026-07-03 — decisão do founder): a ordem da
+		janela na nota acima ('mesma janela do def-014, que vai primeiro')
+		CAI — as contagens que ordenaram a triagem eram defeituosas
+		(artefatos do runner; ver amendments em def-014 e def-010). O sinal
+		DESTE def (count 24>=20 em arquivo específico) foi re-verificado e é
+		GENUÍNO — def-012 segue como o único candidato real da janela de
+		spec-hygiene, aguardando ordem do founder.
+
+		RESOLUÇÃO (2026-07-03, adr-167 — decisão do founder): as opções
+		(a)/(b)/(c) especuladas na description NÃO foram implementadas; a
+		FUNÇÃO (stale nunca invisível) é entregue por enforcement no PONTO
+		DE USO — Regra A (invariante global de staleness em todo run do
+		check-self-review.sh, falha nomeando 'exceção stale: quitar') +
+		Regra B (fim do SKIP: a modificação que gera o SRR passa a ser
+		cobrada, tornando o exitCondition das entries enforçado; ciclo
+		completo num único PR). Nenhum sc-be-01 nasce em architecture/
+		structural-checks/. Evidência que destravou o design: 3 stales
+		empíricas (a 1ª invisível ~7 semanas), quitadas no PR #198 ANTES
+		da Regra A nascer. ddp-001 aposentado junto (predicado sem
+		consumidor pós-resolução; gate substitui sinal; git preserva a
+		série).
 		"""
 
 	triggerCalibrationRationale: """
@@ -117,14 +139,18 @@ deferredDecisions: "def-012": artifact_schemas.#DeferredDecision & {
 	}
 
 	triggers: [{
-		kind:      "file-content-occurrence-count"
-		path:      "governance/build-time/self-review-bootstrap-policy.cue"
-		pattern:   "lifecycle:\\s+\"transient\""
-		threshold: 20
+		// Migrado per adr-166: mesmo sinal (crescimento da categoria
+		// pre-mapping-transient, threshold 20), fonte agora ESTRUTURAL —
+		// ddp-001 conta as entries tipadas da bootstrap policy via cue
+		// export (substitui regex sobre o texto do mesmo arquivo; contagem
+		// re-verificada idêntica na migração: 24).
+		kind:      "structural-predicate"
+		predicate: "ddp-001"
 	}, {
 		kind:   "manual-review"
 		reason: "Founder pode querer acionar sc-be-01 antes do threshold (e.g., observar primeira stale exception empiricamente; OR maturação de outras decisões sobre sc kinds que faciliten design; OR re-priorização). Trigger automático é signal conservador, não gate de obrigação."
 	}]
 
-	status: "open"
+	status:     "resolved"
+	resolvedBy: "architecture/adrs/adr-167-bootstrap-exception-staleness-invariant-and-no-skip.cue"
 }
