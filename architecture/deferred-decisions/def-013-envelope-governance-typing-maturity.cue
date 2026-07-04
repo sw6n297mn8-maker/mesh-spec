@@ -194,5 +194,42 @@ deferredDecisions: "def-013": artifact_schemas.#DeferredDecision & {
 		reason: "Founder revisita runtime evaluation engine architecture quando Phase 1+ runner materialization progredir suficientemente — formalização como adr separado + schema artifact (e.g., EnvelopeRuntimeEngine) com interface contracts + WI integrado com runner stack maturity. Separação arquitetural por design entre policy (Phase 0 schema) e enforcement (Phase 1+ runner) preserva ortogonalidade; trigger automático não cabe porque progressão runner é judgment founder, não condição machine-evaluable."
 	}]
 
-	status: "open"
+	status:      "triggered"
+	triggeredAt: "2026-07-04"
+	triggeredCondition: """
+		Re-triagem de mérito 2026-07-04 (pós-reforma do runner, adr-166/
+		adr-167): os dois triggers recurrence dispararam NOS LIMIARES
+		EXATOS — trigger 1 (scopedBySignal, threshold 2): 3 arquivos em
+		contexts/{bkr,dlv,p2p}/agents/; trigger 2 (clearanceCondition,
+		threshold 3): os mesmos 3. Em nível de instância: 8 usos de
+		scopedBySignal (bkr 5, dlv 1, p2p 2) e 6 blocos clearanceCondition
+		(bkr 3, dlv 1, p2p 2).
+
+		MANTIDO DEFERIDO após avaliação de mérito (decisão do founder
+		sobre a evidência): a adoção é genuína mas HOMOGÊNEA e dentro do
+		desenho atual — os 6 clearanceCondition usam todos a variant única
+		no-signal-in-window (scopes global e inherit-from-trigger
+		exercitados; janelas 7/14/30d); o campo opcional funciona como
+		desenhado (2 triggers do bkr omitem clearanceCondition
+		deliberadamente, com rationale de recuperação observável direto
+		na métrica); os envelopes de dlv/p2p citam este def nos rationales
+		como promotion path vivo. Opção (b) sem caso concreto (zero
+		demanda por variant nova). Opção (c) prematura (não existe runtime
+		executor de envelopes). Resolução via (a) typed payloadSchema fica
+		como fatia média futura quando houver atrito real — superfície
+		hoje: 32 declarações payloadFields em 4 agent-specs (bkr 11,
+		rew 9, inv 8, p2p 4).
+
+		O que amadureceu não é a tipagem — é o risco de drift referencial:
+		8 refs cross-file (scopedBySignal/clearanceCondition.signalRef →
+		signals declarados no agent-spec) sem gate determinístico; um
+		rename de signal quebraria a resolução de scope silenciosamente.
+		Mitigação designada: structural-check referencial em fatia
+		própria. A tentativa de materialização (2026-07-04) revelou 2
+		lacunas de capacidade do engine — artifactType 'agent-governance'
+		resolve para o singleton global (first-definition-wins do
+		schema_location; envelopes inalcançáveis por qualquer check) e o
+		envelope não tem campo de escopo para instance-scoped same-BC —
+		escaladas ao founder com opções de desbloqueio (ADR próprio).
+		"""
 }
