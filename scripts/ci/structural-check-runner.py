@@ -436,6 +436,47 @@ def ev_instance_scoped_cross_file_id_exists(rule,c):
                     v.append("%s: ref '%s' (%s) ausente no alvo do escopo '%s' (%s)" % (f,r,rp,scope,tglob))
     return v
 
+def ev_item_scoped_cross_file_id_exists(rule,c):
+    # adr-169: variante POR-ITEM do instance-scoped (adr-113). Cada item de
+    # itemsPath declara o SEU escopo (scopeField relativo ao item); as refs do
+    # item (refFields) resolvem contra o alvo DAQUELE escopo, nunca contra a
+    # uniao global. Escopo ausente no disco = violacao (escopo fantasma).
+    # Namespace cacheado por escopo. Violacao nomeia arquivo + item + escopo.
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    tmpl=rule["targetGlobTemplate"]; sf=rule["scopeField"]
+    ip=rule["itemsPath"]; ip=ip[:-2] if ip.endswith("[]") else ip
+    nscache={}; v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        items=dotget(a,ip)
+        if not isinstance(items,list): continue
+        for i,it in enumerate(items):
+            if not isinstance(it,dict): continue
+            scope=dotget(it,sf)
+            if not isinstance(scope,str):
+                v.append("%s: item#%d sem scopeField '%s'" % (f,i+1,sf)); continue
+            if scope not in nscache:
+                tfiles=sorted(glob.glob(tmpl.replace("{scope}",scope)))
+                if not tfiles: nscache[scope]=None
+                else:
+                    ns=set()
+                    for tf in tfiles:
+                        t=load_artifact(tf)
+                        if t is None: continue
+                        for tip in rule["targetIdPaths"]:
+                            ns.update(x for x in _resolve_multi(t,tip) if isinstance(x,(str,int)))
+                    nscache[scope]=ns
+            ns=nscache[scope]
+            if ns is None:
+                v.append("%s: item#%d escopo '%s' nao existe no disco (%s)" % (f,i+1,scope,tmpl.replace("{scope}",scope))); continue
+            for rf in rule["refFields"]:
+                for r in _resolve_multi(it,rf):
+                    if isinstance(r,(str,int)) and r not in ns:
+                        v.append("%s: item#%d ref '%s' (%s) ausente no alvo do escopo '%s'" % (f,i+1,r,rf,scope))
+    return v
+
 def ev_regex_pattern_match(rule,c):
     # def-003/adr-107: todo valor em valuePath (no artefato) casa a regex pattern.
     # Convencao de formato que cue vet (schema constraint) nao impoe.
@@ -734,6 +775,7 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists,
  "regex-pattern-match":ev_regex_pattern_match,
  "instance-scoped-cross-file-id-exists":ev_instance_scoped_cross_file_id_exists,
+ "item-scoped-cross-file-id-exists":ev_item_scoped_cross_file_id_exists,
  "directed-acyclicity":ev_directed_acyclicity,
  "flow-event-closure":ev_flow_event_closure,
  "first-class-traceability":ev_first_class_traceability}
@@ -992,8 +1034,26 @@ def self_test():
     g8_res=ev_directed_acyclicity(checks["sc-g-08"]["rule"],checks["sc-g-08"])
     g8_ok=not any("notequals-composite.cue" in r for r in g8_res)
     notequalsok = g5_ok and g6_ok and g7_ok and g8_ok
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok and existsok and notequalsok
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths} existsok={existsok} notequalsok={notequalsok} g2={g2_res} g3={g3_res} g4={g4_res} g5={g5_res} g6={g6_res} g7={g7_res} g8={g8_res}")
+    # item-scoped-cross-file-id-exists (adr-169): cada item resolve no alvo do
+    # SEU escopo. Replica o cenario real: evt-invoice-issued e dono do inv e
+    # copia consumida no fce; passo cmt referenciando-o deve FALHAR (a uniao
+    # global daria falso-verde); passo fce com evt-payment-settled PASSA;
+    # escopo inexistente = fantasma.
+    w("architecture/artifact-schemas/st.cue",'package artifact_schemas\n#St:{steps:[...],_schema:location:{canonicalPathRegex:"^stories/[a-z-]+\\\\.cue$",fileNameRegex:"^[a-z-]+\\\\.cue$",cardinality:"collection",allowNested:false}}\n')
+    w("architecture/structural-checks/st.cue",'package structural_checks\nstructuralChecks:{"sc-st-01":{id:"sc-st-01",title:"t",artifactType:"st",description:"d",kind:"item-scoped-cross-file-id-exists",rule:{itemsPath:"steps[]",scopeField:"wi.bc",refFields:["wi.evs[]"],targetGlobTemplate:"bcs/{scope}/dm.cue",targetIdPaths:["events[].code"]},errorMessage:"e",rationale:"r"}}\n')
+    w("bcs/inv/dm.cue",'package dm\ndm:{events:[{code:"evt-invoice-issued"}]}\n')
+    w("bcs/fce/dm.cue",'package dm\ndm:{events:[{code:"evt-payment-settled"},{code:"evt-invoice-issued"}]}\n')
+    w("bcs/cmt/dm.cue",'package dm\ndm:{events:[{code:"evt-commitment-accepted"}]}\n')
+    w("stories/j.cue",'package stories\ns:{steps:[{wi:{bc:"fce",evs:["evt-payment-settled"]}},{wi:{bc:"cmt",evs:["evt-invoice-issued"]}},{wi:{bc:"zz",evs:["evt-x"]}}]}\n')
+    _loc_cache.clear(); _art_cache.clear()
+    checks=load_checks()
+    its=ev_item_scoped_cross_file_id_exists(checks["sc-st-01"]["rule"],checks["sc-st-01"])
+    itemscok = (its==[
+        "stories/j.cue: item#2 ref 'evt-invoice-issued' (wi.evs[]) ausente no alvo do escopo 'cmt'",
+        "stories/j.cue: item#3 escopo 'zz' nao existe no disco (bcs/zz/dm.cue)",
+    ])
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok and existsok and notequalsok and itemscok
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths} existsok={existsok} notequalsok={notequalsok} itemscok={itemscok} its={its} g2={g2_res} g3={g3_res} g4={g4_res} g5={g5_res} g6={g6_res} g7={g7_res} g8={g8_res}")
     return 0 if ok else 1
 
 if __name__=="__main__":

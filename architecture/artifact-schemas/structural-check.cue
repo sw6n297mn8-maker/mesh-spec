@@ -88,6 +88,9 @@ package artifact_schemas
 	kind: "instance-scoped-cross-file-id-exists"
 	rule: #InstanceScopedCrossFileIdExistsRule
 } | {
+	kind: "item-scoped-cross-file-id-exists"
+	rule: #ItemScopedCrossFileIdExistsRule
+} | {
 	kind: "directed-acyclicity"
 	rule: #DirectedAcyclicityRule
 } | {
@@ -174,9 +177,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "directed-acyclicity" | "flow-event-closure" | "first-class-traceability"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "item-scoped-cross-file-id-exists" | "directed-acyclicity" | "flow-event-closure" | "first-class-traceability"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #DirectedAcyclicityRule | #FlowEventClosureRule | #FirstClassTraceabilityRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #ItemScopedCrossFileIdExistsRule | #DirectedAcyclicityRule | #FlowEventClosureRule | #FirstClassTraceabilityRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -593,6 +596,30 @@ _#StructuralCheckBase: {
 	targetGlobTemplate: string & =~"\\{scope\\}"
 	// Paths do(s) conjunto(s) de ids válidos no arquivo-alvo (lista — união).
 	// Ex.: ["aggregates[].code", "commands[].code", "events[].code"].
+	targetIdPaths: [string & !="", ...string & !=""]
+}
+
+// Rule shape para kind=item-scoped-cross-file-id-exists (adr-169).
+// Variante POR-ITEM do instance-scoped (adr-113): o artefato-fonte carrega uma
+// LISTA de itens e cada item declara o SEU escopo (scopeField relativo ao
+// item); as refs do item resolvem contra o alvo derivado DAQUELE escopo — não
+// contra a união global nem contra um escopo único por artefato. Caso
+// motivador: #DomainStory.steps[] — cada passo declara workItem.
+// boundedContextRef e as refs de building block do passo devem existir no
+// domain-model DAQUELE BC (a união global dá falso-verde via cópias consumidas
+// com sourceContext). Escopo ausente no disco é violação (escopo fantasma),
+// herdando a semântica do adr-113. ADITIVO: nenhum kind/evaluator existente é
+// alterado; checks existentes não migram nesta introdução.
+#ItemScopedCrossFileIdExistsRule: {
+	// Path da lista de itens no artefato-fonte (sufixo "[]" aceito).
+	itemsPath: string & !=""
+	// Path do campo de escopo RELATIVO AO ITEM. Ex.: "workItem.boundedContextRef".
+	scopeField: string & !=""
+	// Paths das refs RELATIVOS AO ITEM (travessia "[]"/"."). Ex.: ["workItem.eventRefs[]"].
+	refFields: [string & !="", ...string & !=""]
+	// Template do glob do arquivo-alvo; "{scope}" é substituído pelo valor do item.
+	targetGlobTemplate: string & =~"\\{scope\\}"
+	// Paths do(s) conjunto(s) de ids válidos no arquivo-alvo (união).
 	targetIdPaths: [string & !="", ...string & !=""]
 }
 
