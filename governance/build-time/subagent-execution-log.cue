@@ -926,26 +926,114 @@ subagentExecutionLog: {
 			reviewMs:    0
 			totalMs:     357092
 		}
+	}, {
+		dispatchId:   "disp-009"
+		workItem:     "WI-113"
+		date:         "2026-07-05"
+		target:       "architecture/production-guides/domain-story.cue"
+		artifactType: "production-guide"
+
+		authoringSubagent: {
+			dispatched:         true
+			subagentType:       "general-purpose"
+			result:             "success"
+			cueVetAttempts:     1
+			cueVetExitCode:     0
+			abbreviationChosen: "dsg"
+			notes: """
+				Dispatch per rollout (production-guide = subagent-drafted,
+				adr-054) dentro da fatia adr-169/adr-170 (execução parcial
+				do WI-113: schema #DomainStory + gates + PG; 1ª instância
+				fica para fatia própria com fontes do founder). Draft
+				validado com cue vet REAL em cópia scratchpad (VET-OK,
+				repo não tocado pelo subagent). 3 sections
+				(narrative-and-scope, steps-and-model-resolution,
+				gaps-validation-and-submission) + 4 tq-dsg (3 fail +
+				1 warn). Reasoning report com 8 itens de calibração
+				apresentado ao founder no checkpoint pré-commit da fatia;
+				inferência mais forte flagged pelo próprio subagent:
+				'ordem da dor' operacionalizada como critério fail
+				anti-retrofit (tq-dsg-03).
+
+				Issue de transporte recorrente: subagent retornou HTML
+				entity (&) escapado no code block — pattern idêntico a
+				disp-007/disp-008, agora N=3. Conversão pre-write
+				aplicada pelo main agent.
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched: false
+			notes: """
+				Review subagent NÃO dispatched — founder review direto no
+				checkpoint pré-commit da fatia + SRR isolated-class per
+				quality-gate.cue executionPolicy (production-guide →
+				isolated-subagent) produzido na mesma fatia. Pattern
+				consistente com disp-005..008 (reviewBypass é design
+				choice, não recovery).
+				"""
+		}
+
+		founderDecision: {
+			outcome: "pending-checkpoint-review"
+			notes: """
+				Entry escrita na própria fatia, ANTES do checkpoint
+				pré-commit (regime gated: a fatia inteira aguarda OK do
+				founder). Per convenção append-only, o desfecho
+				(aprovação/ajustes) fica no commit message ou em entry
+				futura referenciando esta.
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:   false
+			selfReviewFailRetry:  false
+			ambiguityEscalation:  false
+			manualTakeoverPath:   false
+			apiTimeoutTakeover:   false
+			reviewSubagentBypass: true
+			notes: """
+				Single-attempt successful. cueVet PASSED first try em
+				scratch; API timeout não atingido (PG 3-sections,
+				densidade média). reviewSubagentBypass é design choice
+				per pattern disp-005..008.
+				"""
+		}
+
+		calibrationFindings: [
+			"HTML entity transport issue agora N=3 (disp-007 + disp-008 + disp-009) — threshold de reavaliação declarado em disp-008 ('reavaliar pós-disp-009') ATINGIDO. Recomendação: advisory directive em promptTemplate ('do not HTML-escape characters in CUE code blocks') em fatia futura de calibração; decisão do founder.",
+			"Segundo PG successful via dispatch (após disp-001 tension-entry): PG 3-sections confirma o pattern baixa-média densidade estrutural viável para subagent-drafted. Novidade deste dispatch: o schema alvo (#DomainStory) aterrissa na MESMA fatia que o PG — cascade ordering (adr-054 dec 13) satisfeito dentro de um único commit, com sc-pg-01 curando no ato (violação 'domain-story sem PG' aparece e morre na mesma fatia).",
+			"Abreviação 'dsg' inferida da convenção (gg/teg/dmg/defg...); ainda não listada no comment de abreviações canônicas de quality-criteria.cue — toque editorial candidato, decisão do founder.",
+		]
+
+		pipelineOutcome: "successful-authoring-without-full-pipeline"
+
+		executionTimings: {
+			authoringMs: 557788
+			reviewMs:    0
+			totalMs:     557788
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    8
+		totalDispatches:    9
 		successfulPipeline: 1
-		failureRate:        0.375 // 3/8 failures (disp-002 + disp-003 + disp-004)
+		failureRate:        0.333 // 3/9 failures (disp-002 + disp-003 + disp-004)
 		fallbacksExercised: 5 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
 			apiTimeout:      2 // disp-003 + disp-004
 		}
 		notes: """
-			Failure rate: amostra (n=8) com 3 failures + 1 pipeline
-			successful (WI-069 PG-tension-entry) + 4 successful authoring
+			Failure rate: amostra (n=9) com 3 failures + 1 pipeline
+			successful (WI-069 PG-tension-entry) + 5 successful authoring
 			sem full pipeline (disp-005 glossary BDG + disp-006 domain-model
-			BDG + disp-007 agent-governance BDG + disp-008 glossary SSC —
-			review subagent intencionalmente bypassado por escolha founder
-			de manual review + judgment call evaluation direta).
+			BDG + disp-007 agent-governance BDG + disp-008 glossary SSC +
+			disp-009 PG domain-story — review subagent intencionalmente
+			bypassado por escolha founder de manual review + judgment call
+			evaluation direta).
 			Honest distinction: successfulPipeline conta apenas authoring →
 			review → founder approval completo; disp-005/006/007/008 são
 			successfulAuthoring mas não successfulPipeline pelo bypass
@@ -966,9 +1054,10 @@ subagentExecutionLog: {
 			SSC) — pattern reusável confirmado: 3 sections + intra-
 			glossary refs + cross-BC vocabulary consistency.
 
-			HTML entity transport issue recorrente N=2 (disp-007 +
-			disp-008) — calibration finding sugere advisory directive
-			em promptTemplate; reavaliar pós N=3+.
+			HTML entity transport issue recorrente N=3 (disp-007 +
+			disp-008 + disp-009) — threshold de reavaliação atingido;
+			advisory directive em promptTemplate é recomendação ativa
+			(fatia futura de calibração, decisão founder).
 
 			WI-048 BDG BC bootstrap CLOSED com disp-007. WI-060 SSC
 			bootstrap em progresso: Phase 1 canvas (manual, 4 commits)

@@ -32,6 +32,7 @@ structuralChecks: "sc-pg-01": artifact_schemas.#StructuralCheck & {
 			"agent-governance",
 			"glossary",
 			"domain-model",
+			"domain-story",
 			"production-guide",
 			"structural-check",
 			"adr",

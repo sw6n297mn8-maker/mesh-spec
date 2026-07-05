@@ -14,6 +14,16 @@ def052: artifact_schemas.#DeferredDecision & {
 		INSTANCE-SCOPED (same-BC, kind instance-scoped-cross-file-id-exists, adr-113), AMPLIADA para
 		cobrir tambem a existencia de cmd-*/evt-*/inv- do AggregateManifest no domain-model do BC
 		(buildavel, deferida do C4.1). Os dois sao a mesma pergunta de scoping.
+
+		[ATUALIZADO 2026-07-05, adr-169] A terceira manifestacao da pergunta — refs de building
+		block em domain stories, com escopo POR-ITEM (um BC por passo) — foi RESOLVIDA pelo kind
+		novo item-scoped-cross-file-id-exists (sc-ds-04..08). As DUAS manifestacoes deste def
+		permanecem NAO-MIGRADAS por decisao explicita: sc-mri-01/02 seguem plain (o aperto same-BC
+		continua aguardando evidencia de falso-positivo real, e o kind adequado a eles e o
+		instance-scoped adr-113, escopo-unico-na-raiz — nao o por-item); def-013 tem bloqueios
+		proprios (fileset first-definition-wins + envelope sem campo de escopo) que nenhum kind
+		novo resolve sozinho. A capacidade agora EXISTE no engine; a migracao de cada manifestacao
+		e decisao futura propria.
 		"""
 
 	deferralRationale: """

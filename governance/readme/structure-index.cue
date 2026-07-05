@@ -174,7 +174,9 @@ structureIndex: {
 				"architecture/adrs/adr-165-eventlogport-trajectory-postgres-vendor.cue",
 				"architecture/adrs/adr-166-deferred-trigger-scoped-counting-and-structural-predicates.cue",
 				"architecture/adrs/adr-167-bootstrap-exception-staleness-invariant-and-no-skip.cue",
-				"architecture/adrs/adr-168-materialization-freshness-gate.cue"
+				"architecture/adrs/adr-168-materialization-freshness-gate.cue",
+				"architecture/adrs/adr-169-item-scoped-cross-file-kind.cue",
+				"architecture/adrs/adr-170-domain-story-schema-and-gated-links.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -404,6 +406,11 @@ structureIndex: {
 			"schema": "#DomainModel"
 		},
 		{
+			"canonicalPathRegex": "^strategic/domain-stories/[a-z][a-z0-9-]*\\.cue$",
+			"files": [],
+			"schema": "#DomainStory"
+		},
+		{
 			"canonicalPathRegex": "^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\\.cue$",
 			"files": [
 				"architecture/shared-schemas/glossary.cue",
@@ -611,7 +618,9 @@ structureIndex: {
 				"architecture/deferred-decisions/def-071-compile-probe-runtime-implementation.cue",
 				"architecture/deferred-decisions/def-072-eventlog-vendor-scale-revisit.cue",
 				"architecture/deferred-decisions/def-073-causal-graph-envelope-materialization.cue",
-				"architecture/deferred-decisions/def-074-ion-canonical-wire-materialization.cue"
+				"architecture/deferred-decisions/def-074-ion-canonical-wire-materialization.cue",
+				"architecture/deferred-decisions/def-075-story-term-glossary-resolution.cue",
+				"architecture/deferred-decisions/def-076-stakeholder-map-schema-drift.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
@@ -631,6 +640,7 @@ structureIndex: {
 				"architecture/structural-checks/dlv-domain-model.cue",
 				"architecture/structural-checks/domain-definition.cue",
 				"architecture/structural-checks/domain-model-event-convention.cue",
+				"architecture/structural-checks/domain-story.cue",
 				"architecture/structural-checks/economic-mechanism-model.cue",
 				"architecture/structural-checks/first-class-traceability.cue",
 				"architecture/structural-checks/inv-domain-model.cue",
@@ -668,6 +678,7 @@ structureIndex: {
 				"architecture/production-guides/canvas.cue",
 				"architecture/production-guides/deferred-decision.cue",
 				"architecture/production-guides/domain-model.cue",
+				"architecture/production-guides/domain-story.cue",
 				"architecture/production-guides/glossary.cue",
 				"architecture/production-guides/golden-example.cue",
 				"architecture/production-guides/lens.cue",

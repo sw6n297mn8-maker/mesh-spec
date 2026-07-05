@@ -25,6 +25,7 @@ package artifact_schemas
 	"context-map" |
 	"cross-context-flow" |
 	"domain-model" |
+	"domain-story" |
 	"glossary" |
 	"domain-definition" |
 	"lens" |
@@ -66,7 +67,7 @@ package artifact_schemas
 // sc (structural-check), srr (self-review-report), pg (production-guide),
 // mg (meta-guide), gg (glossary-guide), dmg (domain-model-guide),
 // agg (agent-spec-guide), gvg (agent-governance-guide),
-// tsg (task-spec-guide),
+// tsg (task-spec-guide), teg (tension-entry-guide), dsg (domain-story-guide),
 // oas (openapi-spec), aas (asyncapi-spec), ct (service-contract),
 // aa (adopted-artifacts), rc (readme-config),
 // def (deferred-decision), defg (deferred-decision-guide),
