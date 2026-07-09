@@ -4,8 +4,10 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 // domain-story.cue — Gates referenciais das domain stories (adr-170).
 //
-// Todos born-warn per adr-097 (catraca): zero instâncias no disco hoje —
-// promoção a reject é decisão junto da 1ª story real. sc-ds-01..03 são
+// Nasceram born-warn per adr-097 (catraca); PROMOVIDOS a reject em adr-171
+// junto da 1ª story real (ds-buyer-procurement-journey), com a condição da
+// catraca verificada no ato: 8 gates verdes sobre a instância (7 exercitados
+// com refs reais; sc-ds-06 vacuamente verde, declarado). sc-ds-01..03 são
 // cross-file PLAIN (alvo singleton ou união é o próprio universo válido).
 // sc-ds-04..08 usam o kind item-scoped-cross-file-id-exists (adr-169): a ref
 // de building block do passo resolve contra o domain-model DO BC DAQUELE
@@ -29,7 +31,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: actorRef não existe em domain/stakeholder-map.cue. Corrija o ref ou registre o stakeholder no mapa (ator inventado não entra em story)."
 		rationale:    "O elo ator↔stakeholder é o que impede a story de virar ilha narrativa: todo ator é um sh-* canônico, com incentivos e dores mapeados."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 
 	"sc-ds-02": artifact_schemas.#StructuralCheck & {
@@ -45,7 +47,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: workItem.boundedContextRef não corresponde a nenhum canvas. Corrija o ref ou derive o BC antes de narrá-lo como implementador."
 		rationale:    "Work-item apontando BC inexistente é implementação fantasma — quebra o elo story→BC que dá à narrativa valor de teste de cobertura."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 
 	"sc-ds-03": artifact_schemas.#StructuralCheck & {
@@ -61,7 +63,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: subdomainRef não corresponde a nenhum subdomínio declarado. Corrija o ref ou declare o subdomínio."
 		rationale:    "A story cruza BCs; o escopo que a possui é o subdomínio — dono fantasma deixaria a jornada sem lar estratégico (finding do review isolado, WARN 6)."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 
 	"sc-ds-04": artifact_schemas.#StructuralCheck & {
@@ -79,7 +81,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: commandRef não existe no domain-model do BC do passo. A story referencia o que existe — se o comando falta no modelo, o vazio é o achado (não invente)."
 		rationale:    "Escopo por-item (adr-169): o comando tem de existir no BC que implementa o passo; a união global daria falso-verde."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 
 	"sc-ds-05": artifact_schemas.#StructuralCheck & {
@@ -97,7 +99,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: eventRef não existe no domain-model do BC do passo (cópia consumida de outro BC não vale como dono — o gate olha o modelo DESTE BC)."
 		rationale:    "O cenário provado no self-test do runner: evt-invoice-issued em passo cmt FALHA (o modelo do cmt não o tem); a união global passaria via cópia consumida do fce — o falso-verde que o adr-169 mata."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 
 	"sc-ds-06": artifact_schemas.#StructuralCheck & {
@@ -115,7 +117,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: policyRef não existe no domain-model do BC do passo. Ref vazia = lacuna honesta; ref inventada = violação."
 		rationale:    "Mesma regra única do adr-170 aplicada a políticas: a story cobre o modelo, não o substitui."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 
 	"sc-ds-07": artifact_schemas.#StructuralCheck & {
@@ -133,7 +135,7 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: readModelRef (prj-*) não existe nas projections do domain-model do BC do passo."
 		rationale:    "O que o usuário VÊ num passo é uma projection do BC; ref fantasma quebraria o valor da story como teste de cobertura de leitura."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 
 	"sc-ds-08": artifact_schemas.#StructuralCheck & {
@@ -151,6 +153,6 @@ structuralChecks: {
 		}
 		errorMessage: "domain-story: queryRef (qry-*) não existe nas queryCapabilities do domain-model do BC do passo."
 		rationale:    "Jornadas de compras consultam muito (status, cotações); o gate garante que cada consulta narrada existe como capacidade real do BC."
-		enforcement:  "warn"
+		enforcement:  "reject"
 	}
 }

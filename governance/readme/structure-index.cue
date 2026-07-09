@@ -176,7 +176,8 @@ structureIndex: {
 				"architecture/adrs/adr-167-bootstrap-exception-staleness-invariant-and-no-skip.cue",
 				"architecture/adrs/adr-168-materialization-freshness-gate.cue",
 				"architecture/adrs/adr-169-item-scoped-cross-file-kind.cue",
-				"architecture/adrs/adr-170-domain-story-schema-and-gated-links.cue"
+				"architecture/adrs/adr-170-domain-story-schema-and-gated-links.cue",
+				"architecture/adrs/adr-171-promote-domain-story-gates-to-reject.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -407,7 +408,9 @@ structureIndex: {
 		},
 		{
 			"canonicalPathRegex": "^strategic/domain-stories/[a-z][a-z0-9-]*\\.cue$",
-			"files": [],
+			"files": [
+				"strategic/domain-stories/buyer-procurement-journey.cue"
+			],
 			"schema": "#DomainStory"
 		},
 		{
