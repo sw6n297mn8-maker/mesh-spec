@@ -25,7 +25,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-participante"
 		name:       "Participante"
 		termEn:     "Participant"
-		definition: "Organização registrada na rede Mesh com ciclo de vida gerenciado por NPM. Identificada por CNPJ, transita entre 4 estados (pending, qualified, suspended, terminated). NPM é SoT do participante — BCs downstream referenciam via query ou consomem eventos de lifecycle."
+		definition: "Organização registrada na rede Mesh com ciclo de vida gerenciado por NPM. Identificada por identificador legal qualificado por esquema (br-cnpj no Brasil, mandatório per SCD/Bacen; adr-173), transita entre 4 estados (pending, qualified, suspended, terminated). NPM é SoT do participante — BCs downstream referenciam via query ou consomem eventos de lifecycle."
 		category:   "entity"
 		rationale:  "Conceito central do BC. Participante é mais preciso que 'empresa' (nem todo participante é empresa no futuro multi-vertical), 'membro' (implica adesão voluntária sem gate) ou 'cliente' (implica relação comercial unilateral). Participante captura a bilateralidade: a organização se registra, a rede qualifica."
 		synonyms: ["Membro da rede"]
@@ -254,7 +254,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-dados-cadastrais"
 		name:       "Dados Cadastrais"
 		termEn:     "Cadastral Data"
-		definition: "Conjunto de dados de identificação da organização: CNPJ, razão social, endereço, dados de contato. Coletados no registro (RegisterParticipant), validados por completude (inv-registration-completeness). Tipo de domínio nomeado no aggregate e no perfil — não é value object com lifecycle próprio, é bloco de dados imutável por transação."
+		definition: "Conjunto de dados de identificação da organização: identificador legal qualificado (esquema + valor; br-cnpj no Brasil per adr-173), razão social, endereço, dados de contato. Coletados no registro (RegisterParticipant), validados por completude (inv-registration-completeness). Tipo de domínio nomeado no aggregate e no perfil — não é value object com lifecycle próprio, é bloco de dados imutável por transação."
 		category:   "value"
 		rationale:  "Dados cadastrais são o insumo mínimo do registro. Sem termo canônico, agentes tratam como campos avulsos perdendo a semântica de conjunto coeso com regra de completude. 'Cadastral' é mais preciso que 'dados da empresa' (nem toda organização é empresa) e distingue de dados de qualificação (KYC/AML)."
 		relatedTerms: ["term-participante", "term-registrar-participante", "term-perfil-de-participante"]

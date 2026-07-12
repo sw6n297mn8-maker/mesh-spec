@@ -31,10 +31,10 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-identidade-organizacional"
 		name:       "Identidade Organizacional"
 		termEn:     "Organizational Identity"
-		definition: "Entidade jurídica (CNPJ ou equivalente) cuja existência, atributos e elegibilidade foram confirmados contra fontes oficiais e mantidos como SoT por IDC. Inclui razão social, quadro societário e estado de elegibilidade vigente."
+		definition: "Entidade jurídica — identificada por identificador legal qualificado por esquema (term-identificador-legal-qualificado; br-cnpj no Brasil) — cuja existência, atributos e elegibilidade foram confirmados contra fontes oficiais e mantidos como SoT por IDC. Inclui razão social, quadro societário e estado de elegibilidade vigente."
 		category:   "entity"
 		rationale:  "Conceito central de IDC: a entidade que IDC verifica e cuja identidade é base de toda operação na rede. Distinta de identidade individual (pessoa física, fora do escopo) e autenticação de sessão (responsabilidade de PLT per bd-identity-not-authentication)."
-		relatedTerms: ["term-verificacao-de-identidade-organizacional", "term-revogacao-de-identidade", "term-fonte-oficial-de-verificacao"]
+		relatedTerms: ["term-identificador-legal-qualificado", "term-verificacao-de-identidade-organizacional", "term-revogacao-de-identidade", "term-fonte-oficial-de-verificacao"]
 		antiTerms: [{
 			term:          "Pessoa Física"
 			clarification: "IDC verifica organizações jurídicas, não pessoas físicas individuais. Verificação de pessoa física não pertence ao escopo de IDC."
@@ -48,6 +48,21 @@ glossary: artifact_schemas.#Glossary & {
 		}, {
 			term:   "Identidade da Empresa"
 			reason: "Linguagem coloquial; perde precisão jurídica. 'Organizacional' é neutro em relação à forma jurídica."
+		}]
+	}, {
+		code:       "term-identificador-legal-qualificado"
+		name:       "Identificador Legal Qualificado"
+		termEn:     "Scheme Qualified Legal Identifier"
+		definition: "Par (esquema, valor) que identifica a entidade jurídica no seu registro legal de origem. Esquemas registrados: br-cnpj (CNPJ; mandatório para organizações brasileiras per SCD/Bacen). Cada esquema define formato canônico, validação e fontes oficiais de verificação próprias; o registro de esquemas é aberto para jurisdições futuras (adr-173)."
+		category:   "classification"
+		rationale:  "Restaura a intenção fundacional de identificação fiscal local por jurisdição (Mesh-Old mesh-domain-model.md, NPM) que a materialização original estreitou para CNPJ. Termo canônico evita que agentes tratem esquema+valor como strings avulsas ou reintroduzam CNPJ hardcoded como forma da identidade."
+		relatedTerms: ["term-identidade-organizacional", "term-fonte-oficial-de-verificacao"]
+		antiTerms: [{
+			term:          "CNPJ (como sinônimo de identidade)"
+			clarification: "CNPJ é o VALOR do esquema br-cnpj, não a forma da identidade. Tratar CNPJ como a identidade em si reintroduz o estreitamento que adr-173 desfez."
+		}, {
+			term:          "ParticipantId"
+			clarification: "vo-participant-id é a chave NEUTRA interna gerada por NPM para correlação downstream; o identificador legal qualificado é a identidade EXTERNA verificável contra fontes oficiais. Camadas distintas por design."
 		}]
 	}, {
 		code:       "term-verificacao-de-identidade-organizacional"
