@@ -179,7 +179,8 @@ structureIndex: {
 				"architecture/adrs/adr-170-domain-story-schema-and-gated-links.cue",
 				"architecture/adrs/adr-171-promote-domain-story-gates-to-reject.cue",
 				"architecture/adrs/adr-172-participant-roles-are-positional.cue",
-				"architecture/adrs/adr-173-scheme-qualified-legal-identity.cue"
+				"architecture/adrs/adr-173-scheme-qualified-legal-identity.cue",
+				"architecture/adrs/adr-174-approval-as-gate-before-order.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -627,7 +628,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-075-story-term-glossary-resolution.cue",
 				"architecture/deferred-decisions/def-076-stakeholder-map-schema-drift.cue",
 				"architecture/deferred-decisions/def-077-multi-identifier-organization.cue",
-				"architecture/deferred-decisions/def-078-approval-order-gate-vs-consequence.cue"
+				"architecture/deferred-decisions/def-078-approval-order-gate-vs-consequence.cue",
+				"architecture/deferred-decisions/def-079-requisition-quote-link-and-amount-reconciliation.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},

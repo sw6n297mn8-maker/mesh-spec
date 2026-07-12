@@ -90,6 +90,27 @@ glossary: artifact_schemas.#Glossary & {
 			"term-po-lifecycle",
 		]
 	}, {
+		code:        "term-requisicao"
+		name:        "Requisição de Compra"
+		termEn:      "Purchase Requisition"
+		definition:  "Declaração formal de demanda técnica pelo requisitante — a PORTA do ciclo demanda-a-pedido (adr-174/WI-151). Nasce no canteiro ancorada em Centro de Custo + etapa do orçamento (budgetStageRef, fato-de-origem), passa por triagem FORMAL do comprador (outcome routed-to-sourcing | returned | rejected) e por aprovação do gestor por Alçada com Gate de Cobertura pré-pedido (reserva de cobertura confirmada no bdg per adr-174 PORTÃO), e converte em Pedido de Compra na emissão. Lifecycle: submitted → triaged → approved → converted | rejected | cancelled (agg-purchase-requisition)."
+		category:    "entity"
+		rationale:   "A língua já existia (subdomínio p2p declara 'requisição, aprovação por alçada'; term-requisitante nomeia quem a declara) — o conceito ganhou lar de escrita no WI-151 após a ds-buyer-procurement-journey revelar o vazio ('requisi' tinha zero ocorrências nos domain-models). Requisição de Compra é vocabulário canônico em procurement BR (requisition-to-PO). Elo de rastreabilidade custo↔obra: toda demanda nasce ancorada na etapa que a origina."
+		synonyms: ["Solicitação de Compra", "Requisição", "Purchase Requisition"]
+		antiTerms: [{
+			term:          "Pedido de Compra"
+			clarification: "PO é a demanda FORMALIZADA ao fornecedor sob authority validada (downstream da requisição, via conversão). Requisição é a declaração INTERNA de demanda que precede cotação e pedido — nunca chega ao fornecedor."
+		}, {
+			term:          "Cotação"
+			clarification: "Cotação é responsabilidade SSC (RFQ flow) — acontece DEPOIS da triagem da requisição, quando o comprador vai a mercado. Requisição é o input interno que dispara o funil."
+		}]
+		relatedTerms: [
+			"term-requisitante",
+			"term-comprador",
+			"term-purchase-order",
+			"term-po-lifecycle",
+		]
+	}, {
 		code:        "term-sourcing-authority"
 		name:        "Autoridade de Sourcing"
 		termEn:      "Sourcing Authority"
@@ -390,15 +411,17 @@ glossary: artifact_schemas.#Glossary & {
 	}]
 
 	rationale: """
-		Glossário P2P (Procure-to-Pay) — 15 terms canônicos cobrindo
+		Glossário P2P (Procure-to-Pay) — 16 terms canônicos cobrindo
 		Ubiquitous Language do segundo BC do macrofluxo Mesh (SSC →
 		P2P → CMT). Phase 0 escopo deliberado: porção 'Procure' do
-		nome canônico (PO emission + cancel pre-CMT); pagamento (FCE)
+		nome canônico (PO emission + cancel pre-CMT; ampliado no
+		WI-151 com a PORTA da requisição — demanda → triagem →
+		aprovação per adr-174); pagamento (FCE)
 		e faturamento (INV) são BCs distintos downstream — antiTerms
 		articulam boundary explícita.
 
-		Distribuição: 2 entities (Pedido de Compra + Autoridade de
-		Sourcing) + 2 values (Authority Type discriminator + Allocation
+		Distribuição: 3 entities (Pedido de Compra + Requisição de
+		Compra per WI-151 + Autoridade de Sourcing) + 2 values (Authority Type discriminator + Allocation
 		Convergence aggregate-level monitoring) + 2 process (Authority
 		Validation gate determinístico + PO Lifecycle 3 states) + 3
 		roles (Originadora absorvendo Comprador + Requisitante
