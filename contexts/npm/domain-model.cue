@@ -158,12 +158,12 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:      "inv-registration-completeness"
 		name:      "Completude Cadastral no Registro"
-		rule:      "RegisterParticipant requer dados cadastrais mínimos completos (CNPJ, razão social, dados de contato). Registro incompleto é rejeitado antes de criar entidade."
+		rule:      "RegisterParticipant requer dados cadastrais mínimos completos (identificador legal qualificado — br-cnpj no Brasil per adr-173 —, razão social, dados de contato). Registro incompleto é rejeitado antes de criar entidade."
 		rationale: "Validação de completude é autônoma e determinística — previne criação de participantes sem dados mínimos para qualificação subsequente."
 	}, {
 		code:      "inv-single-active-identity"
 		name:      "Unicidade de Identidade Ativa"
-		rule:      "Não pode existir mais de um participante ativo (pending, qualified, suspended) para o mesmo CNPJ. Re-registro após terminação cria novo participante com novo lifecycle."
+		rule:      "Não pode existir mais de um participante ativo (pending, qualified, suspended) para o mesmo identificador legal qualificado (esquema, valor — br-cnpj no Brasil, per adr-173). Re-registro após terminação cria novo participante com novo lifecycle."
 		rationale: "Previne duplicidade que contornaria terminação. Participante terminado que deseja retornar passa por qualificação completa como novo registro."
 	}]
 
@@ -265,9 +265,9 @@ domainModel: artifact_schemas.#DomainModel & {
 
 		fields: [{
 			kind: "primitive"
-			name: "cnpj"
+			name: "legalIdentifier"
 			type: "string"
-			description: "CNPJ da organização — chave de negócio para unicidade (inv-single-active-identity)."
+			description: "Identificador legal qualificado da organização (esquema+valor; br-cnpj no Brasil per adr-173) — chave de negócio para unicidade (inv-single-active-identity)."
 		}, {
 			kind: "domain-type"
 			name: "cadastralData"

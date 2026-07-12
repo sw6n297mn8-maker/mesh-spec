@@ -81,12 +81,12 @@ idcPrimaryAgent: artifact_schemas.#AgentSpec & {
 	actions: [{
 		code:        "act-validate-cnpj-format"
 		name:        "Validate CNPJ Format"
-		description: "Validar formato canônico de CNPJ (XX.XXX.XXX/XXXX-XX) e dígitos verificadores antes de qualquer chamada externa. Gate técnico determinístico. Impact: read-only (transformação de input, sem state change). Pré-condição de cmd-verify-organization-identity."
+		description: "Validar formato do identificador legal PER ESQUEMA antes de qualquer chamada externa (br-cnpj: formato canônico XX.XXX.XXX/XXXX-XX + dígitos verificadores; esquemas futuros trazem validador próprio, adr-173). Gate técnico determinístico. Impact: read-only (transformação de input, sem state change). Pré-condição de cmd-verify-organization-identity."
 		category:        "validation"
 		autonomyLevel:   "execute-and-log"
 		inputTrustLevel: "external-structured"
 		domainModelRefs: [
-			"vo-cnpj-identifier",
+			"vo-legal-entity-identifier",
 			"cmd-verify-organization-identity",
 		]
 		preconditions: ["CNPJ string fornecida em formato candidato"]
@@ -375,7 +375,7 @@ idcPrimaryAgent: artifact_schemas.#AgentSpec & {
 			rationale:    "Source of truth para operationalScope refs (aggregates, commands, events, invariants, projections). Necessário para cada action validar domainModelRefs ⊆ operationalScope per tq-ag-02."
 		}, {
 			artifactType: "glossary"
-			rationale:    "Terminologia canônica do BC IDC (CnpjIdentifier, IdentityVerificationResult, DSSE, Merkle proof, CAS, Trilha de Auditoria Criptográfica). Action names + audit trail field semantics alinham com glossary."
+			rationale:    "Terminologia canônica do BC IDC (LegalEntityIdentifier, IdentityVerificationResult, DSSE, Merkle proof, CAS, Trilha de Auditoria Criptográfica). Action names + audit trail field semantics alinham com glossary."
 			requiredSlices: ["terms"]
 		}, {
 			artifactType: "agent-governance"

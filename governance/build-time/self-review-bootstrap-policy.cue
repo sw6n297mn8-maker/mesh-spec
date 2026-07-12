@@ -188,18 +188,8 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		lifecycle:     "transient"
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "Glossary BC em main pre-adr-073 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
-	}, {
-		artifactPath:  "contexts/idc/glossary.cue"
-		category:      "pre-mapping-transient"
-		lifecycle:     "transient"
-		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
-		rationale:     "Glossary BC em main pre-adr-073 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
-	}, {
-		artifactPath:  "contexts/npm/glossary.cue"
-		category:      "pre-mapping-transient"
-		lifecycle:     "transient"
-		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
-		rationale:     "Glossary BC em main pre-adr-073 path-mapping. Foi revisada no contexto dos ADRs originadores, mas não havia SRR path-matching porque o mapping ainda não existia."
+
+
 	}, {
 		artifactPath:  "architecture/production-guides/domain-model.cue"
 		category:      "pre-mapping-transient"

@@ -177,7 +177,9 @@ structureIndex: {
 				"architecture/adrs/adr-168-materialization-freshness-gate.cue",
 				"architecture/adrs/adr-169-item-scoped-cross-file-kind.cue",
 				"architecture/adrs/adr-170-domain-story-schema-and-gated-links.cue",
-				"architecture/adrs/adr-171-promote-domain-story-gates-to-reject.cue"
+				"architecture/adrs/adr-171-promote-domain-story-gates-to-reject.cue",
+				"architecture/adrs/adr-172-participant-roles-are-positional.cue",
+				"architecture/adrs/adr-173-scheme-qualified-legal-identity.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -623,7 +625,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-073-causal-graph-envelope-materialization.cue",
 				"architecture/deferred-decisions/def-074-ion-canonical-wire-materialization.cue",
 				"architecture/deferred-decisions/def-075-story-term-glossary-resolution.cue",
-				"architecture/deferred-decisions/def-076-stakeholder-map-schema-drift.cue"
+				"architecture/deferred-decisions/def-076-stakeholder-map-schema-drift.cue",
+				"architecture/deferred-decisions/def-077-multi-identifier-organization.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},

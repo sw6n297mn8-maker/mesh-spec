@@ -153,15 +153,21 @@ domainModel: artifact_schemas.#DomainModel & {
 	// nativa em commit dedicado.
 
 	valueObjects: [{
-		code:        "vo-cnpj-identifier"
-		name:        "CnpjIdentifier"
-		description: "Identificador de pessoa jurídica brasileira (CNPJ); formato canônico XX.XXX.XXX/XXXX-XX validado contra dígitos verificadores."
+		code:        "vo-legal-entity-identifier"
+		name:        "LegalEntityIdentifier"
+		description: "Identificador legal qualificado por esquema: par (scheme, value). Esquemas registrados: 'br-cnpj' (CNPJ; formato canônico XX.XXX.XXX/XXXX-XX validado contra dígitos verificadores; fontes de verificação: Receita Federal/Junta Comercial). Registro de esquemas é ABERTO: jurisdições futuras adicionam esquemas com validador e fonte próprios (ex.: 'lei' → GLEIF), sem tocar a chave neutra do participante (vo-participant-id, npm) nem consumidores downstream (adr-173)."
 		fields: [{
-			kind: "primitive"
-			name: "value"
-			type: "string"
+			kind:        "primitive"
+			name:        "scheme"
+			type:        "string"
+			description: "Esquema do identificador. Registrados: 'br-cnpj'. Obrigatoriedade por jurisdição: organizações brasileiras DEVEM usar br-cnpj (identifier regulatório SCD/Bacen)."
+		}, {
+			kind:        "primitive"
+			name:        "value"
+			type:        "string"
+			description: "Valor no formato canônico do esquema; validação de formato é responsabilidade do validador do esquema."
 		}]
-		rationale: "Identidade externa de Identidade Organizacional. CNPJ é identifier regulatório SCD/Bacen — validação de formato é pré-condição de qualquer verificação contra fontes oficiais."
+		rationale: "Identidade externa de Identidade Organizacional per adr-173 — restaura a intenção fundacional 'identificação fiscal local por jurisdição' (Mesh-Old mesh-domain-model.md, NPM) que a materialização original estreitou para CNPJ sem registro. Validação por esquema é pré-condição de qualquer verificação contra fontes oficiais."
 	}, {
 		code:        "vo-identity-verification-result"
 		name:        "IdentityVerificationResult"
@@ -263,7 +269,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		}, {
 			kind:           "value-object-ref"
 			name:           "signerIdentity"
-			valueObjectRef: "vo-cnpj-identifier"
+			valueObjectRef: "vo-legal-entity-identifier"
 		}]
 		rationale: "Output composto de cmd-generate-integrity-proof. Consumed por DLV para verificação de lastro independente de confiança institucional em Mesh."
 	}]
@@ -275,12 +281,12 @@ domainModel: artifact_schemas.#DomainModel & {
 	aggregates: [{
 		code:        "agg-organizational-identity"
 		name:        "OrganizationalIdentity"
-		description: "Aggregate root da Identidade Organizacional. Consistency boundary para verificação inicial, rejeição de verificação, manutenção de estado de elegibilidade, e revogação. Cada CNPJ tem exatamente uma Identidade Organizacional em IDC; mutações de estado (verificação, rejeição, revogação) são atômicas no escopo deste aggregate."
+		description: "Aggregate root da Identidade Organizacional. Consistency boundary para verificação inicial, rejeição de verificação, manutenção de estado de elegibilidade, e revogação. Cada identificador legal qualificado (esquema, valor) tem exatamente uma Identidade Organizacional em IDC; mutações de estado (verificação, rejeição, revogação) são atômicas no escopo deste aggregate."
 		rootIdentity: {
-			field: "cnpj"
+			field: "legalIdentifier"
 			type: {
 				kind:           "value-object-ref"
-				valueObjectRef: "vo-cnpj-identifier"
+				valueObjectRef: "vo-legal-entity-identifier"
 			}
 		}
 		fields: [{
@@ -314,7 +320,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-revocation-preserves-trail",
 		]
 		usesValueObjects: [
-			"vo-cnpj-identifier",
+			"vo-legal-entity-identifier",
 			"vo-identity-verification-result",
 			"vo-verification-source-reference",
 		]
@@ -349,7 +355,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				description:        "Revogação após perda de elegibilidade; trail preservado per inv-revocation-preserves-trail."
 			}]
 		}
-		rationale: "Consistency boundary natural — cada CNPJ tem exactly um Identidade Organizacional; transições de estado (verificação, rejeição, revogação) devem ser atômicas para evitar identidades em estado inconsistente. Lifecycle explícito porque states são canonicalmente declarados em ten-003 e canvas incentiveAnalysis cache stale vector. Estado 'suspended' deferido — exigiria comando, evento e protocolo de retorno não modelados em canvas; reabrir avaliação quando oq-idc-1 (revocation protocol) resolver. Estado 'rejected' não declarado terminal: reentrada (rejected→unverified ou rejected→verified pós-recheck) não definida em Phase 0; aguarda oq-idc-1."
+		rationale: "Consistency boundary natural — cada identificador legal qualificado (esquema, valor) tem exatamente uma Identidade Organizacional; transições de estado (verificação, rejeição, revogação) devem ser atômicas para evitar identidades em estado inconsistente. Lifecycle explícito porque states são canonicalmente declarados em ten-003 e canvas incentiveAnalysis cache stale vector. Estado 'suspended' deferido — exigiria comando, evento e protocolo de retorno não modelados em canvas; reabrir avaliação quando oq-idc-1 (revocation protocol) resolver. Estado 'rejected' não declarado terminal: reentrada (rejected→unverified ou rejected→verified pós-recheck) não definida em Phase 0; aguarda oq-idc-1."
 	}, {
 		code:        "agg-evidence-cryptography"
 		name:        "EvidenceCryptography"
@@ -371,8 +377,8 @@ domainModel: artifact_schemas.#DomainModel & {
 			valueObjectRef: "vo-content-hash"
 		}, {
 			kind:           "value-object-ref"
-			name:           "signerCnpj"
-			valueObjectRef: "vo-cnpj-identifier"
+			name:           "signerIdentity"
+			valueObjectRef: "vo-legal-entity-identifier"
 		}, {
 			kind:           "value-object-ref"
 			name:           "dsseEnvelope"
@@ -405,7 +411,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-dsse-envelope",
 			"vo-merkle-proof",
 			"vo-integrity-proof",
-			"vo-cnpj-identifier",
+			"vo-legal-entity-identifier",
 		]
 		rationale: "Consistency boundary separado de OrganizationalIdentity por: (1) operações criptográficas dependem de identidade ativa mas não mutam identidade (referência cross-aggregate via inv-signature-requires-active-identity); (2) idempotência de assinatura (inv-signature-idempotency) é invariante exclusivo deste aggregate; (3) escala operacional distinta — assinaturas/proofs são alta-frequência, verificação de identidade é baixa-frequência. É aggregate (não service) porque persiste ledger/idempotency record de operações criptográficas emitidas — signingOperationId é raiz da identidade do registro persistente, e a tupla (content+class+BC) carrega invariant de idempotência (inv-signature-idempotency) que só pode ser enforced se há estado persistente. Não há state machine, mas há identidade persistente e invariants compartilhados — por isso aggregate e não service. Sem lifecycle — operações são atômicas e immutáveis após emissão; lifecycle especulativo violaria heuristic do PG."
 	}]
@@ -417,7 +423,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	projections: [{
 		code:        "prj-identity-verification-status"
 		name:        "IdentityVerificationStatusProjection"
-		description: "Read model que materializa estado vigente de verificação de identidade por CNPJ; consumido por NPM via QueryIdentityVerificationStatus como SoT no momento da qualificação."
+		description: "Read model que materializa estado vigente de verificação de identidade por identificador legal qualificado (esquema, valor); consumido por NPM via QueryIdentityVerificationStatus como SoT no momento da qualificação."
 		consumesEvents: [
 			"evt-identity-verified",
 			"evt-identity-verification-rejected",
@@ -425,7 +431,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		]
 		queryCapabilities: [{
 			code:        "qry-identity-verification-status"
-			description: "Retorna IdentityVerificationResult vigente para um CNPJ específico (status verified, rejected ou revoked), ou not-found se nenhuma verificação foi tentada."
+			description: "Retorna IdentityVerificationResult vigente para um identificador legal qualificado específico (status verified, rejected ou revoked), ou not-found se nenhuma verificação foi tentada."
 			rationale:   "SoT no momento de qualificação por NPM; query determinística que prevalece sobre eventos previamente recebidos em caso de divergência (per canvas)."
 		}]
 		rationale: "Per canvas query-surface QueryIdentityVerificationStatus consumida por NPM. Projection mantém estado vigente sintético derivado de events; query prevalece sobre eventos previamente recebidos em caso de divergência (per canvas)."
@@ -473,7 +479,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		commands derivam de intenções (canvas inbound + revocation
 		anchor); invariants protegidos derivados de gates determinísticos
 		da autonomousDecisions e businessDecisions; value-objects
-		emergentes dos payloads (CnpjIdentifier, IdentityVerificationResult,
+		emergentes dos payloads (LegalEntityIdentifier, IdentityVerificationResult,
 		ContentHash, DsseEnvelope, MerkleProof, IntegrityProof,
 		VerificationSourceReference).
 
