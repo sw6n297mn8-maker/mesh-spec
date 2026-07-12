@@ -626,7 +626,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-074-ion-canonical-wire-materialization.cue",
 				"architecture/deferred-decisions/def-075-story-term-glossary-resolution.cue",
 				"architecture/deferred-decisions/def-076-stakeholder-map-schema-drift.cue",
-				"architecture/deferred-decisions/def-077-multi-identifier-organization.cue"
+				"architecture/deferred-decisions/def-077-multi-identifier-organization.cue",
+				"architecture/deferred-decisions/def-078-approval-order-gate-vs-consequence.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
