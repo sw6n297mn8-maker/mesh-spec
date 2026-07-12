@@ -34,18 +34,24 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		workItem: {
 			description:       "Criar a requisição de compra com vínculo a centro de custo e etapa do orçamento, garantindo rastreabilidade do custo desde a origem."
 			boundedContextRef: "p2p"
+			commandRefs: ["cmd-submit-purchase-requisition"]
+			eventRefs: ["evt-purchase-requisition-submitted"]
 			termRefs: ["term-requisitante"]
 		}
-		rationale: "A requisição é o elo de rastreabilidade custo↔obra que as fontes tratam como fundação — e é o vazio mais importante que a story revela: 'requisi' tem zero ocorrências em todos os domain-models."
+		rationale: "A requisição é o elo de rastreabilidade custo↔obra que as fontes tratam como fundação. No exame original (2026-07-12) este era o vazio mais importante que a story revelou — 'requisi' tinha zero ocorrências em todos os domain-models; FECHADO na mesma data pelo WI-151/adr-174: agg-purchase-requisition materializa a requisição com vínculo a Centro de Custo (costCenterRef) e etapa do orçamento (budgetStageRef, fato-de-origem), e as refs deste passo apontam os elementos reais criados."
 	}, {
 		actorRef: "sh-01"
 		action:   "O comprador, no escritório, recebe a solicitação que chega automaticamente, tria e analisa a necessidade antes de ir a mercado."
 		workItem: {
 			description:       "Disponibilizar ao comprador a fila de solicitações recebidas para triagem e análise."
 			boundedContextRef: "p2p"
+			commandRefs: ["cmd-triage-requisition"]
+			eventRefs: ["evt-purchase-requisition-triaged"]
+			readModelRefs: ["prj-pending-requisitions"]
+			queryRefs: ["qry-pending-requisitions"]
 			termRefs: ["term-comprador"]
 		}
-		rationale: "O protagonista assume a jornada aqui; a triagem é a fronteira requisitante→comprador e depende da requisição inexistente — vazio em cascata."
+		rationale: "O protagonista assume a jornada aqui; a triagem é a fronteira requisitante→comprador. No exame original (2026-07-12) o passo dependia da requisição inexistente — vazio em cascata; FECHADO na mesma data pelo WI-151/adr-174: triagem materializada como ATO FORMAL (cmd-triage-requisition com outcome routed-to-sourcing | returned | rejected) sobre a fila consultável (prj-pending-requisitions), refs deste passo."
 	}, {
 		actorRef: "sh-01"
 		action:   "O comprador verifica quais fornecedores homologados atendem a categoria; não havendo homologado, busca novos parceiros no mercado e aciona sua qualificação."
@@ -105,7 +111,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 			eventRefs: ["evt-sourcing-decision-made"]
 			termRefs: ["term-sourcing-decision", "term-decision-rationale"]
 		}
-		rationale: "A decisão formal EXISTE no modelo; o que falta é a separação preparador (comprador) × aprovador (gestor) — alçada de aprovação pré-pedido não existe em nenhum BC; a aprovação do bdg dispara noutro momento (divergência de ordem registrada no relatório da story)."
+		rationale: "A decisão formal EXISTE no modelo (sourcing decision, ssc). O portão MECÂNICO de alçada pré-pedido agora existe (2026-07-12, adr-174/WI-151): cmd-approve-purchase invoca o Gate de Cobertura do bdg (Saldo Disponível + Alçada) na aprovação da requisição, pré-pedido — a divergência de ordem do exame original ('a aprovação do bdg dispara noutro momento') morreu. O que AINDA falta: a atribuição do de-acordo a um PAPEL-GESTOR específico intra-organização (a separação preparador comprador × aprovador gestor) aguarda os papéis intra-org — def-076."
 	}, {
 		actorRef: "sh-01"
 		action:   "O comprador converte a solicitação aprovada em pedido de compra oficial e o envia ao fornecedor, com prazo hábil para a entrega não interromper o cronograma (solicitação de quinta, entrega programada para segunda)."

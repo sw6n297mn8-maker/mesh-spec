@@ -6,7 +6,8 @@ def078: artifact_schemas.#DeferredDecision & {
 	id:     "def-078"
 	title:  "Ordem da aprovação de compra: aprovação-como-gate (gestor aprova antes do pedido) vs aprovação-como-consequência (bdg dispara após o commitment)"
 	date:   "2026-07-12"
-	status: "open"
+	status: "resolved" // decisão do founder 2026-07-12: PORTÃO (opção A) — resolvida na conversa de modelo que abriu o WI-151, exatamente como o trigger manual-review previa
+	resolvedBy: "architecture/adrs/adr-174-approval-as-gate-before-order.cue"
 
 	description: """
 		A jornada real de compras vive a aprovação como GATE: o gestor aprova

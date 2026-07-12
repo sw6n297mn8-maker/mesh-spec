@@ -177,11 +177,39 @@ canvas: artifact_schemas.#Canvas & {
 			description:   "PHASE 1+ FORWARD-REF: ctr-to-p2p relation NÃO existe no context-map atual; será adicionada quando CTR contract activation event materializar (Phase 1+ horizon per oq-p2p-1). Antes desse marco, P2P opera sob advisory binding apenas para strategic-award POs — entry declarada aqui como known future consumer para evitar refactor estrutural posterior, NÃO como dependency operacional Phase 0."
 		}, {
 			type:            "command-handler"
+			interactionMode: "async"
+			trigger:         "Requisitante (sh-01) declara demanda técnica do canteiro — Centro de Custo + etapa do orçamento (budgetStageRef, fato-de-origem) + categoria + escopo."
+			command:         "SubmitPurchaseRequisition"
+			resultingEvents: ["PurchaseRequisitionSubmitted"]
+			description:     "Async: a submissão cria a requisição (state=submitted) e entra na fila de triagem do comprador (prj-pending-requisitions). A PORTA da jornada de compras per adr-174/WI-151 — nenhuma decisão síncrona no ato."
+		}, {
+			type:            "command-handler"
 			interactionMode: "sync"
-			trigger:         "Originadora (sh-01: requisitante OU comprador) submete demanda de compra estruturada com supplierRef candidato + categoryRef + scope + amount."
+			trigger:         "Comprador (sh-01) tria requisição da fila — ATO FORMAL com outcome routed-to-sourcing | returned | rejected."
+			command:         "TriageRequisition"
+			resultingEvents: ["PurchaseRequisitionTriaged"]
+			description:     "Sync command: outcome imediato. routed-to-sourcing exige requisição completa (inv-requisition-completeness); returned devolve sem transição (requisição permanece submitted); rejected mata a demanda na triagem. Per decisão do founder no WI-151: triagem é ato formal, não anotação."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Gestor (sh-01) decide sobre requisição triada — decision approve | reject; approve exige reserva de cobertura confirmada pelo Gate de Cobertura do bdg (Saldo Disponível + Alçada)."
+			command:         "ApprovePurchase"
+			resultingEvents: ["PurchaseApproved", "PurchaseApprovalRejected"]
+			description:     "Sync command — o PORTÃO pré-pedido do adr-174 (decisão A do def-078): approve efetiva apenas com reserva confirmada (inv-approval-requires-coverage-reservation, interação sync com bdg per adr-055); falha do gate deixa a requisição triaged (escalada supervisionada do bdg); reject é decisão humana com transição própria."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Requisitante ou supervisor cancela requisição pré-conversão (submitted | triaged | approved)."
+			command:         "CancelPurchaseRequisition"
+			resultingEvents: ["PurchaseRequisitionCancelled"]
+			description:     "Sync command. Cancelamento de requisição approved implica liberar a reserva de cobertura no bdg (release per two-phase adr-174; disparo materializado no re-papel bdg-side WI-153 — janela declarada)."
+		}, {
+			type:            "command-handler"
+			interactionMode: "sync"
+			trigger:         "Comprador converte requisição APROVADA em pedido (adr-174 portão) — emissão com requisitionRef + supplierRef + categoryRef + scope + amount sob authorityRef vigente."
 			command:         "EmitPurchaseOrder"
 			resultingEvents: ["PurchaseOrderEmitted"]
-			description:     "Sync command: agente valida authority via cache + sync fallback; outcome immediate (emit OR escalation). Authority gate determinístico."
+			description:     "Sync command: agente valida authority via cache + sync fallback E requisição aprovada via prj-pending-requisitions (2º braço do gate per adr-174); outcome immediate (emit OR escalation). Gates determinísticos."
 		}, {
 			type:            "command-handler"
 			interactionMode: "sync"
@@ -230,9 +258,14 @@ canvas: artifact_schemas.#Canvas & {
 			Phase 0 com authority discriminator + 1 CTR ContractActivated
 			declarado como PHASE 1+ FORWARD-REF, NÃO operacional Phase 0
 			— ctr-to-p2p relation no context-map materializa apenas
-			Phase 1+ pós-oq-p2p-1), 2 command-handlers sync
-			(EmitPurchaseOrder com gate determinístico +
-			CancelPurchaseOrder supervised), 2 query-surfaces
+			Phase 1+ pós-oq-p2p-1), 6 command-handlers
+			(SubmitPurchaseRequisition async — a PORTA da jornada;
+			TriageRequisition sync — triagem formal com outcome;
+			ApprovePurchase sync — PORTÃO com Gate de Cobertura
+			pré-pedido per adr-174; CancelPurchaseRequisition sync;
+			EmitPurchaseOrder sync com gate determinístico de 2 braços
+			per adr-174 + CancelPurchaseOrder supervised),
+			2 query-surfaces
 			(QueryActivePurchaseOrders por categoria/supplier/requester
 			+ QueryPurchaseOrderById para CMT/CTR cross-check).
 			Outbound: 2 event-publishers (PurchaseOrderEmitted hard
