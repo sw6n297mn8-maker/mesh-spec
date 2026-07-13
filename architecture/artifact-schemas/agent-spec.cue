@@ -72,6 +72,14 @@ package artifact_schemas
 	// Runner valida existência no domain-model.cue.
 	operationalScope: #OperationalScope
 
+	// Exclusões conscientes de cobertura (adr-175). O gate sc-ag-02 exige
+	// que todo building block operável do domain-model do BC (6 famílias:
+	// aggregates, commands, events, invariants, projections, domainServices)
+	// esteja em operationalScope/actions OU aqui — building block nem
+	// coberto nem excluído é drift agente↔modelo. Duas formas: por id
+	// ({ref, rationale}) e por classe ({class, rationale, refs}).
+	scopeExclusions?: [...#ScopeExclusion]
+
 	// Ações que este agente pode executar.
 	// Tipadas por categoria e por nível de autonomia.
 	actions: [#AgentAction, ...#AgentAction]
@@ -289,6 +297,45 @@ package artifact_schemas
 
 	// Projections que o agente pode consultar.
 	projections?: [...#ProjectionRef]
+
+	// Domain services que o agente pode invocar (lógica cross-aggregate).
+	// 6ª família per adr-175: svc- é categoria-ação — o agente INVOCA o
+	// service, diferente de vo-/ent-/qry- (cobertos via parent aggregate/
+	// projection) e pol- (automação determinística de runtime, não operada
+	// por agente — P10).
+	domainServices?: [...#DomainServiceRef]
+}
+
+// ==============================
+// SCOPE EXCLUSIONS (adr-175)
+// ==============================
+
+// Exclusão consciente de cobertura — o complemento declarado do
+// operationalScope. O gate de cobertura (sc-ag-02) exige que todo building
+// block operável do domain-model do BC esteja coberto pelo(s) agente(s) do
+// BC OU excluído aqui: exclusão é decisão com rationale, nunca omissão
+// silenciosa. Critério de legitimidade vive no adr-175 (classe
+// estruturalmente identificável OU doutrinariamente fechada com rationale
+// citando a marcação em prosa do building block). Duas formas,
+// discriminadas por campo:
+#ScopeExclusion: #ScopeExclusionById | #ScopeExclusionByClass
+
+// Forma por id: um building block individual, com rationale próprio.
+#ScopeExclusionById: {
+	ref:       #DomainModelRef
+	rationale: #NonEmptyString
+}
+
+// Forma por classe: vários building blocks sob uma regra única auditável
+// (evita ruído de carimbo repetido — ex.: dezenas de invariants de engine).
+// class é o identificador kebab-case da classe (ex.: "policy-issued-
+// commands", "engine-enforced-invariants", "external-actor-commands");
+// refs enumera os ids cobertos pela regra — o runner resolve refs[], não a
+// classe: a classe é o fundamento, os refs são a extensão verificável.
+#ScopeExclusionByClass: {
+	class:     string & =~"^[a-z][a-z0-9-]*$"
+	rationale: #NonEmptyString
+	refs: [#DomainModelRef, ...#DomainModelRef]
 }
 
 // ==============================
@@ -316,13 +363,14 @@ package artifact_schemas
 	inputTrustLevel?: #InputTrustLevel
 
 	// Building blocks do domain model envolvidos nesta ação.
-	// Refs com prefixos de operationalScope (agg-/cmd-/evt-/inv-/prj-)
+	// Refs com prefixos de operationalScope (agg-/cmd-/evt-/inv-/prj-/svc-)
 	// devem estar dentro do operationalScope (tq-ag-02 least privilege).
 	// Refs com prefixos não representados diretamente em operationalScope
-	// (vo-/ent-/qry-/mod-/svc-/pol-) são permitidas pelo regex de
+	// (vo-/ent-/qry-/mod-/pol-) são permitidas pelo regex de
 	// #DomainModelRef e associadas via parent (vo-/ent- via aggregate;
 	// qry- via projection) ou por scope próprio quando declarados como
-	// building blocks top-level. Ver PG-A heuristic correspondente
+	// building blocks top-level (svc- ganhou família própria em
+	// operationalScope per adr-175). Ver PG-A heuristic correspondente
 	// para discipline detalhada.
 	domainModelRefs: [#DomainModelRef, ...#DomainModelRef]
 
@@ -561,6 +609,7 @@ package artifact_schemas
 #EventRef:        string & =~"^evt-[a-z][a-z0-9-]*$"
 #InvariantRef:    string & =~"^inv-[a-z][a-z0-9-]*$"
 #ProjectionRef:   string & =~"^prj-[a-z][a-z0-9-]*$"
+#DomainServiceRef: string & =~"^svc-[a-z][a-z0-9-]*$"
 
 #BoundedContextRef: string & =~"^[a-z][a-z0-9-]*$"
 #NonEmptyString:    string & !=""

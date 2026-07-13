@@ -436,6 +436,45 @@ def ev_instance_scoped_cross_file_id_exists(rule,c):
                     v.append("%s: ref '%s' (%s) ausente no alvo do escopo '%s' (%s)" % (f,r,rp,scope,tglob))
     return v
 
+def ev_instance_scoped_cross_file_coverage(rule,c):
+    # adr-175: DIRECAO INVERSA do instance-scoped-cross-file-id-exists (adr-113).
+    # Cobertura modelo->agente: todo id do CATALOGO do alvo derivado do escopo
+    # (targetIdPaths — a restricao por familia vive na lista) deve estar na
+    # uniao de referencePaths (cobertura) OU exclusionPaths (exclusao consciente,
+    # duas formas: por id e por classe) das instancias DAQUELE escopo. Uniao POR
+    # ESCOPO: multiplos agentes de um BC cobrem o catalogo em conjunto (least-
+    # privilege por agente preservado). Id nem coberto nem excluido = drift
+    # agente<->modelo. Alvo de escopo ausente no disco = violacao (fantasma).
+    fs=files_for_at(c["artifactType"])
+    if fs is None: return [f"(artifactType '{c['artifactType']}' nao resolve)"]
+    tmpl=rule["targetGlobTemplate"]; sf=rule["scopeField"]
+    cov={}; insts={}; v=[]
+    for f in fs:
+        a=load_artifact(f)
+        if a is None: continue
+        scope=dotget(a,sf)
+        if not isinstance(scope,str):
+            v.append("%s: scopeField '%s' ausente ou nao-string" % (f,sf)); continue
+        s=cov.setdefault(scope,set()); insts.setdefault(scope,[]).append(f)
+        for rp in rule["referencePaths"]:
+            s.update(x for x in _resolve_multi(a,rp) if isinstance(x,(str,int)))
+        for ep in rule.get("exclusionPaths") or []:
+            s.update(x for x in _resolve_multi(a,ep) if isinstance(x,(str,int)))
+    for scope in sorted(cov):
+        agents=",".join(insts[scope])
+        tglob=tmpl.replace("{scope}",scope)
+        tfiles=sorted(glob.glob(tglob))
+        if not tfiles:
+            v.append("%s: alvo de escopo '%s' (%s) nao existe no disco" % (agents,scope,tglob)); continue
+        for tf in tfiles:
+            t=load_artifact(tf)
+            if t is None: continue
+            for tip in rule["targetIdPaths"]:
+                for cid in _resolve_multi(t,tip):
+                    if isinstance(cid,(str,int)) and cid not in cov[scope]:
+                        v.append("%s: id '%s' (%s) do catalogo de '%s' nem coberto nem excluido pelo(s) agente(s) %s" % (tf,cid,tip,scope,agents))
+    return v
+
 def ev_item_scoped_cross_file_id_exists(rule,c):
     # adr-169: variante POR-ITEM do instance-scoped (adr-113). Cada item de
     # itemsPath declara o SEU escopo (scopeField relativo ao item); as refs do
@@ -775,6 +814,7 @@ EVAL={"directory-pair-coverage":ev_directory_pair,"singleton-coverage":ev_single
  "scoped-cross-file-id-exists":ev_scoped_cross_file_id_exists,
  "regex-pattern-match":ev_regex_pattern_match,
  "instance-scoped-cross-file-id-exists":ev_instance_scoped_cross_file_id_exists,
+ "instance-scoped-cross-file-coverage":ev_instance_scoped_cross_file_coverage,
  "item-scoped-cross-file-id-exists":ev_item_scoped_cross_file_id_exists,
  "directed-acyclicity":ev_directed_acyclicity,
  "flow-event-closure":ev_flow_event_closure,
@@ -1052,8 +1092,21 @@ def self_test():
         "stories/j.cue: item#2 ref 'evt-invoice-issued' (wi.evs[]) ausente no alvo do escopo 'cmt'",
         "stories/j.cue: item#3 escopo 'zz' nao existe no disco (bcs/zz/dm.cue)",
     ])
-    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok and existsok and notequalsok and itemscok
-    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths} existsok={existsok} notequalsok={notequalsok} itemscok={itemscok} its={its} g2={g2_res} g3={g3_res} g4={g4_res} g5={g5_res} g6={g6_res} g7={g7_res} g8={g8_res}")
+    # instance-scoped-cross-file-coverage (adr-175): DIRECAO INVERSA do adr-113.
+    # Casos: id coberto via scope (agg-1/cmd-1, ok); id coberto via action refs
+    # (cmd-2, ok); id NAO coberto sem exclusao (cmd-6, VIOLA); id excluido por
+    # ref (cmd-3, ok); ids excluidos por classe (cmd-4/cmd-5, ok); familia fora
+    # do catalogo exigivel (vo-1, ignorada — vos[].code fora de targetIdPaths).
+    w("architecture/artifact-schemas/agc.cue",'package artifact_schemas\n#Agc:{bc:string,_schema:location:{canonicalPathRegex:"^ctxc/[a-z]+/ag\\\\.cue$",fileNameRegex:"^ag\\\\.cue$",cardinality:"collection",allowNested:false}}\n')
+    w("architecture/structural-checks/agc.cue",'package structural_checks\nstructuralChecks:{"sc-agc-01":{id:"sc-agc-01",title:"t",artifactType:"agc",description:"d",kind:"instance-scoped-cross-file-coverage",rule:{referencePaths:["scope.aggs[]","scope.cmds[]","acts[].refs[]"],exclusionPaths:["excl[].ref","excl[].refs[]"],scopeField:"bc",targetGlobTemplate:"ctxc/{scope}/dm.cue",targetIdPaths:["aggs[].code","cmds[].code"]},errorMessage:"e",rationale:"r"}}\n')
+    w("ctxc/z/ag.cue",'package ag\nag:{bc:"z",scope:{aggs:["agg-1"],cmds:["cmd-1"]},acts:[{refs:["cmd-2"]}],excl:[{ref:"cmd-3",rationale:"r"},{class:"policy-issued",rationale:"r",refs:["cmd-4","cmd-5"]}]}\n')
+    w("ctxc/z/dm.cue",'package dm\ndm:{aggs:[{code:"agg-1"}],cmds:[{code:"cmd-1"},{code:"cmd-2"},{code:"cmd-3"},{code:"cmd-4"},{code:"cmd-5"},{code:"cmd-6"}],vos:[{code:"vo-1"}]}\n')
+    _loc_cache.clear(); _art_cache.clear()
+    checks=load_checks()
+    cvr=ev_instance_scoped_cross_file_coverage(checks["sc-agc-01"]["rule"],checks["sc-agc-01"])
+    cvrok=(cvr==["ctxc/z/dm.cue: id 'cmd-6' (cmds[].code) do catalogo de 'z' nem coberto nem excluido pelo(s) agente(s) ctxc/z/ag.cue"])
+    ok = (dp==["we/wi-9.cue -> falta ts/wi-9.cue"]) and (sg==[]) and (th==["things/good.cue: falta bloco 'val'"]) and idr and hid and fil and nc and iscok and daok and existsok and notequalsok and itemscok and cvrok
+    print("SELF-TEST:", "PASS" if ok else f"FAIL dp={dp} sg={sg} th={th} idr={idr} hid={hid} fre={fre} fde={fde} nc={nc} isc={isc} daok={daok} da={da_paths} existsok={existsok} notequalsok={notequalsok} itemscok={itemscok} its={its} cvrok={cvrok} cvr={cvr} g2={g2_res} g3={g3_res} g4={g4_res} g5={g5_res} g6={g6_res} g7={g7_res} g8={g8_res}")
     return 0 if ok else 1
 
 if __name__=="__main__":
