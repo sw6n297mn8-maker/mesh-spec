@@ -81,6 +81,12 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"evt-rfq-concluded",
 			"evt-rfq-cancelled",
 			"evt-network-participant-status-changed-received",
+			// Fatos INTERNAL das cotações (WI-152): resultado dos commands
+			// cmd-submit/withdraw-quotation que o agente já processa (acima);
+			// alimentam o prj-quotation-map. Nunca published (confidenciali-
+			// dade competitiva) — cobertura per adr-175/WI-154.
+			"evt-quotation-submitted",
+			"evt-quotation-withdrawn",
 		]
 		invariants: [
 			"inv-decision-from-structured-signals",
@@ -95,6 +101,17 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"prj-active-sourcing-decisions",
 			"prj-sourcing-decision-by-id",
 			"prj-rfq-history-by-category",
+			// Mapa de cotações (WI-152) — a superfície de comparação do
+			// comprador; o agente consulta durante a janela e pós-decisão.
+			"prj-quotation-map",
+		]
+
+		// 6ª família per adr-175 (WI-154): lógica cross-aggregate que o
+		// agente INVOCA — ambas já citadas nominalmente na prosa das
+		// actions (act-build-supplier-pool; act-evaluate-and-conclude-rfq).
+		domainServices: [
+			"svc-supplier-pool-builder",
+			"svc-fitness-rule-evaluator",
 		]
 	}
 
@@ -112,6 +129,7 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 		domainModelRefs: [
 			"agg-sourcing-process",
 			"inv-qualification-as-precondition",
+			"svc-supplier-pool-builder",
 		]
 		preconditions: [
 			"Demanda recebida de category manager (sh-01) com categoryRef + RFQScope",
@@ -223,6 +241,8 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-competitive-pool-or-supervised-exception",
 			"inv-fitness-rules-versioned-config",
 			"prj-active-sourcing-decisions",
+			"svc-fitness-rule-evaluator",
+			"prj-quotation-map",
 		]
 		preconditions: [
 			"act-revalidate-qualification retornou pool ≥ 2 OR supervisedDecision approve-decision-with-insufficient-pool autorizada",
