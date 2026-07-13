@@ -181,7 +181,8 @@ structureIndex: {
 				"architecture/adrs/adr-172-participant-roles-are-positional.cue",
 				"architecture/adrs/adr-173-scheme-qualified-legal-identity.cue",
 				"architecture/adrs/adr-174-approval-as-gate-before-order.cue",
-				"architecture/adrs/adr-175-agent-model-coverage-gate.cue"
+				"architecture/adrs/adr-175-agent-model-coverage-gate.cue",
+				"architecture/adrs/adr-176-promote-agent-coverage-check-to-reject.cue"
 			],
 			"schema": "#ADRBase"
 		},
