@@ -62,6 +62,7 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"evt-purchase-order-received",
 			"evt-contract-terms-activated-received",
 			"evt-contract-terms-superseded-received",
+			"evt-contract-terms-cancelled-received",
 		]
 
 		invariants: [
@@ -73,6 +74,7 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"inv-reactivation-requires-supervision",
 			"inv-proposer-counterparty-distinct",
 			"inv-cancelled-is-terminal",
+			"inv-dispute-modify-terms-revalidates-ctr",
 		]
 
 		projections: ["prj-commitment-state-view"]
@@ -104,12 +106,12 @@ agentSpec: artifact_schemas.#AgentSpec & {
 	}, {
 		code:          "act-flag-at-risk"
 		name:          "Sinalizar Compromisso At-Risk"
-		description:   "Sinaliza compromissos ativos cuja contraparte recebeu alerta de risco de REW. Reação determinística a evt-counterparty-risk-signaled."
+		description:   "Sinaliza compromissos ativos cuja contraparte recebeu alerta de risco de REW (reação determinística a evt-counterparty-risk-signaled) OU cujos termos contratuais foram CANCELADOS no CTR (evt-contract-terms-cancelled-received — invalidação irreversível, mais grave que supersession: compromissos com referência a termos cancelados são avaliados para sinalização, WI-155)."
 		category:      "mutation"
 		autonomyLevel: "execute-and-log"
 		inputTrustLevel: "trusted-internal"
-		domainModelRefs: ["cmd-flag-at-risk", "evt-counterparty-risk-signaled", "agg-commitment"]
-		preconditions: ["evt-counterparty-risk-signaled recebido", "Compromisso em estado accepted"]
+		domainModelRefs: ["cmd-flag-at-risk", "evt-counterparty-risk-signaled", "evt-contract-terms-cancelled-received", "agg-commitment"]
+		preconditions: ["evt-counterparty-risk-signaled OU evt-contract-terms-cancelled-received recebido", "Compromisso em estado accepted"]
 		postconditions: ["Compromisso transicionado para at-risk", "evt-commitment-state-changed publicado"]
 	}, {
 		code:          "act-clear-risk-flag"
@@ -163,11 +165,11 @@ agentSpec: artifact_schemas.#AgentSpec & {
 	}, {
 		code:            "act-handle-dispute-resolution"
 		name:            "Rotear Resolução de Disputa"
-		description:     "Recebe resolução de disputa de DRC e roteia para ação apropriada: propor reativação (act-propose-reactivation), propor cancelamento (act-propose-cancellation) ou manter estado corrente. Supervisionado porque outcomes incluem decisões com impacto financeiro."
+		description:     "Recebe resolução de disputa de DRC e roteia para ação apropriada: propor reativação (act-propose-reactivation), propor cancelamento (act-propose-cancellation), modificar termos ou manter estado corrente. modify_terms só altera termos se validarem sync contra o CTR no momento da resolução (inv-dispute-modify-terms-revalidates-ctr — fail-closed se CTR indisponível). Supervisionado porque outcomes incluem decisões com impacto financeiro."
 		category:        "mutation"
 		autonomyLevel:   "propose-and-wait"
 		inputTrustLevel: "trusted-internal"
-		domainModelRefs: ["cmd-handle-dispute-resolution", "evt-dispute-resolved-received", "agg-commitment"]
+		domainModelRefs: ["cmd-handle-dispute-resolution", "evt-dispute-resolved-received", "inv-dispute-modify-terms-revalidates-ctr", "agg-commitment"]
 		preconditions: ["evt-dispute-resolved-received recebido via ACL de DRC"]
 		postconditions: ["Outcome roteado para ação supervisionada correspondente, ou estado mantido com justificativa"]
 	}, {
