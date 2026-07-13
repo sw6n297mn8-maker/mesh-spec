@@ -99,12 +99,6 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
 		rationale:     "PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores."
 	}, {
-		artifactPath:  "architecture/production-guides/agent-spec.cue"
-		category:      "pre-mapping-transient"
-		lifecycle:     "transient"
-		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
-		rationale:     "PG em main pre-adr-067 path-mapping; modificações cobertas indiretamente por SRRs de ADRs originadores."
-	}, {
 		artifactPath:  "architecture/structural-checks/canvas.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -191,12 +185,6 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 
 
 	}, {
-		artifactPath:  "architecture/production-guides/domain-model.cue"
-		category:      "pre-mapping-transient"
-		lifecycle:     "transient"
-		exitCondition: "Remove exception when artifact receives a matching SRR after next modification."
-		rationale:     "PG em main pre-adr-067 path-mapping. Cleanup oportunista de gap em adr-067 (que listou 4 PGs transient mas omitiu domain-model + glossary). Foi revisada no contexto dos ADRs originadores (adr-055 entre outros), mas não havia SRR path-matching porque o mapping ainda não existia."
-	}, {
 		artifactPath:  "architecture/production-guides/glossary.cue"
 		category:      "pre-mapping-transient"
 		lifecycle:     "transient"
@@ -221,7 +209,7 @@ selfReviewBootstrapPolicy: #SelfReviewBootstrapPolicy & {
 		(2) predecessor-supersession-only (permanent, 2 entries): ADRs
 		predecessores ao mecanismo, editados apenas para supersession
 		mecânica (ADR-016/017).
-		(3) pre-mapping-transient (transient, 21 entries): artefatos em
+		(3) pre-mapping-transient (transient, 19 entries): artefatos em
 		main pre-path-mapping. 3 PGs original adr-067 (adr/agent-
 		governance/agent-spec) + 1 SC (canvas via adr-068) + 9 VPs
 		(validate-* via adr-069) + 3 canvas BC (ctr/idc/npm via

@@ -88,6 +88,9 @@ package artifact_schemas
 	kind: "instance-scoped-cross-file-id-exists"
 	rule: #InstanceScopedCrossFileIdExistsRule
 } | {
+	kind: "instance-scoped-cross-file-coverage"
+	rule: #InstanceScopedCrossFileCoverageRule
+} | {
 	kind: "item-scoped-cross-file-id-exists"
 	rule: #ItemScopedCrossFileIdExistsRule
 } | {
@@ -177,9 +180,9 @@ _#StructuralCheckBase: {
 	}
 }
 
-#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "item-scoped-cross-file-id-exists" | "directed-acyclicity" | "flow-event-closure" | "first-class-traceability"
+#StructuralCheckKind: "required-block" | "reference-exists" | "same-artifact-consistency" | "conditional-file-presence" | "production-guide-coverage" | "filesystem-path-exists" | "directory-pair-coverage" | "at-least-one-block-present" | "domain-invariant" | "singleton-coverage" | "evaluator-coverage" | "structural-check-coverage" | "local-field-reference-integrity" | "cross-file-id-exists" | "filesystem-declared-coverage" | "scoped-cross-file-id-exists" | "regex-pattern-match" | "instance-scoped-cross-file-id-exists" | "instance-scoped-cross-file-coverage" | "item-scoped-cross-file-id-exists" | "directed-acyclicity" | "flow-event-closure" | "first-class-traceability"
 
-#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #ItemScopedCrossFileIdExistsRule | #DirectedAcyclicityRule | #FlowEventClosureRule | #FirstClassTraceabilityRule
+#StructuralCheckRule: #RequiredBlockRule | #ReferenceExistsRule | #SameArtifactConsistencyRule | #ConditionalFilePresenceRule | #ProductionGuideCoverageRule | #FilesystemPathExistsRule | #DirectoryPairCoverageRule | #AtLeastOneBlockPresentRule | #DomainInvariantRule | #SingletonCoverageRule | #EvaluatorCoverageRule | #StructuralCheckCoverageRule | #LocalFieldReferenceIntegrityRule | #CrossFileIdExistsRule | #FilesystemDeclaredCoverageRule | #ScopedCrossFileIdExistsRule | #RegexPatternMatchRule | #InstanceScopedCrossFileIdExistsRule | #InstanceScopedCrossFileCoverageRule | #ItemScopedCrossFileIdExistsRule | #DirectedAcyclicityRule | #FlowEventClosureRule | #FirstClassTraceabilityRule
 
 // Rule shape para kind=required-block.
 // Verifica que o artefato sob validação contém um bloco nomeado.
@@ -596,6 +599,39 @@ _#StructuralCheckBase: {
 	targetGlobTemplate: string & =~"\\{scope\\}"
 	// Paths do(s) conjunto(s) de ids válidos no arquivo-alvo (lista — união).
 	// Ex.: ["aggregates[].code", "commands[].code", "events[].code"].
+	targetIdPaths: [string & !="", ...string & !=""]
+}
+
+// Rule shape para kind=instance-scoped-cross-file-coverage (adr-175).
+// DIREÇÃO INVERSA do instance-scoped-cross-file-id-exists (adr-113): em vez
+// de validar que toda ref da instância EXISTE no alvo do escopo, valida que
+// todo id do CATÁLOGO do alvo (targetIdPaths — a restrição por família vive
+// aqui: paths não listados ficam fora do gate) está COBERTO pela união de
+// referencePaths OU EXCLUÍDO pela união de exclusionPaths nas instâncias
+// daquele escopo. União POR ESCOPO: múltiplos agentes de um BC cobrem o
+// catálogo em conjunto — least-privilege por agente preservado, nenhum
+// agente individual precisa cobrir tudo. Caso motivador: domain-model →
+// agent-spec (drift agente↔modelo: building block criado/alterado sem
+// coevolução do agente que opera o BC). Alvo de escopo ausente no disco é
+// violação (escopo fantasma), herdando a semântica do adr-113. ADITIVO:
+// nenhum kind/evaluator existente é alterado.
+#InstanceScopedCrossFileCoverageRule: {
+	// Paths na instância-fonte cuja união forma o conjunto COBERTO.
+	// Ex.: ["operationalScope.commands[]", "actions[].domainModelRefs[]"].
+	referencePaths: [string & !="", ...string & !=""]
+	// Paths na instância-fonte cuja união forma o conjunto EXCLUÍDO —
+	// as duas formas de scopeExclusions (por id e por classe) entram como
+	// dois paths. Ex.: ["scopeExclusions[].ref", "scopeExclusions[].refs[]"].
+	exclusionPaths: [string & !="", ...string & !=""]
+	// Campo da instância-fonte cujo valor (string) identifica o escopo,
+	// substituído em targetGlobTemplate. Ex.: "boundedContextRef".
+	scopeField: string & !=""
+	// Template do glob do arquivo-alvo; "{scope}" é substituído pelo valor
+	// de scopeField. Ex.: "contexts/{scope}/domain-model.cue".
+	targetGlobTemplate: string & =~"\\{scope\\}"
+	// Paths de id no alvo que formam o CATÁLOGO exigível (lista — união).
+	// Ex.: ["commands[].code", "events[].code"]. Famílias fora da lista
+	// não são exigidas (vo-/ent-/mod-/pol-/qry- ficam fora per adr-175).
 	targetIdPaths: [string & !="", ...string & !=""]
 }
 
