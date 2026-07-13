@@ -37,12 +37,23 @@ package ssc
 // - lens-incentive-alignment (secundária): invariants e fitness
 //   rules como config externa governada protegem contra manipulação
 // - lens-event-driven-architecture-patterns (secundária): 6 events
-//   published + 1 internal ACL; 3 projections como read models
+//   published + 2 internal de cotação (WI-152) + 1 internal ACL;
+//   4 projections como read models
 // - lens-information-economics (terciária): decisionRationale rico
 //   captura asymmetry resolution para downstream consumers
 //
-// Glossary alignment: 19 terms canônicos do glossary (Phase 2)
-// reconciliados com events/commands/aggregates/value-objects/entities.
+// Glossary alignment: 20 terms canônicos do glossary (19 da Phase 2
+// + term-mapa-de-cotacoes do WI-152) reconciliados com events/
+// commands/aggregates/value-objects/entities.
+//
+// [ATUALIZADO 2026-07-13 — WI-152] Mapa de cotações consultável (a
+// lacuna de leitura que a ds-buyer-procurement-journey mediu):
+// +2 events INTERNAL (evt-quotation-submitted/withdrawn — fato
+// intra-BC; o veto de evento PÚBLICO permanece: confidencialidade
+// competitiva, canvas outbound intocado) + prj-quotation-map/
+// qry-quotation-map (comparação equalizada DERIVADA per precedente
+// prj-cost-center-availability; viva durante a janela, carimbada
+// pela decisão). Decisão B do founder no Tempo 1 do WI-152.
 //
 // Convenção List (paralelo a IDC domain-model): campos com kind
 // "domain-type" cujo type termina em "List" denotam coleção do tipo
@@ -286,6 +297,60 @@ domainModel: artifact_schemas.#DomainModel & {
 			description: "Justificativa documentada — obrigatória."
 		}]
 	}, {
+		code:        "evt-quotation-submitted"
+		name:        "QuotationSubmitted"
+		visibility:  "internal"
+		description: "Cotação submetida por fornecedor durante a janela de RFQ — fato INTERNO do processo competitivo (intra-BC; NÃO published: um fornecedor nunca vê a cotação do outro — confidencialidade competitiva preservada, canvas outbound intocado). Alimenta o mapa de cotações consultável (prj-quotation-map) per WI-152."
+		rationale:   "A story (ds-buyer-procurement-journey, passo do fornecedor) registrou a lacuna no exame original: 'o comando existe mas NÃO publica evento — a submissão da cotação não vira fato observável'. Este evento fecha a lacuna SEM violar o veto do write — o veto é contra evento PÚBLICO; internal registra o fato no event stream intra-SSC e torna o mapa vivo projetável (tq-dm-06: projections consomem events). Decisão B do founder no WI-152. Fields espelham ent-quotation/cmd-submit-quotation — nenhum dado novo nasce aqui."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supplierRef"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind: "primitive"
+			name: "unitPrice"
+			type: "decimal"
+		}, {
+			kind: "primitive"
+			name: "currency"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "declaredCapacity"
+			type: "decimal"
+		}, {
+			kind: "primitive"
+			name: "termsNotes"
+			type: "string"
+		}, {
+			kind: "primitive"
+			name: "submittedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-quotation-withdrawn"
+		name:        "QuotationWithdrawn"
+		visibility:  "internal"
+		description: "Cotação retirada pelo fornecedor antes da decisão — fato interno (intra-BC, mesmo veto de confidencialidade do submitted). O mapa de cotações marca a entrada correspondente como withdrawn (1 fornecedor → 1 cotação por RFQ em Phase 0 — rfqId + supplierRef identificam)."
+		rationale:   "Par do evt-quotation-submitted: sem o fato de retirada, o mapa vivo mostraria cotação morta como comparável. O withdrawal já preservava audit trail no ent-quotation (status withdrawn, não deleção) — o evento torna o fato projetável pelo read model. Decisão B do founder no WI-152."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supplierRef"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind: "primitive"
+			name: "withdrawnAt"
+			type: "datetime"
+		}]
+	}, {
 		code:          "evt-network-participant-status-changed-received"
 		name:          "NetworkParticipantStatusChangedReceived"
 		visibility:    "internal"
@@ -357,8 +422,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "cmd-submit-quotation"
 		name:        "SubmitQuotation"
-		description: "Fornecedor qualificado submete cotação para uma RFQ aberta. Mutação de state intra-open (não muda lifecycle status). Resultado: ent-quotation criada com status=submitted."
-		rationale:   "Operação de fornecedor durante janela de cotação. Cotação é fato auditável intra-BC mas NÃO event público Phase 0 (cotações vivem como state interno do aggregate; audit via ent-quotation lifecycle + decisionRationale.evaluatedSuppliers). Multi-quotation per supplier não suportada Phase 0 (1 fornecedor → 1 quotation; re-submission requer withdraw + submit)."
+		description: "Fornecedor qualificado submete cotação para uma RFQ aberta. Mutação de state intra-open (não muda lifecycle status). Resultado: ent-quotation criada com status=submitted + evt-quotation-submitted (internal) registrado — o fato que alimenta o mapa de cotações (WI-152)."
+		rationale:   "Operação de fornecedor durante janela de cotação. Per WI-152 (decisão B do founder): a cotação agora É fato observável INTRA-BC — emite evt-quotation-submitted (internal), que alimenta o mapa de cotações consultável (prj-quotation-map). O veto de evento PÚBLICO permanece intacto (confidencialidade competitiva: um fornecedor nunca vê a cotação do outro; canvas outbound intocado) — o comportamento do command não muda, o fato passa a ser registrado internamente. Audit segue via ent-quotation lifecycle + decisionRationale.evaluatedSuppliers. Multi-quotation per supplier não suportada Phase 0 (1 fornecedor → 1 quotation; re-submission requer withdraw + submit)."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "rfqId"
@@ -387,8 +452,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "cmd-withdraw-quotation"
 		name:        "WithdrawQuotation"
-		description: "Fornecedor retira cotação previamente submetida (antes da decisão). Mutação de state intra-open. Resultado: ent-quotation status muda submitted → withdrawn (não deleta — preserva audit trail)."
-		rationale:   "Withdrawal opera marcando status, não removendo. Preserva audit trail de quem cotou e retirou. Cotações withdrawn não entram em decisionRationale.evaluatedSuppliers da decisão final."
+		description: "Fornecedor retira cotação previamente submetida (antes da decisão). Mutação de state intra-open. Resultado: ent-quotation status muda submitted → withdrawn (não deleta — preserva audit trail) + evt-quotation-withdrawn (internal) registrado — o mapa de cotações marca a entrada como withdrawn (WI-152)."
+		rationale:   "Withdrawal opera marcando status, não removendo. Preserva audit trail de quem cotou e retirou. Cotações withdrawn não entram em decisionRationale.evaluatedSuppliers da decisão final. Per WI-152: emite evt-quotation-withdrawn (internal) — sem o fato de retirada, o mapa vivo mostraria cotação morta como comparável."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "rfqId"
@@ -1036,6 +1101,8 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-rfq-opened",
 			"evt-rfq-concluded",
 			"evt-rfq-cancelled",
+			"evt-quotation-submitted",
+			"evt-quotation-withdrawn",
 			"evt-network-participant-status-changed-received",
 		]
 
@@ -1130,6 +1197,24 @@ domainModel: artifact_schemas.#DomainModel & {
 			rationale:   "Consumer interno (svc-fitness-rule-evaluator) — não exposto via canvas query-surface. Sustenta as-ssc-2 (RFQ history como signal robusto)."
 		}]
 		rationale: "Sustenta as-ssc-2 (assumption operacional sobre RFQ history estruturável como signal SSC-mantido). Consumido internamente por svc-fitness-rule-evaluator — comparação contra mediana + variância dispara escalation 'suspicious-input' quando cotação está fora de range. Cancelamentos consumidos para detectar padrões anômalos (categoria com taxa alta de cancellation pode indicar scope mal-definido OR pool inadequado)."
+	}, {
+		code:        "prj-quotation-map"
+		name:        "QuotationMapProjection"
+		description: "Read model do MAPA DE COTAÇÕES — a comparação consolidada consultável que a jornada nomeia (ds-buyer-procurement-journey, passo do mapa). DURANTE a janela de RFQ: cotações lado a lado (fornecedor, preço unitário, capacidade declarada, termos, status submitted/withdrawn) com a comparação equalizada DERIVADA deterministicamente. PÓS-decisão: o carimbo da decisão — vencedor(es), ranking final (evaluatedSuppliers), tradeoffs e fitness-rule-snapshot."
+		consumesEvents: [
+			"evt-quotation-submitted",
+			"evt-quotation-withdrawn",
+			"evt-rfq-opened",
+			"evt-rfq-concluded",
+			"evt-rfq-cancelled",
+			"evt-sourcing-decision-made",
+		]
+		queryCapabilities: [{
+			code:        "qry-quotation-map"
+			description: "Retorna o QuotationMap por rfqId (com filtro por categoryRef) — cotações lado a lado ordenadas pela equalização TCO derivada, vencedor destacado quando a decisão existe (selectedSuppliers + finalRank + tradeoffs da decisão), status da janela (open/concluded/cancelled). Consumers: comprador (a comparação que suporta a escolha — passo do mapa da jornada), supervisor (visibilidade) e auditoria (reconstituição da comparação que sustentou a decisão)."
+			rationale:   "A superfície onde a decisão de escolha se torna OBSERVÁVEL e rastreável — a comparação equalizada deixa de ser cálculo trancado no write. Canvas query-surface QueryQuotationMap. É também a superfície de leitura que o elo requisição↔cotação (def-079, fatia p2p↔ssc futura) referenciará — esta fatia entrega o pré-requisito do exit do def-079, não o exit."
+		}]
+		rationale: "Fecha a lacuna de leitura que a story mediu no exame original ('o modelo tem o conceito — equalização TCO como serviço interno — mas NENHUMA projection/query consultável'). A equalização no read model é DERIVADA deterministicamente do mesmo material do svc-fitness-rule-evaluator (fitness rules vigentes da categoria aplicadas sobre as cotações — reaplicação dado mesmos inputs produz mesmo output), seguindo o precedente do prj-cost-center-availability ('encapsula derivação numérica para evitar drift de cálculo entre consumers'); a projection NÃO redefine componentes de TCO — a lógica vive em FitnessRuleContent (configuração versionada; shape em oq-ssc-8). Pré-decisão a derivação usa as fitness rules VIGENTES (comparação indicativa); pós-decisão o carimbo usa o SNAPSHOT da decisão (comparação auditável) — a distinção indicativa-vs-decidida é explícita no payload. Confidencialidade competitiva preservada: consumido por comprador/supervisor intra-organização via query surface; NUNCA exposto a fornecedores (NTF não propaga o mapa; os events de cotação são internal). Latência alvo <5s (eda-projections SLO)."
 	}]
 
 	// =============================================
@@ -1229,10 +1314,13 @@ domainModel: artifact_schemas.#DomainModel & {
 		  inv-competitive-pool-or-supervised-exception preserva
 		  flexibilidade para sole-source genuíno via gate humano.
 		- lens-event-driven-architecture-patterns (secundária): 6 events
-		  published com semântica inequívoca (3 decisão + 3 lifecycle);
-		  3 projections como read models com SLO de latência; 1 policy
-		  choreographs npm-trigger interno; event sourcing implícito do
-		  agregado sustenta auditoria contínua (cap-04 do canvas).
+		  published com semântica inequívoca (3 decisão + 3 lifecycle)
+		  + 2 internal de cotação (WI-152 — o fato intra-BC que alimenta
+		  o mapa consultável, sem violar a confidencialidade que veta
+		  evento público); 4 projections como read models com SLO de
+		  latência; 1 policy choreographs npm-trigger interno; event
+		  sourcing implícito do agregado sustenta auditoria contínua
+		  (cap-04 do canvas).
 		- lens-information-economics (terciária): decisionRationale rico
 		  (criteria + weights + evaluatedSuppliers + tradeoffs +
 		  allocationPolicy) é asymmetry resolution capturada — consumers
@@ -1257,8 +1345,22 @@ domainModel: artifact_schemas.#DomainModel & {
 		  fornecedor → 1 quotation; re-submission requer withdraw +
 		  submit).
 
-		Glossary alignment: 19 terms canônicos do glossary (Phase 2)
-		reconciliados com events/commands/aggregates/value-objects/
+		MAPA DE COTAÇÕES CONSULTÁVEL (WI-152, decisão B do founder): a
+		1ª domain story mediu que o comprador estava cego na comparação
+		que o sistema calcula — a equalização existia só no momento da
+		decisão, e a cotação era state interno sem evento (uma projection
+		não tinha o que consumir, tq-dm-06). A fatia adicionou os 2
+		fatos internos (evt-quotation-submitted/withdrawn — INTERNAL,
+		nunca published: o veto de confidencialidade é contra evento
+		público, não contra o fato existir) e o prj-quotation-map com
+		qry-quotation-map: o mapa vive DURANTE a janela (comparação
+		equalizada derivada das rules vigentes — indicativa) e ganha o
+		carimbo da decisão (snapshot — auditável). O comprador compara
+		ANTES de escolher — o momento que a jornada vive.
+
+		Glossary alignment: 20 terms canônicos do glossary (19 da
+		Phase 2 + term-mapa-de-cotacoes do WI-152) reconciliados com
+		events/commands/aggregates/value-objects/
 		entities. Mapeamentos chave: term-sourcing-decision → vo-
 		sourcing-decision-id + decisão concluded em agg-sourcing-process;
 		term-decision-type → vo-decision-type discriminator;
@@ -1270,7 +1372,8 @@ domainModel: artifact_schemas.#DomainModel & {
 		lifecycle; term-fornecedor-qualificado → vo-supplier-ref +
 		svc-supplier-pool-builder + inv-qualification-as-precondition;
 		term-fracionamento → consumido por svc-fitness-rule-evaluator
-		via prj-rfq-history-by-category. Sem divergências terminológicas
+		via prj-rfq-history-by-category; term-mapa-de-cotacoes →
+		prj-quotation-map + qry-quotation-map (WI-152). Sem divergências terminológicas
 		identificadas. Frase canônica preservada (SSC decide sourcing;
 		CTR formaliza contrato; P2P executa compra) via separação
 		clara de responsabilidades — agg-sourcing-process não emite

@@ -197,6 +197,11 @@ canvas: artifact_schemas.#Canvas & {
 			query:       "QueryActiveSourcingDecisions"
 			returnType:  "ActiveSourcingDecisions"
 			description: "Retorna decisões ativas (one-shot pendentes de P2P + preferred vigentes + strategic awards aguardando contrato CTR) por categoria. Consumido por controllers para reporting + by P2P como cache de policies aplicáveis."
+		}, {
+			type:        "query-surface"
+			query:       "QueryQuotationMap"
+			returnType:  "QuotationMap"
+			description: "Retorna o mapa de cotações por rfqId (com filtro por categoria) — cotações lado a lado ordenadas pela equalização TCO derivada, vencedor destacado quando a decisão existe, status da janela. Consumido por comprador (a comparação que suporta a escolha — passo do mapa da ds-buyer-procurement-journey, WI-152), supervisor e auditoria — consumidores INTRA-organização; NUNCA exposto a fornecedores (confidencialidade competitiva: os events de cotação são internal e não propagam cross-BC)."
 		}]
 		outbound: [{
 			type:        "event-publisher"
@@ -226,7 +231,12 @@ canvas: artifact_schemas.#Canvas & {
 		rationale: """
 			Inbound: 3 command-handlers (1 por tipo de decisão per
 			bd-decision-type-is-declared-upfront), 1 event-consumer
-			(NPM status alerts), 2 query-surfaces (P2P/CTR/controllers).
+			(NPM status alerts), 3 query-surfaces (P2P/CTR/controllers
+			+ QueryQuotationMap para comprador/supervisor intra-org — o
+			mapa de cotações do WI-152; os events internal de cotação
+			que o alimentam NÃO propagam cross-BC: sem entry outbound,
+			sem relação nova no context-map — confidencialidade
+			competitiva preservada).
 			Outbound: 3 event-publishers (decision events com
 			consumers reais P2P/CTR), 1 query-dependency (NPM
 			eligibility). RFQ lifecycle events (RFQOpened, RFQConcluded,
