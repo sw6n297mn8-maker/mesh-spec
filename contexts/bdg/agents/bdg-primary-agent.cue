@@ -37,7 +37,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 	code:              "agt-bdg-primary"
 	name:              "BDG Primary Agent"
-	description:       "Agente operador único do BC Budget & Approval. Executa Gate de Cobertura determinístico (Saldo Disponível em Centro de Custo identificado + Alçada satisfeita), registra Comprometimento Orçamentário no aggregate agg-cost-center, publica decisões (BudgetApproved/BudgetRejected) e propõe Liberação de Comprometimento sob supervisão. Não consulta caixa em TCM, não executa pagamento em FCE, não realoca orçamento entre Centros de Custo (boundaries inviolável per canvas businessDecisions)."
+	description:       "Agente operador único do BC Budget & Approval. Executa Gate de Cobertura determinístico no PORTÃO pré-pedido (adr-174: invocado pela aprovação da requisição no p2p, keyed por requisitionRef), RESERVA cobertura no aggregate agg-cost-center (CoverageReserved, fase 1 do two-phase) ou publica BudgetRejected quando o gate falha; a EFETIVAÇÃO (reserved → confirmed, BudgetApproved — spine DLV) é automação de policy na chegada do CommitmentAccepted (fase 2, WI-153). Propõe Liberação de Comprometimento sob supervisão. Não consulta caixa em TCM, não executa pagamento em FCE, não realoca orçamento entre Centros de Custo (boundaries inviolável per canvas businessDecisions)."
 	boundedContextRef: "bdg"
 	role:              "domain-agent"
 	governanceRef:     "bdg-primary-agent"
@@ -56,6 +56,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"cmd-release-budget-commitment",
 		]
 		events: [
+			"evt-coverage-reserved",
 			"evt-budget-approved",
 			"evt-budget-rejected",
 			"evt-budget-commitment-released",
@@ -69,12 +70,19 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-allocation-not-treasury",
 			"inv-released-amount-matches-commitment",
 			"inv-commitment-id-global-uniqueness-active",
+			"inv-confirmation-requires-active-reservation",
 		]
 		projections: [
 			"prj-budget-approval-status",
 			"prj-cost-center-availability",
 		]
 	}
+
+	// Exclusão consciente de cobertura (adr-175, WI-154).
+	scopeExclusions: [{
+		ref:       "cmd-confirm-budget-reservation"
+		rationale: "Exclusão padrão C (adr-175): command INTERNO emitido por pol-commitment-accepted-triggers-approval (chave estrutural policies[].issuesCommand) na chegada do CommitmentAccepted — automação determinística de runtime (fase 2 do two-phase adr-174), não ação do agente. O agente cobre a lei da fase 2 (inv-confirmation-requires-active-reservation) e a escalada confirm-without-reservation, mas não emite o command."
+	}]
 
 	// =============================================
 	// ACTIONS (operações executáveis)
@@ -83,7 +91,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 	actions: [{
 		code:        "act-identify-cost-center"
 		name:        "Identify Cost Center"
-		description: "Identificar deterministicamente o Centro de Custo aplicável a partir do escopo do compromisso (CommitmentScope: descrição, valor, partes, referência contratual de CTR). Pré-condição de cmd-approve-budget. Impact: read-only (consulta a configuração externa de Centros de Custo + escopo CMT; sem state change). Per as-bdg-1 a identificação é determinística; ambiguidade dispara escalation supervisedDecision approve-budget-with-cost-center-ambiguity."
+		description: "Identificar/validar deterministicamente o Centro de Custo aplicável: na fase 1 (portão adr-174), o costCenterRef vem DECLARADO na requisição desde a submissão (WI-151) e é validado contra a configuração externa — o gate é invocado pela interação sync do p2p (cmd-approve-budget keyed por requisitionRef); o evt-commitment-accepted-received dispara a EFETIVAÇÃO (fase 2), não o gate. Pré-condição de cmd-approve-budget. Impact: read-only (consulta a configuração externa de Centros de Custo + escopo da requisição; sem state change). Per as-bdg-1 a identificação é determinística; ambiguidade dispara escalation supervisedDecision approve-budget-with-cost-center-ambiguity."
 		category:        "validation"
 		autonomyLevel:   "execute-and-log"
 		inputTrustLevel: "trusted-internal"
@@ -93,7 +101,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"evt-commitment-accepted-received",
 		]
 		preconditions: [
-			"CommitmentScope recebido via evt-commitment-accepted-received (ACL)",
+			"Escopo da requisição recebido via interação sync do portão p2p (cmd-approve-budget keyed por requisitionRef, costCenterRef declarado na requisição)",
 			"Plano de Centros de Custo disponível como configuração externa",
 		]
 		postconditions: [
@@ -102,7 +110,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}, {
 		code:        "act-execute-coverage-gate"
 		name:        "Execute Coverage Gate"
-		description: "Executar Gate de Cobertura determinístico: (1) consultar Saldo Disponível do Centro de Custo identificado via prj-cost-center-availability; (2) verificar Alçada vigente do agente contra valor solicitado. Propõe/materializa conforme governance envelope: (a) approved — Saldo suficiente + Alçada satisfeita ⇒ ApproveBudget aceito, registra Comprometimento, emite BudgetApproved; (b) rejected — Saldo insuficiente / Centro de Custo inválido / Alçada excedida sem override ⇒ RejectBudget aceito, emite BudgetRejected; (c) ambiguous — Centro de Custo não identificável OR mudança em curso de configuração ⇒ escalate (insufficient-context | conflicting-signals | ambiguous-case). Impact: state-change + cross-bc (DLV consume BudgetApproved spine; CMT/DRC consume BudgetRejected pendente oq-bdg-2). Decide-vs-execute audit (tq-agg-09): NÃO monolítico — outcome é função do gate determinístico (numerical comparisons), não julgamento; rejeição definitiva não é decisão separada do agente. AutonomyLevel: propose-and-wait Phase 0 — deterministic-gated mas governance-promotion candidate via envelope (preserva P10)."
+		description: "Executar Gate de Cobertura determinístico no PORTÃO pré-pedido (fase 1 do two-phase adr-174, invocado pela interação sync do p2p keyed por requisitionRef): (1) consultar Saldo Disponível do Centro de Custo via prj-cost-center-availability; (2) verificar Alçada vigente do agente contra valor solicitado. Propõe/materializa conforme governance envelope: (a) approved — Saldo suficiente + Alçada satisfeita ⇒ ApproveBudget aceito, registra Comprometimento em status=reserved keyed por requisitionRef, emite CoverageReserved (a EFETIVAÇÃO reserved → confirmed, que emite BudgetApproved, ocorre na fase 2 via policy quando o CommitmentAccepted chega — WI-153); (b) rejected — Saldo insuficiente / Centro de Custo inválido / Alçada excedida sem override ⇒ RejectBudget aceito, emite BudgetRejected; (c) ambiguous — Centro de Custo não identificável OR mudança em curso de configuração ⇒ escalate (insufficient-context | conflicting-signals | ambiguous-case). Impact: state-change + cross-bc (p2p consome a decisão do portão via QueryBudgetApprovalStatus sync; o spine DLV consome o BudgetApproved da EFETIVAÇÃO, não desta action; CMT/DRC consume BudgetRejected pendente oq-bdg-2). Decide-vs-execute audit (tq-agg-09): NÃO monolítico — outcome é função do gate determinístico (numerical comparisons), não julgamento; rejeição definitiva não é decisão separada do agente. AutonomyLevel: propose-and-wait Phase 0 — deterministic-gated mas governance-promotion candidate via envelope (preserva P10)."
 		category:        "mutation"
 		autonomyLevel:   "propose-and-wait"
 		inputTrustLevel: "trusted-internal"
@@ -110,7 +118,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"cmd-approve-budget",
 			"cmd-reject-budget",
 			"agg-cost-center",
-			"evt-budget-approved",
+			"evt-coverage-reserved",
 			"evt-budget-rejected",
 			"inv-coverage-gate-deterministic",
 			"inv-cost-center-required",
@@ -122,7 +130,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"Centro de Custo identificado por act-identify-cost-center",
 			"prj-cost-center-availability disponível com latência aceitável",
 			"Tabela de Alçadas vigente acessível como configuração externa",
-			"CommitmentId NÃO tem Comprometimento Orçamentário ATIVO em agg-cost-center (per inv-commitment-id-global-uniqueness-active; histórico de liberados não bloqueia)",
+			"requisitionRef NÃO tem reserva ATIVA (reserved ou confirmed) em agg-cost-center (per inv-commitment-id-global-uniqueness-active, unicidade por fase — na fase 1 o CommitmentId ainda não existe; re-reserva da mesma requisição exige liberação prévia; histórico de liberados não bloqueia)",
 		]
 		postconditions: [
 			"Outcome approved: Comprometimento Orçamentário registrado contra Centro de Custo + evt-budget-approved emitido + Saldo Disponível decrementado",
@@ -132,7 +140,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}, {
 		code:        "act-propose-budget-commitment-release"
 		name:        "Propose Budget Commitment Release"
-		description: "Propor Liberação de Comprometimento Orçamentário previamente registrado, devolvendo o valor reservado ao Saldo Disponível do Centro de Custo. Trigger: cancelamento sinalizado em CMT, conclusão integral em FCE, ou ajuste supervisionado interno. Impact: state-change + cross-bc (CMT consome BudgetCommitmentReleased pendente oq-bdg-2). Decide-vs-execute split correto: propor é decisão do agente; executar (materializar reversão da reserva + emit event) requer aprovação humana em Phase 0 enquanto trigger cross-BC não é formalizado. Per inv-released-amount-matches-commitment, valor liberado = valor reservado (referência por BudgetCommitmentId obrigatória)."
+		description: "Propor Liberação de Comprometimento Orçamentário previamente registrado, devolvendo o valor reservado ao Saldo Disponível do Centro de Custo. Trigger: cancelamento de requisição aprovada no p2p (release da reserva pré-efetivação — per adr-174 o cancelamento LIBERA; originContext +p2p per WI-153), cancelamento sinalizado em CMT, conclusão integral em FCE, ou ajuste supervisionado interno. Impact: state-change + cross-bc (CMT consome BudgetCommitmentReleased pendente oq-bdg-2). Decide-vs-execute split correto: propor é decisão do agente; executar (materializar reversão da reserva + emit event) requer aprovação humana em Phase 0 enquanto trigger cross-BC não é formalizado. Per inv-released-amount-matches-commitment, valor liberado = valor reservado (referência por BudgetCommitmentId obrigatória)."
 		category:        "mutation"
 		autonomyLevel:   "propose-and-wait"
 		inputTrustLevel: "trusted-internal"
@@ -153,7 +161,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}, {
 		code:        "act-query-budget-approval-status"
 		name:        "Query Budget Approval Status"
-		description: "Atender query QueryBudgetApprovalStatus consumida por CMT (visibilidade pós-formalização) e DRC (contexto de disputa). Retorna BudgetApprovalStatus vigente para um CommitmentId (pending, approved, rejected, released). Impact: read-only (consulta a prj-budget-approval-status)."
+		description: "Atender query QueryBudgetApprovalStatus consumida pelo p2p (o portão lê status=reserved na aprovação da requisição — inv-approval-requires-coverage-reservation, per adr-055/WI-153), por CMT (visibilidade pós-formalização) e DRC (contexto de disputa). Retorna BudgetApprovalStatus vigente por requisitionRef (fase 1) OU CommitmentId (pós-efetivação): pending, reserved, confirmed, rejected, released (enum two-phase per D3/WI-153). Impact: read-only (consulta a prj-budget-approval-status)."
 		category:        "query"
 		autonomyLevel:   "execute-and-log"
 		inputTrustLevel: "trusted-internal"
@@ -161,8 +169,8 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"prj-budget-approval-status",
 			"qry-budget-approval-status",
 		]
-		preconditions: ["CommitmentId fornecido"]
-		postconditions: ["BudgetApprovalStatus retornado OR not-found se nenhum compromisso correspondente existe"]
+		preconditions: ["requisitionRef OU CommitmentId fornecido"]
+		postconditions: ["BudgetApprovalStatus retornado OR not-found se nenhum comprometimento correspondente existe"]
 	}, {
 		code:        "act-query-cost-center-availability"
 		name:        "Query Cost Center Availability"
@@ -179,7 +187,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}, {
 		code:        "act-validate-commitment-scope"
 		name:        "Validate Commitment Scope"
-		description: "Validar estruturalmente o CommitmentScope recebido via ACL: presença de campos mínimos (descrição, valor, partes), formato de Money (currency ISO 4217), consistência com configuração de Centros de Custo. Pré-condição de act-identify-cost-center. Impact: read-only (validação técnica sobre payload; sem state change)."
+		description: "Validar estruturalmente o escopo recebido: na fase 1 (portão adr-174), o payload da requisição vindo da interação sync p2p — presença de campos mínimos, formato de Money (currency ISO 4217), consistência com configuração de Centros de Custo; na fase 2, o payload do CommitmentAccepted recebido via ACL (evt-commitment-accepted-received) antes da efetivação. Pré-condição de act-identify-cost-center. Impact: read-only (validação técnica sobre payload; sem state change)."
 		category:        "validation"
 		autonomyLevel:   "execute-and-log"
 		inputTrustLevel: "trusted-internal"
@@ -187,18 +195,18 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"vo-money",
 			"evt-commitment-accepted-received",
 		]
-		preconditions: ["evt-commitment-accepted-received recebido via ACL"]
-		postconditions: ["CommitmentScope validado OR escalation triggered (suspicious-input se payload malformado)"]
+		preconditions: ["Payload recebido (escopo da requisição via sync p2p — fase 1; OU evt-commitment-accepted-received via ACL — fase 2)"]
+		postconditions: ["Escopo validado OR escalation triggered (suspicious-input se payload malformado)"]
 	}, {
 		code:        "act-generate-budget-decision-rationale"
 		name:        "Generate Budget Decision Rationale"
-		description: "Gerar rationale estruturado da decisão de aprovação/rejeição: numericals usados no gate (Saldo consultado, Limite, valor solicitado, valor já comprometido), Centro de Custo identificado, Alçada aplicada, fonte da configuração consultada. Anexado ao audit trail e ao payload de evt-budget-approved/rejected. Impact: read-only (geração de descritor; sem state change). Sustenta auditoria contínua (cap-04 do canvas)."
+		description: "Gerar rationale estruturado da decisão de aprovação/rejeição: numericals usados no gate (Saldo consultado, Limite, valor solicitado, valor já comprometido), Centro de Custo identificado, Alçada aplicada, fonte da configuração consultada. Anexado ao audit trail e ao payload de evt-coverage-reserved/evt-budget-rejected (a decisão do gate, fase 1). Impact: read-only (geração de descritor; sem state change). Sustenta auditoria contínua (cap-04 do canvas)."
 		category:        "generation"
 		autonomyLevel:   "execute-and-log"
 		inputTrustLevel: "trusted-internal"
 		domainModelRefs: [
 			"vo-rejection-reason",
-			"evt-budget-approved",
+			"evt-coverage-reserved",
 			"evt-budget-rejected",
 		]
 		preconditions: ["Outcome do Gate de Cobertura determinado (approved/rejected)"]
@@ -230,8 +238,8 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 	constraints: [{
 		code:         "cst-coverage-gate-mandatory"
 		name:         "Coverage Gate Mandatory"
-		description:  "act-execute-coverage-gate NUNCA emite evt-budget-approved sem Gate de Cobertura ter verificado Saldo Disponível ≥ valor solicitado E valor ≤ Alçada do agente."
-		verification: "Runner verifica que para cada evt-budget-approved emitido, audit trail contém: (a) snapshot de prj-cost-center-availability com Saldo Disponível ≥ amount; (b) referência à Alçada vigente com valor ≤ limite da Alçada. Aprovação sem ambos snapshots bloqueia emissão."
+		description:  "act-execute-coverage-gate NUNCA emite evt-coverage-reserved (a decisão do gate, fase 1) sem Gate de Cobertura ter verificado Saldo Disponível ≥ valor solicitado E valor ≤ Alçada do agente. evt-budget-approved (EFETIVAÇÃO, fase 2) NUNCA é emitido sem reserva ativa correspondente pela requisitionRef (inv-confirmation-requires-active-reservation) — a efetivação não re-roda o gate nem auto-aprova."
+		verification: "Runner verifica que para cada evt-coverage-reserved emitido, audit trail contém: (a) snapshot de prj-cost-center-availability com Saldo Disponível ≥ amount; (b) referência à Alçada vigente com valor ≤ limite da Alçada. E que para cada evt-budget-approved (efetivação) existe Comprometimento em status=reserved correspondente pela requisitionRef. Reserva sem ambos snapshots — ou efetivação sem reserva — bloqueia emissão."
 		onViolation:  "block-and-escalate"
 		rationale:    "derivedFromInvariant: inv-coverage-gate-deterministic. enforcementLevel: agent (gate pré-emissão consulta projeção + tabela) + domain (handler de cmd-approve-budget no agg-cost-center re-valida atomicamente para prevenir race com aprovação concorrente). Sem gate determinístico, compromissos progridem para DLV/INV/FCE sem lastro orçamentário (inadimplência programática) — bd-coverage-as-invariant."
 	}, {
@@ -295,7 +303,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 
 	escalationConditions: [{
 		category:    "conflicting-signals"
-		description: "Configuração de Centro de Custo divergente entre fontes (e.g., escopo CMT aponta para Centro X, configuração externa associa o tipo de operação a Centro Y) OR mudança em curso de plano de Centros de Custo afetando aprovação em andamento."
+		description: "Configuração de Centro de Custo divergente entre fontes (e.g., requisição aponta para Centro X, configuração externa associa o tipo de operação a Centro Y) OR mudança em curso de plano de Centros de Custo afetando aprovação em andamento OR CommitmentAccepted recebido SEM reserva correspondente pela requisitionRef (escalada confirm-without-reservation per inv-confirmation-requires-active-reservation — a efetivação nunca auto-aprova, WI-153)."
 		rationale:   "Cobertura tq-ag-10 para mutations (act-execute-coverage-gate, act-propose-budget-commitment-release). Sem escalation, agente operaria com autonomia implícita ilimitada em divergência de configuração — viola P10."
 	}, {
 		category:    "insufficient-context"
@@ -336,7 +344,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 			]
 		}, {
 			artifactType: "domain-model"
-			rationale:    "Source of truth para operationalScope refs (1 aggregate, 3 commands, 4 events, 7 invariants, 2 projections). Necessário para cada action validar domainModelRefs ⊆ operationalScope per tq-ag-02."
+			rationale:    "Source of truth para operationalScope refs (1 aggregate, 3 commands, 5 events, 8 invariants, 2 projections; 1 exclusão consciente declarada em scopeExclusions per adr-175). Necessário para cada action validar domainModelRefs ⊆ operationalScope per tq-ag-02."
 		}, {
 			artifactType: "glossary"
 			rationale:    "Terminologia canônica do BC BDG (Centro de Custo, Saldo Disponível, Limite, Comprometimento Orçamentário, Alçada, Aprovação Orçamentária, Gate de Cobertura, Liberação, Fracionamento — 15 terms). Action names + audit trail field semantics + rationale alinham com glossary."
@@ -409,7 +417,7 @@ bdgPrimaryAgent: artifact_schemas.#AgentSpec & {
 		}, {
 			code:           "sig-budget-decision-emitted"
 			name:           "Budget Decision Emitted"
-			description:    "Sinal BDG-specific emitido após decisão registrada (BudgetApproved ou BudgetRejected). Captura commitmentId, costCenterId, amount, outcome (approved/rejected), reason (quando rejected), saldo consultado pré-decisão, alçada aplicada. Permite reconstrução do gate independente do agent log para auditoria contínua (cap-04)."
+			description:    "Sinal BDG-specific emitido após decisão do gate registrada (CoverageReserved ou BudgetRejected — fase 1). Captura requisitionRef, costCenterId, amount, outcome (reserved/rejected), reason (quando rejected), saldo consultado pré-decisão, alçada aplicada. Permite reconstrução do gate independente do agent log para auditoria contínua (cap-04)."
 			coversCategory: "mutation"
 			trigger:        "Decisão materializada e event publicado"
 			level:          "info"

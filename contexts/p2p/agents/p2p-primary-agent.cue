@@ -88,10 +88,17 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 	operationalScope: {
 		aggregates: [
 			"agg-purchase-order",
+			// A PORTA da jornada (WI-151/adr-174): requisição → triagem →
+			// aprovação com portão → conversão em PO.
+			"agg-purchase-requisition",
 		]
 		commands: [
 			"cmd-emit-purchase-order",
 			"cmd-cancel-purchase-order",
+			"cmd-submit-purchase-requisition",
+			"cmd-triage-requisition",
+			"cmd-approve-purchase",
+			"cmd-cancel-purchase-requisition",
 		]
 		events: [
 			"evt-purchase-order-emitted",
@@ -99,6 +106,11 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"evt-sourcing-decision-made-received",
 			"evt-preferred-supplier-designated-received",
 			"evt-strategic-award-completed-received",
+			"evt-purchase-requisition-submitted",
+			"evt-purchase-requisition-triaged",
+			"evt-purchase-approved",
+			"evt-purchase-approval-rejected",
+			"evt-purchase-requisition-cancelled",
 		]
 		invariants: [
 			"inv-purchase-order-requires-valid-authority",
@@ -106,14 +118,25 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-cancellation-pre-formalization-only",
 			"inv-no-supplier-revalidation-by-p2p",
 			"inv-purchase-order-lifecycle-public-events",
+			"inv-requisition-completeness",
+			"inv-approval-requires-coverage-reservation",
+			"inv-emission-requires-approved-requisition",
 		]
 		projections: [
 			"prj-active-purchase-authorities",
 			"prj-purchase-orders",
 			"prj-allocation-tracking",
 			"prj-purchase-history-by-category",
+			"prj-pending-requisitions",
 		]
 	}
+
+	// Exclusão consciente de cobertura (adr-175, WI-154).
+	scopeExclusions: [{
+		class:     "policy-driven-conversion"
+		rationale: "Exclusão padrão C (adr-175): a conversão requisição→pedido é automação determinística de runtime — cmd-convert-requisition é emitido por pol-purchase-order-converts-requisition (chave estrutural policies[].issuesCommand) quando evt-purchase-order-emitted carrega requisitionRef, e evt-purchase-requisition-converted é o fato dessa mesma transição. O agente não emite o command nem consome o evento diretamente — observa o resultado via prj-pending-requisitions (coberta)."
+		refs: ["cmd-convert-requisition", "evt-purchase-requisition-converted"]
+	}]
 
 	// =============================================
 	// ACTIONS (operações executáveis)
@@ -172,11 +195,14 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-purchase-order-requires-valid-authority",
 			"inv-no-supplier-revalidation-by-p2p",
 			"inv-purchase-order-lifecycle-public-events",
+			"inv-emission-requires-approved-requisition",
 			"prj-active-purchase-authorities",
+			"prj-pending-requisitions",
 		]
 		preconditions: [
 			"act-validate-emit-request-scope retornou payload válido",
 			"act-validate-authority retornou outcome=válida (authorityRef vigente + supplier ∈ authority + categoryRef match) OR escalation supervised approve-po-without-sourcing-authority autorizada",
+			"Requisição APROVADA vinculada via requisitionRef (2º braço do gate per adr-174/WI-151: inv-emission-requires-approved-requisition — verificada via prj-pending-requisitions)",
 			"Aprovação humana registrada em audit trail Phase 0 (autonomyLevel propose-and-wait + canvas autonomousDecision emit-po-on-valid-authority — promotion path Phase 1+ via envelope)",
 		]
 		postconditions: [
@@ -208,6 +234,79 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"agg-purchase-order status → cancelled + cancelledAt + cancelledBy + cancellationReason populated + evt-purchase-order-cancelled emitido",
 			"State=requested→cancelled: evento sem supplier field (attempt nunca progrediu); audit trail registra reasonCode failed-validation-cleanup OR admin-override",
 			"State=emitted→cancelled: evento com supplier (PO tinha supplier vinculado); CMT consume como withdrawal/negative signal e cancela path de formalização correspondente; NTF supplier notificado; audit trail registra cmt-formalization-status: not-yet-confirmed-at-cancel-time como best-effort acknowledgment de race condition",
+		]
+	}, {
+		code:        "act-triage-requisition"
+		name:        "Triage Requisition"
+		description: "Triagem FORMAL da requisição (WI-151/adr-174: ato formal, não anotação): consome a fila prj-pending-requisitions (state=submitted), verifica completude per inv-requisition-completeness (requestedBy + costCenterRef + budgetStageRef + categoryRef + scope) e processa cmd-triage-requisition com outcome routed-to-sourcing (submitted→triaged; segue para cotação/decisão de sourcing no ssc) | returned (SEM transição — requisição permanece submitted para correção do requisitante) | rejected (demanda morta na triagem). A decisão de triagem é do comprador; Phase 0 propose-and-wait: agente propõe o outcome com evidência de completude, humano confirma. A submissão (cmd-submit-purchase-requisition, async) NÃO tem decisão síncrona — entra pela fila; esta action é o primeiro julgamento sobre ela. Impact: state-change (transition condicional no agg-purchase-requisition)."
+		category:        "mutation"
+		autonomyLevel:   "propose-and-wait"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"cmd-triage-requisition",
+			"cmd-submit-purchase-requisition",
+			"evt-purchase-requisition-submitted",
+			"evt-purchase-requisition-triaged",
+			"inv-requisition-completeness",
+			"agg-purchase-requisition",
+			"prj-pending-requisitions",
+		]
+		preconditions: [
+			"prj-pending-requisitions com requisição em state=submitted",
+			"Payload da requisição acessível (requestedBy + costCenterRef + budgetStageRef + categoryRef + scope)",
+			"Aprovação humana do outcome proposto registrada (Phase 0 propose-and-wait)",
+		]
+		postconditions: [
+			"Outcome routed-to-sourcing: submitted→triaged + evt-purchase-requisition-triaged emitido; requisição segue para cotação/decisão no ssc",
+			"Outcome returned: SEM transição — requisição permanece submitted; evt-purchase-requisition-triaged registra o outcome; requisitante corrige",
+			"Outcome rejected: submitted→rejected via evt-purchase-requisition-triaged — demanda morta na triagem",
+			"Requisição incompleta (inv-requisition-completeness) NUNCA segue routed-to-sourcing — devolvida (returned)",
+		]
+	}, {
+		code:        "act-process-purchase-approval"
+		name:        "Process Purchase Approval"
+		description: "Processar a decisão de aprovação do gestor por Alçada sobre requisição triada — o PORTÃO pré-pedido (adr-174): roda a interação sync com o Gate de Cobertura do bdg (cmd-approve-budget keyed por requisitionRef, fase 1 do two-phase) e verifica reserva confirmada via QueryBudgetApprovalStatus (status=reserved — inv-approval-requires-coverage-reservation, padrão adr-055); com reserva confirmada E decisão approve do gestor, processa cmd-approve-purchase (triaged→approved, evt-purchase-approved — amount com procedência da cotação vencedora do ssc, dívida do elo formal em def-079); decisão reject processa a transição triaged→rejected (evt-purchase-approval-rejected); falha do Gate de Cobertura NÃO transiciona (requisição permanece triaged; a escalada supervisionada é do bdg). A DECISÃO é humana (gestor por Alçada — papéis intra-org pendentes em def-076); o agente executa a interação e o processamento. Phase 0 propose-and-wait. Impact: state-change + cross-bc (interação sync com bdg per adr-055)."
+		category:        "mutation"
+		autonomyLevel:   "propose-and-wait"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"cmd-approve-purchase",
+			"evt-purchase-approved",
+			"evt-purchase-approval-rejected",
+			"inv-approval-requires-coverage-reservation",
+			"agg-purchase-requisition",
+			"prj-pending-requisitions",
+		]
+		preconditions: [
+			"Requisição em state=triaged (via prj-pending-requisitions)",
+			"Gate de Cobertura do bdg acessível via interação sync (cmd-approve-budget + QueryBudgetApprovalStatus)",
+			"Decisão do gestor registrada (approve | reject) — a decisão é humana, o agente processa",
+		]
+		postconditions: [
+			"Decision approve + reserva reserved confirmada: triaged→approved + evt-purchase-approved emitido (coverageReservationRef vinculado)",
+			"Decision reject: triaged→rejected + evt-purchase-approval-rejected emitido",
+			"Falha do gate (saldo/alçada): NENHUMA transição — requisição permanece triaged; escalada supervisionada pertence ao bdg",
+		]
+	}, {
+		code:        "act-cancel-requisition"
+		name:        "Cancel Requisition"
+		description: "Cancelar requisição pré-conversão (submitted | triaged | approved) via cmd-cancel-purchase-requisition — requisitante retira a demanda ou supervisor limpa a fila. Cancelamento de requisição APPROVED implica liberar a reserva de cobertura no bdg (cmd-release-budget-commitment, originContext p2p per WI-153 — per adr-174 o cancelamento LIBERA); a proposta de release é do agente do bdg (act-propose-budget-commitment-release), disparada pelo sinal deste cancelamento. Phase 0 sempre propose-and-wait. Impact: state-change + cross-bc (release da reserva no bdg quando approved)."
+		category:        "mutation"
+		autonomyLevel:   "propose-and-wait"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"cmd-cancel-purchase-requisition",
+			"evt-purchase-requisition-cancelled",
+			"agg-purchase-requisition",
+		]
+		preconditions: [
+			"Requisição em state=submitted | triaged | approved (converted é terminal — não cancela)",
+			"Justificativa do cancelamento documentada",
+			"Aprovação humana registrada (Phase 0 propose-and-wait)",
+		]
+		postconditions: [
+			"Transition para cancelled + evt-purchase-requisition-cancelled emitido",
+			"Se state era approved: sinal de liberação da reserva encaminhado ao bdg (release per WI-153, originContext p2p)",
 		]
 	}, {
 		code:        "act-detect-allocation-drift"
