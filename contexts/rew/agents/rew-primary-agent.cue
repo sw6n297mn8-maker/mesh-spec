@@ -136,10 +136,18 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"evt-risk-model-deprecated",
 			"evt-risk-policy-activated",
 			"evt-risk-policy-deprecated",
+			// Boundary de signals (WI-155): o agente REAGE — staleness em
+			// signal relevante (act-mark-evaluation-stale), alert crítico
+			// em corrupção (act-raise-risk-alert), superfície de escalação
+			// em rejeição ACL (investigação upstream, nunca drop silent).
+			"evt-signal-received",
+			"evt-signal-corruption-detected",
+			"evt-signal-rejected",
 		]
-		// invariants subset: 13 dos 46 — agent OPERADOR não ENFORCER
-		// do domínio inteiro; 33 invariants restantes enforced via
-		// aggregate lifecycle / runner / structural-checks Phase 3.5a.
+		// invariants subset — agent OPERADOR não ENFORCER do domínio
+		// inteiro; as invariants NÃO listadas aqui estão DECLARADAS em
+		// scopeExclusions (adr-175/WI-155): 3 classes com frase-marca
+		// literal + 1 por-id, enforcement por engine/review/consumers.
 		invariants: [
 			"inv-rew-signal-traceability",
 			"inv-rew-bounded-score",
@@ -154,12 +162,66 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"inv-rew-compute-emit-ordering",
 			"inv-rew-supersede-after-emit-only",
 			"inv-rew-signal-validation-before-ingestion",
+			"inv-rew-alert-dedupe",
 		]
 		projections: [
 			"prj-active-risk-evaluations",
 			"prj-active-risk-alerts",
 		]
 	}
+
+	// Exclusões conscientes de cobertura (adr-175, WI-155) — a triagem
+	// item a item do Tempo 1 verificou a frase-marca de enforcement em
+	// CADA membro; nenhuma exclusão sem marca literal citável.
+	scopeExclusions: [{
+		class:     "engine-enforced-mechanics"
+		rationale: "Exclusão padrão B doutrinária (adr-175): invariants cujo enforcement é declarado PELA MÁQUINA no próprio rule/rationale — por construção ('PROIBIDA por construção', 'DAG... PROIBIDOS por construção'), pelo runtime ('runtime garante OR emit OR fail', 'enforced runtime', timeouts/janelas policy-defined), por atomicidade no aggregate ('atomic check... CAS', 'deduped no COMMAND level', precedência DETERMINÍSTICA) ou por automação de policy (pol-mark-stale-on-relevant-signal). O agente OPERA o lifecycle; a máquina enforça estas leis — nenhuma é verificação operacional do agente. Inclui os 2 casos fronteiriços decididos pelo founder no Tempo 1: staleness-tracking (a obrigação automática é da policy/runtime; act-mark-evaluation-stale modela a transição, não a vigilância) e supersede-requires-current-active (a mecânica de corrida é CAS no aggregate; as leis de supersede que o agente respeita — explicit-supersede-only, supersede-after-emit-only — estão COBERTAS no scope)."
+		refs: [
+			"inv-rew-contextual-completeness",
+			"inv-rew-asset-aware-discipline",
+			"inv-rew-reasoning-completeness",
+			"inv-rew-temporal-consistency",
+			"inv-rew-active-evaluation-rule",
+			"inv-rew-signal-corruption-handling",
+			"inv-rew-snapshot-temporal-consistency",
+			"inv-rew-alert-evaluation-binding-immutability",
+			"inv-rew-evaluation-completeness",
+			"inv-rew-event-emission-boundedness",
+			"inv-rew-evaluation-lineage-acyclic",
+			"inv-rew-compute-implies-emit",
+			"inv-rew-computed-idempotent-retry",
+			"inv-rew-single-successor-per-evaluation",
+			"inv-rew-computed-must-eventually-emit-or-fail",
+			"inv-rew-alert-command-idempotency",
+			"inv-rew-supersede-emit-failed-precedence",
+			"inv-rew-evaluation-temporal-validity",
+			"inv-rew-replay-scope-completeness",
+			"inv-rew-replay-confidence-propagation",
+			"inv-rew-acl-validation-cost-bounded",
+			"inv-rew-obsolete-evaluation-must-link-successor",
+			"inv-rew-staleness-tracking",
+			"inv-rew-supersede-requires-current-active",
+		]
+	}, {
+		class:     "behavioral-design-time"
+		rationale: "Exclusão padrão B doutrinária (adr-175): invariants com a marca LITERAL 'BEHAVIORAL — não estruturalmente enforceable' no próprio rationale — leis de design enforçadas por disciplina de código/policy authoring + revisão humana + ADR review (+ sc-rew-* de detecção onde declarado), não pelo agente operador em runtime."
+		refs: [
+			"inv-rew-model-policy-independence",
+			"inv-rew-payload-opacity",
+			"inv-rew-no-staleness-feedback-loop",
+			"inv-rew-alert-no-feedback-to-evaluation",
+		]
+	}, {
+		class:     "consumer-side-contract"
+		rationale: "Exclusão padrão B doutrinária (adr-175): invariants com a marca literal 'Enforcement consumer-side via consumerProtocol' — a obrigação é dos CONSUMERS downstream (CMT/FCE/SCF: chain-bounded traversal, recheck de status pré-commit), não do REW nem do seu agente. O rew emite a superfície; o contrato de consumo vive nos consumers."
+		refs: [
+			"inv-rew-successor-chain-bounded",
+			"inv-rew-decision-binding-to-evaluation-version",
+		]
+	}, {
+		ref:       "inv-rew-undetectable-pattern-risk-declared"
+		rationale: "Exclusão padrão B doutrinária (adr-175): 'HONESTY invariant — força VISIBILIDADE, NÃO COMPORTAMENTO' (marca literal). Exige DECLARAÇÃO dos riscos indetectáveis em systemConsistencyModel.systemFailureModes — obrigação sobre o ARTEFATO domain-model, verificada por structural-check (sc-rew-pattern-risk), não operação do agente."
+	}]
 
 	actions: [{
 		code: "act-request-risk-evaluation"
@@ -271,6 +333,7 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"cmd-mark-evaluation-stale",
 			"agg-risk-evaluation",
 			"evt-risk-evaluation-marked-stale",
+			"evt-signal-received",
 		]
 		preconditions: [
 			"evaluation existe em projection",
@@ -303,6 +366,8 @@ agentSpec: artifact_schemas.#AgentSpec & {
 			"agg-risk-alert",
 			"evt-risk-alert-raised",
 			"inv-rew-alert-lifecycle",
+			"inv-rew-alert-dedupe",
+			"evt-signal-corruption-detected",
 		]
 		preconditions: [
 			"evaluation emitted referenced (alert binds 1:1 to evaluation)",
