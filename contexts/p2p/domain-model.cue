@@ -657,7 +657,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				kind:               "sync-query"
 				canvasQuerySurface: "QueryBudgetApprovalStatus"
 			}
-			rationale: "Cobertura orçamentária é owned pelo bdg (Centro de Custo persiste Saldo Disponível + Comprometimentos; single-owner). P2P lê a confirmação da reserva via canvas query-surface no momento da aprovação — gate determinístico no momento da decisão, paralelo npm↔idc per adr-055. HOJE a surface é keyed por CommitmentId (papel pré-adr-174); a chave por requisição entra no re-papel bdg-side WI-153 — janela declarada no adr-174 consequences."
+			rationale: "Cobertura orçamentária é owned pelo bdg (Centro de Custo persiste Saldo Disponível + Comprometimentos; single-owner). P2P lê a confirmação da reserva via canvas query-surface no momento da aprovação — gate determinístico no momento da decisão, paralelo npm↔idc per adr-055. A chave por requisição foi MATERIALIZADA no re-papel bdg-side (WI-153, 2026-07-13): a surface responde por requisitionRef — o portão lê status=reserved na fase 1 (CoverageReserved) — e a janela declarada no adr-174 consequences FECHOU."
 		}
 	}, {
 		code:      "inv-emission-requires-approved-requisition"

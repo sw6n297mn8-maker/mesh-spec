@@ -114,7 +114,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-comprometimento-orcamentario"
 		name:       "Comprometimento Orçamentário"
 		termEn:     "Budget Commitment"
-		definition: "Reserva de valor contra um Centro de Custo registrada no Event Log de BDG no momento da aprovação de um compromisso. Reduz Saldo Disponível enquanto ativo; é liberado quando o compromisso é cancelado em CMT, executado integralmente em FCE ou ajustado por supervisão. Distinto de pagamento (FCE) e de realização contábil."
+		definition: "Reserva de valor contra um Centro de Custo registrada no Event Log de BDG — nasce na aprovação da requisição de compra no portão (fase reserved, keyed por requisitionRef, per adr-174/WI-153) e é EFETIVADA quando o commitment aceito ancora à reserva (fase confirmed, CommitmentId ligado). Reduz Saldo Disponível enquanto ativo em qualquer das duas fases; é liberado quando a requisição é cancelada no p2p, o compromisso é cancelado em CMT, executado integralmente em FCE ou ajustado por supervisão. Distinto de pagamento (FCE) e de realização contábil."
 		category:   "value"
 		rationale:  "Conceito que diferencia BDG de FCE e da contabilidade: comprometimento é prospectivo e operacional, opera sobre planejamento. Sem termo canônico, agentes confundem com 'pagamento agendado' (TCM/FCE) ou 'despesa reconhecida' (contábil). bd-commitment-not-payment exige termo explícito para sustentar a fronteira."
 		antiTerms: [{
@@ -134,7 +134,7 @@ glossary: artifact_schemas.#Glossary & {
 			term:   "Encumbrance"
 			reason: "Termo idiomático em controladoria pública anglófona; sem equivalência semântica precisa em controladoria privada brasileira. Importação criaria opacidade sem ganho."
 		}]
-		relatedTerms: ["term-centro-de-custo", "term-saldo-disponivel", "term-cobertura-orcamentaria", "term-liberacao-de-comprometimento", "term-budget-commitment-released"]
+		relatedTerms: ["term-centro-de-custo", "term-saldo-disponivel", "term-cobertura-orcamentaria", "term-efetivacao-de-reserva", "term-liberacao-de-comprometimento", "term-budget-commitment-released"]
 		layerMapping: {
 			codeTerm: "BudgetCommitment"
 			apiTerm:  "budget_commitments"
@@ -269,6 +269,25 @@ glossary: artifact_schemas.#Glossary & {
 			uiLabel:  "Liberação"
 		}
 	}, {
+		code:       "term-efetivacao-de-reserva"
+		name:       "Efetivação de Reserva"
+		termEn:     "Reservation Confirmation"
+		definition: "Segunda fase do two-phase Reservation/Confirmation (adr-174/WI-153): o compromisso aceito em CMT é ancorado ao Comprometimento Orçamentário reservado no portão — o CommitmentId liga-se à reserva e o status transiciona reserved → confirmed. Não re-executa o Gate de Cobertura (rodou na reserva) e não altera o valor reservado — muda fase e ancoragem. Efetivação sem reserva correspondente escala para supervisão (nunca auto-aprova)."
+		category:   "process"
+		rationale:  "A fase que faltava na UL quando a reserva vivia em fase única keyed por CommitmentId: com o portão (adr-174), reservar e efetivar são momentos distintos com chaves distintas (requisitionRef na reserva; CommitmentId na efetivação) — sem termo canônico, agentes confundem efetivação com re-aprovação (rodar o gate duas vezes) ou com pagamento (FCE). Materializada por cmd-confirm-budget-reservation + inv-confirmation-requires-active-reservation."
+		antiTerms: [{
+			term:          "Aprovação Orçamentária"
+			clarification: "A aprovação (Gate de Cobertura: saldo + alçada) acontece na RESERVA, fase 1, no portão. Efetivação é a fase 2 — ancora o commitment à reserva já aprovada, sem re-rodar o gate."
+		}, {
+			term:          "Pagamento"
+			clarification: "Efetivação opera no plano orçamentário (fase do Comprometimento). Pagamento é execução financeira em FCE — downstream, com cadência própria."
+		}]
+		relatedTerms: ["term-comprometimento-orcamentario", "term-gate-de-cobertura", "term-budget-approved", "term-liberacao-de-comprometimento"]
+		layerMapping: {
+			codeTerm: "BudgetReservationConfirmation"
+			uiLabel:  "Efetivação"
+		}
+	}, {
 		code:       "term-fracionamento"
 		name:       "Fracionamento"
 		termEn:     "Fragmentation"
@@ -286,5 +305,5 @@ glossary: artifact_schemas.#Glossary & {
 		relatedTerms: ["term-alcada", "term-aprovacao-orcamentaria"]
 	}]
 
-	rationale: "UL de BDG organiza-se em torno do conceito-âncora Cobertura Orçamentária e seu mecanismo (Gate de Cobertura): unidade canônica de comprometimento (Centro de Custo) com seus inputs numéricos (Saldo Disponível, Limite de Centro de Custo) e regra de autorização (Alçada — preservada como loanword sem tradução); o processo (Aprovação Orçamentária) com seus commands de entrada (Aprovar/Rejeitar Cobertura Orçamentária) e trio canônico de eventos de saída (BudgetApproved spine para DLV, BudgetRejected, BudgetCommitmentReleased — últimos dois pendentes de formalização cross-BC mas modelados como UL terms para preservar paralelismo); o efeito persistente (Comprometimento Orçamentário) e sua reversão (Liberação de Comprometimento, com termEn verboso 'Budget Commitment Release' para desambiguar de CMT compromisso); e o vetor adversarial canônico (Fracionamento) elevado a termo para visibilidade na UL. Termos universais financeiros (pagamento, despesa, conta contábil) NÃO entram — são tratados como antiTerms para fortalecer fronteiras com FCE, contabilidade e TCM. Estados de aprovação (pendente, aprovada, rejeitada, liberada) NÃO viram terms separados per anti-fragmentação — são derivados do lifecycle de Comprometimento Orçamentário. Queries surfaces (QueryBudgetApprovalStatus, QueryCostCenterAvailability) NÃO viram terms — são service-contract concerns consistentes com pattern dos 3 exemplos. Vocabulary respeita convenções brasileiras de controladoria (Centro de Custo, Saldo Disponível, Limite, Alçada, Comprometimento, Aprovação, Liberação, Fracionamento, Cobertura) com loanword justificada onde inglês perderia precisão (Alçada). domainModelRefs permanecem vazios — o domain-model.cue de BDG já existe; o preenchimento dos refs é trabalho futuro."
+	rationale: "UL de BDG organiza-se em torno do conceito-âncora Cobertura Orçamentária e seu mecanismo (Gate de Cobertura): unidade canônica de comprometimento (Centro de Custo) com seus inputs numéricos (Saldo Disponível, Limite de Centro de Custo) e regra de autorização (Alçada — preservada como loanword sem tradução); o processo (Aprovação Orçamentária) com seus commands de entrada (Aprovar/Rejeitar Cobertura Orçamentária) e trio canônico de eventos de saída (BudgetApproved spine para DLV, BudgetRejected, BudgetCommitmentReleased — últimos dois pendentes de formalização cross-BC mas modelados como UL terms para preservar paralelismo); o efeito persistente (Comprometimento Orçamentário, vivendo o two-phase reserved→confirmed per adr-174/WI-153), sua efetivação (Efetivação de Reserva — a fase 2, ancoragem do commitment aceito à reserva do portão) e sua reversão (Liberação de Comprometimento, com termEn verboso 'Budget Commitment Release' para desambiguar de CMT compromisso); e o vetor adversarial canônico (Fracionamento) elevado a termo para visibilidade na UL. Termos universais financeiros (pagamento, despesa, conta contábil) NÃO entram — são tratados como antiTerms para fortalecer fronteiras com FCE, contabilidade e TCM. Estados de aprovação (pendente, aprovada, rejeitada, liberada) NÃO viram terms separados per anti-fragmentação — são derivados do lifecycle de Comprometimento Orçamentário. Queries surfaces (QueryBudgetApprovalStatus, QueryCostCenterAvailability) NÃO viram terms — são service-contract concerns consistentes com pattern dos 3 exemplos. Vocabulary respeita convenções brasileiras de controladoria (Centro de Custo, Saldo Disponível, Limite, Alçada, Comprometimento, Aprovação, Liberação, Fracionamento, Cobertura) com loanword justificada onde inglês perderia precisão (Alçada). domainModelRefs permanecem vazios — o domain-model.cue de BDG já existe; o preenchimento dos refs é trabalho futuro."
 }

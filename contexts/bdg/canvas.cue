@@ -140,28 +140,28 @@ canvas: artifact_schemas.#Canvas & {
 		inbound: [{
 			type:            "command-handler"
 			interactionMode: "sync"
-			trigger:         "Avaliação determinística conclui que compromisso tem cobertura e alçada satisfeitas, OU supervisor aprova exceção dentro do escopo de governance."
+			trigger:         "Aprovação de requisição de compra no portão (p2p cmd-approve-purchase, adr-174) solicita reserva de cobertura — Gate determinístico (saldo + alçada) no ato, PRÉ-pedido; OU supervisor aprova exceção dentro do escopo de governance."
 			command:         "ApproveBudget"
-			resultingEvents: ["BudgetApproved"]
-			description:     "Gate de cobertura — invariante central do BDG. Sync porque downstream (DLV) precisa de decisão determinística antes de progredir. Comprometimento é registrado contra centro de custo no momento da aprovação. BudgetApproved é o sinal canônico publicado externamente."
+			resultingEvents: ["CoverageReserved"]
+			description:     "Gate de cobertura — invariante central do BDG, invocado no PORTÃO (fase 1 do two-phase adr-174/WI-153). Sync porque o portão (p2p) precisa de decisão determinística no ato da aprovação da requisição. Comprometimento nasce em status=reserved keyed por requisitionRef; CoverageReserved é o fato da fase 1. A efetivação (BudgetApproved, spine DLV) acontece na fase 2 via policy."
 		}, {
 			type:            "command-handler"
 			interactionMode: "sync"
-			trigger:         "Avaliação determinística conclui que compromisso não tem cobertura (saldo insuficiente, centro de custo inválido, alçada excedida sem aprovação supervisora)."
+			trigger:         "Avaliação determinística conclui que a requisição não tem cobertura (saldo insuficiente, centro de custo inválido, alçada excedida sem aprovação supervisora) — caminho canônico é a fase 1 (portão, per adr-174)."
 			command:         "RejectBudget"
 			resultingEvents: ["BudgetRejected"]
-			description:     "Decisão terminal de rejeição com motivo estruturado. Sync porque CMT precisa do resultado para atualizar estado do compromisso. Rejeição não cancela o compromisso em CMT — apenas sinaliza ausência de cobertura; CMT decide consequência. Publicação de BudgetRejected para CMT/DRC pendente de formalização no context-map (oq-bdg-2)."
+			description:     "Decisão terminal de rejeição com motivo estruturado. Sync porque o p2p precisa do resultado no ato da aprovação (a requisição permanece triaged; escalada supervisionada do bdg). Rejeição não cancela a requisição — apenas sinaliza ausência de cobertura; a consequência é do portão. Publicação de BudgetRejected para CMT/DRC pendente de formalização no context-map (oq-bdg-2)."
 		}, {
 			type:          "event-consumer"
 			sourceContext: "cmt"
 			event:         "CommitmentAccepted"
-			reaction:      "Inicia processo de aprovação orçamentária. Agente identifica centro de custo aplicável a partir do compromisso, consulta saldo disponível e alçada, executa gate determinístico."
-			description:   "Sinal canônico de entrada do commitment lifecycle no escopo de BDG. Spine commitment-lifecycle no context-map (cmt-to-bdg, async)."
+			reaction:      "EFETIVA a reserva feita no portão (reserved → confirmed, per adr-174/WI-153): o ACL enriquece requisitionRef (commitment → purchaseOrderRef → requisitionRef), a policy emite ConfirmBudgetReservation, o CommitmentId ancora à reserva e BudgetApproved publica (spine DLV). O Gate NÃO roda aqui — rodou na fase 1. Reserva ausente → escalada supervisionada (inv-confirmation-requires-active-reservation)."
+			description:   "Sinal canônico de entrada do commitment lifecycle no escopo de BDG — trigger da fase 2 do two-phase. Spine commitment-lifecycle no context-map (cmt-to-bdg, async)."
 		}, {
 			type:        "query-surface"
 			query:       "QueryBudgetApprovalStatus"
 			returnType:  "BudgetApprovalStatus"
-			description: "Retorna estado de aprovação orçamentária de um CommitmentId — pendente, aprovado, rejeitado, liberado — com motivo estruturado e centro de custo associado. Consumido por CMT para visibilidade pós-formalização e por DRC quando disputa referencia compromisso aprovado."
+			description: "Retorna estado de cobertura por requisitionRef (fase 1 — o lookup do portão p2p, per adr-174/WI-153) OU CommitmentId (pós-efetivação) — pending, reserved, confirmed, rejected, released — com motivo estruturado, centro de custo e budgetCommitmentId associados. Consumido pelo p2p no portão (inv-approval-requires-coverage-reservation), por CMT para visibilidade pós-formalização e por DRC quando disputa referencia compromisso."
 		}, {
 			type:        "query-surface"
 			query:       "QueryCostCenterAvailability"
@@ -170,25 +170,33 @@ canvas: artifact_schemas.#Canvas & {
 		}]
 		outbound: [{
 			type:        "event-publisher"
-			trigger:     "Gate de cobertura aprovado — saldo verificado, alçada satisfeita, comprometimento registrado contra centro de custo."
+			trigger:     "Reserva EFETIVADA (fase 2 do two-phase adr-174) — CommitmentAccepted ancorado ao comprometimento reservado no portão; reserved → confirmed."
 			event:       "BudgetApproved"
 			consumers: ["dlv"]
-			description: "Sinal canônico de progressão no commitment lifecycle. DLV consome para habilitar verificação de execução. Spine commitment-lifecycle no context-map (bdg-to-dlv, async)."
+			description: "Sinal canônico de progressão no commitment lifecycle — contrato INTOCADO pelo re-papel (keyed por CommitmentId, emitido agora no momento certo: pós-commitment). DLV consome para habilitar verificação de execução. Spine commitment-lifecycle no context-map (bdg-to-dlv, async)."
 		}]
 		rationale: """
-			Inbound: 2 commands (aprovação sync + rejeição sync), 1
-			event consumer (CMT — CommitmentAccepted como spine), 2
-			query surfaces (status de aprovação por CommitmentId +
-			disponibilidade por centro de custo). Outbound: 1 event
-			publisher (BudgetApproved spine para DLV). Per PG canvas
-			tq-cv-02: TODA relation cross-checked com strategic/
-			context-map.cue. Apenas 2 relations declaradas em
-			context-map (cmt-to-bdg + bdg-to-dlv) — modeladas como
-			factual. Eventos secundários (BudgetRejected para CMT/DRC,
+			Inbound: 2 commands (reserva no portão sync + rejeição
+			sync — invocador é o p2p per adr-174/WI-153; a efetivação
+			é command interno de policy, carve-out tq-dm-12), 1 event
+			consumer (CMT — CommitmentAccepted como trigger da
+			EFETIVAÇÃO, fase 2), 2 query surfaces (status de cobertura
+			por requisitionRef/CommitmentId + disponibilidade por
+			centro de custo). Outbound: 1 event publisher
+			(BudgetApproved efetivação, spine para DLV com contrato
+			intocado). Per PG canvas tq-cv-02: TODA relation
+			cross-checked com strategic/context-map.cue. 3 relations
+			declaradas em context-map (cmt-to-bdg + bdg-to-dlv +
+			bdg-to-p2p QUERY-ONLY per WI-153/adr-120 — o portão é
+			call-site sync em Phase 0) — modeladas como factual.
+			Eventos secundários (CoverageReserved para p2p — ANCHOR do
+			cache event-fed futuro, decisão do founder no STOP do
+			sc-cm-07: a aresta de evento fecharia ciclo e o caminho
+			operacional é a query; BudgetRejected para CMT/DRC,
 			BudgetCommitmentReleased para CMT, CommitmentStateChanged
-			consumption) referenciam relations não-formalizadas;
-			ficam em openQuestions (oq-bdg-2) com flag explícito,
-			não em communication.
+			consumption) referenciam relations não-formalizadas; ficam
+			como anchors com flag explícito (oq-bdg-2 + fatia futura do
+			cache), não em communication.
 			"""
 	}
 
