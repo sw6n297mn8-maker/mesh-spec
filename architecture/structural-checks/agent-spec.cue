@@ -85,7 +85,23 @@ structuralChecks: {
 			]
 		}
 		errorMessage: "agent-spec: building block '{id}' do domain-model do BC '{scope}' não está coberto pelo(s) agente(s) do BC nem excluído em scopeExclusions. Coevolua o agent-spec (operationalScope/actions) ou declare a exclusão consciente com rationale (critério de legitimidade: adr-175)."
-		rationale:    "adr-175: as fatias WI-151/152/153 materializaram building blocks sem coevoluir os agent-specs — drift silencioso agente↔modelo que o sc-ag-01 não vê (ele valida a direção agente→modelo). Um agente que ignora building blocks que existem opera com mapa desatualizado do próprio BC — risco operacional numa infra onde agentes operam sob governança. Born-warn (adr-097; precedente adr-117→123): promove a reject quando as higienes WI-154/WI-155 zerarem o baseline."
-		enforcement: "warn"
+		rationale:    "adr-175: as fatias WI-151/152/153 materializaram building blocks sem coevoluir os agent-specs — drift silencioso agente↔modelo que o sc-ag-01 não vê (ele valida a direção agente→modelo). Um agente que ignora building blocks que existem opera com mapa desatualizado do próprio BC — risco operacional numa infra onde agentes operam sob governança. Born-warn (adr-097; precedente adr-117→123): promove a reject quando as higienes WI-154/WI-155 zerarem o baseline. Promovido a reject em adr-176; baseline zerado pelas higienes WI-154/WI-155 (61→37→0, 2026-07-13)."
+		enforcement: "reject"
+	}
+
+	"sc-ag-03": artifact_schemas.#StructuralCheck & {
+		id:           "sc-ag-03"
+		title:        "Todo BC com domain-model tem agent-spec (par de diretório)"
+		artifactType: "agent-spec"
+		description:  "Para cada contexts/<bc>/domain-model.cue deve existir contexts/<bc>/agents/_meta.cue (o marcador do diretório de agentes do BC). Fecha a janela estrutural do sc-ag-02: ele itera INSTÂNCIAS de agent-spec, então um BC que ganhe domain-model SEM agente algum não seria visitado — o catálogo operável ficaria sem operador declarado e sem gate que o acuse. Pareamento por filename wildcard <bc>, mesmo mecanismo do sc-apr-02. BCs canvas-only (drc, scf hoje) ficam fora por construção — sem domain-model, não há source para parear."
+		kind:         "directory-pair-coverage"
+		rule: {
+			sourceGlob:    "contexts/*/domain-model.cue"
+			targetGlob:    "contexts/*/agents/_meta.cue"
+			bidirectional: false
+		}
+		errorMessage: "agent-spec: o BC '{source}' tem domain-model mas NÃO tem contexts/<bc>/agents/ (par _meta.cue ausente). Todo BC com catálogo operável precisa de agent-spec (adr-175: o agente viaja com o modelo) — crie o agente da fatia que criou o domain-model, per canvas.ownership.domainAgentSpec e cascade PG-A."
+		rationale:    "adr-176: completa a catraca do sc-ag-02 — com o gate de cobertura em reject, a única forma de um catálogo operável escapar da lei seria nascer num BC sem agente algum (o sc-ag-02 não visita o que não existe). Este par fecha o cenário por construção. Born-green (12/12 pares no flip, 2026-07-13) e nasce reject DIRETO — primeira ocorrência de born-reject no repo, extensão consciente do precedente sc-ag-01/adr-114 (que nasceu warn-default e foi promovido em ADR separado imediato), declarada no adr-176: o born-warn do adr-097 existe para anunciar baseline sujo, e aqui não há dívida nem janela de anúncio necessária."
+		enforcement: "reject"
 	}
 }
