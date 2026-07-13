@@ -81,18 +81,21 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 			description:       "Receber e registrar a cotação do fornecedor no processo de RFQ aberto."
 			boundedContextRef: "ssc"
 			commandRefs: ["cmd-submit-quotation"]
+			eventRefs: ["evt-quotation-submitted"]
 			termRefs: ["term-rfq"]
 		}
-		rationale: "Único passo do recorte com o fornecedor como ator agindo; o comando existe mas NÃO publica evento — a submissão da cotação não vira fato observável."
+		rationale: "Único passo do recorte com o fornecedor como ator agindo. No exame original (2026-07-12) o comando existia mas NÃO publicava evento — a submissão não virava fato observável; FECHADO em 2026-07-13 pelo WI-152: evt-quotation-submitted (internal — fato intra-BC; a confidencialidade competitiva veta evento público, não o fato existir) torna a submissão observável e alimenta o mapa de cotações."
 	}, {
 		actorRef: "sh-01"
 		action:   "O comprador consolida o mapa de cotações — no mínimo três preços lado a lado — e compara preço, prazo de entrega, condições de pagamento e qualidade."
 		workItem: {
 			description:       "Apresentar ao comprador a comparação consolidada das cotações recebidas no RFQ para suportar a escolha."
 			boundedContextRef: "ssc"
-			termRefs: ["term-equalizacao-tco"]
+			readModelRefs: ["prj-quotation-map"]
+			queryRefs: ["qry-quotation-map"]
+			termRefs: ["term-equalizacao-tco", "term-mapa-de-cotacoes"]
 		}
-		rationale: "O 'mapa de cotações' é o instrumento central do comprador nas fontes; o modelo tem o conceito (equalização TCO como serviço interno) mas NENHUMA projection/query consultável — lacuna de leitura no coração da jornada."
+		rationale: "O 'mapa de cotações' é o instrumento central do comprador nas fontes. No exame original (2026-07-12) o modelo tinha o conceito (equalização TCO como serviço interno) mas NENHUMA projection/query consultável — lacuna de leitura no coração da jornada; FECHADA em 2026-07-13 pelo WI-152: prj-quotation-map/qry-quotation-map materializam a comparação consolidada consultável (viva durante a janela de RFQ, carimbada pela decisão), refs deste passo."
 	}, {
 		actorRef: "sh-01"
 		action:   "O comprador negocia com os melhores colocados: não aceita o primeiro preço, busca reduzir o custo de aquisição e, principalmente, melhorar as condições de pagamento — o fluxo de caixa é o que evita a obra quebrar; havendo cronograma e espaço no canteiro, negocia volume com entregas programadas."
