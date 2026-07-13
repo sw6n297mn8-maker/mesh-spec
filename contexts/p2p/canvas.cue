@@ -248,6 +248,12 @@ canvas: artifact_schemas.#Canvas & {
 			description:   "Cache derivado de 3 SSC events ACL é fast path; sync query é fallback quando authorityRef não está no cache (e.g., evento ainda não consumido). Latência tolerada porque autoridade gate é precondition, não loop crítico."
 		}, {
 			type:          "query-dependency"
+			targetContext: "bdg"
+			query:         "QueryBudgetApprovalStatus"
+			purpose:       "PORTÃO adr-174: no cmd-approve-purchase, P2P confirma a reserva de cobertura (status=reserved, keyed por requisitionRef per WI-153) via interação sync com o Gate de Cobertura do bdg — pré-condição inv-approval-requires-coverage-reservation."
+			description:   "Espelho estrutural do acoplamento do portão (adr-055 decisão 5, mesmo shape npm↔idc), materializado no WI-153 junto com a chave por requisição — a entry não nasceu no WI-151 para não cristalizar contrato sobre surface keyed por CommitmentId (a chave errada que o WI-153 corrigiu). Cross-checked com strategic/context-map.cue (bdg-to-p2p, sync query-only per adr-120)."
+		}, {
+			type:          "query-dependency"
 			targetContext: "ctr"
 			query:         "QueryContractStatus"
 			purpose:       "PHASE 1+ FORWARD-REF — NÃO operacional Phase 0. Quando materializar (oq-p2p-1): pós-StrategicAwardCompleted, P2P consulta CTR para verificar se ContractActivated foi emitido (authority bumped advisory→hard). Phase 0: query NÃO usado (CTR contract status query ainda não existe); P2P opera sob advisory binding apenas."
@@ -270,11 +276,13 @@ canvas: artifact_schemas.#Canvas & {
 			+ QueryPurchaseOrderById para CMT/CTR cross-check).
 			Outbound: 2 event-publishers (PurchaseOrderEmitted hard
 			binding CMT + PurchaseOrderCancelled como withdrawal/
-			negative signal pre-CMT) + 2 query-dependencies
+			negative signal pre-CMT) + 3 query-dependencies
 			(QuerySourcingDecision SSC operacional Phase 0 como
-			fallback ao cache + QueryContractStatus CTR PHASE 1+
-			FORWARD-REF para authority bump advisory→hard, NÃO
-			operacional Phase 0). PO confidentiality preservada via
+			fallback ao cache + QueryBudgetApprovalStatus BDG — o
+			PORTÃO adr-174: confirmação sync da reserva na aprovação
+			da requisição, chave por requisição per WI-153 +
+			QueryContractStatus CTR PHASE 1+ FORWARD-REF para
+			authority bump advisory→hard, NÃO operacional Phase 0). PO confidentiality preservada via
 			separation: cotações + comparações vivem em SSC; P2P
 			emite PO supplier-specific (cross-supplier invisibility é
 			design constraint do agente — supplier API materializa

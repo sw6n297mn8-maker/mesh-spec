@@ -257,7 +257,7 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "CMT publica CommitmentAccepted; BDG consome para iniciar aprovação orçamentária."
+			description:       "CMT publica CommitmentAccepted; BDG consome para EFETIVAR a reserva de cobertura feita no portão (reserved → confirmed, per adr-174/WI-153 — o Gate de Cobertura roda na aprovação da requisição, pré-pedido)."
 			rationale:         "Spine do commitment lifecycle — compromisso formalizado precede verificação de cobertura."
 			communication: {type: "async"}
 			events: ["CommitmentAccepted"]
@@ -275,6 +275,18 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			communication: {type: "async"}
 			events: ["BudgetApproved"]
 			flowRefs: ["commitment-lifecycle"]
+		},
+		{
+			code:              "bdg-to-p2p"
+			source:            {kind: "bounded-context", context: "bdg"}
+			target:            {kind: "bounded-context", context: "p2p"}
+			direction:         "upstream-downstream"
+			upstreamPattern:   "open-host-service"
+			downstreamPattern: "anti-corruption-layer"
+			description:       "BDG fornece a reserva de cobertura do portão (adr-174): P2P confirma a reserva via QueryBudgetApprovalStatus (sync, keyed por requisitionRef) no ato da aprovação da requisição. Acoplamento QUERY-ONLY em Phase 0 — call-site operacional per adr-120, não dependência arquitetural cross-BC; o consumo assíncrono de CoverageReserved (cache event-fed no p2p) é anchor de fatia futura, que resolverá a aciclicidade da aresta de evento com kind próprio + ADR."
+			rationale:         "O espelho estrutural do acoplamento do portão, materializado no WI-153 (a entry não nasceu no WI-151 para não cristalizar contrato sobre surface keyed por CommitmentId — a chave errada que o WI-153 corrigiu). Cobertura orçamentária é owned pelo bdg (upstream); p2p consome como pré-condição da aprovação (inv-approval-requires-coverage-reservation) via query sync per adr-055. QUERY-ONLY por decisão do founder no STOP do sc-cm-07: a aresta de evento fecharia o ciclo bdg→cmt→p2p→bdg no grafo de aciclicidade — e em Phase 0 o portão É uma query síncrona (o p2p pergunta 'tem cobertura?' e segue); a aresta de evento seria o futuro que ainda não chegou (precedente literal: ciclo fce↔tcm resolvido assim, adr-120). Nota de forma: o code segue o padrão source=upstream do repo (idc-to-npm, cmt-to-bdg) — o task-spec WI-153 rotulou coloquialmente 'p2p-to-bdg' pela direção da dependência; a relação canônica nomeia o fornecedor primeiro."
+			communication: {type: "sync"}
+			queries: ["QueryBudgetApprovalStatus"]
 		},
 		{
 			code:              "dlv-to-inv"
