@@ -183,7 +183,8 @@ structureIndex: {
 				"architecture/adrs/adr-174-approval-as-gate-before-order.cue",
 				"architecture/adrs/adr-175-agent-model-coverage-gate.cue",
 				"architecture/adrs/adr-176-promote-agent-coverage-check-to-reject.cue",
-				"architecture/adrs/adr-177-requisition-quotation-link-and-price-provenance-gate.cue"
+				"architecture/adrs/adr-177-requisition-quotation-link-and-price-provenance-gate.cue",
+				"architecture/adrs/adr-178-journey-start-surface-kit-and-net-new-origin.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -240,6 +241,7 @@ structureIndex: {
 				"contexts/cmt/aggregate-manifests/am-commitment.cue",
 				"contexts/dlv/aggregate-manifests/am-verification.cue",
 				"contexts/fce/aggregate-manifests/am-payment.cue",
+				"contexts/p2p/aggregate-manifests/am-purchase-requisition.cue",
 				"contexts/rew/aggregate-manifests/am-risk-evaluation.cue"
 			],
 			"schema": "#AggregateManifest"
@@ -462,6 +464,7 @@ structureIndex: {
 				"contexts/cmt/port-manifest.cue",
 				"contexts/dlv/port-manifest.cue",
 				"contexts/fce/port-manifest.cue",
+				"contexts/p2p/port-manifest.cue",
 				"contexts/rew/port-manifest.cue"
 			],
 			"schema": "#PortManifest"
@@ -633,7 +636,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-077-multi-identifier-organization.cue",
 				"architecture/deferred-decisions/def-078-approval-order-gate-vs-consequence.cue",
 				"architecture/deferred-decisions/def-079-requisition-quote-link-and-amount-reconciliation.cue",
-				"architecture/deferred-decisions/def-080-structure-command-actor-and-invariant-enforcement.cue"
+				"architecture/deferred-decisions/def-080-structure-command-actor-and-invariant-enforcement.cue",
+				"architecture/deferred-decisions/def-081-requisition-origin-prefill-when-schedule-becomes-system-input.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
