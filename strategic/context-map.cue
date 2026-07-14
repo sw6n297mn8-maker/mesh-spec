@@ -762,10 +762,11 @@ meshContextMap: artifact_schemas.#ContextMap & {
 			direction:         "upstream-downstream"
 			upstreamPattern:   "open-host-service"
 			downstreamPattern: "anti-corruption-layer"
-			description:       "SSC publica decisão de sourcing e fornecedores selecionados; P2P consome para direcionar emissão de pedidos aos fornecedores aprovados."
-			rationale:         "Decisão estratégica de sourcing precede execução de compra. SSC seleciona fornecedor e condições; P2P executa o pedido sob essas condições. P2P traduz decisão de sourcing para linguagem de procurement via ACL."
-			communication: {type: "async"}
+			description:       "SSC publica decisão de sourcing e fornecedores selecionados; P2P consome para direcionar emissão de pedidos aos fornecedores aprovados. Hybrid: P2P também consulta SSC sincronamente — QuerySourcingDecision (fallback do gate de authority na emissão, cache miss) e QueryQuotationMap (2º braço do portão de aprovação: resolução da cotação vencedora por sourcingDecisionRef, adr-177)."
+			rationale:         "Decisão estratégica de sourcing precede execução de compra. SSC seleciona fornecedor e condições; P2P executa o pedido sob essas condições. P2P traduz decisão de sourcing para linguagem de procurement via ACL. Hybrid espelha npm-to-ssc: reação assíncrona aos fatos de decisão + consulta síncrona no momento do gate. As queries são call-site operacional FORA do grafo de dependência (adr-120; sc-cm-07 avalia a aresta pelos events, que permanecem) — a evolução async→hybrid NÃO altera a aresta nem a aciclicidade. QuerySourcingDecision já era consumida pelo p2p (act-validate-authority) sem declaração no mapa — a entry quita esse drift (adr-177)."
+			communication: {type: "hybrid"}
 			events: ["SourcingDecisionMade", "PreferredSupplierDesignated", "StrategicAwardCompleted"]
+			queries: ["QueryQuotationMap", "QuerySourcingDecision"]
 		},
 		{
 			code:              "ssc-to-ctr"

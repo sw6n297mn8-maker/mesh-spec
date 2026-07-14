@@ -6,7 +6,8 @@ def079: artifact_schemas.#DeferredDecision & {
 	id:     "def-079"
 	title:  "Elo formal requisição↔cotação (p2p↔ssc) e reconciliação do amount aprovado vs valor da cotação vencedora (fonte-de-verdade no ssc)"
 	date:   "2026-07-12"
-	status: "open"
+	status:     "resolved" // decisão do founder 2026-07-13: fatia p2p↔ssc aberta e consumada — direção (ii) p2p carrega o elo, exatamente como o trigger manual-review previa
+	resolvedBy: "architecture/adrs/adr-177-requisition-quotation-link-and-price-provenance-gate.cue"
 
 	description: """
 		O portão de aprovação (adr-174/WI-151) carrega amount como CAMPO DE

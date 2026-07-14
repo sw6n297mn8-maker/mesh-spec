@@ -120,6 +120,7 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-purchase-order-lifecycle-public-events",
 			"inv-requisition-completeness",
 			"inv-approval-requires-coverage-reservation",
+			"inv-approval-amount-matches-winning-quotation",
 			"inv-emission-requires-approved-requisition",
 		]
 		projections: [
@@ -265,7 +266,7 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 	}, {
 		code:        "act-process-purchase-approval"
 		name:        "Process Purchase Approval"
-		description: "Processar a decisão de aprovação do gestor por Alçada sobre requisição triada — o PORTÃO pré-pedido (adr-174): roda a interação sync com o Gate de Cobertura do bdg (cmd-approve-budget keyed por requisitionRef, fase 1 do two-phase) e verifica reserva confirmada via QueryBudgetApprovalStatus (status=reserved — inv-approval-requires-coverage-reservation, padrão adr-055); com reserva confirmada E decisão approve do gestor, processa cmd-approve-purchase (triaged→approved, evt-purchase-approved — amount com procedência da cotação vencedora do ssc, dívida do elo formal em def-079); decisão reject processa a transição triaged→rejected (evt-purchase-approval-rejected); falha do Gate de Cobertura NÃO transiciona (requisição permanece triaged; a escalada supervisionada é do bdg). A DECISÃO é humana (gestor por Alçada — papéis intra-org pendentes em def-076); o agente executa a interação e o processamento. Phase 0 propose-and-wait. Impact: state-change + cross-bc (interação sync com bdg per adr-055)."
+		description: "Processar a decisão de aprovação do gestor por Alçada sobre requisição triada — o PORTÃO DUPLO pré-pedido (adr-174 + adr-177): (braço 1, cobertura) roda a interação sync com o Gate de Cobertura do bdg (cmd-approve-budget keyed por requisitionRef, fase 1 do two-phase) e verifica reserva confirmada via QueryBudgetApprovalStatus (status=reserved — inv-approval-requires-coverage-reservation, padrão adr-055); (braço 2, procedência de preço) resolve a cotação vencedora referenciada por sourcingDecisionRef via QueryQuotationMap (sync, call-site fora do grafo per adr-120) e verifica o gate determinístico inv-approval-amount-matches-winning-quotation (decisão existe e concluiu; vencedor resolvível; currency match; unitPrice × quantity == amount — quantity FIRME declarada pelo gestor, NUNCA estimatedVolume); com os DOIS braços verdes E decisão approve do gestor, processa cmd-approve-purchase (triaged→approved, evt-purchase-approved carregando sourcingDecisionRef + quantity — o elo formal requisição↔cotação existe no disco, def-079 resolvido pelo adr-177); decisão reject processa a transição triaged→rejected (evt-purchase-approval-rejected); falha de QUALQUER braço NÃO transiciona (requisição permanece triaged; braço bdg: escalada supervisionada do bdg; braço ssc: divergência de valor escala aqui; vencedor ambíguo em preferred/strategic multi-supplier → ambiguous-case). A DECISÃO é humana (gestor por Alçada — papéis intra-org pendentes em def-076); o agente executa as interações e o processamento. Phase 0 propose-and-wait. Impact: state-change + cross-bc (interações sync com bdg e ssc per adr-055)."
 		category:        "mutation"
 		autonomyLevel:   "propose-and-wait"
 		inputTrustLevel: "trusted-internal"
@@ -274,18 +275,21 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"evt-purchase-approved",
 			"evt-purchase-approval-rejected",
 			"inv-approval-requires-coverage-reservation",
+			"inv-approval-amount-matches-winning-quotation",
 			"agg-purchase-requisition",
 			"prj-pending-requisitions",
 		]
 		preconditions: [
 			"Requisição em state=triaged (via prj-pending-requisitions)",
 			"Gate de Cobertura do bdg acessível via interação sync (cmd-approve-budget + QueryBudgetApprovalStatus)",
-			"Decisão do gestor registrada (approve | reject) — a decisão é humana, o agente processa",
+			"Mapa de cotações do ssc acessível via interação sync (QueryQuotationMap — resolução da cotação vencedora por sourcingDecisionRef, 2º braço adr-177)",
+			"Decisão do gestor registrada (approve | reject) com amount, quantity FIRME e sourcingDecisionRef declarados — a decisão é humana, o agente processa",
 		]
 		postconditions: [
-			"Decision approve + reserva reserved confirmada: triaged→approved + evt-purchase-approved emitido (coverageReservationRef vinculado)",
+			"Decision approve + reserva reserved confirmada + procedência de preço verificada (cotação vencedora resolvida; currency match; unitPrice × quantity == amount): triaged→approved + evt-purchase-approved emitido (coverageReservationRef + sourcingDecisionRef + quantity vinculados)",
 			"Decision reject: triaged→rejected + evt-purchase-approval-rejected emitido",
-			"Falha do gate (saldo/alçada): NENHUMA transição — requisição permanece triaged; escalada supervisionada pertence ao bdg",
+			"Falha de qualquer braço do portão (braço bdg: saldo/alçada; braço ssc: decisão inexistente/não-concluída, divergência de valor ou currency mismatch): NENHUMA transição — requisição permanece triaged; escalada supervisionada (braço bdg pertence ao bdg; braço ssc escala aqui)",
+			"Cotação vencedora ambígua (preferred/strategic multi-supplier): NENHUMA transição — escalada ambiguous-case (espelho do padrão multi-supplier da emissão)",
 		]
 	}, {
 		code:        "act-cancel-requisition"
@@ -462,7 +466,7 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 		rationale:   "Vetores adversariais sh-01 (originadora) + sh-02 (fornecedor) + sh-05 (allocation bias) per canvas incentiveAnalysis. Fragmentation + sustained drift + renegotiation patterns são padrões conhecidos. Detecção exige decisão humana sobre consequência: pausa de autonomia para proponente, agregação retroativa, OR ajuste de regra SSC. Coordenação cross-BC com BDG (Fracionamento bidirecional) pendente Phase 0 (oq-p2p-6)."
 	}, {
 		category:    "ambiguous-case"
-		description: "Multi-supplier authority cobertura unclear (claimedAuthorityRef cobre supplier mas allocationPolicy split entre múltiplos sem percentage match para volume requerido — split-by-percentage 60/40 e PO requesta volume incompatível com qualquer percentage); RFQScope match ambiguous (categoryRef inferido vs declarado divergem; supplier qualificado em múltiplas categorias); decisionType strategic-award Phase 0 advisory binding (operações sob authority que vai ter hard binding pós-CTR ContractActivated PHASE 1+ — deve emit como advisory ou aguardar CTR?)."
+		description: "Multi-supplier authority cobertura unclear (claimedAuthorityRef cobre supplier mas allocationPolicy split entre múltiplos sem percentage match para volume requerido — split-by-percentage 60/40 e PO requesta volume incompatível com qualquer percentage); cotação vencedora ambígua no 2º braço do portão de aprovação (sourcingDecisionRef aponta decisão preferred/strategic multi-supplier — inv-approval-amount-matches-winning-quotation NÃO resolve vencedor único, adr-177); RFQScope match ambiguous (categoryRef inferido vs declarado divergem; supplier qualificado em múltiplas categorias); decisionType strategic-award Phase 0 advisory binding (operações sob authority que vai ter hard binding pós-CTR ContractActivated PHASE 1+ — deve emit como advisory ou aguardar CTR?)."
 		rationale:   "Caso intermediário entre processo padrão e supervisedDecision explícita. Ambiguidade exige julgamento humano sobre como interpretar cobertura — fora do escopo aplicador do agente. Strategic-award Phase 0 advisory é openQuestion oq-p2p-1 (CTR contract activation bridge) — durante janela de bridge, decisões sobre emit timing são supervised."
 	}, {
 		category:    "unclassifiable-anomaly"
@@ -497,7 +501,7 @@ p2pPrimaryAgent: artifact_schemas.#AgentSpec & {
 			rationale:    "Envelope p2p-primary-agent.governance.cue (forward-ref Phase 5 par sequencial) declara autonomyOverrides atuais (Phase 0: 1 mutation propose-and-wait act-emit-purchase-order com promotion path + 1 mutation hard-supervised act-cancel-purchase-order; 2 escalations collect-and-report act-detect-allocation-drift + act-detect-fragmentation-pattern; 2 validations execute-and-log; 2 queries execute-and-log), escalationRouting (channel + SLA + recipient por category — Phase 0 founder only per ADR-037 pre-PMF), blastRadiusCaps (POs/period proporcionais por categoryRef + amount thresholds), calibration (promotion/regression criteria — métricas po-emission-latency + supervisor-override-rate + escalation-rate por category + allocation-drift-frequency), driftDetection + failureHandling (rollback automático em violation rate). Agent consulta envelope para resolver QUANDO escalar (do spec) → COMO escalar (do envelope)."
 		}, {
 			artifactType: "context-map"
-			rationale:    "P2P integra cross-BC com 2 dependências OPERATIONAL Phase 0 (SSC via QuerySourcingDecision sync + 3 published decision events ACL — authority feed; CMT via 2 published events P2P PurchaseOrderEmitted hard binding + PurchaseOrderCancelled withdrawal/negative signal) e 2 known-absent Phase 0 NÃO-operacionais (CTR via ContractActivated PHASE 1+ FORWARD-REF oq-p2p-1 — ctr-to-p2p relation NÃO operacional Phase 0 per Adj 3 founder canvas; NIM via PO data feed pendente paralelo oq-ssc-2 — fitnessSignals.poData feed não modelado Phase 0). Context map slice de relationships informa contracts ATIVOS (SSC/CMT) e identifica pendências de formalização explícitas como known-absent (oq-p2p-1/4/6 + oq-ssc-2/3/5), não como operational dependencies."
+			rationale:    "P2P integra cross-BC com 2 dependências OPERATIONAL Phase 0 (SSC via QuerySourcingDecision sync + QueryQuotationMap sync — 2º braço do portão de aprovação per adr-177 — + 3 published decision events ACL — authority feed; CMT via 2 published events P2P PurchaseOrderEmitted hard binding + PurchaseOrderCancelled withdrawal/negative signal) e 2 known-absent Phase 0 NÃO-operacionais (CTR via ContractActivated PHASE 1+ FORWARD-REF oq-p2p-1 — ctr-to-p2p relation NÃO operacional Phase 0 per Adj 3 founder canvas; NIM via PO data feed pendente paralelo oq-ssc-2 — fitnessSignals.poData feed não modelado Phase 0). Context map slice de relationships informa contracts ATIVOS (SSC/CMT) e identifica pendências de formalização explícitas como known-absent (oq-p2p-1/4/6 + oq-ssc-2/3/5), não como operational dependencies."
 			requiredSlices: ["relationships"]
 		}]
 		estimatedBudget: "heavy"

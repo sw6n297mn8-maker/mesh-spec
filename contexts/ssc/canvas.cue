@@ -201,7 +201,7 @@ canvas: artifact_schemas.#Canvas & {
 			type:        "query-surface"
 			query:       "QueryQuotationMap"
 			returnType:  "QuotationMap"
-			description: "Retorna o mapa de cotações por rfqId (com filtro por categoria) — cotações lado a lado ordenadas pela equalização TCO derivada, vencedor destacado quando a decisão existe, status da janela. Consumido por comprador (a comparação que suporta a escolha — passo do mapa da ds-buyer-procurement-journey, WI-152), supervisor e auditoria — consumidores INTRA-organização; NUNCA exposto a fornecedores (confidencialidade competitiva: os events de cotação são internal e não propagam cross-BC)."
+			description: "Retorna o mapa de cotações por rfqId (com filtro por categoria) — cotações lado a lado ordenadas pela equalização TCO derivada, vencedor destacado quando a decisão existe, status da janela. Consumido por comprador (a comparação que suporta a escolha — passo do mapa da ds-buyer-procurement-journey, WI-152), supervisor e auditoria — consumidores INTRA-organização — e por P2P no 2º braço do portão de aprovação (adr-177): resolução da cotação vencedora por sourcingDecisionRef para o gate de procedência de preço (inv-approval-amount-matches-winning-quotation; relação ssc-to-p2p hybrid no context-map). NUNCA exposto a fornecedores (confidencialidade competitiva: os events de cotação são internal e não propagam cross-BC; o consumo P2P é sistema-a-sistema no gate, nunca superfície de fornecedor)."
 		}]
 		outbound: [{
 			type:        "event-publisher"

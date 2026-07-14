@@ -182,7 +182,8 @@ structureIndex: {
 				"architecture/adrs/adr-173-scheme-qualified-legal-identity.cue",
 				"architecture/adrs/adr-174-approval-as-gate-before-order.cue",
 				"architecture/adrs/adr-175-agent-model-coverage-gate.cue",
-				"architecture/adrs/adr-176-promote-agent-coverage-check-to-reject.cue"
+				"architecture/adrs/adr-176-promote-agent-coverage-check-to-reject.cue",
+				"architecture/adrs/adr-177-requisition-quotation-link-and-price-provenance-gate.cue"
 			],
 			"schema": "#ADRBase"
 		},
