@@ -248,6 +248,12 @@ canvas: artifact_schemas.#Canvas & {
 			description:   "Cache derivado de 3 SSC events ACL é fast path; sync query é fallback quando authorityRef não está no cache (e.g., evento ainda não consumido). Latência tolerada porque autoridade gate é precondition, não loop crítico."
 		}, {
 			type:          "query-dependency"
+			targetContext: "ssc"
+			query:         "QueryQuotationMap"
+			purpose:       "2º braço do PORTÃO de aprovação (adr-177): no cmd-approve-purchase, P2P resolve a cotação vencedora referenciada por sourcingDecisionRef e verifica a procedência do preço (currency match + unitPrice × quantity == amount) — pré-condição inv-approval-amount-matches-winning-quotation."
+			description:   "Espelho estrutural do braço ssc do portão DUPLO (adr-055 — mesmo shape do braço bdg QueryBudgetApprovalStatus na entry acima). Query-only sync, call-site fora do grafo per adr-120. Cross-checked com strategic/context-map.cue (ssc-to-p2p, hybrid: events + queries per adr-177)."
+		}, {
+			type:          "query-dependency"
 			targetContext: "bdg"
 			query:         "QueryBudgetApprovalStatus"
 			purpose:       "PORTÃO adr-174: no cmd-approve-purchase, P2P confirma a reserva de cobertura (status=reserved, keyed por requisitionRef per WI-153) via interação sync com o Gate de Cobertura do bdg — pré-condição inv-approval-requires-coverage-reservation."
@@ -276,13 +282,16 @@ canvas: artifact_schemas.#Canvas & {
 			+ QueryPurchaseOrderById para CMT/CTR cross-check).
 			Outbound: 2 event-publishers (PurchaseOrderEmitted hard
 			binding CMT + PurchaseOrderCancelled como withdrawal/
-			negative signal pre-CMT) + 3 query-dependencies
+			negative signal pre-CMT) + 4 query-dependencies
 			(QuerySourcingDecision SSC operacional Phase 0 como
-			fallback ao cache + QueryBudgetApprovalStatus BDG — o
-			PORTÃO adr-174: confirmação sync da reserva na aprovação
-			da requisição, chave por requisição per WI-153 +
-			QueryContractStatus CTR PHASE 1+ FORWARD-REF para
-			authority bump advisory→hard, NÃO operacional Phase 0). PO confidentiality preservada via
+			fallback ao cache + QueryQuotationMap SSC — o 2º braço
+			do portão adr-177: resolução sync da cotação vencedora
+			por sourcingDecisionRef na aprovação +
+			QueryBudgetApprovalStatus BDG — o PORTÃO adr-174:
+			confirmação sync da reserva na aprovação da requisição,
+			chave por requisição per WI-153 + QueryContractStatus
+			CTR PHASE 1+ FORWARD-REF para authority bump
+			advisory→hard, NÃO operacional Phase 0). PO confidentiality preservada via
 			separation: cotações + comparações vivem em SSC; P2P
 			emite PO supplier-specific (cross-supplier invisibility é
 			design constraint do agente — supplier API materializa

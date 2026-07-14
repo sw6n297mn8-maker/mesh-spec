@@ -223,7 +223,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:        "evt-purchase-approved"
 		name:        "PurchaseApproved"
 		visibility:  "internal"
-		description: "Compra aprovada pelo gestor por Alçada COM reserva de cobertura confirmada pelo Gate de Cobertura do bdg (Saldo Disponível suficiente + Alçada satisfeita) — o PORTÃO pré-pedido per adr-174. A aprovação RESERVA cobertura no Centro de Custo (two-phase Reservation/Confirmation, ADR-C4-2.0 §2.0.8); o commitment aceito EFETIVA (re-papel bdg-side WI-153); o cancelamento LIBERA."
+		description: "Compra aprovada pelo gestor por Alçada COM reserva de cobertura confirmada pelo Gate de Cobertura do bdg (Saldo Disponível suficiente + Alçada satisfeita) E procedência de preço verificada contra a cotação vencedora do ssc (2º braço do portão, adr-177) — o PORTÃO DUPLO pré-pedido (adr-174 + adr-177). A aprovação RESERVA cobertura no Centro de Custo (two-phase Reservation/Confirmation, ADR-C4-2.0 §2.0.8); o commitment aceito EFETIVA (re-papel bdg-side WI-153); o cancelamento LIBERA."
 		rationale:   "O de-acordo do gestor que o setor de compras vive como pré-condição vira fato verificável do sistema — a divergência nº 1 do relatório da story morre aqui. Alçada e saldo são PRÉ-CONDIÇÃO da emissão, nunca reação ao pedido emitido (adr-174 decisão 1)."
 		fields: [{
 			kind:           "value-object-ref"
@@ -238,7 +238,17 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:           "value-object-ref"
 			name:           "amount"
 			valueObjectRef: "vo-money"
-			description:    "Valor aprovado — o valor da cotação vencedora do sourcing (ssc), reservado pelo Gate de Cobertura. Fonte-de-verdade do valor é a cotação no ssc; elo formal e reconciliação approve-amount vs quote-amount = def-079."
+			description:    "Valor aprovado — declarado pelo gestor e VERIFICADO contra a cotação vencedora do sourcing (ssc) pelo 2º braço do portão (unitPrice × quantity == amount + currency match; inv-approval-amount-matches-winning-quotation, adr-177), reservado pelo Gate de Cobertura. A fonte-de-verdade do preço unitário é a cotação no ssc; a procedência do valor aprovado é provada no disco, não confiada."
+		}, {
+			kind:        "primitive"
+			name:        "sourcingDecisionRef"
+			type:        "string"
+			description: "Decisão de sourcing cuja cotação vencedora precificou a compra aprovada — língua ssc (sourcingDecisionId; identidade canônica vive no ssc vo-sourcing-decision-id). O elo formal requisição↔cotação (adr-177) viaja no evento: a procedência do valor é auditável a partir do próprio fato, sem reconstrução."
+		}, {
+			kind:        "primitive"
+			name:        "quantity"
+			type:        "decimal"
+			description: "Quantidade FIRME aprovada — base da fórmula verificada pelo 2º braço do portão (unitPrice × quantity == amount; adr-177)."
 		}, {
 			kind:        "primitive"
 			name:        "coverageReservationRef"
@@ -536,8 +546,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "cmd-approve-purchase"
 		name:        "ApprovePurchase"
-		description: "Decisão de aprovação do gestor por Alçada sobre requisição triada — Sync, decision approve | reject. PRÉ-CONDIÇÃO do approve (adr-174 portão, padrão adr-055): reserva de cobertura CONFIRMADA pelo Gate de Cobertura do bdg (cmd-approve-budget sync: Saldo Disponível suficiente + Alçada satisfeita) ANTES da aprovação efetivar — inv-approval-requires-coverage-reservation. Falha do gate: requisição permanece triaged (escalada supervisionada do bdg); reject do gestor: triaged→rejected."
-		rationale:   "O de-acordo do gestor como pré-condição da emissão — a ordem que o setor de compras vive (adr-174 decisão 1). O mecanismo bdg é integralmente reusado: muda o invocador e o momento (pré-pedido), não o gate. Two-phase Reservation/Confirmation §2.0.8: approve RESERVA; commitment EFETIVA (WI-153); cancel LIBERA. Outcome-split approve/reject via selectors per adr-160. O amount é o valor da cotação vencedora do sourcing (ssc), aprovado pelo gestor e reservado pelo Gate de Cobertura; nesta fatia o amount é campo de entrada; a formalização do elo requisição↔cotação (quoteRef cross-BC) e a reconciliação approve-amount vs quote-amount são trabalho da fatia p2p↔ssc, registrada em def-079."
+		description: "Decisão de aprovação do gestor por Alçada sobre requisição triada — Sync, decision approve | reject. PRÉ-CONDIÇÕES do approve (portão DUPLO, padrão adr-055): (1) reserva de cobertura CONFIRMADA pelo Gate de Cobertura do bdg (cmd-approve-budget sync: Saldo Disponível suficiente + Alçada satisfeita) — inv-approval-requires-coverage-reservation (adr-174); (2) procedência de preço VERIFICADA contra a cotação vencedora do ssc (sourcingDecisionRef resolve a cotação; unitPrice × quantity == amount + currency match) — inv-approval-amount-matches-winning-quotation (adr-177). Falha de QUALQUER braço: requisição permanece triaged (escalada supervisionada); reject do gestor: triaged→rejected."
+		rationale:   "O de-acordo do gestor como pré-condição da emissão — a ordem que o setor de compras vive (adr-174 decisão 1). O mecanismo bdg é integralmente reusado: muda o invocador e o momento (pré-pedido), não o gate. Two-phase Reservation/Confirmation §2.0.8: approve RESERVA; commitment EFETIVA (WI-153); cancel LIBERA. Outcome-split approve/reject via selectors per adr-160. O amount permanece campo de ENTRADA — o gestor declara o valor (ato de autoridade humana real) — e o 2º braço determinístico do portão prova a procedência contra a cotação vencedora do ssc via sourcingDecisionRef (elo formal requisição↔cotação, adr-177 — resolve def-079); divergência não transiciona e escala."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "requisitionId"
@@ -556,7 +566,17 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:           "value-object-ref"
 			name:           "amount"
 			valueObjectRef: "vo-money"
-			description:    "Valor da compra a aprovar — o valor da cotação vencedora do sourcing (ssc), sobre o qual o Gate de Cobertura avalia Saldo Disponível + Alçada. Campo de ENTRADA nesta fatia; elo formal requisição↔cotação e reconciliação = def-079."
+			description:    "Valor da compra a aprovar — declarado pelo gestor (campo de ENTRADA; ato de autoridade humana) e VERIFICADO pelo 2º braço do portão contra a cotação vencedora do ssc (unitPrice × quantity == amount + currency match — inv-approval-amount-matches-winning-quotation, adr-177). É sobre este valor que o Gate de Cobertura avalia Saldo Disponível + Alçada."
+		}, {
+			kind:        "primitive"
+			name:        "sourcingDecisionRef"
+			type:        "string"
+			description: "Decisão de sourcing cuja cotação vencedora precifica esta compra — língua ssc (sourcingDecisionId; identidade canônica vive no ssc vo-sourcing-decision-id; padrão primitive ref cross-BC de costCenterRef/claimedAuthorityRef: p2p referencia, ssc mantém). O elo formal requisição↔cotação (adr-177): o 2º braço resolve a cotação vencedora por este ref via QueryQuotationMap."
+		}, {
+			kind:        "primitive"
+			name:        "quantity"
+			type:        "decimal"
+			description: "Quantidade FIRME sendo comprada — declarada pelo gestor no ato da aprovação. Base da fórmula do 2º braço: unitPrice (cotação vencedora) × quantity == amount. Distinta de scope.estimatedVolume (estimativa da submissão — NUNCA base de reconciliação; adr-177)."
 		}, {
 			kind:        "primitive"
 			name:        "coverageReservationRef"
@@ -658,6 +678,20 @@ domainModel: artifact_schemas.#DomainModel & {
 				canvasQuerySurface: "QueryBudgetApprovalStatus"
 			}
 			rationale: "Cobertura orçamentária é owned pelo bdg (Centro de Custo persiste Saldo Disponível + Comprometimentos; single-owner). P2P lê a confirmação da reserva via canvas query-surface no momento da aprovação — gate determinístico no momento da decisão, paralelo npm↔idc per adr-055. A chave por requisição foi MATERIALIZADA no re-papel bdg-side (WI-153, 2026-07-13): a surface responde por requisitionRef — o portão lê status=reserved na fase 1 (CoverageReserved) — e a janela declarada no adr-174 consequences FECHOU."
+		}
+	}, {
+		code:      "inv-approval-amount-matches-winning-quotation"
+		name:      "Aprovação Exige Procedência de Preço da Cotação Vencedora (2º Braço do Portão adr-177)"
+		rule:      "Transição triaged→approved (decision approve) EXIGE procedência de preço verificada contra o ssc ANTES de efetivar: (a) sourcingDecisionRef aponta para decisão de sourcing existente e concluída; (b) a cotação VENCEDORA dessa decisão é resolvível — one-shot: vencedor único, resolução trivial; preferred/strategic multi-supplier: cotação vencedora ambígua → escalada ambiguous-case, o gate NÃO efetiva (espelho do padrão multi-supplier da emissão); (c) currency da cotação vencedora == currency do amount; (d) unitPrice (cotação vencedora) × quantity (firme, declarada no command) == amount. Divergência em qualquer verificação NÃO transiciona — requisição permanece triaged + escalada supervisionada. A base da fórmula é quantity FIRME; scope.estimatedVolume (estimativa) NUNCA é base de reconciliação."
+		rationale: "2º braço do portão de aprovação (adr-177, resolve def-079): o 1º braço prova COBERTURA (bdg: saldo + alçada); este prova PROCEDÊNCIA (ssc: o valor aprovado é o da cotação certa). Transforma 'confio que o valor é o da cotação vencedora' em 'o disco prova a procedência do valor aprovado' — fecha o furo de auditoria da SCD. Mesma mecânica determinística do braço bdg (falha de gate não transiciona, escala — P10); a decisão do gestor permanece humana (amount é entrada verificada, não derivação). Cross-BC dependency declarada per adr-055."
+		dependsOnAggregateState: {
+			boundedContextRef: "ssc"
+			aggregateRef:      "agg-sourcing-process"
+			accessVia: {
+				kind:               "sync-query"
+				canvasQuerySurface: "QueryQuotationMap"
+			}
+			rationale: "A cotação vencedora e seu unitPrice são owned pelo ssc (ent-quotation; vencedor carimbado pela decisão em prj-quotation-map — a superfície de leitura que o WI-152 entregou como pré-requisito do exit do def-079). P2P lê a cotação vencedora via canvas query-surface QueryQuotationMap no momento da aprovação — query-only sync, call-site operacional FORA do grafo per adr-120: zero aresta nova, sc-cm-07 preservado por construção."
 		}
 	}, {
 		code:      "inv-emission-requires-approved-requisition"
@@ -1041,7 +1075,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "agg-purchase-requisition"
 		name:        "PurchaseRequisition"
-		description: "Aggregate da Requisição de Compra — consistency boundary da PORTA da jornada (requisitante declara demanda → comprador tria como ato formal → gestor aprova por Alçada com Gate de Cobertura pré-pedido → conversão em PO). Lifecycle: submitted → triaged → approved → converted | rejected | cancelled. Per adr-174 (PORTÃO): alçada e saldo são pré-condição da emissão; a aprovação RESERVA cobertura (two-phase Reservation/Confirmation, ADR-C4-2.0 §2.0.8)."
+		description: "Aggregate da Requisição de Compra — consistency boundary da PORTA da jornada (requisitante declara demanda → comprador tria como ato formal → gestor aprova por Alçada sob portão DUPLO pré-pedido → conversão em PO). Lifecycle: submitted → triaged → approved → converted | rejected | cancelled. Per adr-174 (PORTÃO): alçada e saldo são pré-condição da emissão; a aprovação RESERVA cobertura (two-phase Reservation/Confirmation, ADR-C4-2.0 §2.0.8). Per adr-177 (2º braço): o valor aprovado tem procedência verificada contra a cotação vencedora do ssc via sourcingDecisionRef."
 		rootIdentity: {
 			field: "requisitionId"
 			type: {
@@ -1087,6 +1121,16 @@ domainModel: artifact_schemas.#DomainModel & {
 			name:        "coverageReservationRef"
 			type:        "string"
 			description: "Reserva de cobertura confirmada pelo Gate de Cobertura do bdg — presente quando status=approved (preservada em converted para auditoria do elo reserva → commitment)."
+		}, {
+			kind:        "primitive"
+			name:        "sourcingDecisionRef"
+			type:        "string"
+			description: "Decisão de sourcing cuja cotação vencedora precificou a compra — língua ssc; presente quando status=approved (preservada em converted para auditoria da procedência do valor, adr-177). O elo requisição↔cotação persiste no aggregate."
+		}, {
+			kind:        "primitive"
+			name:        "quantity"
+			type:        "decimal"
+			description: "Quantidade firme aprovada — presente quando status=approved; base da fórmula do 2º braço (unitPrice × quantity == amount; adr-177)."
 		}, {
 			kind:           "value-object-ref"
 			name:           "purchaseOrderRef"
@@ -1166,21 +1210,26 @@ domainModel: artifact_schemas.#DomainModel & {
 				to:                 "approved"
 				triggeredByCommand: "cmd-approve-purchase"
 				emitsEvents: ["evt-purchase-approved"]
-				guards: ["inv-approval-requires-coverage-reservation"]
+				guards: [
+					"inv-approval-requires-coverage-reservation",
+					"inv-approval-amount-matches-winning-quotation",
+				]
 				selector: {
 					name:         "sel-purchase-approval-approve"
 					readsPayload: true
 					rationale: """
 						Discrimina por PAYLOAD: command.decision == approve. Par mutuamente
 						exclusivo com sel-purchase-approval-reject e exaustivo sobre o
-						domínio pretendido {approve, reject} do cmd-approve-purchase. O
-						guard TERMINAL inv-approval-requires-coverage-reservation barra
-						approve sem reserva confirmada APÓS a seleção — falha do gate deixa
-						a requisição em triaged (escalada supervisionada do bdg). Per
-						adr-160 (selector roteia, guards terminam).
+						domínio pretendido {approve, reject} do cmd-approve-purchase. Os
+						guards TERMINAIS inv-approval-requires-coverage-reservation e
+						inv-approval-amount-matches-winning-quotation (portão DUPLO:
+						cobertura bdg + procedência de preço ssc) barram o approve APÓS a
+						seleção — falha de qualquer braço deixa a requisição em triaged
+						(escalada supervisionada). Per adr-160 (selector roteia, guards
+						terminam).
 						"""
 				}
-				description: "Gestor aprova COM reserva de cobertura confirmada pelo Gate de Cobertura (Saldo Disponível + Alçada, sync) — triaged → approved + evt-purchase-approved. O PORTÃO do adr-174."
+				description: "Gestor aprova COM reserva de cobertura confirmada pelo Gate de Cobertura (Saldo Disponível + Alçada, sync) E procedência de preço verificada contra a cotação vencedora do ssc (unitPrice × quantity == amount, sync) — triaged → approved + evt-purchase-approved. O PORTÃO DUPLO (adr-174 + adr-177)."
 			}, {
 				from:               "triaged"
 				to:                 "rejected"
@@ -1244,6 +1293,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		protectsInvariants: [
 			"inv-requisition-completeness",
 			"inv-approval-requires-coverage-reservation",
+			"inv-approval-amount-matches-winning-quotation",
 		]
 
 		usesValueObjects: [
@@ -1483,13 +1533,16 @@ domainModel: artifact_schemas.#DomainModel & {
 		    para gate humano).
 
 		Cross-BC state dependencies (tq-dm-17 + tq-dmg-09 per adr-055):
-		1 invariant (inv-purchase-order-requires-valid-authority) declara
-		dependsOnAggregateState first-class apontando para SSC agg-
-		sourcing-process via canvas query-surface QuerySourcingDecision
-		(kind=sync-query, cross-BC). Granularidade per-invariant per
-		heuristic do PG. Aggregate state interno do agg-purchase-order
-		+ projections são state intra-BC — sem cross-aggregate dependencies
-		além do path SSC cross-BC.
+		4 invariants declaram dependsOnAggregateState first-class — 2
+		cross-BC → SSC agg-sourcing-process (inv-purchase-order-requires-
+		valid-authority via QuerySourcingDecision; inv-approval-amount-
+		matches-winning-quotation via QueryQuotationMap, adr-177), 1
+		cross-BC → BDG agg-cost-center (inv-approval-requires-coverage-
+		reservation via QueryBudgetApprovalStatus, adr-174/WI-153) e 1
+		intra-BC (inv-emission-requires-approved-requisition via
+		prj-pending-requisitions). Granularidade per-invariant per
+		heuristic do PG. Demais state (aggregates internos + projections)
+		é intra-BC.
 
 		Lifecycle 3 states com 3 transitions per Patch 4 founder:
 		- requested → emitted (validation passa)
