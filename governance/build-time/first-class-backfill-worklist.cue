@@ -19,10 +19,31 @@ package build_time
 // declarado-OU-aqui), o gate promove warn->reject (passo vi do adr-151).
 // Gerado deterministicamente dos aggregate-manifests (mesma fonte do evaluator).
 // DRENAGEM (passo vi): ondas cmt+dlv+fce+rew cobriram os 48 conceitos cross-contract (Forma A + termos) -> removidos.
-// Worklist VAZIA: campanha de backfill completa (4 ondas). Pre-requisito do flip warn->reject (ato final do adr-151).
+// Worklist zerada em 4 ondas; gate promovido a reject (ato final do adr-151).
+//
+// RE-POPULADA CONSCIENTEMENTE (adr-178): o am-purchase-requisition do kit de
+// superficie do p2p trouxe 12 conceitos NOVOS para dentro do sc-fct-01 -- o
+// p2p nao passou pelas 4 ondas porque nao tinha manifest. Entries pending
+// reconhecidas per falsificacao 4 do adr-151 (pendente-reconhecido != verde-
+// falso; o gate segue reject e visivel). DRENAGEM: onda p2p (5a onda da
+// campanha, molde das 4 anteriores) -- fatia de higiene propria com as 12
+// decisoes de Forma A (firstClass/reason/coreNoun + termos de glossario),
+// que sao modelagem de dominio e NAO foram tomadas na fatia de superficie.
 
 
 firstClassBackfillWorklist: {
 	entries: [
+		{conceptCode: "agg-purchase-requisition", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "cmd-approve-purchase", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "cmd-cancel-purchase-requisition", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "cmd-convert-requisition", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "cmd-submit-purchase-requisition", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "cmd-triage-requisition", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "evt-purchase-approval-rejected", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "evt-purchase-approved", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "evt-purchase-requisition-cancelled", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "evt-purchase-requisition-converted", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "evt-purchase-requisition-submitted", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
+		{conceptCode: "evt-purchase-requisition-triaged", bc: "p2p", reason: "cruza contrato via am-purchase-requisition (kit adr-178); backfill Forma A pendente (onda p2p, 5a onda da campanha pos-adr-153)", status: "pending"},
 	]
 }

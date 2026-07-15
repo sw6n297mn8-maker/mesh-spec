@@ -1,0 +1,415 @@
+openapi: 3.0.3
+
+info:
+  title: Procure-to-Pay sync surface
+  version: 0.1.0
+  description: >
+    Superfície síncrona do BC Procure-to-Pay.
+    Source canônica de identidade: contexts/p2p/canvas.cue.
+    Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
+
+    RECORTE (adr-178, o início da jornada de compras): a fila de requisições
+    (qry-pending-requisitions da prj-pending-requisitions — a fila de
+    triagem/aprovação que o comprador e o gestor vivem) e o primeiro COMMAND
+    de origem humana: submit-purchase-requisition (o engenheiro declara a
+    demanda direto do canteiro — passos 1-3 da ds-buyer-procurement-journey;
+    origem net-new per adr-178, migração futura em def-081).
+    Deferido: os commands de triagem (cmd-triage-requisition — fatia da tela
+    de triagem), aprovação e cancelamento; a superfície do agg-purchase-order
+    (emissão sob authority) — cada um com fatia própria.
+
+    A submissão NÃO tem guard de domínio na porta POR DESIGN: a completude é
+    verificada na TRIAGEM (inv-requisition-completeness — requisição
+    incompleta é DEVOLVIDA com outcome=returned, permanecendo submitted),
+    espelhando o setor de compras real. Por isso o POST não expõe 409/422:
+    payload bem-formado entra na fila; o julgamento é do comprador.
+
+    O enum de status reflete o lifecycle materializado do
+    agg-purchase-requisition (#PurchaseRequisitionState em
+    contexts/p2p/schemas/events.cue).
+
+    security e servers ausentes por design — ver
+    architecture/deferred-decisions/def-024.
+
+tags:
+  - name: mesh
+    description: bc=p2p
+
+paths:
+  /v1/p2p/queries/pending-requisitions:
+    get:
+      operationId: queryPendingRequisitions
+      summary: Listar as requisições da fila (por estado, com filtros)
+      description: >
+        Implementa a query capability qry-pending-requisitions da
+        prj-pending-requisitions (domain-model P2P, WI-151): requisições por
+        estado — submitted aguardando triagem; triaged aguardando decisão do
+        gestor; approved aguardando conversão; terminais para leitura
+        histórica. Consumers: comprador (fila de triagem), gestor (fila de
+        aprovação), gate de emissão (lookup intra-BC) e a tela do início da
+        jornada (adr-178). Leitura pura sem side-effects (read model do event
+        log). Envelope {items} desde o v1; paginação/metadados entram
+        aditivamente como campos irmãos — NENHUM no v1. Fila vazia devolve
+        items vazio (200), não 404. Filtros opcionais espelham os declarados
+        pela query capability (status, costCenterRef, categoryRef,
+        requestedBy).
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PurchaseRequisitionState'
+        - name: costCenterRef
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+        - name: categoryRef
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+        - name: requestedBy
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Fila de requisições (possivelmente vazia)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingRequisitionsView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/p2p/commands/submit-purchase-requisition:
+    post:
+      operationId: submitPurchaseRequisition
+      summary: Submeter requisição de compra — a demanda declarada do canteiro
+      description: >
+        Materializa cmd-submit-purchase-requisition (WI-151/adr-174): o
+        requisitante declara a demanda técnica; o agg-purchase-requisition
+        nasce em state=submitted e entra na fila de triagem
+        (prj-pending-requisitions). Async no domínio (nenhuma decisão
+        síncrona no ato) — o 200 devolve O EVENTO emitido
+        (PurchaseRequisitionSubmitted) como confirmação estruturada, molde
+        CMT/FCE. ORIGEM NET-NEW (adr-178): a informação nasce da observação
+        humana do cronograma físico no canteiro — não existe no sistema até
+        este ato; o form da tela é pré-preenchível por shape (Generative
+        Form, adr-150) e a origem migra para pré-preenchimento por agente
+        quando o cronograma virar input de sistema (def-081). POSTURA
+        (def-024): requestedBy é atribuição nominal NÃO-verificada nesta
+        borda até o ADR de auth; security ausente por design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitPurchaseRequisitionRequest'
+      responses:
+        '200':
+          description: Requisição submetida — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseRequisitionSubmitted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Chave única gerada pelo cliente (UUID v4 recomendado) usada pelo
+        servidor para cachear resultado dentro de uma janela curta e detectar
+        retry — request repetido com mesma key retorna mesmo resultado sem
+        executar de novo. Padrão informal de mercado (RFC draft); janela
+        exata definida quando ADR de stack chegar.
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    BadRequest:
+      description: Request malformado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Erro interno
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      description: >
+        RFC 7807 Problem Details. Cross-BC shared contract; NÃO customizar
+        por BC. additionalProperties=true porque RFC 7807 §3.2 permite
+        extensões por problem type — mas extensões só por coordenação
+        cross-BC (tension-entry), nunca fork local.
+      additionalProperties: true
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        traceId:
+          type: string
+          description: Correlation id para auditoria
+
+    # ── Value-objects do P2P (mirror de schemas/events.cue) ──
+    RequisitionId:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#RequisitionId'
+      type: string
+      minLength: 1
+    CategoryRef:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#CategoryRef'
+      type: string
+      minLength: 1
+      description: taxonomia de compra configurada externamente
+    CostCenterRef:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#CostCenterRef'
+      type: string
+      minLength: 1
+      description: owned by bdg (agg-cost-center)
+    BudgetStageRef:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#BudgetStageRef'
+      type: string
+      minLength: 1
+      description: >
+        Etapa do cronograma/orçamento que origina a demanda — fato-de-origem
+        como campo (WI-151); a fonte real da informação é o cronograma físico
+        observado no canteiro (origem net-new, adr-178/def-081).
+    SourcingDecisionRef:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#SourcingDecisionRef'
+      type: string
+      minLength: 1
+      description: owned by ssc — o elo requisição↔cotação (adr-177)
+    PurchaseOrderId:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#PurchaseOrderId'
+      type: string
+      minLength: 1
+    PurchaseRequisitionState:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#PurchaseRequisitionState'
+      type: string
+      enum: [submitted, triaged, approved, converted, rejected, cancelled]
+      description: >
+        Estado canônico da PurchaseRequisition no lifecycle materializado do
+        agg-purchase-requisition (adr-174). Espelha #PurchaseRequisitionState
+        (disjunção fechada).
+    PurchaseScope:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#PurchaseScope'
+      type: object
+      description: >
+        Escopo da demanda (vo-purchase-scope): descrição, volume estimado,
+        prazo, location. estimatedVolume é ESTIMATIVA — nunca base de
+        reconciliação de valor (adr-177 usa quantity firme da aprovação).
+      required: [description, estimatedVolume, deadline, location]
+      properties:
+        description:
+          type: string
+          minLength: 1
+        estimatedVolume:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        deadline:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        location:
+          type: string
+          minLength: 1
+    CancellationReason:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#CancellationReason'
+      type: object
+      required: [reasonCode, narrative]
+      properties:
+        reasonCode:
+          type: string
+          enum: [demand-cancelled, scope-mismatch, supplier-withdrawal, failed-validation-cleanup, admin-override, queue-overflow, other]
+          description: fechado com fidelidade — o domain-model fecha via constraint do vo-cancellation-reason
+        narrative:
+          type: string
+          minLength: 1
+
+    # ── Projection response (qry-pending-requisitions, WI-151) ──
+    PendingRequisitionItem:
+      type: object
+      description: >
+        Uma requisição na fila — projeção do event log espelhando os campos
+        do agg-purchase-requisition. Campos condicionais por estado:
+        triageOutcome após a primeira triagem; coverageReservationRef +
+        sourcingDecisionRef + quantity quando approved (os dois braços do
+        portão, adr-174/adr-177); purchaseOrderRef quando converted;
+        cancellationReason quando cancelled.
+      required: [requisitionId, status, requestedBy, costCenterRef, budgetStageRef, categoryRef, scope, submittedAt]
+      properties:
+        requisitionId:
+          $ref: '#/components/schemas/RequisitionId'
+        status:
+          $ref: '#/components/schemas/PurchaseRequisitionState'
+        requestedBy:
+          type: string
+          minLength: 1
+        costCenterRef:
+          $ref: '#/components/schemas/CostCenterRef'
+        budgetStageRef:
+          $ref: '#/components/schemas/BudgetStageRef'
+        categoryRef:
+          $ref: '#/components/schemas/CategoryRef'
+        scope:
+          $ref: '#/components/schemas/PurchaseScope'
+        triageOutcome:
+          type: string
+          description: >
+            routed-to-sourcing | returned | rejected — ABERTO no espelho
+            porque o domain-model não fecha o campo (nota P14 no
+            schemas/events.cue).
+        coverageReservationRef:
+          type: string
+          minLength: 1
+          description: presente quando approved — reserva do Gate de Cobertura (bdg, adr-174)
+        sourcingDecisionRef:
+          $ref: '#/components/schemas/SourcingDecisionRef'
+        quantity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+          description: quantidade firme aprovada (adr-177)
+        purchaseOrderRef:
+          $ref: '#/components/schemas/PurchaseOrderId'
+        submittedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        triagedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        decidedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        convertedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        cancelledAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        cancellationReason:
+          $ref: '#/components/schemas/CancellationReason'
+    PendingRequisitionsView:
+      type: object
+      description: >
+        Read model da qry-pending-requisitions. Envelope de objeto desde o
+        v1: paginação/filtros/metadados entram ADITIVAMENTE como campos
+        irmãos de items em versões futuras — nenhum no v1.
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingRequisitionItem'
+
+    # ── Command request (cmd-submit-purchase-requisition, WI-151) ──
+    SubmitPurchaseRequisitionRequest:
+      x-mesh-cue-ref: 'contexts/p2p/domain-model.cue#commands.cmd-submit-purchase-requisition'
+      type: object
+      required: [requestedBy, costCenterRef, budgetStageRef, categoryRef, scope, submittedAt]
+      properties:
+        requestedBy:
+          type: string
+          minLength: 1
+          description: >
+            Requisitante (term-requisitante) — atribuição nominal
+            NÃO-verificada nesta borda até o ADR de auth (def-024).
+        costCenterRef:
+          $ref: '#/components/schemas/CostCenterRef'
+        budgetStageRef:
+          $ref: '#/components/schemas/BudgetStageRef'
+        categoryRef:
+          $ref: '#/components/schemas/CategoryRef'
+        scope:
+          $ref: '#/components/schemas/PurchaseScope'
+        submittedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 do submit; molde CMT/FCE: devolve o evento emitido) ──
+    PurchaseRequisitionSubmitted:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#PurchaseRequisitionSubmitted'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/p2p
+        type:
+          type: string
+          const: mesh.p2p.purchase-requisition-submitted.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/p2p/schemas/events.cue#PurchaseRequisitionSubmitted
+        data:
+          type: object
+          required: [requisitionId, requestedBy, costCenterRef, budgetStageRef, categoryRef, scope, submittedAt]
+          properties:
+            requisitionId:
+              $ref: '#/components/schemas/RequisitionId'
+            requestedBy:
+              type: string
+              minLength: 1
+            costCenterRef:
+              $ref: '#/components/schemas/CostCenterRef'
+            budgetStageRef:
+              $ref: '#/components/schemas/BudgetStageRef'
+            categoryRef:
+              $ref: '#/components/schemas/CategoryRef'
+            scope:
+              $ref: '#/components/schemas/PurchaseScope'
+            submittedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
