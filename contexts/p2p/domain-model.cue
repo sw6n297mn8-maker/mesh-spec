@@ -152,6 +152,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-purchase-requisition-submitted"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
+		coreNoun:         "Purchase Requisition Submitted"
 		name:        "PurchaseRequisitionSubmitted"
 		visibility:  "internal"
 		description: "Requisição de Compra submetida — requisitante declara demanda técnica (o que, quanto escopo cobre, para qual Centro de Custo e etapa) e a requisição nasce em state=submitted aguardando triagem. A PORTA da jornada de compras (passos 1-3 da ds-buyer-procurement-journey) per adr-174/WI-151."
@@ -191,6 +195,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-purchase-requisition-triaged"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Purchase Requisition Triaged"
 		name:        "PurchaseRequisitionTriaged"
 		visibility:  "internal"
 		description: "Requisição triada pelo comprador — ATO FORMAL com outcome: routed-to-sourcing (segue para cotação/decisão de sourcing), returned (devolvida ao requisitante para correção; requisição permanece submitted) ou rejected (demanda morta na triagem). Per decisão do founder no WI-151: triagem é ato formal, não anotação."
@@ -221,6 +229,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-purchase-approved"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Purchase Approved"
 		name:        "PurchaseApproved"
 		visibility:  "internal"
 		description: "Compra aprovada pelo gestor por Alçada COM reserva de cobertura confirmada pelo Gate de Cobertura do bdg (Saldo Disponível suficiente + Alçada satisfeita) E procedência de preço verificada contra a cotação vencedora do ssc (2º braço do portão, adr-177) — o PORTÃO DUPLO pré-pedido (adr-174 + adr-177). A aprovação RESERVA cobertura no Centro de Custo (two-phase Reservation/Confirmation, ADR-C4-2.0 §2.0.8); o commitment aceito EFETIVA (re-papel bdg-side WI-153); o cancelamento LIBERA."
@@ -261,6 +273,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-purchase-approval-rejected"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Purchase Approval Rejected"
 		name:        "PurchaseApprovalRejected"
 		visibility:  "internal"
 		description: "Aprovação de compra REJEITADA por decisão do gestor — a requisição triada morre no portão (triaged → rejected). Distinto de falha do Gate de Cobertura (saldo/alçada insuficiente): falha do gate NÃO transiciona nem emite este evento — segue a escalada supervisionada do bdg e a requisição permanece triaged."
@@ -285,6 +301,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-purchase-requisition-converted"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
+		coreNoun:         "Purchase Requisition Converted"
 		name:        "PurchaseRequisitionConverted"
 		visibility:  "internal"
 		description: "Requisição aprovada CONVERTIDA em Pedido de Compra — fecho do ciclo requisição → pedido (approved → converted), disparado por pol-purchase-order-converts-requisition quando evt-purchase-order-emitted carrega o requisitionRef desta requisição."
@@ -304,6 +324,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "evt-purchase-requisition-cancelled"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Purchase Requisition Cancelled"
 		name:        "PurchaseRequisitionCancelled"
 		visibility:  "internal"
 		description: "Requisição cancelada pré-conversão (de submitted, triaged ou approved) — requisitante retira a demanda ou supervisor limpa a fila. Cancelamento de requisição approved implica liberação da reserva de cobertura no bdg (release per two-phase adr-174; materialização bdg-side WI-153)."
@@ -488,6 +512,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-submit-purchase-requisition"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
+		coreNoun:         "Submit Purchase Requisition"
 		name:        "SubmitPurchaseRequisition"
 		description: "Requisitante declara demanda técnica — cria agg-purchase-requisition em initialState=submitted e emite evt-purchase-requisition-submitted. Async: a submissão entra na fila de triagem do comprador (prj-pending-requisitions); nenhuma decisão síncrona ocorre no ato."
 		rationale:   "Entry point da PORTA da jornada (passos 1-3 da ds-buyer-procurement-journey) per adr-174/WI-151. Aggregate creation via initialState (schema #Lifecycle não suporta create transition — mesmo pattern do agg-purchase-order). A língua já existia (subdomínio p2p declara 'requisição, aprovação por alçada'; glossário tem term-requisitante) — execução, não descoberta."
@@ -521,6 +549,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-triage-requisition"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Triage Requisition"
 		name:        "TriageRequisition"
 		description: "Triagem FORMAL da requisição pelo comprador — Sync, com outcome: routed-to-sourcing (transição submitted→triaged; segue para cotação/decisão de sourcing), returned (SEM transição — requisição permanece submitted para correção; evento registra o que falta) ou rejected (transição submitted→rejected; demanda morta na triagem). Guard inv-requisition-completeness no caminho routed-to-sourcing."
 		rationale:   "Per decisão do founder no WI-151: triagem é ATO FORMAL com outcome, não anotação informal. Outcome-split via selectors per adr-160 (par colidente routed-to-sourcing/rejected sobre (submitted, cmd-triage-requisition); returned fica fora do par — devolução não é transição de estado). Materializa o passo 3 da jornada."
@@ -545,6 +577,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-approve-purchase"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Approve Purchase"
 		name:        "ApprovePurchase"
 		description: "Decisão de aprovação do gestor por Alçada sobre requisição triada — Sync, decision approve | reject. PRÉ-CONDIÇÕES do approve (portão DUPLO, padrão adr-055): (1) reserva de cobertura CONFIRMADA pelo Gate de Cobertura do bdg (cmd-approve-budget sync: Saldo Disponível suficiente + Alçada satisfeita) — inv-approval-requires-coverage-reservation (adr-174); (2) procedência de preço VERIFICADA contra a cotação vencedora do ssc (sourcingDecisionRef resolve a cotação; unitPrice × quantity == amount + currency match) — inv-approval-amount-matches-winning-quotation (adr-177). Falha de QUALQUER braço: requisição permanece triaged (escalada supervisionada); reject do gestor: triaged→rejected."
 		rationale:   "O de-acordo do gestor como pré-condição da emissão — a ordem que o setor de compras vive (adr-174 decisão 1). O mecanismo bdg é integralmente reusado: muda o invocador e o momento (pré-pedido), não o gate. Two-phase Reservation/Confirmation §2.0.8: approve RESERVA; commitment EFETIVA (WI-153); cancel LIBERA. Outcome-split approve/reject via selectors per adr-160. O amount permanece campo de ENTRADA — o gestor declara o valor (ato de autoridade humana real) — e o 2º braço determinístico do portão prova a procedência contra a cotação vencedora do ssc via sourcingDecisionRef (elo formal requisição↔cotação, adr-177 — resolve def-079); divergência não transiciona e escala."
@@ -590,6 +626,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-convert-requisition"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "cross-artifact-contract"
+		coreNoun:         "Convert Requisition"
 		name:        "ConvertRequisition"
 		description: "Command INTERNO emitido por pol-purchase-order-converts-requisition quando evt-purchase-order-emitted carrega requisitionRef — transiciona a requisição approved→converted, fechando o ciclo requisição → pedido. Não exposto no canvas (command interno de policy per tq-dm-12 carve-out)."
 		rationale:   "Par command/event exigido por construção do schema para expressar a conversão como transição (toda #StateTransition requer triggeredByCommand + emitsEvents). A decisão semântica é a policy (adr-174); o command é o veículo tático dela."
@@ -604,6 +644,10 @@ domainModel: artifact_schemas.#DomainModel & {
 		}]
 	}, {
 		code:        "cmd-cancel-purchase-requisition"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "financial"
+		coreNoun:         "Cancel Purchase Requisition"
 		name:        "CancelPurchaseRequisition"
 		description: "Cancelar requisição pré-conversão (submitted | triaged | approved) — requisitante retira a demanda ou supervisor limpa a fila. Cancelamento de requisição approved implica liberar a reserva de cobertura no bdg (cmd-release-budget-commitment devolve o valor ao Saldo Disponível — materialização do disparo é re-papel bdg-side WI-153; janela declarada no adr-174)."
 		rationale:   "Saída limpa do lifecycle em qualquer estado pré-conversão — sem ela, requisição abandonada prenderia reserva (a preocupação vigiada pela falsificação (b) do adr-174: reservas órfãs envelhecendo). Reusa vo-cancellation-reason (taxonomia única de cancelamento no BC)."
@@ -1074,6 +1118,10 @@ domainModel: artifact_schemas.#DomainModel & {
 			"""
 	}, {
 		code:        "agg-purchase-requisition"
+		// adr-151 Forma A (onda p2p, passo vi)
+		firstClass:       true
+		firstClassReason: "governance"
+		coreNoun:         "Purchase Requisition"
 		name:        "PurchaseRequisition"
 		description: "Aggregate da Requisição de Compra — consistency boundary da PORTA da jornada (requisitante declara demanda → comprador tria como ato formal → gestor aprova por Alçada sob portão DUPLO pré-pedido → conversão em PO). Lifecycle: submitted → triaged → approved → converted | rejected | cancelled. Per adr-174 (PORTÃO): alçada e saldo são pré-condição da emissão; a aprovação RESERVA cobertura (two-phase Reservation/Confirmation, ADR-C4-2.0 §2.0.8). Per adr-177 (2º braço): o valor aprovado tem procedência verificada contra a cotação vencedora do ssc via sourcingDecisionRef."
 		rootIdentity: {

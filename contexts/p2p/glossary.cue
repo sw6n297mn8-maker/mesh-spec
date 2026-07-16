@@ -93,7 +93,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:        "term-requisicao"
 		name:        "Requisição de Compra"
 		termEn:      "Purchase Requisition"
-		definition:  "Declaração formal de demanda técnica pelo requisitante — a PORTA do ciclo demanda-a-pedido (adr-174/WI-151). Nasce no canteiro ancorada em Centro de Custo + etapa do orçamento (budgetStageRef, fato-de-origem), passa por triagem FORMAL do comprador (outcome routed-to-sourcing | returned | rejected) e por aprovação do gestor por Alçada com Gate de Cobertura pré-pedido (reserva de cobertura confirmada no bdg per adr-174 PORTÃO), e converte em Pedido de Compra na emissão. Lifecycle: submitted → triaged → approved → converted | rejected | cancelled (agg-purchase-requisition)."
+		definition:  "Declaração formal de demanda técnica pelo requisitante — a PORTA do ciclo demanda-a-pedido (adr-174/WI-151). Nasce no canteiro ancorada em Centro de Custo + etapa do orçamento (budgetStageRef, fato-de-origem), passa por triagem FORMAL do comprador (outcome routed-to-sourcing | returned | rejected) e por aprovação do gestor por Alçada sob o portão DUPLO pré-pedido (reserva de cobertura confirmada no bdg per adr-174 PORTÃO + procedência de preço verificada contra a cotação vencedora do ssc via sourcingDecisionRef per adr-177), e converte em Pedido de Compra na emissão. Lifecycle: submitted → triaged → approved → converted | rejected | cancelled (agg-purchase-requisition)."
 		category:    "entity"
 		rationale:   "A língua já existia (subdomínio p2p declara 'requisição, aprovação por alçada'; term-requisitante nomeia quem a declara) — o conceito ganhou lar de escrita no WI-151 após a ds-buyer-procurement-journey revelar o vazio ('requisi' tinha zero ocorrências nos domain-models). Requisição de Compra é vocabulário canônico em procurement BR (requisition-to-PO). Elo de rastreabilidade custo↔obra: toda demanda nasce ancorada na etapa que a origina."
 		synonyms: ["Solicitação de Compra", "Requisição", "Purchase Requisition"]
@@ -109,7 +109,15 @@ glossary: artifact_schemas.#Glossary & {
 			"term-comprador",
 			"term-purchase-order",
 			"term-po-lifecycle",
+			"term-submeter-requisicao",
+			"term-triar-requisicao",
+			"term-aprovar-compra",
+			"term-cancelar-requisicao",
 		]
+		// adr-151 Forma A (onda p2p, passo vi): reuso deste termo para o agg
+		// (decisao do founder) -- a definicao ja descreve o boundary-com-ciclo;
+		// o elo formal G1 e este ref.
+		domainModelRefs: ["agg-purchase-requisition"]
 	}, {
 		code:        "term-sourcing-authority"
 		name:        "Autoridade de Sourcing"
@@ -408,10 +416,112 @@ glossary: artifact_schemas.#Glossary & {
 			"term-po-lifecycle",
 			"term-purchase-order-emitted",
 		]
+	}, {
+		// adr-151 Forma A (onda p2p, passo vi) -- 11 termos novos dando cobertura
+		// dedicada (G1) aos commands/events da Requisicao de Compra (kit adr-178);
+		// o agg reusa term-requisicao (decisao do founder). Padrao ato/fato.
+		code:        "term-submeter-requisicao"
+		name:        "Submeter Requisição"
+		termEn:      "Submit Purchase Requisition"
+		definition:  "Ato do requisitante de declarar demanda técnica — cria a Requisição de Compra em submitted e a coloca na fila de triagem do comprador (async: nenhuma decisão síncrona no ato). A PORTA da jornada de compras; origem net-new legítima per adr-178 (o cronograma físico do canteiro ainda não é input de sistema). Comando — distinto do fato Requisição Submetida."
+		category:    "command"
+		rationale:   "Entry point do ciclo demanda-a-pedido (adr-174/WI-151); ato do requisitante, distinto do fato — ato/fato."
+		relatedTerms: ["term-requisicao", "term-requisitante", "term-requisicao-submetida"]
+		domainModelRefs: ["cmd-submit-purchase-requisition"]
+	}, {
+		code:        "term-requisicao-submetida"
+		name:        "Requisição Submetida"
+		termEn:      "Purchase Requisition Submitted"
+		definition:  "Fato de que a demanda técnica foi declarada e a Requisição de Compra nasceu em submitted, aguardando triagem — o fato de abertura do ciclo demanda-a-pedido. Evento — distinto do comando Submeter Requisição."
+		category:    "event"
+		rationale:   "Fato de abertura do ciclo; interno ao P2P até a conversão em pedido — fato vs ato."
+		relatedTerms: ["term-requisicao", "term-submeter-requisicao", "term-requisicao-triada"]
+		domainModelRefs: ["evt-purchase-requisition-submitted"]
+	}, {
+		code:        "term-triar-requisicao"
+		name:        "Triar Requisição"
+		termEn:      "Triage Requisition"
+		definition:  "Ato FORMAL do comprador de triar a requisição submetida, com outcome: routed-to-sourcing (segue para cotação/decisão de sourcing), returned (devolvida ao requisitante para correção — sem transição de estado) ou rejected (demanda morta na triagem). Comando — distinto do fato Requisição Triada."
+		category:    "command"
+		rationale:   "Triagem é ato formal com outcome, não anotação (decisão do founder no WI-151); materializa o passo 3 da jornada — ato/fato."
+		relatedTerms: ["term-requisicao", "term-comprador", "term-requisicao-triada"]
+		domainModelRefs: ["cmd-triage-requisition"]
+	}, {
+		code:        "term-requisicao-triada"
+		name:        "Requisição Triada"
+		termEn:      "Purchase Requisition Triaged"
+		definition:  "Fato do ato formal de triagem, com o outcome de roteamento registrado: routed-to-sourcing e rejected transicionam; returned registra a devolução e a requisição permanece submitted para correção. Evento — distinto do comando Triar Requisição."
+		category:    "event"
+		rationale:   "O outcome carrega a decisão de roteamento (selectors per adr-160); returned não transiciona — fato fiel ao desenho."
+		relatedTerms: ["term-requisicao", "term-triar-requisicao"]
+		domainModelRefs: ["evt-purchase-requisition-triaged"]
+	}, {
+		code:        "term-aprovar-compra"
+		name:        "Aprovar Compra"
+		termEn:      "Approve Purchase"
+		definition:  "Ato de decisão do gestor por Alçada sobre requisição triada (approve | reject), sob o portão DUPLO pré-pedido: (1) reserva de cobertura confirmada pelo Gate de Cobertura do bdg (adr-174) e (2) procedência de preço verificada contra a cotação vencedora do ssc via sourcingDecisionRef (adr-177). Falha de qualquer braço não transiciona — escalada supervisionada. Comando — distinto do fato Compra Aprovada."
+		category:    "command"
+		rationale:   "O de-acordo do gestor como pré-condição da emissão (adr-174 decisão 1); o approve RESERVA cobertura (two-phase §2.0.8) — ato/fato."
+		relatedTerms: ["term-requisicao", "term-compra-aprovada", "term-aprovacao-de-compra-recusada"]
+		domainModelRefs: ["cmd-approve-purchase"]
+	}, {
+		code:        "term-compra-aprovada"
+		name:        "Compra Aprovada"
+		termEn:      "Purchase Approved"
+		definition:  "Fato de que o gestor aprovou por Alçada com os dois braços do portão verificados — cobertura reservada no Centro de Custo (bdg, adr-174) e procedência de preço provada contra a cotação vencedora (ssc, adr-177). A reserva efetiva-se no aceite do commitment e libera no cancelamento. Evento — distinto do comando Aprovar Compra."
+		category:    "event"
+		rationale:   "A pré-condição que o setor de compras vive vira fato verificável do sistema — alçada e saldo precedem a emissão, nunca reagem ao pedido."
+		relatedTerms: ["term-requisicao", "term-aprovar-compra", "term-requisicao-convertida"]
+		domainModelRefs: ["evt-purchase-approved"]
+	}, {
+		code:        "term-aprovacao-de-compra-recusada"
+		name:        "Aprovação de Compra Recusada"
+		termEn:      "Purchase Approval Rejected"
+		definition:  "Fato do não-de-acordo do gestor — a requisição triada morre no portão (triaged → rejected). Distinto de falha do Gate de Cobertura: falha de gate não transiciona nem emite este evento (segue a escalada supervisionada e a requisição permanece triaged). Evento — o outcome reject do comando Aprovar Compra."
+		category:    "event"
+		rationale:   "Registro do não-de-acordo como fato — sustenta a fila do gestor e a leitura de padrões; decisão humana não se confunde com gate (P10)."
+		relatedTerms: ["term-requisicao", "term-aprovar-compra"]
+		domainModelRefs: ["evt-purchase-approval-rejected"]
+	}, {
+		code:        "term-converter-requisicao"
+		name:        "Converter Requisição"
+		termEn:      "Convert Requisition"
+		definition:  "Comando INTERNO emitido pela policy de conversão quando o Pedido de Compra emitido carrega o requisitionRef — transiciona a requisição approved → converted, fechando o ciclo requisição → pedido. Veículo tático da policy (adr-174), não ato humano. Comando — distinto do fato Requisição Convertida."
+		category:    "command"
+		rationale:   "Par command/event exigido por construção do schema (#StateTransition); a decisão semântica é a policy — o comando é o veículo."
+		relatedTerms: ["term-requisicao", "term-requisicao-convertida", "term-purchase-order-emitted"]
+		domainModelRefs: ["cmd-convert-requisition"]
+	}, {
+		code:        "term-requisicao-convertida"
+		name:        "Requisição Convertida"
+		termEn:      "Purchase Requisition Converted"
+		definition:  "Fato do fecho do ciclo requisição → pedido: a requisição aprovada foi consumada em Pedido de Compra (approved → converted). Evento — distinto do comando interno Converter Requisição."
+		category:    "event"
+		rationale:   "Sem este fato a requisição ficaria approved órfã após o pedido nascer — converted mantém a fila de requisições limpa."
+		relatedTerms: ["term-requisicao", "term-converter-requisicao", "term-purchase-order"]
+		domainModelRefs: ["evt-purchase-requisition-converted"]
+	}, {
+		code:        "term-cancelar-requisicao"
+		name:        "Cancelar Requisição"
+		termEn:      "Cancel Purchase Requisition"
+		definition:  "Ato de retirar a demanda pré-conversão (submitted | triaged | approved) — requisitante retira ou supervisor limpa a fila. Cancelamento de requisição approved implica liberar a reserva de cobertura no bdg (release per two-phase adr-174). Comando — distinto do fato Requisição Cancelada."
+		category:    "command"
+		rationale:   "Saída limpa do lifecycle pré-conversão — sem ela, requisição abandonada prenderia reserva (falsificação (b) do adr-174)."
+		relatedTerms: ["term-requisicao", "term-requisicao-cancelada"]
+		domainModelRefs: ["cmd-cancel-purchase-requisition"]
+	}, {
+		code:        "term-requisicao-cancelada"
+		name:        "Requisição Cancelada"
+		termEn:      "Purchase Requisition Cancelled"
+		definition:  "Fato da saída limpa do lifecycle pré-conversão (de submitted, triaged ou approved), com liberação da reserva de cobertura quando a requisição estava approved. Reusa a taxonomia estruturada de cancelamento do BC (vo-cancellation-reason). Evento — distinto do comando Cancelar Requisição e do fato Purchase Order Cancelled (pedido, não requisição)."
+		category:    "event"
+		rationale:   "Fato do cancelamento com vocabulário único de razões — analytics cobre requisições e pedidos com a mesma taxonomia."
+		relatedTerms: ["term-requisicao", "term-cancelar-requisicao", "term-purchase-order-cancelled"]
+		domainModelRefs: ["evt-purchase-requisition-cancelled"]
 	}]
 
 	rationale: """
-		Glossário P2P (Procure-to-Pay) — 16 terms canônicos cobrindo
+		Glossário P2P (Procure-to-Pay) — 27 terms canônicos cobrindo
 		Ubiquitous Language do segundo BC do macrofluxo Mesh (SSC →
 		P2P → CMT). Phase 0 escopo deliberado: porção 'Procure' do
 		nome canônico (PO emission + cancel pre-CMT; ampliado no
