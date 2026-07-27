@@ -183,6 +183,10 @@ adr179: artifact_schemas.#ADR & {
 		"governance/build-time/frontend-codegen-contract.cue",
 	]
 
+	derivedArtifacts: [
+		"governance/readme/structure-index.cue",
+	]
+
 	principlesApplied: ["P0", "P1", "P10", "P12"]
 
 	rationale: """
