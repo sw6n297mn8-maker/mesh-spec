@@ -4,8 +4,9 @@ package build_time
 //
 // V2 (adr-178): +2ª família de superfície (p2pSurface — o início da jornada:
 // submissão de requisição + fila de triagem). Extensão IN-PLACE deliberada
-// (adr-178 D4): a promoção a schema first-class é ESPERADA na 3ª família (o
+// (adr-178 D3): a promoção a schema first-class é ESPERADA na 3ª família (o
 // mapa de cotações do ssc) — gatilho nomeado, decisão prevista, não surpresa.
+// Conteúdo obrigatório da promoção pré-fixado per adr-179 — ver schemaPromotionMandate.
 //
 // STATUS: PROPOSED -- hipótese falsificável (CUE->superfície-de-frontend); o flip a accepted
 // é por EVIDÊNCIA spec-side (precedente codegen-validation-evidence.cue + revisão de
@@ -37,7 +38,7 @@ frontendCodegenContract: {
 	// adr-140). O flip deste campo no golden-example é o sinal observado por def-064.
 	status: "proposed"
 
-	authorizedBy: ["adr-158", "adr-157", "adr-150", "adr-155", "adr-178"]
+	authorizedBy: ["adr-158", "adr-157", "adr-150", "adr-155", "adr-178", "adr-179"]
 
 	// (1) INPUTS -- consumidos read-only; APONTA por path/id (P0), nunca copia.
 	inputs: {
@@ -181,5 +182,15 @@ frontendCodegenContract: {
 	// write-back de evidência que carrega o flip).
 	activeBoundaries: ["def-060", "def-064", "def-065"]
 
-	rationale: "Autorizado por adr-158 (esta relação de codegen) sobre adr-140/146 (contrato/P14) + adr-150 (lei) + adr-155 (domínio FCE) + adr-178 (2ª família P2P). Materializa P1 (superfície de frontend gerada da spec, nunca escrita à mão, nunca committada aqui) com fidelidade de forma P14 (a geração preserva as distinções compile-time do domínio). Nasce proposed = hipótese CUE->superfície-de-frontend falsificável, validada por golden-example por evidência spec-side + flip do founder (harness em def-065; molde adr-140, run-001). Fronteira QUE=spec (superfície + gate + P1-estrito) / COMO=runtime (linguagem-alvo + forma/sintaxe + gerador + stack, def-060); a linguagem-alvo é runtime-local (def-060), não decisão deste contrato. V2 (adr-178): 2ª família (P2P início da jornada) estendida IN-PLACE — a promoção a schema first-class é o gatilho NOMEADO da 3ª família (mapa de cotações), decisão prevista, não surpresa; a view da fila segue o regime hand não-contrato da 1ª família até essa promoção. Rust WASM (FF-FE-05) governada por adr-150 item 6, apontada não re-decidida."
+	// (6) MANDATO DA PROMOÇÃO A SCHEMA -- conteúdo obrigatório pré-fixado da
+	// promoção prevista em adr-178 D3 (3ª família). Âncora no ponto de uso
+	// (técnica do def-081): quem tocar o contrato na chegada da 3ª família
+	// reencontra o mandato sem depender de memória cross-sessão.
+	schemaPromotionMandate: {
+		authority: "adr-179"
+		binding:   "Quando a promoção a schema first-class disparar (gatilho adr-178 D3 — não alterado nem complementado pelo adr-179), o schema DEVE exigir por família declaração estruturada de APLICABILIDADE do action-surface: família com command/ação mutável → bloco obrigatório com os três slots (par botão+tool de UMA definição; confirmação estruturada com Approval-as-Confirmation onde dinheiro move; Generative Form com prefill por campo + justificativa de origem net-new); família legitimamente sem ação → não-aplicabilidade declarada por shape tipado, sem action-surface vazio ou placeholder."
+		rationale: "Resumo operacional com ponteiro (P0): o conteúdo canônico e completo vive no adr-179; este campo garante o reencontro do mandato no ponto de uso na chegada da 3ª família."
+	}
+
+	rationale: "Autorizado por adr-158 (esta relação de codegen) sobre adr-140/146 (contrato/P14) + adr-150 (lei) + adr-155 (domínio FCE) + adr-178 (2ª família P2P). Materializa P1 (superfície de frontend gerada da spec, nunca escrita à mão, nunca committada aqui) com fidelidade de forma P14 (a geração preserva as distinções compile-time do domínio). Nasce proposed = hipótese CUE->superfície-de-frontend falsificável, validada por golden-example por evidência spec-side + flip do founder (harness em def-065; molde adr-140, run-001). Fronteira QUE=spec (superfície + gate + P1-estrito) / COMO=runtime (linguagem-alvo + forma/sintaxe + gerador + stack, def-060); a linguagem-alvo é runtime-local (def-060), não decisão deste contrato. V2 (adr-178): 2ª família (P2P início da jornada) estendida IN-PLACE — a promoção a schema first-class é o gatilho NOMEADO da 3ª família (mapa de cotações), decisão prevista, não surpresa, com conteúdo obrigatório pré-fixado per adr-179 (schemaPromotionMandate); a view da fila segue o regime hand não-contrato da 1ª família até essa promoção. Rust WASM (FF-FE-05) governada por adr-150 item 6, apontada não re-decidida."
 }
