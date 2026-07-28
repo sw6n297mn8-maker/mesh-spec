@@ -14,9 +14,11 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // Princípio operacional canônico (per founder review 2026-05-01,
 // canonizado em BDG agent-spec): Spec declara CAPACIDADE; governance
 // envelope declara AUTONOMIA atual via promotion criteria +
-// autonomyOverrides intermediários. Phase 0: 3 mutation actions
-// propose-and-wait + 1 execute-and-log (act-revalidate-rfq-pool —
-// escalation path cobre pool<2 sem precisar gate humano global).
+// autonomyOverrides intermediários. Phase 0: 4 mutation actions
+// propose-and-wait (incl. act-prepare-counter-proposal, WI-161 — a
+// negociação é a 'arte' humana; o agente prepara a mesa) + 1
+// execute-and-log (act-revalidate-rfq-pool — escalation path cobre
+// pool<2 sem precisar gate humano global).
 // "autonomousDecision" no canvas significa "não exige julgamento
 // humano (gate determinístico)", NÃO "execução sem governança".
 // Promotion para execute-and-log das 3 mutations propose-and-wait é
@@ -67,6 +69,13 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"cmd-open-rfq",
 			"cmd-submit-quotation",
 			"cmd-withdraw-quotation",
+			// Negociação (WI-161): rodadas intra-open — o agente prepara a
+			// contraproposta do comprador (act-prepare-counter-proposal) e
+			// processa as respostas do fornecedor (revisão/recusa), mesmo
+			// regime dos commands de cotação.
+			"cmd-propose-counter-terms",
+			"cmd-revise-quotation",
+			"cmd-decline-counter-terms",
 			"cmd-make-one-shot-sourcing-decision",
 			"cmd-designate-preferred-supplier",
 			"cmd-complete-strategic-award",
@@ -87,6 +96,12 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 			// dade competitiva) — cobertura per adr-175/WI-154.
 			"evt-quotation-submitted",
 			"evt-quotation-withdrawn",
+			// Fatos INTERNAL da negociação (WI-161): rodadas de
+			// contraproposta→revisão|recusa; alimentam o prj-quotation-map.
+			// Mesmo veto de confidencialidade dos fatos de cotação.
+			"evt-counter-terms-proposed",
+			"evt-quotation-revised",
+			"evt-counter-terms-declined",
 		]
 		invariants: [
 			"inv-decision-from-structured-signals",
@@ -96,6 +111,7 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 			"inv-rfq-public-lifecycle-events",
 			"inv-competitive-pool-or-supervised-exception",
 			"inv-fitness-rules-versioned-config",
+			"inv-negotiated-terms-materialize-on-quotation",
 		]
 		projections: [
 			"prj-active-sourcing-decisions",
@@ -177,6 +193,30 @@ sscPrimaryAgent: artifact_schemas.#AgentSpec & {
 		postconditions: [
 			"agg-sourcing-process criado em status=open + evt-rfq-opened emitido (NTF transversal notifica fornecedores) + audit timestamp requestedAt < rfqOpenedAt registrado",
 			"Pool registrado em invitedSuppliers como snapshot na abertura",
+		]
+	}, {
+		code:        "act-prepare-counter-proposal"
+		name:        "Prepare Counter Proposal"
+		description: "Preparar a contraproposta do comprador sobre uma cotação do mapa (WI-161): derivar recomendação de alvo — targetUnitPrice, condições de pagamento pedidas e/ou volume com entregas programadas — a partir da equalização TCO do prj-quotation-map + histórico da categoria (prj-rfq-history-by-category, mediana/variância como referência de range), e compor o cmd-propose-counter-terms estruturado. Phase 0 propose-and-wait: o agente RECOMENDA; o comprador (sh-01) decide e envia — a negociação é a 'arte' humana da jornada; o agente prepara a mesa. Impact: read-only até o gate humano; a emissão do command é do comprador. Decide-vs-execute audit (tq-agg-09): NÃO monolítico — recomendação e decisão são atos separados por construção. Anti-mini-NIM: a recomendação deriva de equalização determinística + estatística do histórico próprio (range), não de inferência sobre fornecedor. NUNCA muta a ent-quotation (inv-negotiated-terms-materialize-on-quotation — quem materializa condição é o fornecedor via revisão)."
+		category:        "mutation"
+		autonomyLevel:   "propose-and-wait"
+		inputTrustLevel: "trusted-internal"
+		domainModelRefs: [
+			"cmd-propose-counter-terms",
+			"evt-counter-terms-proposed",
+			"agg-sourcing-process",
+			"inv-negotiated-terms-materialize-on-quotation",
+			"prj-quotation-map",
+			"prj-rfq-history-by-category",
+		]
+		preconditions: [
+			"RFQ status=open com cotação-alvo status=submitted no prj-quotation-map",
+			"Comprador (sh-01) selecionou a cotação-alvo da rodada (dos melhores colocados do mapa)",
+			"≥1 eixo de contraproposta derivável (preço-alvo do range da categoria; condições de pagamento; entregas programadas) — contraproposta vazia não é rodada",
+		]
+		postconditions: [
+			"cmd-propose-counter-terms estruturado proposto ao comprador (gate humano) OR escalation triggered (insufficient-context se projections indisponíveis; ambiguous-case se range da categoria não sustenta alvo)",
+			"Após confirmação do comprador: evt-counter-terms-proposed registrado — rodada aberta visível no mapa",
 		]
 	}, {
 		code:        "act-evaluate-signal-sufficiency"

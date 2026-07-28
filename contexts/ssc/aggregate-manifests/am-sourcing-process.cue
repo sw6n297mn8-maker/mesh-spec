@@ -20,11 +20,15 @@ aggregateManifest: artifact_schemas.#AggregateManifest & {
 	name:         "SourcingProcess"
 	aggregateRef: "agg-sourcing-process"
 
-	// 8 commands verbatim de agg-sourcing-process.handlesCommands.
+	// 11 commands verbatim de agg-sourcing-process.handlesCommands
+	// (WI-161: +3 da negociação).
 	commandsAccepted: [
 		"cmd-open-rfq",
 		"cmd-submit-quotation",
 		"cmd-withdraw-quotation",
+		"cmd-propose-counter-terms",
+		"cmd-revise-quotation",
+		"cmd-decline-counter-terms",
 		"cmd-make-one-shot-sourcing-decision",
 		"cmd-designate-preferred-supplier",
 		"cmd-complete-strategic-award",
@@ -32,7 +36,8 @@ aggregateManifest: artifact_schemas.#AggregateManifest & {
 		"cmd-revalidate-rfq-pool",
 	]
 
-	// 9 events verbatim de agg-sourcing-process.emitsEvents.
+	// 12 events verbatim de agg-sourcing-process.emitsEvents
+	// (WI-161: +3 internal da negociação).
 	eventsEmitted: [
 		"evt-sourcing-decision-made",
 		"evt-preferred-supplier-designated",
@@ -42,10 +47,14 @@ aggregateManifest: artifact_schemas.#AggregateManifest & {
 		"evt-rfq-cancelled",
 		"evt-quotation-submitted",
 		"evt-quotation-withdrawn",
+		"evt-counter-terms-proposed",
+		"evt-quotation-revised",
+		"evt-counter-terms-declined",
 		"evt-network-participant-status-changed-received",
 	]
 
-	// 7 invariants verbatim de agg-sourcing-process.protectsInvariants.
+	// 8 invariants verbatim de agg-sourcing-process.protectsInvariants
+	// (WI-161: +inv-negotiated-terms-materialize-on-quotation).
 	invariants: [
 		"inv-decision-from-structured-signals",
 		"inv-decision-type-declared-upfront",
@@ -54,6 +63,7 @@ aggregateManifest: artifact_schemas.#AggregateManifest & {
 		"inv-rfq-public-lifecycle-events",
 		"inv-competitive-pool-or-supervised-exception",
 		"inv-fitness-rules-versioned-config",
+		"inv-negotiated-terms-materialize-on-quotation",
 	]
 
 	// Coerente com pm-ssc: EventLogPort (persistencia OCC + replay do
@@ -64,9 +74,9 @@ aggregateManifest: artifact_schemas.#AggregateManifest & {
 
 	generatedArtifacts: [{
 		kind:        "aggregate-skeleton"
-		description: "Aggregate base/skeleton do SourcingProcess derivado deste manifest (adr-141 item 5): estados do lifecycle (open, concluded, cancelled -- disjuncao fechada), handlers dos 8 commands, emissao dos 9 events declarados, guards das 7 invariants. Criacao via initialState=open (cmd-open-rfq e nascimento-com-evento; #Lifecycle nao tem create transition -- mesmo padrao do submit p2p)."
+		description: "Aggregate base/skeleton do SourcingProcess derivado deste manifest (adr-141 item 5): estados do lifecycle (open, concluded, cancelled -- disjuncao fechada), handlers dos 11 commands, emissao dos 12 events declarados, guards das 8 invariants. Criacao via initialState=open (cmd-open-rfq e nascimento-com-evento; #Lifecycle nao tem create transition -- mesmo padrao do submit p2p)."
 		rationale:   "Nome do kind = stage aggregate-skeleton do codegen-contract. Com esta fatia o discovery do gerador (rtd-013) passa a pegar o SSC (schemas + manifests presentes) -- o degrau runtime da fatia da cotacao (WI-159), pre-requisito do mapa (WI-160)."
 	}]
 
-	rationale: "SoT spec-side da SUPERFICIE do agg-sourcing-process (per-aggregate, adr-141 item 5): 8 commands, 9 events e 7 invariants verbatim do domain-model do SSC (extracao com diff verificado no checkpoint). portsRequired coerente com pm-ssc (EventLogPort uso-forte; consulta NPM e canvas query-dependency per adr-055, nao Port). Quinta instancia do tipo; ativa sc-mri-02 para o SSC. Cobertura COMPLETA do BC (1 aggregate central) -- sem fatia parcial a expandir."
+	rationale: "SoT spec-side da SUPERFICIE do agg-sourcing-process (per-aggregate, adr-141 item 5): 11 commands, 12 events e 8 invariants verbatim do domain-model do SSC (extracao com diff verificado no checkpoint; WI-161 estende com a negociacao — 3 commands + 3 events internal + 1 invariant, mesma extracao verbatim). portsRequired coerente com pm-ssc (EventLogPort uso-forte; consulta NPM e canvas query-dependency per adr-055, nao Port). Quinta instancia do tipo; ativa sc-mri-02 para o SSC. Cobertura COMPLETA do BC (1 aggregate central) -- sem fatia parcial a expandir."
 }

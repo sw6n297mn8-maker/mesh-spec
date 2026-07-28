@@ -22,6 +22,11 @@ package ssc
 // Materializado em 2 commits incrementais:
 //   parte 1 — anchor + process + roles (8 terms; este commit)
 //   parte 2 — machinery + events + adversarial (11 terms)
+// [ATUALIZADO 2026-07-13 — WI-152]: +term-mapa-de-cotacoes (20 terms).
+// [ATUALIZADO 2026-07-28 — WI-161]: +4 termos da negociação
+//   (contraproposta, rodada-de-negociacao, condicoes-de-pagamento,
+//   entregas-programadas) — 24 terms; autoria manual na fatia de
+//   domínio (precedente WI-152; dispatch é para criação de instância).
 //
 // domainModelRefs permanecem vazios — o domain-model.cue de SSC já
 // existe; o preenchimento dos refs é trabalho futuro.
@@ -329,7 +334,60 @@ glossary: artifact_schemas.#Glossary & {
 			reason: "Idiomático em segurança/incentive design mas opaco em conversa de domínio com category managers brasileiros. 'Fracionamento' é termo familiar em controladoria — precedente bdg adotou mesmo termo para vetor análogo em BDG (Alçada gaming)."
 		}]
 		relatedTerms: ["term-rfq", "term-categoria-de-compra"]
+	}, {
+		code:       "term-contraproposta"
+		name:       "Contraproposta"
+		termEn:     "Counter Proposal"
+		definition: "Pedido estruturado do comprador ao fornecedor durante a janela de RFQ, sobre uma cotação específica: preço-alvo, condições de pagamento pedidas e/ou volume com entregas programadas pedido (≥1 eixo). NUNCA altera a cotação — abre uma Rodada de Negociação aguardando resposta do fornecedor (revisão ou recusa). Fato interno do processo competitivo (um fornecedor jamais vê a negociação do outro)."
+		category:   "value"
+		rationale:  "O instrumento do comprador no passo da negociação da jornada ('não aceita o primeiro preço'). Canonizar o termo fixa a assimetria central da negociação na UL: o comprador PEDE (contraproposta); o fornecedor DECLARA (cotação/revisão) — quem escreve na cotação é só o dono dela (inv-negotiated-terms-materialize-on-quotation). WI-161."
+		antiTerms: [{
+			term:          "Revisão de Cotação"
+			clarification: "Revisão é o ato do FORNECEDOR que materializa condições novas na própria cotação. Contraproposta é o pedido do COMPRADOR que a precede — registra intenção, não muda condição vigente."
+		}]
+		relatedTerms: ["term-rodada-de-negociacao", "term-condicoes-de-pagamento", "term-entregas-programadas", "term-mapa-de-cotacoes"]
+		layerMapping: {
+			codeTerm: "CounterTerms"
+		}
+	}, {
+		code:       "term-rodada-de-negociacao"
+		name:       "Rodada de Negociação"
+		termEn:     "Negotiation Round"
+		definition: "Ciclo contraproposta→resposta sobre uma cotação durante a janela de RFQ: o comprador registra contraproposta; o fornecedor responde revisando a cotação (condições novas materializadas) ou declinando (condições mantidas). Rodadas são contáveis no event log; revisionNumber da cotação conta os ciclos que alteraram condições. A negociação termina quando a decisão formaliza as condições vigentes."
+		category:   "process"
+		rationale:  "As fontes descrevem a negociação como sequência iterativa ('não aceita o primeiro preço... busca melhorar as condições') — o termo dá nome ao ciclo para tela, agente e auditoria falarem a mesma língua. NÃO é BAFO formal (re-abertura estruturada multi-fornecedor com lifecycle por round — segue oq-ssc-9): é iteração bilateral sobre a MESMA cotação. WI-161."
+		antiTerms: [{
+			term:          "BAFO (Best and Final Offer)"
+			clarification: "BAFO formal é mecanismo multi-fornecedor de re-submissão estruturada em rounds com lifecycle próprio (oq-ssc-9, aberto). Rodada de Negociação é bilateral, sobre uma cotação específica, sem re-abertura de janela."
+		}]
+		relatedTerms: ["term-contraproposta", "term-rfq", "term-mapa-de-cotacoes"]
+	}, {
+		code:       "term-condicoes-de-pagamento"
+		name:       "Condições de Pagamento"
+		termEn:     "Payment Terms"
+		definition: "Estrutura de vencimentos de uma cotação: lista de prazos em dias a partir do faturamento, não-vazia e estritamente crescente ([28] à vista em 28 dias; [28, 56, 84] três parcelas), com prosa complementar para o que a estrutura não fecha (desconto à vista, condição atrelada a medição). O eixo PRINCIPAL da negociação nas fontes — melhorar condições de pagamento é o que protege o fluxo de caixa da obra."
+		category:   "value"
+		rationale:  "As fontes apontam este eixo como o que 'evita a obra quebrar' — e até o WI-161 ele era prosa livre em termsNotes: incomparável no mapa e inegociável estruturalmente. A lista de dias é a forma como o setor fala (28/56/84). WI-161."
+		antiTerms: [{
+			term:          "Prazo de Entrega"
+			clarification: "Prazo de entrega é logística (quando o material chega — Entregas Programadas); condições de pagamento são financeiras (quando o dinheiro sai). A narrativa os separa explicitamente."
+		}]
+		relatedTerms: ["term-contraproposta", "term-entregas-programadas", "term-equalizacao-tco"]
+		layerMapping: {
+			codeTerm: "PaymentTerms"
+		}
+	}, {
+		code:       "term-entregas-programadas"
+		name:       "Entregas Programadas"
+		termEn:     "Scheduled Deliveries"
+		definition: "Programação de entregas parceladas de um volume negociado: lista de parcelas {quantidade, data}, com o volume total derivável da soma. Negociada 'havendo cronograma e espaço no canteiro' — troca volume maior por condições melhores sem estourar armazenagem da obra."
+		category:   "value"
+		rationale:  "O 3º eixo da negociação nas fontes: volume com entregas programadas é a alavanca que o comprador oferece ao fornecedor (previsibilidade) em troca de preço/condições. Estruturar torna a oferta registrável e comparável. WI-161."
+		relatedTerms: ["term-contraproposta", "term-condicoes-de-pagamento"]
+		layerMapping: {
+			codeTerm: "DeliverySchedule"
+		}
 	}]
 
-	rationale: "UL completa do BC SSC organiza-se em torno do conceito-âncora Decisão de Sourcing e seus 3 subtipos declarados upfront (One-Shot, Preferred Supplier Designation, Strategic Award) — cada um com binding regime distinto em P2P (hard / soft / advisory-pré-CTR) e mapeamento canônico para evento próprio (SourcingDecisionMade, PreferredSupplierDesignated, StrategicAwardCompleted). Mecanismo competitivo (RFQ — loanword preservado) com seu trio de events de lifecycle público mínimo (RFQOpened, RFQConcluded, RFQCancelled). Inputs estruturados do gate determinístico (FitnessSignals consumido como struct externa, FitnessRules vivendo em config externa governada) com captura canônica do output (DecisionRationale como moat de inteligência). Eixo de segmentação operacional (Categoria de Compra) e função humana de governance (Category Manager — definição genérica preservando resiliência a evoluções operacionais). Padrão analítico de equalização (Equalização TCO — TCO loanword preservado) e seu instrumento consultável (Mapa de Cotações — a comparação consolidada onde a escolha do comprador acontece, viva durante a janela e carimbada pela decisão; per WI-152). Boundary com NPM (Fornecedor Qualificado — gate hard binário, classification aplicada ao role). Vetor adversarial canônico (Fracionamento — paralelo deliberado com bdg para vocabulário cross-BC consistente; classification como workaround para schema #TermCategory que não inclui anti-pattern). Anti-mini-NIM como invariant transversal: termos como ReputationScore e RiskRating NÃO entram (anti-fragmentação cross-BC) — SSC consume signals de NIM/REW via FitnessSignals; não computa nem infere. Pedido de Compra, Contrato e Compromisso são antiTerms recorrentes — fortalecem fronteiras com P2P, CTR e CMT respectivamente (frase canônica: SSC decide sourcing; CTR formaliza contrato; P2P executa compra). Vocabulary respeita convenções de strategic sourcing internacional onde inglês perde precisão (RFQ, Strategic Award, Category Manager, FitnessSignals, FitnessRules, TCO) e usa português onde vocabulário brasileiro é mais preciso (Decisão de Sourcing, Categoria de Compra, Fornecedor Qualificado, Fracionamento, Equalização TCO). Founder review pre-write aplicou 9 ajustes para separar UL de protocol/integration policy: definitions limpas (sem refs a oq não-essenciais nem detalhes de runtime); refs a oq mantidas em rationale onde essenciais para context Phase 0; categories ajustadas (role→classification para Fornecedor Qualificado e Fracionamento). domainModelRefs permanecem vazios — o domain-model.cue de SSC já existe; o preenchimento dos refs é trabalho futuro."
+	rationale: "UL completa do BC SSC organiza-se em torno do conceito-âncora Decisão de Sourcing e seus 3 subtipos declarados upfront (One-Shot, Preferred Supplier Designation, Strategic Award) — cada um com binding regime distinto em P2P (hard / soft / advisory-pré-CTR) e mapeamento canônico para evento próprio (SourcingDecisionMade, PreferredSupplierDesignated, StrategicAwardCompleted). Mecanismo competitivo (RFQ — loanword preservado) com seu trio de events de lifecycle público mínimo (RFQOpened, RFQConcluded, RFQCancelled). Inputs estruturados do gate determinístico (FitnessSignals consumido como struct externa, FitnessRules vivendo em config externa governada) com captura canônica do output (DecisionRationale como moat de inteligência). Eixo de segmentação operacional (Categoria de Compra) e função humana de governance (Category Manager — definição genérica preservando resiliência a evoluções operacionais). Padrão analítico de equalização (Equalização TCO — TCO loanword preservado) e seu instrumento consultável (Mapa de Cotações — a comparação consolidada onde a escolha do comprador acontece, viva durante a janela e carimbada pela decisão; per WI-152). Boundary com NPM (Fornecedor Qualificado — gate hard binário, classification aplicada ao role). Vetor adversarial canônico (Fracionamento — paralelo deliberado com bdg para vocabulário cross-BC consistente; classification como workaround para schema #TermCategory que não inclui anti-pattern). Anti-mini-NIM como invariant transversal: termos como ReputationScore e RiskRating NÃO entram (anti-fragmentação cross-BC) — SSC consume signals de NIM/REW via FitnessSignals; não computa nem infere. Pedido de Compra, Contrato e Compromisso são antiTerms recorrentes — fortalecem fronteiras com P2P, CTR e CMT respectivamente (frase canônica: SSC decide sourcing; CTR formaliza contrato; P2P executa compra). A NEGOCIAÇÃO (WI-161, passo 8 da jornada) entra com 4 termos: Contraproposta (o pedido do comprador — a assimetria comprador-pede/fornecedor-declara fixada na UL), Rodada de Negociação (o ciclo contraproposta→revisão|recusa; explicitamente NÃO é BAFO formal, que segue oq-ssc-9), Condições de Pagamento (o eixo que as fontes apontam como o que salva o fluxo de caixa — estruturado como lista de vencimentos em dias) e Entregas Programadas (volume parcelado negociado contra cronograma e espaço de canteiro). Vocabulary respeita convenções de strategic sourcing internacional onde inglês perde precisão (RFQ, Strategic Award, Category Manager, FitnessSignals, FitnessRules, TCO) e usa português onde vocabulário brasileiro é mais preciso (Decisão de Sourcing, Categoria de Compra, Fornecedor Qualificado, Fracionamento, Equalização TCO, Contraproposta, Condições de Pagamento). Founder review pre-write aplicou 9 ajustes para separar UL de protocol/integration policy: definitions limpas (sem refs a oq não-essenciais nem detalhes de runtime); refs a oq mantidas em rationale onde essenciais para context Phase 0; categories ajustadas (role→classification para Fornecedor Qualificado e Fracionamento). domainModelRefs permanecem vazios — o domain-model.cue de SSC já existe; o preenchimento dos refs é trabalho futuro."
 }
