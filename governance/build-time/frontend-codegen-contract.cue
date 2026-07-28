@@ -8,6 +8,11 @@ package build_time
 // mapa de cotações do ssc) — gatilho nomeado, decisão prevista, não surpresa.
 // Conteúdo obrigatório da promoção pré-fixado per adr-179 — ver schemaPromotionMandate.
 //
+// V2.1 (WI-156): família p2p estendida IN-PLACE com a superfície da TRIAGEM
+// (cmd-triage-requisition + evt-purchase-requisition-triaged + action-surface
+// da decisão com outcome). MESMA família — não é a 3ª; o gatilho da promoção
+// permanece adr-178 D3 (mapa de cotações), inalterado.
+//
 // STATUS: PROPOSED -- hipótese falsificável (CUE->superfície-de-frontend); o flip a accepted
 // é por EVIDÊNCIA spec-side (precedente codegen-validation-evidence.cue + revisão de
 // causa-raiz do founder + write-back gated, adr-148 item 8); o HARNESS que produz essa
@@ -66,6 +71,11 @@ frontendCodegenContract: {
 				command:      "cmd-submit-purchase-requisition"
 				valueObjects: ["vo-requisition-id", "vo-category-ref", "vo-purchase-scope"]
 				events:       ["evt-purchase-requisition-submitted"]
+				// Triagem (WI-156): o 2º command da família — a decisão do
+				// comprador sobre a fila. Mesmo aggregate, mesmo lifecycle;
+				// nenhum VO novo (outcome/triagedBy/narrative são primitivos).
+				triageCommand: "cmd-triage-requisition"
+				triageEvent:   "evt-purchase-requisition-triaged"
 				aggregate:    "agg-purchase-requisition"
 				// Disjunção COMPLETA do lifecycle (a fila mostra estados; a tela
 				// do FCE precisava de 1 estado-gatilho, esta precisa do enum
@@ -78,7 +88,7 @@ frontendCodegenContract: {
 				// da promoção a schema (3ª família, adr-178) — não antecipada aqui.
 				query: "qry-pending-requisitions"
 			}
-			rationale: "Domínio P2P é a fonte da superfície de tipos da 2ª tela-família: o command da submissão (origem net-new per adr-178; migração def-081) + o evento-confirmação que o POST devolve + o enum completo do lifecycle para a fila. Recorte espelha contexts/p2p/api.yaml (adr-178); mesma superfície que o mesh-runtime passa a gerar em Kotlin via discovery rtd-013 (schemas + manifests da mesma fatia)."
+			rationale: "Domínio P2P é a fonte da superfície de tipos da 2ª tela-família: o command da submissão (origem net-new per adr-178; migração def-081) + o evento-confirmação que o POST devolve + o enum completo do lifecycle para a fila. Recorte espelha contexts/p2p/api.yaml (adr-178); mesma superfície que o mesh-runtime passa a gerar em Kotlin via discovery rtd-013 (schemas + manifests da mesma fatia). A triagem (WI-156) estende a mesma família: o command da decisão do comprador e seu evento-confirmação — o recorte segue espelhando contexts/p2p/api.yaml, agora com 3 paths."
 		}
 		// Semântica de UX: a lei AI-first que a superfície gerada obedece.
 		uxSemantics: {
@@ -141,6 +151,16 @@ frontendCodegenContract: {
 			// devolvendo o evento é disciplina de superfície, não P10-gate.
 			authority: "adr-150 + adr-178"
 		},
+		{
+			stage: "action-surface-p2p-triage"
+			from:  "cmd-triage-requisition + adr-150 (Action-as-Tool, Generative Form) + adr-174/adr-160 (outcome-split: routed-to-sourcing | returned | rejected)"
+			to:    "a definição de ação da triagem (botão humano = tool de agente, de UMA definição) que termina em confirmação estruturada devolvendo PurchaseRequisitionTriaged. outcome viaja ABERTO (P14: o domínio não fecha — o espelho não inventa enum; a tela conhece os 3 valores legais pelo domain-model); narrative obrigatória em returned/rejected é invariante de handler — a superfície reflete a obrigação por comportamento, não por shape. Form pré-preenchível campo a campo a partir do ITEM DA FILA (seleção na tela da fila): a triagem NÃO é origem net-new — a informação já vive no sistema; Generative Form PADRÃO da adr-150 aplica sem exceção, e o agente-analista preenche a recomendação quando o runtime de agente existir."
+			// Transparência (propriedade do domínio, não gap do contrato): a
+			// triagem NÃO é ação financeira — nenhum dinheiro move (a reserva
+			// de cobertura pertence ao cmd-approve-purchase, fatia futura);
+			// Approval-as-Confirmation não é exigida (adr-150 dec 2c).
+			authority: "adr-150 + adr-174 + adr-178"
+		},
 	]
 
 	// (3) OUTPUT -- onde vive (nunca aqui).
@@ -148,6 +168,7 @@ frontendCodegenContract: {
 		artifacts: [
 			"domain-types da superfície FCE", "enum de lifecycle do Payment", "definição de ação do override",
 			"domain-types da superfície P2P (submissão)", "enum de lifecycle da PurchaseRequisition", "definição de ação da submissão (origem net-new, adr-178)",
+			"definição de ação da triagem (decisão com outcome, WI-156)",
 		]
 		livesIn:       "frontend-runtime"
 		committedHere: false // P1 estrito: gerado NUNCA committado no mesh-spec
