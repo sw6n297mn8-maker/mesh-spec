@@ -186,7 +186,7 @@ components:
 
     # ── Value-objects do SSC (mirror de schemas/events.cue) ──
     RFQId:
-      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RFQId'
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RfqId'
       type: string
       minLength: 1
     CategoryRef:
@@ -211,7 +211,7 @@ components:
         Tipo declarado upfront (vo-decision-type) — FECHADO com fidelidade:
         o domain-model fecha via constraint.
     RFQScope:
-      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RFQScope'
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RfqScope'
       type: object
       required: [categoryRef, description, estimatedVolume, deadline, location]
       properties:

@@ -37,7 +37,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #SupplierRef: string & !="" // owned by npm (participante qualificado; ssc consome ref, npm mantém identidade)
 
 // ── Value-objects locais do SSC ──
-#RFQId:              string & !="" // vo-rfq-id (root identity do agg-sourcing-process; existe desde a abertura)
+#RfqId:              string & !="" // vo-rfq-id (root identity do agg-sourcing-process; existe desde a abertura)
 #QuotationId:        string & !="" // vo-quotation-id (root identity de ent-quotation nested)
 #CategoryRef:        string & !="" // vo-category-ref (taxonomia de compra configurada externamente)
 #SourcingDecisionId: string & !="" // vo-sourcing-decision-id (populated apenas quando RFQ concluída com decisão)
@@ -55,7 +55,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 }
 
 // Escopo da RFQ (vo-rfq-scope).
-#RFQScope: {
+#RfqScope: {
 	categoryRef:     #CategoryRef
 	description:     string & !=""
 	estimatedVolume: #DecimalString
@@ -123,9 +123,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #RFQOpened: #Envelope & {
 	type: "mesh.ssc.rfq-opened.v1"
 	data: {
-		rfqId:             #RFQId
+		rfqId:             #RfqId
 		categoryRef:       #CategoryRef
-		scope:             #RFQScope
+		scope:             #RfqScope
 		decisionType:      #DecisionType
 		openedAt:          #RFC3339Timestamp
 		quotationDeadline: #RFC3339Timestamp
@@ -137,7 +137,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #RFQConcluded: #Envelope & {
 	type: "mesh.ssc.rfq-concluded.v1"
 	data: {
-		rfqId:              #RFQId
+		rfqId:              #RfqId
 		sourcingDecisionId: #SourcingDecisionId
 		concludedAt:        #RFC3339Timestamp
 	}
@@ -147,7 +147,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #RFQCancelled: #Envelope & {
 	type: "mesh.ssc.rfq-cancelled.v1"
 	data: {
-		rfqId:       #RFQId
+		rfqId:       #RfqId
 		cancelledAt: #RFC3339Timestamp
 		cancelledBy: string & !=""
 		reason:      string & !="" // justificativa documentada — obrigatória per evento
@@ -159,7 +159,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	type: "mesh.ssc.sourcing-decision-made.v1"
 	data: {
 		sourcingDecisionId: #SourcingDecisionId
-		rfqId:              #RFQId
+		rfqId:              #RfqId
 		categoryRef:        #CategoryRef
 		selectedSuppliers: [...#SupplierRef]
 		allocationPolicy:    #AllocationPolicy
@@ -175,7 +175,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	type: "mesh.ssc.preferred-supplier-designated.v1"
 	data: {
 		sourcingDecisionId: #SourcingDecisionId
-		rfqId:              #RFQId
+		rfqId:              #RfqId
 		categoryRef:        #CategoryRef
 		preferredSuppliers: [...#SupplierRef]
 		allocationPolicy:    #AllocationPolicy
@@ -192,7 +192,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	type: "mesh.ssc.strategic-award-completed.v1"
 	data: {
 		sourcingDecisionId: #SourcingDecisionId
-		rfqId:              #RFQId
+		rfqId:              #RfqId
 		categoryRef:        #CategoryRef
 		awardedSuppliers: [...#SupplierRef]
 		allocationPolicy:      #AllocationPolicy
@@ -209,7 +209,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #QuotationSubmitted: #Envelope & {
 	type: "mesh.ssc.quotation-submitted.v1"
 	data: {
-		rfqId:            #RFQId
+		rfqId:            #RfqId
 		supplierRef:      #SupplierRef
 		unitPrice:        #DecimalString
 		currency:         string & !=""
@@ -223,7 +223,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #QuotationWithdrawn: #Envelope & {
 	type: "mesh.ssc.quotation-withdrawn.v1"
 	data: {
-		rfqId:       #RFQId
+		rfqId:       #RfqId
 		supplierRef: #SupplierRef
 		withdrawnAt: #RFC3339Timestamp
 	}

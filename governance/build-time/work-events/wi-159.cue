@@ -19,6 +19,16 @@ package work_events
 // acusação). verbatim-diff: am 8/9/7 contra o bloco canônico do
 // agg-sourcing-process + pm↔am coerente. artifactSnapshotHash = git
 // blob hash de contexts/ssc/api.yaml no conteúdo materializado.
+//
+// PÓS-CI (mesma fatia, correções mecânicas): (a) structure-index
+// regenerado (drift gate adr-152 — 4 arquivos novos do ssc); (b) grafia
+// dos type defs alinhada ao consumidor canônico no PRIMEIRO acrônimo
+// dos schemas: VOs pela derivação do code (RfqId/RfqScope), events pelo
+// name do domain-model (RFQOpened/RFQConcluded/RFQCancelled) — a
+// bifurcação de lookup do gerador (VO-por-code vs event-por-name) fica
+// ANOTADA para harmonização runtime-local futura. codegen-pipeline
+// re-rodado: exit 0 CONTINUAR, 86/100 (14 não-passando = estado
+// conhecido pré-existente, zero regressão; o Kotlin do ssc compila).
 streams: "WI-159": events: [{
 	eventType:   "task-proposed"
 	taskId:      "WI-159"
@@ -50,7 +60,7 @@ streams: "WI-159": events: [{
 	actor:       "spec-writer"
 	completionValidation: {
 		validationRunId:      "WI-159-completion-20260728"
-		artifactSnapshotHash: "d6561e98d5ecc28cb24d7ed51fb6f00b927d1192"
-		gatesPassed: ["cue-vet", "yaml-parse", "verbatim-diff", "structural-runner", "check-self-review"]
+		artifactSnapshotHash: "39f5f8abc2adbda4205584a32842da94b1e19ae1"
+		gatesPassed: ["cue-vet", "yaml-parse", "verbatim-diff", "structural-runner", "check-self-review", "codegen-pipeline"]
 	}
 }]
