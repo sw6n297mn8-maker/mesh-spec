@@ -1013,15 +1013,113 @@ subagentExecutionLog: {
 			reviewMs:    0
 			totalMs:     557788
 		}
+	}, {
+		dispatchId:   "disp-010"
+		workItem:     "WI-160"
+		date:         "2026-07-28"
+		target:       "architecture/production-guides/frontend-codegen-contract.cue"
+		artifactType: "production-guide"
+
+		authoringSubagent: {
+			dispatched:         true
+			subagentType:       "general-purpose"
+			result:             "success"
+			cueVetAttempts:     1
+			cueVetExitCode:     0
+			abbreviationChosen: "fcg"
+			notes: """
+				Dispatch per rollout (production-guide = subagent-drafted,
+				adr-054) dentro da fatia adr-180 (promoção do
+				frontend-codegen-contract a schema first-class; cascade
+				ordering — PG nasce na MESMA fatia do schema e da migração
+				da instância). REGIME ERROR PRÉVIO DO MAIN AGENT, corrigido
+				pelo próprio log: o main agent produziu draft MANUAL
+				alegando 'Phase 0 → autoria manual' — este log prova Phase 1
+				ATIVA desde WI-069 (disp-001/disp-009 são PGs por dispatch).
+				Draft manual DESCARTADO; dispatch real executado per policy.
+				Draft do subagent validado com cue vet REAL em cópia
+				scratchpad (VET-OK; repo não tocado pelo subagent). 4
+				sections (family-classification, action-slots,
+				read-surfaces, envelope-gate-and-output) + 4 tq-fcg (3 fail
+				+ 1 warn). Reasoning report + 5 would-have-asked
+				apresentados ao founder na proposta consolidada (todos os 5
+				aceitos como propostos). HTML entity transport issue NÃO
+				ocorreu (N permanece 3).
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched: true
+			notes: """
+				Review isolado dispatched (quality-gate executionPolicy:
+				production-guide → isolated-subagent) + round de
+				estabilização per fallbackPolicy.onSelfReviewFail. Round 1:
+				1 fail VERIFICADO na fonte (def-060 citado como delegação
+				VIVA em 4 pontos normativos — def-060 está withdrawn per
+				adr-159; exit rule de activeBoundaries só cobria resolved;
+				reconciliation pair 4 checava existência de arquivo, que
+				withdrawn passaria) + 2 advisories. Round de estabilização:
+				8 deltas cirúrgicos (fronteira adr-158 + decomposição
+				adr-159 + regra de status VIVO) confirmados RESOLVIDOS sem
+				regressão critério a critério — STABLE. SRR file da fatia:
+				governance/build-time/self-reviews/
+				frontend-codegen-contract-production-guide.self-review.cue.
+				"""
+		}
+
+		founderDecision: {
+			outcome: "approved"
+			notes: """
+				Aprovação explícita na mensagem 'OK PARA A ESCRITA do
+				WI-160' (2026-07-28), cobrindo o PG com os 8 deltas, os 5
+				would-have-asked aceitos como propostos e o header
+				atualizado para founder-approved na escrita.
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:   false
+			selfReviewFailRetry:  true
+			ambiguityEscalation:  false
+			manualTakeoverPath:   false
+			apiTimeoutTakeover:   false
+			reviewSubagentBypass: false
+			notes: """
+				selfReviewFailRetry exercitado DE VERDADE pela 1ª vez no
+				caminho feliz: fail real do review isolado (def-060
+				withdrawn) → deltas verificados na fonte → round de
+				estabilização STABLE. Primeiro dispatch com pipeline
+				completo authoring → review isolado → founder approval
+				desde WI-069.
+				"""
+		}
+
+		calibrationFindings: [
+			"Regime error do MAIN AGENT (não do subagent): alegou Phase 0/manual para PG com o log provando Phase 1 ativa — o próprio subagent-execution-log foi o corretor. Sinal de que a consulta ao log ANTES de decidir modo de autoria deve ser passo explícito, não memória.",
+			"PG de 4 sections successful via dispatch — refina o pattern de densidade (3 sections ok em disp-005..009; canvas 8 sections falha): o limite viável está acima de 4.",
+			"Review isolado pegou fail REAL que o main agent não viu (def-060 withdrawn citado como vivo) — primeira evidência forte do valor do isolation (adr-054 dec 10: reduz viés de auto-ratificação).",
+			"HTML entity transport issue não ocorreu (N segue 3 — disp-007/008/009); advisory directive em promptTemplate permanece recomendação ativa, sem novo datapoint.",
+		]
+
+		pipelineOutcome: "successful-full-pipeline"
+
+		executionTimings: {
+			authoringMs: 0
+			reviewMs:    0
+			totalMs:     0
+			// Durações reais não preservadas (compaction da sessão entre o
+			// dispatch e esta entry) — zeros são placeholder honesto, não
+			// medição; registro qualitativo nas notes.
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    9
-		successfulPipeline: 1
-		failureRate:        0.333 // 3/9 failures (disp-002 + disp-003 + disp-004)
-		fallbacksExercised: 5 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry
+		totalDispatches:    10
+		successfulPipeline: 2 // disp-001 (WI-069) + disp-010 (WI-160: authoring → review isolado → founder approval)
+		failureRate:        0.3 // 3/10 failures (disp-002 + disp-003 + disp-004)
+		fallbacksExercised: 6 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry + disp-010 selfReviewFailRetry
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
 			apiTimeout:      2 // disp-003 + disp-004
@@ -1063,6 +1161,16 @@ subagentExecutionLog: {
 			bootstrap em progresso: Phase 1 canvas (manual, 4 commits)
 			+ Phase 2 glossary (disp-008, 2 commits) DONE; Phases 3-5
 			(domain-model, agent-spec, agent-governance) pending.
+
+			disp-010 (WI-160) é o 2º pipeline COMPLETO (authoring →
+			review isolado → founder approval) e o 1º exercício real de
+			selfReviewFailRetry no caminho feliz: fail verificado
+			(def-060 withdrawn citado como vivo) → 8 deltas → STABLE.
+			PG de 4 sections successful refina o teto de densidade
+			viável (>4; canvas 8 segue o contra-exemplo). Regime error
+			do main agent (Phase 0 alegado com Phase 1 ativa) corrigido
+			pelo próprio log — consulta ao log antes de decidir modo de
+			autoria vira passo recomendado.
 			"""
 	}
 }
