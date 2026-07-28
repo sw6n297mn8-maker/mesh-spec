@@ -76,6 +76,11 @@ workGraph: {
 		order:           11
 		dependsOnPhases: ["p5-bc-domain-bootstrap", "p9-stack-definition"]
 		rationale:       "W004 — C4 architecture. Depende de p5 (L3 per BC refere domain-model dos BCs) + p9 (L2 reflete container topology que depende de stack choices). L1 sozinho seria stack-agnóstico, mas wave está unificada para coherência."
+	}, #Phase & {
+		id:              "p10-journey-to-production"
+		order:           12
+		dependsOnPhases: []
+		rationale:       "Arco jornada→produção da ds-buyer-procurement-journey: fatias de superfície na ordem da jornada (adr-178 P4 — dado real de ponta a ponta) + fundação de identidade (decisão cara de retrofit cedo; implementação de login/borda é trilha de produção fora deste repo). Dependências reais por WI, não por phase barrier."
 	}]
 
 	groups: [#Group & {
@@ -182,6 +187,14 @@ workGraph: {
 		id:        "g11-stack-adrs"
 		phaseId:   "p9-stack-definition"
 		rationale: "W005 — stack keystone-first per adr-139: adr-140 (codegen/contracts) + adr-141 (kernel/Port contracts + topologia lógica) + quality criteria família tq-stack-NN; vendors/runtime deferidos JIT (def-040..045)."
+	}, #Group & {
+		id:        "g12-journey-surface-arc"
+		phaseId:   "p10-journey-to-production"
+		rationale: "Fatias de superfície/spec da jornada: triagem (WI-156), kit ssc+RFQ (WI-159), mapa+promoção (WI-160), negociação (WI-161). Prioridade de execução na ordem da jornada; a entrada de cotação do fornecedor aguarda a decisão de produto e entra como WI próprio depois dela."
+	}, #Group & {
+		id:        "g12-identity-foundation"
+		phaseId:   "p10-journey-to-production"
+		rationale: "Fundação de identidade: stakeholder-map re-autorado (WI-157) → ADR de identidade e ator (WI-158). Destrava o passo 9 da story (aprovação do gestor) e resolve def-024/decide def-080; corre em paralelo ao arco de superfície."
 	}]
 
 	dependencies: [#ExecutionDependency & {
@@ -937,5 +950,44 @@ workGraph: {
 		dependsOn: [{taskId: "WI-130", version: 1}]
 		phaseId: "p5-bc-domain-bootstrap"
 		groupId: "g7-interaction-surfaces"
+	},
+
+	// ============================================================
+	// Phase p10 (g12): arco jornada→produção da ds-buyer-procurement-
+	// journey. Registro em lote (WI-156..161, sessão 2026-07-28);
+	// dependências REAIS apenas (157→158 semântica; 159→160 schema) —
+	// a ordem da jornada vive nos rationales das task-specs como
+	// prioridade de execução, não como barreira de grafo.
+	// ============================================================
+	#ExecutionDependency & {
+		taskId:    "WI-156"
+		dependsOn: []
+		phaseId:   "p10-journey-to-production"
+		groupId:   "g12-journey-surface-arc"
+	}, #ExecutionDependency & {
+		taskId:    "WI-157"
+		dependsOn: []
+		phaseId:   "p10-journey-to-production"
+		groupId:   "g12-identity-foundation"
+	}, #ExecutionDependency & {
+		taskId: "WI-158"
+		dependsOn: [{taskId: "WI-157", version: 1}]
+		phaseId: "p10-journey-to-production"
+		groupId: "g12-identity-foundation"
+	}, #ExecutionDependency & {
+		taskId:    "WI-159"
+		dependsOn: []
+		phaseId:   "p10-journey-to-production"
+		groupId:   "g12-journey-surface-arc"
+	}, #ExecutionDependency & {
+		taskId: "WI-160"
+		dependsOn: [{taskId: "WI-159", version: 1}]
+		phaseId: "p10-journey-to-production"
+		groupId: "g12-journey-surface-arc"
+	}, #ExecutionDependency & {
+		taskId:    "WI-161"
+		dependsOn: []
+		phaseId:   "p10-journey-to-production"
+		groupId:   "g12-journey-surface-arc"
 	}]
 }
