@@ -102,8 +102,13 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		workItem: {
 			description:       "Registrar as rodadas de negociação (contrapropostas, condições de pagamento, volume e programação de entregas) até as condições finais."
 			boundedContextRef: "ssc"
+			commandRefs: ["cmd-propose-counter-terms", "cmd-revise-quotation", "cmd-decline-counter-terms"]
+			eventRefs: ["evt-counter-terms-proposed", "evt-quotation-revised", "evt-counter-terms-declined"]
+			readModelRefs: ["prj-quotation-map"]
+			queryRefs: ["qry-quotation-map"]
+			termRefs: ["term-contraproposta", "term-rodada-de-negociacao", "term-condicoes-de-pagamento", "term-entregas-programadas"]
 		}
-		rationale: "O passo que as fontes chamam de 'arte' e apontam como o que salva o fluxo de caixa — zero elementos em qualquer BC; o vazio mais denso em valor da story."
+		rationale: "O passo que as fontes chamam de 'arte' e apontam como o que salva o fluxo de caixa. No exame original (2026-07-12) era o vazio mais denso em valor da story — zero elementos em qualquer BC; FECHADO em 2026-07-28 pelo WI-161: rodadas de contraproposta→revisão|recusa intra-open (3 commands + 3 events internal, molde dos fatos de cotação — confidencialidade preservada), condições de pagamento e entregas programadas ESTRUTURADAS (vo-payment-terms/vo-delivery-schedule), e a regra de ouro inv-negotiated-terms-materialize-on-quotation: só a revisão do fornecedor materializa condições na cotação — o gate de procedência do adr-177 resolve o preço FINAL na cotação vencedora por construção ('as condições finais que a decisão formaliza'). A mesa da negociação é o próprio mapa (prj/qry-quotation-map, agora com as rodadas), refs deste passo."
 	}, {
 		actorRef: "sh-01"
 		action:   "O gestor revisa a compra preparada pelo comprador e aprova no sistema, garantindo alinhamento com o planejamento estratégico e financeiro da construtora."

@@ -2,16 +2,22 @@ package ssc
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared_schemas"
 
-// schemas/events.cue — Payload schemas dos 9 eventos do agg-sourcing-process
-// (kit de superfície WI-159, molde adr-178: FCE→p2p→ssc).
+// schemas/events.cue — Payload schemas dos 12 eventos do agg-sourcing-process
+// (kit de superfície WI-159, molde adr-178: FCE→p2p→ssc; +3 da
+// negociação WI-161).
 //
 // COBERTURA COMPLETA DO AGGREGATE (único do BC): 6 published (3 spine de
 // decisão + 3 lifecycle de RFQ) + 2 internal de cotação (WI-152; a
-// confidencialidade competitiva veta evento PÚBLICO, não o fato) + 1 ACL
-// -received (npm). Espelha o pattern FCE/CMT/p2p: #Envelope consolidado
-// (shared-schemas, def-022), opaque refs cross-BC, eventos como
-// #Envelope & {type, data}. source mesh://contexts/ssc; types próprios
-// mesh.ssc.<event-name>.v1.
+// confidencialidade competitiva veta evento PÚBLICO, não o fato) + 3
+// internal de negociação (WI-161 — rodadas contraproposta/revisão/
+// recusa, mesmo veto; espelhos exigidos pelo gerador na PRÓPRIA fatia:
+// o codegen tipa os payloads dos commands a partir destes defs, então o
+// perímetro 'espelho em fatia de superfície' caiu para os tipos que os
+// commands novos referenciam — correção pós-CI declarada, molde WI-159)
+// + 1 ACL -received (npm). Espelha o pattern FCE/CMT/p2p: #Envelope
+// consolidado (shared-schemas, def-022), opaque refs cross-BC, eventos
+// como #Envelope & {type, data}. source mesh://contexts/ssc; types
+// próprios mesh.ssc.<event-name>.v1.
 //
 // TIMESTAMPS: #RFC3339Timestamp (shared) nos data.* de domínio. DECIMAL:
 // #DecimalString (Ion-4) em preços/volumes/scores — nunca float.
@@ -110,6 +116,40 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	weights: [string]: #DecimalString
 	evaluatedSuppliers: [...#EvaluatedSupplier]
 	tradeoffs: [...#Tradeoff]
+}
+
+// ── VOs da negociação (WI-161) ──
+
+// Condições de pagamento estruturadas (vo-payment-terms) — o eixo do
+// fluxo de caixa. termScheduleDays: vencimentos em dias, lista NÃO-VAZIA
+// (o domínio a declara — shape fecha junto); ESTRITAMENTE CRESCENTE é
+// invariante de handler (não shape-expressível).
+#PaymentTerms: {
+	termScheduleDays: [int, ...int]
+	description: string
+}
+
+// Parcela de entrega programada (elemento de DeliveryScheduleEntryList).
+#DeliveryScheduleEntry: {
+	quantity: #DecimalString
+	dueDate:  #RFC3339Timestamp
+}
+
+// Volume com entregas programadas (vo-delivery-schedule). entries
+// não-vazia quando o VO está presente (o domínio a declara).
+#DeliverySchedule: {
+	entries: [#DeliveryScheduleEntry, ...#DeliveryScheduleEntry]
+	notes: string
+}
+
+// Contraproposta do comprador (vo-counter-terms). Os 3 eixos opcionais
+// individualmente; '≥1 eixo preenchido' é invariante de handler (o
+// espelho não fecha disjunção que o domínio declara como handler-level).
+#CounterTerms: {
+	targetUnitPrice?:           #DecimalString
+	requestedPaymentTerms?:     #PaymentTerms
+	requestedDeliverySchedule?: #DeliverySchedule
+	message: string
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -226,6 +266,54 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 		rfqId:       #RfqId
 		supplierRef: #SupplierRef
 		withdrawnAt: #RFC3339Timestamp
+	}
+}
+
+// evt-counter-terms-proposed — contraproposta do comprador registrada
+// (WI-161; abre rodada de negociação; NUNCA muta a ent-quotation per
+// inv-negotiated-terms-materialize-on-quotation).
+#CounterTermsProposed: #Envelope & {
+	type: "mesh.ssc.counter-terms-proposed.v1"
+	data: {
+		rfqId:        #RfqId
+		quotationId:  #QuotationId
+		counterTerms: #CounterTerms
+		proposedBy:   string & !=""
+		proposedAt:   #RFC3339Timestamp
+	}
+}
+
+// evt-quotation-revised — fornecedor materializa condições negociadas na
+// própria cotação (WI-161; o único caminho pelo qual condições
+// negociadas entram na comparação/decisão; quotationId preservado — o
+// gate de procedência do adr-177 resolve o preço FINAL por construção).
+#QuotationRevised: #Envelope & {
+	type: "mesh.ssc.quotation-revised.v1"
+	data: {
+		rfqId:          #RfqId
+		quotationId:    #QuotationId
+		supplierRef:    #SupplierRef
+		revisionNumber: int
+		unitPrice:      #DecimalString
+		paymentTerms?:     #PaymentTerms
+		deliverySchedule?: #DeliverySchedule
+		termsNotes?:       string
+		revisionNote: string
+		revisedAt:    #RFC3339Timestamp
+	}
+}
+
+// evt-counter-terms-declined — fornecedor mantém condições vigentes
+// (WI-161; fecha a rodada sem revisão; declineNote possivelmente vazia
+// — recusa seca é legítima).
+#CounterTermsDeclined: #Envelope & {
+	type: "mesh.ssc.counter-terms-declined.v1"
+	data: {
+		rfqId:       #RfqId
+		quotationId: #QuotationId
+		supplierRef: #SupplierRef
+		declineNote: string
+		declinedAt:  #RFC3339Timestamp
 	}
 }
 

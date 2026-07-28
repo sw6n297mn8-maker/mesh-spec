@@ -44,6 +44,11 @@ package build_time
 // higiene propria com as 18 decisoes de Forma A (firstClass/reason/
 // coreNoun + termos de glossario), que sao modelagem de dominio e NAO
 // foram tomadas nesta fatia de superficie.
+//
+// ESTENDIDA (WI-161): a negociacao adiciona 6 conceitos ao
+// am-sourcing-process (3 commands + 3 events internal) -- entram como
+// pendencias reconhecidas no MESMO regime da onda ssc (24 entries; a
+// decisao de Forma A dos 6 pertence a mesma fatia de higiene futura).
 
 
 firstClassBackfillWorklist: {
@@ -66,5 +71,11 @@ firstClassBackfillWorklist: {
 		{conceptCode: "evt-quotation-submitted", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
 		{conceptCode: "evt-quotation-withdrawn", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
 		{conceptCode: "evt-network-participant-status-changed-received", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-propose-counter-terms", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
+		{conceptCode: "cmd-revise-quotation", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
+		{conceptCode: "cmd-decline-counter-terms", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
+		{conceptCode: "evt-counter-terms-proposed", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
+		{conceptCode: "evt-quotation-revised", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
+		{conceptCode: "evt-counter-terms-declined", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
 	]
 }

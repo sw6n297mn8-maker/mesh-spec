@@ -14,8 +14,9 @@ package ssc
 // 1 entity nested: ent-quotation (cotação submetida com lifecycle
 // submitted → withdrawn).
 //
-// 8 commands cobrindo lifecycle real de RFQ: open → receive (multiple
-// quotation submissions/withdrawals) → conclude (3 tipos) | cancel.
+// 11 commands cobrindo lifecycle real de RFQ: open → receive (multiple
+// quotation submissions/withdrawals) → negotiate (rodadas de
+// contraproposta→revisão, WI-161) → conclude (3 tipos) | cancel.
 // Mais 1 command interno (revalidate) triggered por policy.
 //
 // Behavior-first ordering aplicado: events identificados primeiro do
@@ -37,14 +38,14 @@ package ssc
 // - lens-incentive-alignment (secundária): invariants e fitness
 //   rules como config externa governada protegem contra manipulação
 // - lens-event-driven-architecture-patterns (secundária): 6 events
-//   published + 2 internal de cotação (WI-152) + 1 internal ACL;
-//   4 projections como read models
+//   published + 2 internal de cotação (WI-152) + 3 internal de
+//   negociação (WI-161) + 1 internal ACL; 4 projections como read models
 // - lens-information-economics (terciária): decisionRationale rico
 //   captura asymmetry resolution para downstream consumers
 //
-// Glossary alignment: 20 terms canônicos do glossary (19 da Phase 2
-// + term-mapa-de-cotacoes do WI-152) reconciliados com events/
-// commands/aggregates/value-objects/entities.
+// Glossary alignment: 24 terms canônicos do glossary (19 da Phase 2
+// + term-mapa-de-cotacoes do WI-152 + 4 da negociação WI-161)
+// reconciliados com events/commands/aggregates/value-objects/entities.
 //
 // [ATUALIZADO 2026-07-13 — WI-152] Mapa de cotações consultável (a
 // lacuna de leitura que a ds-buyer-procurement-journey mediu):
@@ -54,6 +55,20 @@ package ssc
 // qry-quotation-map (comparação equalizada DERIVADA per precedente
 // prj-cost-center-availability; viva durante a janela, carimbada
 // pela decisão). Decisão B do founder no Tempo 1 do WI-152.
+//
+// [ATUALIZADO 2026-07-28 — WI-161] A NEGOCIAÇÃO (passo 8 da
+// ds-buyer-procurement-journey — o vazio mais denso em valor: "não
+// aceita o primeiro preço... o fluxo de caixa é o que evita a obra
+// quebrar"): rodadas de contraproposta→revisão INTRA-OPEN, molde
+// submit/withdraw (mutação + eventos INTERNAL — um fornecedor jamais
+// vê a negociação do outro). +3 commands (propose-counter-terms /
+// revise-quotation / decline-counter-terms), +3 events internal,
+// +3 VOs (payment-terms estruturado — o eixo do fluxo de caixa;
+// delivery-schedule — volume com entregas programadas; counter-terms),
+// +1 invariant (inv-negotiated-terms-materialize-on-quotation — a
+// regra de ouro que preserva o gate de procedência do adr-177:
+// contraproposta nunca muta a cotação; só a REVISÃO do fornecedor
+// materializa condições na ent-quotation, a casa canônica do preço).
 //
 // Convenção List (paralelo a IDC domain-model): campos com kind
 // "domain-type" cujo type termina em "List" denotam coleção do tipo
@@ -351,6 +366,114 @@ domainModel: artifact_schemas.#DomainModel & {
 			type: "datetime"
 		}]
 	}, {
+		code:        "evt-counter-terms-proposed"
+		name:        "CounterTermsProposed"
+		visibility:  "internal"
+		description: "Contraproposta do comprador registrada sobre uma cotação específica durante a janela de RFQ (intra-open) — abre uma rodada de negociação. Fato INTERNO (mesmo veto de confidencialidade dos fatos de cotação: um fornecedor jamais vê a negociação do outro). NÃO muta a ent-quotation — é pedido aguardando resposta do fornecedor (inv-negotiated-terms-materialize-on-quotation)."
+		rationale:   "O passo 8 da ds-buyer-procurement-journey nomeia a contraproposta como o instrumento do comprador ('não aceita o primeiro preço'). Registrá-la como fato torna a rodada projetável no mapa (quem está aguardando resposta, qual alvo foi pedido) e auditável — sem o fato, a negociação seria conversa fora do sistema. WI-161."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "quotationId"
+			valueObjectRef: "vo-quotation-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "counterTerms"
+			valueObjectRef: "vo-counter-terms"
+		}, {
+			kind:        "primitive"
+			name:        "proposedBy"
+			type:        "string"
+			description: "Comprador — atribuição nominal não-verificada nesta borda até o ADR de auth (postura def-024)."
+		}, {
+			kind: "primitive"
+			name: "proposedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-quotation-revised"
+		name:        "QuotationRevised"
+		visibility:  "internal"
+		description: "Fornecedor revisa a própria cotação durante a janela (intra-open) — tipicamente em resposta a contraproposta. A revisão MATERIALIZA as condições negociadas na ent-quotation (unitPrice e/ou paymentTerms/deliverySchedule/termsNotes; currency imutável — invariante de handler) e incrementa revisionNumber. Fato INTERNO. É o único mecanismo pelo qual condições negociadas entram na comparação, na decisão e no gate de procedência (adr-177)."
+		rationale:   "A regra de ouro da negociação (inv-negotiated-terms-materialize-on-quotation): o preço tem UMA casa canônica (ent-quotation, P0) — a revisão do fornecedor é o ato que muda essa casa, preservando quotationId (continuidade para decisionRationale.evaluatedSuppliers e para o gate unitPrice × quantity do p2p). Histórico de rodadas vive no event log (correção por novos eventos, nunca edição do passado). WI-161."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "quotationId"
+			valueObjectRef: "vo-quotation-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supplierRef"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind:        "primitive"
+			name:        "revisionNumber"
+			type:        "integer"
+			description: "Contador de revisões da cotação (0 na submissão original; incrementa a cada revisão)."
+		}, {
+			kind: "primitive"
+			name: "unitPrice"
+			type: "decimal"
+		}, {
+			kind:           "value-object-ref"
+			name:           "paymentTerms"
+			valueObjectRef: "vo-payment-terms"
+			description:    "Opcional — presente quando a revisão altera condições de pagamento."
+		}, {
+			kind:           "value-object-ref"
+			name:           "deliverySchedule"
+			valueObjectRef: "vo-delivery-schedule"
+			description:    "Opcional — presente quando a revisão altera volume/programação de entregas."
+		}, {
+			kind:        "primitive"
+			name:        "termsNotes"
+			type:        "string"
+			description: "Opcional — prosa complementar revisada."
+		}, {
+			kind:        "primitive"
+			name:        "revisionNote"
+			type:        "string"
+			description: "O que mudou e por quê — audit da rodada."
+		}, {
+			kind: "primitive"
+			name: "revisedAt"
+			type: "datetime"
+		}]
+	}, {
+		code:        "evt-counter-terms-declined"
+		name:        "CounterTermsDeclined"
+		visibility:  "internal"
+		description: "Fornecedor declina a contraproposta e mantém as condições vigentes da cotação — fecha a rodada sem revisão (intra-open). Fato INTERNO. Distingue 'fornecedor manteve' de 'aguardando resposta' na fila do comprador."
+		rationale:   "Sem o fato de recusa, rodada respondida-com-manutenção e rodada sem resposta seriam indistinguíveis no mapa — o comprador não saberia se espera ou parte para a decisão. Par do evt-quotation-revised: os dois desfechos possíveis de uma contraproposta viram fatos. Calibração 1 do founder no WI-161 (decline mantido)."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "quotationId"
+			valueObjectRef: "vo-quotation-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supplierRef"
+			valueObjectRef: "vo-supplier-ref"
+		}, {
+			kind:        "primitive"
+			name:        "declineNote"
+			type:        "string"
+			description: "Justificativa do fornecedor — possivelmente vazia (recusa seca é legítima)."
+		}, {
+			kind: "primitive"
+			name: "declinedAt"
+			type: "datetime"
+		}]
+	}, {
 		code:          "evt-network-participant-status-changed-received"
 		name:          "NetworkParticipantStatusChangedReceived"
 		visibility:    "internal"
@@ -448,6 +571,16 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind: "primitive"
 			name: "termsNotes"
 			type: "string"
+		}, {
+			kind:           "value-object-ref"
+			name:           "paymentTerms"
+			valueObjectRef: "vo-payment-terms"
+			description:    "Opcional (WI-161) — condições de pagamento ESTRUTURADAS da proposta (o passo do fornecedor na jornada as inclui: 'preço, prazo de entrega e condições de pagamento'); antes só prosa em termsNotes, inegociável estruturalmente."
+		}, {
+			kind:           "value-object-ref"
+			name:           "deliverySchedule"
+			valueObjectRef: "vo-delivery-schedule"
+			description:    "Opcional (WI-161) — volume com entregas programadas quando a proposta já nasce programada."
 		}]
 	}, {
 		code:        "cmd-withdraw-quotation"
@@ -467,6 +600,96 @@ domainModel: artifact_schemas.#DomainModel & {
 			name:           "supplierRef"
 			valueObjectRef: "vo-supplier-ref"
 			description:    "Supplier que retira (deve match supplier original)."
+		}]
+	}, {
+		code:        "cmd-propose-counter-terms"
+		name:        "ProposeCounterTerms"
+		description: "Comprador registra contraproposta sobre uma cotação específica durante a janela (mutação intra-open; RFQ status=open obrigatório — invariante de handler). NÃO muta a ent-quotation (inv-negotiated-terms-materialize-on-quotation): abre rodada aguardando resposta do fornecedor. Resultado: evt-counter-terms-proposed (internal) registrado — o mapa passa a mostrar a rodada aberta."
+		rationale:   "Materializa o instrumento do comprador no passo 8 da jornada ('não aceita o primeiro preço, busca reduzir o custo e, principalmente, melhorar as condições de pagamento'). Contraproposta é PEDIDO, nunca mutação da cotação — a assimetria é deliberada: quem declara condições comerciais é o fornecedor (a cotação é dele); o comprador pede. counterTerms exige ≥1 eixo preenchido (contraproposta vazia não é rodada — invariante de handler). WI-161."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "quotationId"
+			valueObjectRef: "vo-quotation-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "counterTerms"
+			valueObjectRef: "vo-counter-terms"
+		}, {
+			kind:        "primitive"
+			name:        "proposedBy"
+			type:        "string"
+			description: "Comprador — atribuição nominal não-verificada nesta borda até o ADR de auth (postura def-024)."
+		}]
+	}, {
+		code:        "cmd-revise-quotation"
+		name:        "ReviseQuotation"
+		description: "Fornecedor revisa a própria cotação durante a janela (mutação intra-open; RFQ status=open e cotação status=submitted obrigatórios; supplierRef deve match o da cotação; currency IMUTÁVEL — invariantes de handler). Restatement das condições comerciais: unitPrice obrigatório; paymentTerms/deliverySchedule/termsNotes opcionais (ausente = mantém vigente). Resultado: ent-quotation atualizada (revisionNumber incrementado, lastRevisedAt carimbado) + evt-quotation-revised (internal) — o histórico de rodadas vive no event log."
+		rationale:   "O ato que MATERIALIZA condições negociadas na casa canônica do preço (ent-quotation, P0) preservando quotationId — continuidade para decisionRationale.evaluatedSuppliers e para o gate de procedência do p2p (adr-177: unitPrice × quantity == amount resolve na cotação vencedora com o preço FINAL por construção). Revisão não é withdraw+resubmit (que quebraria a continuidade da identidade e o audit trail da negociação). Status da cotação INALTERADO (submitted — a revisão não é mudança de lifecycle). WI-161."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "quotationId"
+			valueObjectRef: "vo-quotation-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supplierRef"
+			valueObjectRef: "vo-supplier-ref"
+			description:    "Supplier que revisa (deve match supplier original — invariante de handler)."
+		}, {
+			kind: "primitive"
+			name: "unitPrice"
+			type: "decimal"
+		}, {
+			kind:           "value-object-ref"
+			name:           "paymentTerms"
+			valueObjectRef: "vo-payment-terms"
+			description:    "Opcional — ausente mantém as condições vigentes."
+		}, {
+			kind:           "value-object-ref"
+			name:           "deliverySchedule"
+			valueObjectRef: "vo-delivery-schedule"
+			description:    "Opcional — ausente mantém a programação vigente."
+		}, {
+			kind:        "primitive"
+			name:        "termsNotes"
+			type:        "string"
+			description: "Opcional — prosa complementar revisada; ausente mantém a vigente."
+		}, {
+			kind:        "primitive"
+			name:        "revisionNote"
+			type:        "string"
+			description: "O que mudou e por quê — audit da rodada."
+		}]
+	}, {
+		code:        "cmd-decline-counter-terms"
+		name:        "DeclineCounterTerms"
+		description: "Fornecedor declina a contraproposta e mantém as condições vigentes (mutação intra-open; RFQ status=open; supplierRef deve match — invariantes de handler). Fecha a rodada sem revisão. Resultado: evt-counter-terms-declined (internal) — a fila do comprador distingue 'manteve' de 'aguardando'."
+		rationale:   "Sem o ato de recusa, o silêncio e a manutenção deliberada seriam indistinguíveis — o comprador não saberia se espera ou decide. Par simétrico do revise (os 2 desfechos de uma contraproposta). Calibração 1 do founder no WI-161 (decline mantido). declineNote possivelmente vazia — recusa seca é legítima; a obrigação de justificativa é do cancelamento de RFQ, não daqui."
+		fields: [{
+			kind:           "value-object-ref"
+			name:           "rfqId"
+			valueObjectRef: "vo-rfq-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "quotationId"
+			valueObjectRef: "vo-quotation-id"
+		}, {
+			kind:           "value-object-ref"
+			name:           "supplierRef"
+			valueObjectRef: "vo-supplier-ref"
+			description:    "Supplier que declina (deve match supplier original)."
+		}, {
+			kind:        "primitive"
+			name:        "declineNote"
+			type:        "string"
+			description: "Justificativa — possivelmente vazia."
 		}]
 	}, {
 		code:        "cmd-make-one-shot-sourcing-decision"
@@ -611,6 +834,11 @@ domainModel: artifact_schemas.#DomainModel & {
 		name:      "Fitness Rules Versionadas em Config Externa"
 		rule:      "Fitness rules vivem em configuração externa governada (não no agent code) com versionamento. Cada decisão emitida carrega fitnessRuleSnapshot (versionId + content) imutável referenciando as regras vigentes no momento da decisão. Configuração e atualização são supervisedDecision (configure-fitness-rules) — não pertencem ao escopo aplicador do agente."
 		rationale: "Materializa bd-deterministic-decision-from-structured-signals consequence. Sem snapshot versionado, audit não consegue reconstituir como decisão foi tomada (drift de regras invalida histórico). Shape e infraestrutura de configuração é openQuestion oq-ssc-8."
+	}, {
+		code:      "inv-negotiated-terms-materialize-on-quotation"
+		name:      "Condições Negociadas Materializam na Cotação"
+		rule:      "Contraproposta do comprador (cmd-propose-counter-terms) NUNCA muta a ent-quotation — é fato registrado (evt-counter-terms-proposed) aguardando resposta. Condições negociadas só entram na comparação (prj-quotation-map), na avaliação (svc-fitness-rule-evaluator) e na decisão quando o FORNECEDOR as materializa via cmd-revise-quotation (evt-quotation-revised) na própria ent-quotation — a localização canônica do preço (P0), com quotationId preservado e currency imutável. Toda negociação é intra-open: contraproposta, revisão e recusa exigem RFQ status=open; a decisão formaliza as condições VIGENTES na cotação no decision time."
+		rationale: "A regra de ouro da negociação (WI-161): preserva o gate de procedência do adr-177 por construção — o 2º braço do portão do p2p resolve unitPrice × quantity == amount na cotação VENCEDORA, e com a revisão materializando o preço final na mesma ent-quotation, toda compra negociada passa pelo gate com o valor negociado real (sem a regra, cada negociação divergiria no portão e viraria escalada rotineira — teatro de gate). A assimetria comprador-pede/fornecedor-declara também protege a autoria comercial: a cotação é do fornecedor; o comprador nunca escreve nela. Enforcement: handler-level nos 3 commands (estrutural — nenhum caminho de escrita do comprador alcança a ent-quotation) + audit trail via event log; não é guard de transição de lifecycle (molde inv-rfq-public-lifecycle-events: proteção estrutural documentada, não gate de conclusão)."
 	}]
 
 	// =============================================
@@ -880,6 +1108,64 @@ domainModel: artifact_schemas.#DomainModel & {
 			type: "string"
 		}]
 		rationale: "Sustenta semantics de strategic-award per glossary."
+	}, {
+		code:        "vo-payment-terms"
+		name:        "PaymentTerms"
+		description: "Condições de pagamento ESTRUTURADAS de uma cotação — o eixo principal da negociação nas fontes ('o fluxo de caixa é o que evita a obra quebrar'). termScheduleDays é a lista de vencimentos em dias a partir do faturamento, como o setor fala: [28] = à vista em 28 dias; [28, 56] = duas parcelas; [28, 56, 84] = três. description carrega o que o domínio real não fecha (desconto à vista, condição atrelada a medição etc. — P14: o modelo não inventa taxonomia)."
+		fields: [{
+			kind:        "domain-type"
+			name:        "termScheduleDays"
+			type:        "IntList"
+			description: "Vencimentos em dias — lista NÃO-VAZIA e ESTRITAMENTE CRESCENTE (invariante de handler; calibração 2 do founder no WI-161): [28, 56, 84] válido; [] e [56, 28] inválidos."
+		}, {
+			kind:        "primitive"
+			name:        "description"
+			type:        "string"
+			description: "Prosa complementar — possivelmente vazia."
+		}]
+		rationale: "Antes do WI-161, condição de pagamento era prosa em termsNotes — o eixo que a narrativa aponta como o que salva o fluxo de caixa era inegociável e incomparável estruturalmente. A lista de dias captura 28/56/84 nativamente e torna a comparação do mapa e a rodada de negociação operáveis sobre dado, não sobre texto."
+	}, {
+		code:        "vo-delivery-schedule"
+		name:        "DeliverySchedule"
+		description: "Volume com entregas programadas — a programação que o comprador negocia 'havendo cronograma e espaço no canteiro' (passo 8 da jornada). entries é a lista de parcelas de entrega (quantidade + data); o volume total é DERIVÁVEL (soma das quantities), nunca duplicado como campo."
+		fields: [{
+			kind:        "domain-type"
+			name:        "entries"
+			type:        "DeliveryScheduleEntryList"
+			description: "Parcelas de entrega — cada entry: {quantity: decimal, dueDate: datetime}. Lista não-vazia quando o VO está presente (invariante de handler)."
+		}, {
+			kind:        "primitive"
+			name:        "notes"
+			type:        "string"
+			description: "Prosa complementar (condições de recebimento, janela de descarga etc.) — possivelmente vazia."
+		}]
+		rationale: "Entregas programadas são o 3º eixo da negociação nas fontes; sem estrutura, 'volume com entregas programadas' não é registrável nem comparável. Segue a Convenção List do header (DeliveryScheduleEntryList = coleção de DeliveryScheduleEntry) — workaround do #DomainField sem kind array."
+	}, {
+		code:        "vo-counter-terms"
+		name:        "CounterTerms"
+		description: "Conteúdo da contraproposta do comprador — os eixos pedidos ao fornecedor: targetUnitPrice (preço-alvo), requestedPaymentTerms (condições de pagamento pedidas), requestedDeliverySchedule (volume/programação pedidos). Todos opcionais individualmente; ≥1 eixo preenchido é obrigatório (invariante de handler — contraproposta vazia não é rodada). message carrega a articulação livre do comprador."
+		fields: [{
+			kind:        "primitive"
+			name:        "targetUnitPrice"
+			type:        "decimal"
+			description: "Opcional — preço unitário alvo pedido."
+		}, {
+			kind:           "value-object-ref"
+			name:           "requestedPaymentTerms"
+			valueObjectRef: "vo-payment-terms"
+			description:    "Opcional — condições de pagamento pedidas."
+		}, {
+			kind:           "value-object-ref"
+			name:           "requestedDeliverySchedule"
+			valueObjectRef: "vo-delivery-schedule"
+			description:    "Opcional — volume com entregas programadas pedido."
+		}, {
+			kind:        "primitive"
+			name:        "message"
+			type:        "string"
+			description: "Articulação livre da contraproposta — possivelmente vazia quando os eixos estruturados bastam."
+		}]
+		rationale: "A contraproposta é PEDIDO, não condição vigente (inv-negotiated-terms-materialize-on-quotation) — por isso é VO próprio consumido por cmd-propose-counter-terms/evt-counter-terms-proposed, nunca campo da ent-quotation. Os 3 eixos espelham exatamente os da narrativa do passo 8. WI-161."
 	}]
 
 	// =============================================
@@ -983,7 +1269,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		entities: [{
 			code:        "ent-quotation"
 			name:        "Quotation"
-			description: "Cotação submetida por fornecedor durante janela de RFQ. Owned exclusivamente por agg-sourcing-process — não existe fora de uma RFQ. Lifecycle: submitted → withdrawn (terminal). Withdrawal opera marcando status, não deletando — preserva audit trail."
+			description: "Cotação submetida por fornecedor durante janela de RFQ. Owned exclusivamente por agg-sourcing-process — não existe fora de uma RFQ. Lifecycle: submitted → withdrawn (terminal). Withdrawal opera marcando status, não deletando — preserva audit trail. Revisão (WI-161) NÃO é mudança de lifecycle: atualiza as condições comerciais in-place (revisionNumber incrementa; histórico no event log) — a cotação segue submitted e comparável."
 			identity: {
 				field: "quotationId"
 				type: {
@@ -1012,6 +1298,26 @@ domainModel: artifact_schemas.#DomainModel & {
 				name: "termsNotes"
 				type: "string"
 			}, {
+				kind:           "value-object-ref"
+				name:           "paymentTerms"
+				valueObjectRef: "vo-payment-terms"
+				description:    "Opcional (WI-161) — condições de pagamento estruturadas vigentes (da submissão ou da última revisão)."
+			}, {
+				kind:           "value-object-ref"
+				name:           "deliverySchedule"
+				valueObjectRef: "vo-delivery-schedule"
+				description:    "Opcional (WI-161) — volume com entregas programadas vigente."
+			}, {
+				kind:        "primitive"
+				name:        "revisionNumber"
+				type:        "integer"
+				description: "Contador de revisões (WI-161): 0 na submissão original; incrementa a cada cmd-revise-quotation. Rodadas de negociação contáveis no event log."
+			}, {
+				kind:        "primitive"
+				name:        "lastRevisedAt"
+				type:        "datetime"
+				description: "Presente quando revisionNumber > 0 (WI-161)."
+			}, {
 				kind:        "primitive"
 				name:        "status"
 				type:        "string"
@@ -1026,7 +1332,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				type:        "datetime"
 				description: "Presente quando status=withdrawn."
 			}]
-			rationale: "Entity (não value object) porque tem identidade própria persistente (quotationId) que sobrevive à mudança de status (submitted → withdrawn) e é referenciada em decisionRationale.evaluatedSuppliers + audit trail de withdrawal. Não é aggregate root separado porque sua existência é derivada da RFQ — sem agg-sourcing-process pai, quotation isolada não tem semântica."
+			rationale: "Entity (não value object) porque tem identidade própria persistente (quotationId) que sobrevive à mudança de status (submitted → withdrawn) e à revisão (WI-161 — revisionNumber incrementa, identidade e status permanecem), e é referenciada em decisionRationale.evaluatedSuppliers + audit trail de withdrawal + gate de procedência do p2p (adr-177 resolve unitPrice na cotação vencedora — a continuidade da identidade através das rodadas é o que faz o gate ver o preço FINAL). Não é aggregate root separado porque sua existência é derivada da RFQ — sem agg-sourcing-process pai, quotation isolada não tem semântica."
 		}]
 
 		lifecycle: {
@@ -1087,6 +1393,9 @@ domainModel: artifact_schemas.#DomainModel & {
 			"cmd-open-rfq",
 			"cmd-submit-quotation",
 			"cmd-withdraw-quotation",
+			"cmd-propose-counter-terms",
+			"cmd-revise-quotation",
+			"cmd-decline-counter-terms",
 			"cmd-make-one-shot-sourcing-decision",
 			"cmd-designate-preferred-supplier",
 			"cmd-complete-strategic-award",
@@ -1103,6 +1412,9 @@ domainModel: artifact_schemas.#DomainModel & {
 			"evt-rfq-cancelled",
 			"evt-quotation-submitted",
 			"evt-quotation-withdrawn",
+			"evt-counter-terms-proposed",
+			"evt-quotation-revised",
+			"evt-counter-terms-declined",
 			"evt-network-participant-status-changed-received",
 		]
 
@@ -1114,6 +1426,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"inv-rfq-public-lifecycle-events",
 			"inv-competitive-pool-or-supervised-exception",
 			"inv-fitness-rules-versioned-config",
+			"inv-negotiated-terms-materialize-on-quotation",
 		]
 
 		usesValueObjects: [
@@ -1129,9 +1442,12 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-rfq-scope",
 			"vo-validity-period",
 			"vo-expected-contract-scope",
+			"vo-payment-terms",
+			"vo-delivery-schedule",
+			"vo-counter-terms",
 		]
 
-		rationale: "Single aggregate central com root identity = rfqId (RFQ existe desde abertura, persiste mesmo se cancelada antes de decisão). sourcingDecisionId é optional field populated apenas quando concluded — reflete corretamente que cancelamento não produz decisão. Justificativa estrutural (per tq-dmg-07): persiste registry de RFQs ativas + ent-quotation collection (cotações com lifecycle submitted/withdrawn) + decision rationale gerado, sustentando inv-decision-rationale-required + inv-rfq-public-lifecycle-events. Sem essa estrutura persistente, gate determinístico regrediria a snapshot stateless e auditoria não conseguiria reconstituir como decisão foi tomada. Lifecycle simples (open → concluded | cancelled): receiving/evaluating são micro-states intra-open via mutações com cmd-submit-quotation, cmd-withdraw-quotation, cmd-revalidate-rfq-pool — não materializados como lifecycle states (avaliação interna preserva confidencialidade competitiva). Decisão emitida é state terminal; lifecycle pós-emit (preferred validUntil expira passivamente; strategic await CTR) vive em projections, não como state mutável do aggregate. ent-quotation nested per founder review pos-Q3 (Quotation tem identidade + state mutável → entity, não VO). Aggregate creation: cmd-open-rfq creates agg-sourcing-process directly in initialState=open and emits evt-rfq-opened — schema #Lifecycle não suporta transition from: ∅, criação implícita via initialState; ligação cmd-open-rfq → evt-rfq-opened está endurecida aqui (aggregate emitsEvents inclui evt-rfq-opened; cmd-open-rfq aparece em handlesCommands; correspondência semântica documentada em rationale do command + neste rationale). NetworkParticipantStatusChangedReceived listado em emitsEvents per padrão CMT/BDG/IDC: aggregate registra fato no event stream — ACL adapter produz semanticamente o evento traduzido."
+		rationale: "Single aggregate central com root identity = rfqId (RFQ existe desde abertura, persiste mesmo se cancelada antes de decisão). sourcingDecisionId é optional field populated apenas quando concluded — reflete corretamente que cancelamento não produz decisão. Justificativa estrutural (per tq-dmg-07): persiste registry de RFQs ativas + ent-quotation collection (cotações com lifecycle submitted/withdrawn) + decision rationale gerado, sustentando inv-decision-rationale-required + inv-rfq-public-lifecycle-events. Sem essa estrutura persistente, gate determinístico regrediria a snapshot stateless e auditoria não conseguiria reconstituir como decisão foi tomada. Lifecycle simples (open → concluded | cancelled): receiving/evaluating/negotiating são micro-states intra-open via mutações com cmd-submit-quotation, cmd-withdraw-quotation, cmd-propose-counter-terms, cmd-revise-quotation, cmd-decline-counter-terms (negociação WI-161 — mesmo molde), cmd-revalidate-rfq-pool — não materializados como lifecycle states (avaliação e negociação internas preservam confidencialidade competitiva). Decisão emitida é state terminal; lifecycle pós-emit (preferred validUntil expira passivamente; strategic await CTR) vive em projections, não como state mutável do aggregate. ent-quotation nested per founder review pos-Q3 (Quotation tem identidade + state mutável → entity, não VO). Aggregate creation: cmd-open-rfq creates agg-sourcing-process directly in initialState=open and emits evt-rfq-opened — schema #Lifecycle não suporta transition from: ∅, criação implícita via initialState; ligação cmd-open-rfq → evt-rfq-opened está endurecida aqui (aggregate emitsEvents inclui evt-rfq-opened; cmd-open-rfq aparece em handlesCommands; correspondência semântica documentada em rationale do command + neste rationale). NetworkParticipantStatusChangedReceived listado em emitsEvents per padrão CMT/BDG/IDC: aggregate registra fato no event stream — ACL adapter produz semanticamente o evento traduzido."
 	}]
 
 	// =============================================
@@ -1200,10 +1516,13 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "prj-quotation-map"
 		name:        "QuotationMapProjection"
-		description: "Read model do MAPA DE COTAÇÕES — a comparação consolidada consultável que a jornada nomeia (ds-buyer-procurement-journey, passo do mapa). DURANTE a janela de RFQ: cotações lado a lado (fornecedor, preço unitário, capacidade declarada, termos, status submitted/withdrawn) com a comparação equalizada DERIVADA deterministicamente. PÓS-decisão: o carimbo da decisão — vencedor(es), ranking final (evaluatedSuppliers), tradeoffs e fitness-rule-snapshot."
+		description: "Read model do MAPA DE COTAÇÕES — a comparação consolidada consultável que a jornada nomeia (ds-buyer-procurement-journey, passo do mapa). DURANTE a janela de RFQ: cotações lado a lado (fornecedor, preço unitário, capacidade declarada, condições de pagamento estruturadas, programação de entregas, termos, status submitted/withdrawn) com a comparação equalizada DERIVADA deterministicamente — e, com a negociação (WI-161), as RODADAS por cotação: contraproposta aberta/respondida/declinada, revisionNumber, preço inicial vs vigente (a economia da negociação observável). PÓS-decisão: o carimbo da decisão — vencedor(es), ranking final (evaluatedSuppliers), tradeoffs e fitness-rule-snapshot."
 		consumesEvents: [
 			"evt-quotation-submitted",
 			"evt-quotation-withdrawn",
+			"evt-counter-terms-proposed",
+			"evt-quotation-revised",
+			"evt-counter-terms-declined",
 			"evt-rfq-opened",
 			"evt-rfq-concluded",
 			"evt-rfq-cancelled",
@@ -1211,7 +1530,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		]
 		queryCapabilities: [{
 			code:        "qry-quotation-map"
-			description: "Retorna o QuotationMap por rfqId (com filtro por categoryRef) — cotações lado a lado ordenadas pela equalização TCO derivada, vencedor destacado quando a decisão existe (selectedSuppliers + finalRank + tradeoffs da decisão), status da janela (open/concluded/cancelled). Consumers: comprador (a comparação que suporta a escolha — passo do mapa da jornada), supervisor (visibilidade) e auditoria (reconstituição da comparação que sustentou a decisão)."
+			description: "Retorna o QuotationMap por rfqId (com filtro por categoryRef) — cotações lado a lado ordenadas pela equalização TCO derivada, vencedor destacado quando a decisão existe (selectedSuppliers + finalRank + tradeoffs da decisão), status da janela (open/concluded/cancelled) e, com a negociação (WI-161), o estado das rodadas por cotação (contraproposta aguardando/respondida/declinada; revisionNumber; preço inicial vs vigente) + condições de pagamento e entregas estruturadas comparáveis. Consumers: comprador (a comparação que suporta a escolha E a mesa de negociação — passos do mapa e da negociação da jornada), supervisor (visibilidade) e auditoria (reconstituição da comparação e das rodadas que sustentaram a decisão)."
 			rationale:   "A superfície onde a decisão de escolha se torna OBSERVÁVEL e rastreável — a comparação equalizada deixa de ser cálculo trancado no write. Canvas query-surface QueryQuotationMap. É também a superfície de leitura que o elo requisição↔cotação REFERENCIA (def-079 resolvido pelo adr-177): o 2º braço do portão de aprovação do p2p resolve a cotação vencedora por sourcingDecisionRef via esta query — a fatia WI-152 entregou o pré-requisito; o adr-177 consumou o exit."
 		}]
 		rationale: "Fecha a lacuna de leitura que a story mediu no exame original ('o modelo tem o conceito — equalização TCO como serviço interno — mas NENHUMA projection/query consultável'). A equalização no read model é DERIVADA deterministicamente do mesmo material do svc-fitness-rule-evaluator (fitness rules vigentes da categoria aplicadas sobre as cotações — reaplicação dado mesmos inputs produz mesmo output), seguindo o precedente do prj-cost-center-availability ('encapsula derivação numérica para evitar drift de cálculo entre consumers'); a projection NÃO redefine componentes de TCO — a lógica vive em FitnessRuleContent (configuração versionada; shape em oq-ssc-8). Pré-decisão a derivação usa as fitness rules VIGENTES (comparação indicativa); pós-decisão o carimbo usa o SNAPSHOT da decisão (comparação auditável) — a distinção indicativa-vs-decidida é explícita no payload. Confidencialidade competitiva preservada: consumido por comprador/supervisor intra-organização via query surface; NUNCA exposto a fornecedores (NTF não propaga o mapa; os events de cotação são internal). Latência alvo <5s (eda-projections SLO)."
@@ -1244,17 +1563,21 @@ domainModel: artifact_schemas.#DomainModel & {
 		abertura mesmo se cancelada); sourcingDecisionId é optional
 		field populated apenas quando concluded.
 
-		8 commands granulares cobrindo lifecycle real de RFQ: cmd-open-
+		11 commands granulares cobrindo lifecycle real de RFQ: cmd-open-
 		rfq (entry com decisionType declarado upfront — cria
 		agg-sourcing-process directly em initialState=open e emite
 		evt-rfq-opened, sem transition from prior state porque schema
 		#Lifecycle não suporta create transition), cmd-submit-quotation
 		+ cmd-withdraw-quotation (mutações intra-open por fornecedores),
+		cmd-propose-counter-terms + cmd-revise-quotation +
+		cmd-decline-counter-terms (a NEGOCIAÇÃO, WI-161 — mutações
+		intra-open: comprador pede, fornecedor materializa ou declina),
 		3 commands de conclusão por tipo (1 por decisionType para validar
 		correspondência), cmd-cancel-rfq (supervisedDecision), cmd-
 		revalidate-rfq-pool (triggered por policy). Cotações têm
 		lifecycle próprio (submitted → withdrawn) preservando audit
-		trail completo.
+		trail completo; revisão não é lifecycle — atualiza condições
+		in-place com revisionNumber e histórico no event log.
 
 		Multi-supplier first-class per Q1 do canvas: events carregam
 		selectedSuppliers/preferredSuppliers/awardedSuppliers como
@@ -1268,14 +1591,19 @@ domainModel: artifact_schemas.#DomainModel & {
 
 		Behavior-first ordering aplicado: events emergem do canvas (3
 		published spine de decisão + 3 published lifecycle de RFQ + 1
-		internal ACL de NPM); commands derivam de canvas inbound + 5
-		commands granulares adicionais (open, submit/withdraw quotation,
+		internal ACL de NPM) + dos fatos internos das fatias da jornada
+		(2 de cotação WI-152; 3 de negociação WI-161); commands derivam
+		de canvas inbound + granulares adicionais (open, submit/withdraw
+		quotation, propose-counter-terms/revise/decline da negociação,
 		cancel, revalidate); invariants protegidos derivados dos 7
-		businessDecisions do canvas (1 RECTOR + 6 operacionais);
-		value-objects emergentes dos payloads + glossary terms (15 VOs
-		incluindo identity refs, decision structures, signals, allocation
-		policy, validity, expected contract scope; vo-quotation removido
-		por ser entity, não VO).
+		businessDecisions do canvas (1 RECTOR + 6 operacionais) + 1 da
+		negociação (inv-negotiated-terms-materialize-on-quotation,
+		WI-161 — deriva do elo adr-177, não de businessDecision do
+		canvas); value-objects emergentes dos payloads + glossary terms
+		(18 VOs incluindo identity refs, decision structures, signals,
+		allocation policy, validity, expected contract scope e os 3 da
+		negociação — payment terms, delivery schedule, counter terms;
+		vo-quotation removido por ser entity, não VO).
 
 		Anti-mini-NIM como invariant transversal materializado em:
 		(a) inv-decision-from-structured-signals (RECTOR);
@@ -1317,7 +1645,9 @@ domainModel: artifact_schemas.#DomainModel & {
 		  published com semântica inequívoca (3 decisão + 3 lifecycle)
 		  + 2 internal de cotação (WI-152 — o fato intra-BC que alimenta
 		  o mapa consultável, sem violar a confidencialidade que veta
-		  evento público); 4 projections como read models com SLO de
+		  evento público) + 3 internal de negociação (WI-161 — rodadas
+		  contraproposta/revisão/recusa, mesmo regime de
+		  confidencialidade); 4 projections como read models com SLO de
 		  latência; 1 policy choreographs npm-trigger interno; event
 		  sourcing implícito do agregado sustenta auditoria contínua
 		  (cap-04 do canvas).
@@ -1335,8 +1665,14 @@ domainModel: artifact_schemas.#DomainModel & {
 		  strategic await CTR contract activation) vive em projections,
 		  não como state mutável do aggregate. Cache stale em P2P pós-
 		  cancelamento CTR é openQuestion oq-ssc-5.
-		- Multi-round RFQ (BAFO) é openQuestion oq-ssc-9 — Phase 0
-		  modela apenas single-round (1 cycle de quotation submission).
+		- Multi-round RFQ (BAFO formal — re-abertura estruturada de
+		  janela com lifecycle de cotações POR ROUND, multi-fornecedor
+		  simultânea) segue openQuestion oq-ssc-9. A NEGOCIAÇÃO
+		  BILATERAL (WI-161) cobre a iteração comprador↔fornecedor por
+		  rodadas de contraproposta→revisão sobre a MESMA ent-quotation
+		  (revisionNumber conta os ciclos; 1 fornecedor → 1 cotação
+		  preservado) — reduz a pressão sobre oq-ssc-9 sem resolvê-lo:
+		  single-round de SUBMISSÃO formal permanece o modelo.
 		- Cross-BC consumers de signals (NIM em fitnessSignals.
 		  performanceScore; CTR em fitnessSignals.existingCommitments)
 		  permanecem null Phase 0 — formalização cross-BC em oq-ssc-1
@@ -1358,9 +1694,30 @@ domainModel: artifact_schemas.#DomainModel & {
 		carimbo da decisão (snapshot — auditável). O comprador compara
 		ANTES de escolher — o momento que a jornada vive.
 
-		Glossary alignment: 20 terms canônicos do glossary (19 da
-		Phase 2 + term-mapa-de-cotacoes do WI-152) reconciliados com
-		events/commands/aggregates/value-objects/
+		A NEGOCIAÇÃO (WI-161, passo 8 da mesma story — o vazio mais
+		denso em valor: as fontes a chamam de 'arte' e apontam as
+		condições de pagamento como o que salva o fluxo de caixa da
+		obra): rodadas intra-open no molde exato dos fatos de cotação —
+		o comprador registra contraproposta (cmd-propose-counter-terms,
+		fato interno), o fornecedor responde materializando na própria
+		cotação (cmd-revise-quotation — o ÚNICO caminho pelo qual
+		condições negociadas entram na comparação e na decisão;
+		inv-negotiated-terms-materialize-on-quotation) ou declinando
+		(cmd-decline-counter-terms). Condições de pagamento
+		(vo-payment-terms — vencimentos em dias, lista crescente) e
+		volume com entregas programadas (vo-delivery-schedule) viram
+		ESTRUTURA comparável — antes eram prosa em termsNotes. O elo do
+		adr-177 atravessa a negociação por construção: a revisão
+		preserva quotationId e o gate de procedência do p2p resolve o
+		preço FINAL na cotação vencedora. A decisão formaliza as
+		condições vigentes no decision time — 'as condições finais que
+		a decisão formaliza', como a story narra.
+
+		Glossary alignment: 24 terms canônicos do glossary (19 da
+		Phase 2 + term-mapa-de-cotacoes do WI-152 + 4 da negociação
+		WI-161: term-contraproposta, term-rodada-de-negociacao,
+		term-condicoes-de-pagamento, term-entregas-programadas)
+		reconciliados com events/commands/aggregates/value-objects/
 		entities. Mapeamentos chave: term-sourcing-decision → vo-
 		sourcing-decision-id + decisão concluded em agg-sourcing-process;
 		term-decision-type → vo-decision-type discriminator;
@@ -1373,7 +1730,13 @@ domainModel: artifact_schemas.#DomainModel & {
 		svc-supplier-pool-builder + inv-qualification-as-precondition;
 		term-fracionamento → consumido por svc-fitness-rule-evaluator
 		via prj-rfq-history-by-category; term-mapa-de-cotacoes →
-		prj-quotation-map + qry-quotation-map (WI-152). Sem divergências terminológicas
+		prj-quotation-map + qry-quotation-map (WI-152);
+		term-contraproposta → vo-counter-terms + cmd-propose-counter-
+		terms/evt-counter-terms-proposed; term-rodada-de-negociacao →
+		par contraproposta↔(revisão|recusa) contável no event log +
+		revisionNumber da ent-quotation; term-condicoes-de-pagamento →
+		vo-payment-terms; term-entregas-programadas →
+		vo-delivery-schedule (WI-161). Sem divergências terminológicas
 		identificadas. Frase canônica preservada (SSC decide sourcing;
 		CTR formaliza contrato; P2P executa compra) via separação
 		clara de responsabilidades — agg-sourcing-process não emite
