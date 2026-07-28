@@ -243,7 +243,8 @@ structureIndex: {
 				"contexts/dlv/aggregate-manifests/am-verification.cue",
 				"contexts/fce/aggregate-manifests/am-payment.cue",
 				"contexts/p2p/aggregate-manifests/am-purchase-requisition.cue",
-				"contexts/rew/aggregate-manifests/am-risk-evaluation.cue"
+				"contexts/rew/aggregate-manifests/am-risk-evaluation.cue",
+				"contexts/ssc/aggregate-manifests/am-sourcing-process.cue"
 			],
 			"schema": "#AggregateManifest"
 		},
@@ -466,7 +467,8 @@ structureIndex: {
 				"contexts/dlv/port-manifest.cue",
 				"contexts/fce/port-manifest.cue",
 				"contexts/p2p/port-manifest.cue",
-				"contexts/rew/port-manifest.cue"
+				"contexts/rew/port-manifest.cue",
+				"contexts/ssc/port-manifest.cue"
 			],
 			"schema": "#PortManifest"
 		},
