@@ -1,0 +1,417 @@
+openapi: 3.0.3
+
+info:
+  title: Strategic Sourcing sync surface
+  version: 0.1.0
+  description: >
+    Superfície síncrona do BC Strategic Sourcing.
+    Source canônica de identidade: contexts/ssc/canvas.cue.
+    Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
+
+    RECORTE (WI-159, molde adr-178 — a cotação entra na jornada): a abertura
+    de RFQ (cmd-open-rfq — o passo 5 da ds-buyer-procurement-journey, onde a
+    jornada modelada originalmente começava) e a leitura das decisões
+    vigentes (qry-active-sourcing-decisions — o comprador vê o que já vige
+    na categoria antes de abrir RFQ nova; P2P consome como cache de
+    policies; controllers para reporting).
+    Deferido: o GET do mapa de cotações (qry-quotation-map — fatia WI-160,
+    a 3ª família do frontend); o lookup por id (qry-sourcing-decision —
+    entra com a fatia da aprovação); os commands de cotação, conclusão e
+    cancelamento — cada um com fatia própria. qry-rfq-history-by-category é
+    INTERNO por decisão do domínio (nunca entra nesta superfície).
+
+    A abertura é NASCIMENTO-COM-EVENTO (agg-sourcing-process criado em
+    initialState=open, mesmo padrão do submit do p2p): não há stream nem
+    estado prévio — por isso o POST não expõe 404/409. Expõe 422: o
+    julgamento da abertura pode não se sustentar (pool competitivo
+    insuficiente sem exceção supervisionada — inv-competitive-pool-or-
+    supervised-exception; fornecedor não-qualificado — inv-qualification-
+    as-precondition; campos condicionais por decisionType ausentes —
+    invariante de handler).
+
+    security e servers ausentes por design — ver
+    architecture/deferred-decisions/def-024.
+
+tags:
+  - name: mesh
+    description: bc=ssc
+
+paths:
+  /v1/ssc/queries/active-sourcing-decisions:
+    get:
+      operationId: queryActiveSourcingDecisions
+      summary: Listar decisões de sourcing vigentes (por categoria, opcional)
+      description: >
+        Implementa a query capability qry-active-sourcing-decisions da
+        prj-active-sourcing-decisions: decisões vigentes — one-shot
+        pendentes de execução em P2P, preferred designations com validUntil
+        futuro, strategic awards aguardando contrato CTR. Leitura pura sem
+        side-effects (read model do event log). Envelope {items} desde o
+        v1; lista vazia devolve items vazio (200), não 404. Filtro
+        categoryRef opcional (sem filtro = todas as vigentes — reporting).
+        Shape SINTÉTICO de read model (precedente do PendingRequisitionItem
+        do p2p): item único para os 3 tipos com condicionais por tipo;
+        selectedSuppliers é o nome unificado da query capability; decidedAt
+        mapeia decidedAt/designatedAt/awardedAt do evento de origem.
+        decisionRationale e fitnessRuleSnapshot NÃO entram — pertencem ao
+        lookup por id (qry-sourcing-decision, payload completo, fatia
+        futura).
+      parameters:
+        - name: categoryRef
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Decisões vigentes (possivelmente vazia)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveSourcingDecisionsView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/ssc/commands/open-rfq:
+    post:
+      operationId: openRfq
+      summary: Abrir RFQ — o processo competitivo nasce com tipo declarado
+      description: >
+        Materializa cmd-open-rfq: o category manager abre a RFQ para uma
+        categoria com escopo definido e tipo declarado UPFRONT (one-shot /
+        preferred-designation / strategic-award — enum FECHADO com
+        fidelidade: o vo-decision-type fecha via constraint, o espelho
+        fecha junto). Nascimento-com-evento: agg-sourcing-process criado em
+        initialState=open; o 200 devolve O EVENTO emitido (RFQOpened, com o
+        pool de convidados construído por svc-supplier-pool-builder
+        consultando NPM) como confirmação estruturada, molde CMT/FCE/p2p.
+        Campos condicionais por tipo (invariante de handler, 422 quando
+        violada): validityPeriod exigido para preferred-designation;
+        expectedContractScope exigido para strategic-award; ambos proibidos
+        fora dos seus tipos. requestedAt é field DECLARADO do command
+        (sustenta o audit requestedAt < openedAt de
+        inv-decision-type-declared-upfront). POSTURA (def-024): requestedBy
+        é atribuição nominal NÃO-verificada nesta borda até o ADR de auth;
+        security ausente por design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenRfqRequest'
+      responses:
+        '200':
+          description: RFQ aberta — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RFQOpened'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Chave única gerada pelo cliente (UUID v4 recomendado) usada pelo
+        servidor para cachear resultado dentro de uma janela curta e detectar
+        retry — request repetido com mesma key retorna mesmo resultado sem
+        executar de novo. Padrão informal de mercado (RFC draft); janela
+        exata definida quando ADR de stack chegar.
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    BadRequest:
+      description: Request malformado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Payload bem-formado, mas o julgamento da abertura não se sustenta no domínio
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Erro interno
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      description: >
+        RFC 7807 Problem Details. Cross-BC shared contract; NÃO customizar
+        por BC. additionalProperties=true porque RFC 7807 §3.2 permite
+        extensões por problem type — mas extensões só por coordenação
+        cross-BC (tension-entry), nunca fork local.
+      additionalProperties: true
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        traceId:
+          type: string
+          description: Correlation id para auditoria
+
+    # ── Value-objects do SSC (mirror de schemas/events.cue) ──
+    RFQId:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RFQId'
+      type: string
+      minLength: 1
+    CategoryRef:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#CategoryRef'
+      type: string
+      minLength: 1
+      description: taxonomia de compra configurada externamente
+    SupplierRef:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#SupplierRef'
+      type: string
+      minLength: 1
+      description: owned by npm — ssc consome ref, npm mantém identidade
+    SourcingDecisionId:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#SourcingDecisionId'
+      type: string
+      minLength: 1
+    DecisionType:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#DecisionType'
+      type: string
+      enum: [one-shot, preferred-designation, strategic-award]
+      description: >
+        Tipo declarado upfront (vo-decision-type) — FECHADO com fidelidade:
+        o domain-model fecha via constraint.
+    RFQScope:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RFQScope'
+      type: object
+      required: [categoryRef, description, estimatedVolume, deadline, location]
+      properties:
+        categoryRef:
+          $ref: '#/components/schemas/CategoryRef'
+        description:
+          type: string
+          minLength: 1
+        estimatedVolume:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        deadline:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        location:
+          type: string
+          minLength: 1
+    AllocationPolicy:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#AllocationPolicy'
+      type: object
+      required: [type, splitDetails]
+      properties:
+        type:
+          type: string
+          enum: [single, split-by-percentage, split-by-criteria]
+        splitDetails:
+          type: object
+          description: >
+            ABERTO no espelho — AllocationSplitDetails não tem shape
+            declarado no domain-model (prosa por tipo); o espelho não
+            inventa (P14).
+          additionalProperties: true
+    ValidityPeriod:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#ValidityPeriod'
+      type: object
+      required: [validFrom, validUntil]
+      properties:
+        validFrom:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        validUntil:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    ExpectedContractScope:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#ExpectedContractScope'
+      type: object
+      required: [committedVolume, contractTermDuration, indicativeConditions]
+      properties:
+        committedVolume:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        contractTermDuration:
+          type: string
+          minLength: 1
+        indicativeConditions:
+          type: string
+          minLength: 1
+
+    # ── Projection response (qry-active-sourcing-decisions) ──
+    ActiveSourcingDecisionItem:
+      type: object
+      description: >
+        Uma decisão vigente — shape SINTÉTICO do read model (item único para
+        os 3 tipos; precedente PendingRequisitionItem/p2p): condicionais por
+        tipo (validityPeriod quando preferred-designation;
+        expectedContractScope quando strategic-award); selectedSuppliers é o
+        nome unificado da query capability (mapeia selected/preferred/
+        awardedSuppliers do evento de origem); decidedAt mapeia
+        decidedAt/designatedAt/awardedAt.
+      required: [sourcingDecisionId, rfqId, categoryRef, decisionType, selectedSuppliers, allocationPolicy, decidedAt]
+      properties:
+        sourcingDecisionId:
+          $ref: '#/components/schemas/SourcingDecisionId'
+        rfqId:
+          $ref: '#/components/schemas/RFQId'
+        categoryRef:
+          $ref: '#/components/schemas/CategoryRef'
+        decisionType:
+          $ref: '#/components/schemas/DecisionType'
+        selectedSuppliers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SupplierRef'
+        allocationPolicy:
+          $ref: '#/components/schemas/AllocationPolicy'
+        validityPeriod:
+          $ref: '#/components/schemas/ValidityPeriod'
+        expectedContractScope:
+          $ref: '#/components/schemas/ExpectedContractScope'
+        decidedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    ActiveSourcingDecisionsView:
+      type: object
+      description: >
+        Read model da qry-active-sourcing-decisions. Envelope de objeto
+        desde o v1: paginação/metadados entram ADITIVAMENTE como campos
+        irmãos de items em versões futuras — nenhum no v1.
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActiveSourcingDecisionItem'
+
+    # ── Command request (cmd-open-rfq) ──
+    OpenRfqRequest:
+      x-mesh-cue-ref: 'contexts/ssc/domain-model.cue#commands.cmd-open-rfq'
+      type: object
+      required: [categoryRef, scope, decisionType, quotationDeadline, requestedBy, requestedAt]
+      properties:
+        categoryRef:
+          $ref: '#/components/schemas/CategoryRef'
+        scope:
+          $ref: '#/components/schemas/RFQScope'
+        decisionType:
+          $ref: '#/components/schemas/DecisionType'
+        quotationDeadline:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        validityPeriod:
+          allOf:
+            - $ref: '#/components/schemas/ValidityPeriod'
+          description: >
+            Opcional no shape — exigido quando decisionType=
+            preferred-designation, proibido fora (invariante de handler;
+            422).
+        expectedContractScope:
+          allOf:
+            - $ref: '#/components/schemas/ExpectedContractScope'
+          description: >
+            Opcional no shape — exigido quando decisionType=strategic-award,
+            proibido fora (invariante de handler; 422).
+        requestedBy:
+          type: string
+          minLength: 1
+          description: >
+            Category manager — atribuição nominal NÃO-verificada nesta
+            borda até o ADR de auth (def-024).
+        requestedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+          description: >
+            Field DECLARADO do command (fidelidade verbatim) — sustenta o
+            audit de inv-decision-type-declared-upfront
+            (requestedAt < openedAt).
+
+    # ── Event envelope (200 do open-rfq; molde CMT/FCE/p2p) ──
+    RFQOpened:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RFQOpened'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/ssc
+        type:
+          type: string
+          const: mesh.ssc.rfq-opened.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/ssc/schemas/events.cue#RFQOpened
+        data:
+          type: object
+          required: [rfqId, categoryRef, scope, decisionType, openedAt, quotationDeadline, invitedSuppliers]
+          properties:
+            rfqId:
+              $ref: '#/components/schemas/RFQId'
+            categoryRef:
+              $ref: '#/components/schemas/CategoryRef'
+            scope:
+              $ref: '#/components/schemas/RFQScope'
+            decisionType:
+              $ref: '#/components/schemas/DecisionType'
+            openedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+            quotationDeadline:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+            invitedSuppliers:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupplierRef'

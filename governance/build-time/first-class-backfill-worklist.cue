@@ -33,9 +33,38 @@ package build_time
 // (firstClass/reason/coreNoun no domain-model) + cobertura de glossario (11 termos
 // novos; o agg reusa term-requisicao, decisao do founder) -> removidos.
 // Worklist VAZIA novamente; gate reject permanece.
+//
+// RE-POPULADA CONSCIENTEMENTE (WI-159): o am-sourcing-process do kit de
+// superficie do ssc traz 18 conceitos NOVOS para dentro do sc-fct-01 (1 agg
+// + 8 commands + 9 events) -- o ssc nao passou pelas 5 ondas porque nao
+// tinha manifest (Forma A: zero firstClass no domain-model do ssc).
+// Entries pending reconhecidas per falsificacao 4 do adr-151 (pendente-
+// reconhecido != verde-falso; o gate segue reject e visivel). DRENAGEM:
+// onda ssc (6a onda da campanha, molde das 5 anteriores) -- fatia de
+// higiene propria com as 18 decisoes de Forma A (firstClass/reason/
+// coreNoun + termos de glossario), que sao modelagem de dominio e NAO
+// foram tomadas nesta fatia de superficie.
 
 
 firstClassBackfillWorklist: {
 	entries: [
+		{conceptCode: "agg-sourcing-process", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-open-rfq", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-submit-quotation", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-withdraw-quotation", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-make-one-shot-sourcing-decision", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-designate-preferred-supplier", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-complete-strategic-award", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-cancel-rfq", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "cmd-revalidate-rfq-pool", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-sourcing-decision-made", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-preferred-supplier-designated", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-strategic-award-completed", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-rfq-opened", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-rfq-concluded", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-rfq-cancelled", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-quotation-submitted", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-quotation-withdrawn", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
+		{conceptCode: "evt-network-participant-status-changed-received", bc: "ssc", reason: "1o manifest do ssc (WI-159) traz o conceito ao sc-fct-01; Forma A pendente -- onda ssc", status: "pending"},
 	]
 }
