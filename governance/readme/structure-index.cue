@@ -185,7 +185,8 @@ structureIndex: {
 				"architecture/adrs/adr-176-promote-agent-coverage-check-to-reject.cue",
 				"architecture/adrs/adr-177-requisition-quotation-link-and-price-provenance-gate.cue",
 				"architecture/adrs/adr-178-journey-start-surface-kit-and-net-new-origin.cue",
-				"architecture/adrs/adr-179-frontend-promotion-mandate-reading-contract.cue"
+				"architecture/adrs/adr-179-frontend-promotion-mandate-reading-contract.cue",
+				"architecture/adrs/adr-180-promote-frontend-codegen-contract-to-schema.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -663,6 +664,7 @@ structureIndex: {
 				"architecture/structural-checks/domain-story.cue",
 				"architecture/structural-checks/economic-mechanism-model.cue",
 				"architecture/structural-checks/first-class-traceability.cue",
+				"architecture/structural-checks/frontend-codegen-contract.cue",
 				"architecture/structural-checks/inv-domain-model.cue",
 				"architecture/structural-checks/manifest-conformance.cue",
 				"architecture/structural-checks/manifest-ref-integrity.cue",
@@ -699,6 +701,7 @@ structureIndex: {
 				"architecture/production-guides/deferred-decision.cue",
 				"architecture/production-guides/domain-model.cue",
 				"architecture/production-guides/domain-story.cue",
+				"architecture/production-guides/frontend-codegen-contract.cue",
 				"architecture/production-guides/glossary.cue",
 				"architecture/production-guides/golden-example.cue",
 				"architecture/production-guides/lens.cue",
@@ -749,6 +752,11 @@ structureIndex: {
 			"canonicalPath": "governance/adopted-artifacts.cue",
 			"present": true,
 			"schema": "#AdoptedArtifactsManifest"
+		},
+		{
+			"canonicalPath": "governance/build-time/frontend-codegen-contract.cue",
+			"present": true,
+			"schema": "#FrontendCodegenContract"
 		},
 		{
 			"canonicalPath": "governance/build-time/self-review-bootstrap-policy.cue",

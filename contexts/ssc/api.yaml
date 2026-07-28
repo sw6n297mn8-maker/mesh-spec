@@ -8,17 +8,20 @@ info:
     Source canônica de identidade: contexts/ssc/canvas.cue.
     Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
 
-    RECORTE (WI-159, molde adr-178 — a cotação entra na jornada): a abertura
-    de RFQ (cmd-open-rfq — o passo 5 da ds-buyer-procurement-journey, onde a
-    jornada modelada originalmente começava) e a leitura das decisões
-    vigentes (qry-active-sourcing-decisions — o comprador vê o que já vige
-    na categoria antes de abrir RFQ nova; P2P consome como cache de
-    policies; controllers para reporting).
-    Deferido: o GET do mapa de cotações (qry-quotation-map — fatia WI-160,
-    a 3ª família do frontend); o lookup por id (qry-sourcing-decision —
-    entra com a fatia da aprovação); os commands de cotação, conclusão e
-    cancelamento — cada um com fatia própria. qry-rfq-history-by-category é
-    INTERNO por decisão do domínio (nunca entra nesta superfície).
+    RECORTE (WI-159 + WI-160, molde adr-178 — a cotação entra na jornada):
+    a abertura de RFQ (cmd-open-rfq — o passo 5 da
+    ds-buyer-procurement-journey, onde a jornada modelada originalmente
+    começava), a leitura das decisões vigentes
+    (qry-active-sourcing-decisions — o comprador vê o que já vige na
+    categoria antes de abrir RFQ nova; P2P consome como cache de policies;
+    controllers para reporting) e o GET do mapa de cotações
+    (qry-quotation-map — WI-160/adr-180, a 3ª família do frontend: a
+    comparação consolidada que suporta a escolha, passo do mapa da
+    jornada).
+    Deferido: o lookup por id (qry-sourcing-decision — entra com a fatia
+    da aprovação); os commands de cotação, conclusão e cancelamento — cada
+    um com fatia própria. qry-rfq-history-by-category é INTERNO por
+    decisão do domínio (nunca entra nesta superfície).
 
     A abertura é NASCIMENTO-COM-EVENTO (agg-sourcing-process criado em
     initialState=open, mesmo padrão do submit do p2p): não há stream nem
@@ -72,6 +75,56 @@ paths:
                 $ref: '#/components/schemas/ActiveSourcingDecisionsView'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/ssc/queries/quotation-map/{rfqId}:
+    get:
+      operationId: queryQuotationMap
+      summary: Consultar o mapa de cotações de uma RFQ
+      description: >
+        Implementa a query capability qry-quotation-map da
+        prj-quotation-map (WI-152): a comparação consolidada que o
+        comprador usa para escolher — cotações lado a lado ordenadas pela
+        equalização TCO DERIVADA deterministicamente, com o carimbo da
+        decisão quando ela existe. Leitura pura sem side-effects (read
+        model do event log). Molde by-id do FCE. LEITURA INTERPRETATIVA
+        (adr-180 dec 4) da prosa da capability ('por rfqId, com filtro por
+        categoryRef'): o GET é by-rfqId e categoryRef viaja NO PAYLOAD — o
+        'filtro por categoria' pertence a uma LISTAGEM de mapas que não
+        existe como projection (mesma família da lacuna 'RFQs abertas' do
+        WI-159); a listagem não é inventada aqui. Alternativa descartada:
+        query param categoryRef opcional no by-id — rfqId já identifica
+        unicamente o mapa e sua categoria (validação cruzada seria
+        contrato sem função; filtro sem listagem é vazio).
+        comparisonBasis explicita o regime da equalização (distinção da
+        projection): indicative DURANTE a janela (fitness rules VIGENTES
+        da categoria); decided PÓS-decisão (o SNAPSHOT carimbado —
+        comparação auditável). decision presente apenas quando
+        windowStatus=concluded. CONFIDENCIALIDADE COMPETITIVA: superfície
+        de comprador/supervisor/auditoria intra-organização — NUNCA
+        superfície de fornecedor (um fornecedor nunca vê a cotação do
+        outro; os events de cotação são internal; NTF não propaga o mapa).
+        404 quando a RFQ não existe (diferente da fila vazia da listagem:
+        aqui o recurso-pai é o mapa de UMA RFQ identificada).
+      parameters:
+        - name: rfqId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: O mapa de cotações da RFQ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotationMapView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -143,6 +196,12 @@ components:
             $ref: '#/components/schemas/Problem'
     UnprocessableEntity:
       description: Payload bem-formado, mas o julgamento da abertura não se sustenta no domínio
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: RFQ inexistente
       content:
         application/problem+json:
           schema:
@@ -321,6 +380,157 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ActiveSourcingDecisionItem'
+
+    # ── Espelhos da decisão (schemas/events.cue; consumidos pelo mapa) ──
+    EvaluatedSupplier:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#EvaluatedSupplier'
+      type: object
+      description: >
+        Avaliação per-supplier (vo-evaluated-supplier). scoresPerCriterion
+        é mapa critério→score ABERTO no espelho (ScoresByCriterion sem
+        shape fechado no domain-model — P14); notes pode ser vazia.
+      required: [supplierRef, scoresPerCriterion, finalRank, notes]
+      properties:
+        supplierRef:
+          $ref: '#/components/schemas/SupplierRef'
+        scoresPerCriterion:
+          type: object
+          additionalProperties:
+            type: string
+            pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        finalRank:
+          type: integer
+        notes:
+          type: string
+    Tradeoff:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#Tradeoff'
+      type: object
+      description: >
+        Justificativa estruturada de escolha vs alternativa (vo-tradeoff) —
+        diferenças quantitativas articuladas, não opinião qualitativa.
+      required: [preferredSupplier, alternativeSupplier, criterion, rationale]
+      properties:
+        preferredSupplier:
+          $ref: '#/components/schemas/SupplierRef'
+        alternativeSupplier:
+          $ref: '#/components/schemas/SupplierRef'
+        criterion:
+          type: string
+          minLength: 1
+        rationale:
+          type: string
+          minLength: 1
+    FitnessRuleSnapshot:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#FitnessRuleSnapshot'
+      type: object
+      description: >
+        Snapshot imutável de fitness rules (vo-fitness-rule-snapshot).
+        content ABERTO no espelho — FitnessRuleContent tem shape
+        deliberadamente em oq-ssc-8; o espelho não inventa (P14).
+      required: [versionId, content, appliedAt]
+      properties:
+        versionId:
+          type: string
+          minLength: 1
+        content:
+          type: object
+          additionalProperties: true
+        appliedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Projection response (qry-quotation-map) ──
+    QuotationMapItem:
+      type: object
+      description: >
+        Uma cotação no mapa — shape SINTÉTICO do read model (precedente
+        ActiveSourcingDecisionItem): campos do fato interno
+        evt-quotation-submitted + status do lifecycle da ent-quotation
+        (submitted → withdrawn, enum FECHADO com fidelidade) +
+        equalizedScore DERIVADO deterministicamente (fitness rules
+        aplicadas sobre a cotação — ausente quando a derivação não
+        produziu score para o item; nunca input manual). termsNotes pode
+        ser vazia (espelho de events.cue).
+      required: [supplierRef, unitPrice, currency, declaredCapacity, termsNotes, status, submittedAt]
+      properties:
+        supplierRef:
+          $ref: '#/components/schemas/SupplierRef'
+        unitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        currency:
+          type: string
+          minLength: 1
+        declaredCapacity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        termsNotes:
+          type: string
+        status:
+          type: string
+          enum: [submitted, withdrawn]
+        submittedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        equalizedScore:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+    QuotationMapDecision:
+      type: object
+      description: >
+        O carimbo da decisão (presente apenas quando
+        windowStatus=concluded): vencedor(es), ranking final
+        (evaluatedSuppliers), tradeoffs e o snapshot de fitness rules que
+        sustentou a comparação — a reconstituição auditável.
+      required: [sourcingDecisionId, selectedSuppliers, evaluatedSuppliers, tradeoffs, fitnessRuleSnapshot]
+      properties:
+        sourcingDecisionId:
+          $ref: '#/components/schemas/SourcingDecisionId'
+        selectedSuppliers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SupplierRef'
+        evaluatedSuppliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluatedSupplier'
+        tradeoffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tradeoff'
+        fitnessRuleSnapshot:
+          $ref: '#/components/schemas/FitnessRuleSnapshot'
+    QuotationMapView:
+      type: object
+      description: >
+        Read model da qry-quotation-map — o mapa de cotações de UMA RFQ.
+        categoryRef viaja no payload (leitura interpretativa adr-180 dec
+        4). windowStatus espelha o lifecycle FECHADO do
+        agg-sourcing-process; comparisonBasis explicita o regime da
+        equalização (indicative = fitness rules vigentes durante a
+        janela; decided = snapshot carimbado pós-decisão); decision
+        presente apenas quando concluded.
+      required: [rfqId, categoryRef, windowStatus, comparisonBasis, quotations]
+      properties:
+        rfqId:
+          $ref: '#/components/schemas/RFQId'
+        categoryRef:
+          $ref: '#/components/schemas/CategoryRef'
+        windowStatus:
+          type: string
+          enum: [open, concluded, cancelled]
+        comparisonBasis:
+          type: string
+          enum: [indicative, decided]
+        quotations:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuotationMapItem'
+        decision:
+          $ref: '#/components/schemas/QuotationMapDecision'
 
     # ── Command request (cmd-open-rfq) ──
     OpenRfqRequest:
