@@ -25,9 +25,25 @@ package work_events
 // mesmo commit; sc-ag-01/02 verdes com a coevolução do agent-spec;
 // sc-fct-01 sem acusação — 6 conceitos novos como pendências
 // reconhecidas na worklist, mesmo regime WI-159). Superfície (GET do
-// mapa com rodadas; espelhos em schemas/events.cue) fica para fatia
-// própria — declarado no perímetro da proposta. artifactSnapshotHash =
-// git blob hash de contexts/ssc/domain-model.cue materializado.
+// mapa com rodadas) fica para fatia própria — declarado no perímetro da
+// proposta. artifactSnapshotHash = git blob hash de
+// contexts/ssc/domain-model.cue materializado.
+//
+// PÓS-CI (mesma fatia, correção mecânica — molde WI-159): o gate
+// codegen-validation falhou (exit 75) porque o gerador TIPA os payloads
+// dos commands a partir dos schemas do BC — cmd-submit-quotation/
+// cmd-propose-counter-terms referenciam vo-payment-terms/
+// vo-delivery-schedule/vo-counter-terms sem def estrutural em
+// contexts/ssc/schemas/events.cue. O perímetro 'espelhos em fatia de
+// superfície' CAIU para os tipos que os commands novos referenciam (o
+// disco decide): +3 VO mirrors (#PaymentTerms com [int, ...int] —
+// não-vazia por shape, crescente segue handler; #DeliverySchedule +
+// entry; #CounterTerms com eixos opcionais — '≥1 eixo' segue handler)
+// +3 event mirrors por NAME do domain-model (#CounterTermsProposed/
+// #QuotationRevised/#CounterTermsDeclined — bifurcação de lookup do
+// gerador anotada no WI-159). Pipeline re-rodado LOCAL: exit 0
+// CONTINUAR, 86/100 (14 não-passando = estado pré-existente, zero
+// regressão). O GET do mapa com rodadas permanece deferido.
 streams: "WI-161": events: [{
 	eventType:   "task-proposed"
 	taskId:      "WI-161"
@@ -60,6 +76,6 @@ streams: "WI-161": events: [{
 	completionValidation: {
 		validationRunId:      "WI-161-completion-20260728"
 		artifactSnapshotHash: "f9a11c6fc9dffebfd2dc7753f812a16df2e1fab1"
-		gatesPassed: ["cue-vet", "verbatim-diff", "command-event-fidelity-report", "structural-runner", "freshness-gate", "check-self-review"]
+		gatesPassed: ["cue-vet", "verbatim-diff", "command-event-fidelity-report", "structural-runner", "freshness-gate", "check-self-review", "codegen-pipeline"]
 	}
 }]
