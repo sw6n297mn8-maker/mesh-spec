@@ -33,6 +33,7 @@ package artifact_schemas
 // - pain points são obrigatórios por tipo e referenciam custos canônicos (ce-*)
 // - platformRelationships é lista com unicidade enforced por runner
 // - manipulation vectors obrigatórios para participantes econômicos ativos
+//   e para a classe adversarial (lista canônica de obrigadas: tq-sm-04)
 // - sub-structs interpretativas têm rationale
 // - refs numéricos (sh-NN, ce-NN) — padrão canônico do repositório,
 //   alinhado com canvas (^sh-[0-9]{2}$) e domain-definition (ce-01..ce-07)
@@ -94,10 +95,10 @@ package artifact_schemas
 			rationale:   "Stakeholder sem vínculo com nenhum BC pode ser legítimo (futuro) mas normalmente indica mapa incompleto."
 		}, {
 			id:          "tq-sm-04"
-			description: "Participantes econômicos ativos têm vetores de manipulação"
-			test:        "Stakeholders com category network-participant, financial-institution ou platform-operator têm incentiveProfile.manipulationVectors com ao menos uma entrada. Demais categorias (government-authority, industry-association, technology-provider) são isentas. Validação por runner."
+			description: "Participantes econômicos ativos e a classe adversarial têm vetores de manipulação"
+			test:        "Stakeholders com category network-participant, financial-institution, platform-operator ou adversarial-actor-class têm incentiveProfile.manipulationVectors com ao menos uma entrada. Demais categorias (government-authority, industry-association, technology-provider) são isentas. Validação por runner."
 			severity:    "fail"
-			rationale:   "dp-08 exige mapeamento de riscos de manipulação para quem transaciona. Reguladores, associações e provedores de tecnologia não operam dentro do ecossistema financeiro como participantes econômicos ativos — obrigatoriedade seria artificial."
+			rationale:   "dp-08 exige mapeamento de riscos de manipulação para quem transaciona. adversarial-actor-class entra na lista de obrigados per adr-181: vetores são a essência da classe — isentá-la seria inversão semântica (a obrigação deixa de ser proxy de 'participante econômico legítimo'; a definição da classe no enum carrega a distinção). Reguladores, associações e provedores de tecnologia não operam dentro do ecossistema financeiro como participantes econômicos ativos — obrigatoriedade seria artificial."
 		}, {
 			id:          "tq-sm-05"
 			description: "Interesses são semanticamente distintos entre stakeholders"
@@ -161,8 +162,9 @@ package artifact_schemas
 	// Perfil de incentivos no nível do ecossistema.
 	// O canvas detalha incentivos específicos por BC.
 	// manipulationVectors é opcional no type system (?); obrigatório
-	// por runner (tq-sm-04) para categorias econômicas ativas
-	// (network-participant, financial-institution, platform-operator).
+	// por runner (tq-sm-04) para as categorias que o próprio critério
+	// lista (economicamente ativas + adversarial-actor-class, adr-181
+	// — a lista canônica vive no tq-sm-04, não aqui).
 	// Para categorias isentas, pode ser omitido.
 	// Gap type-system ↔ runtime: enforcement condicional por categoria
 	// não é expressável em CUE — runner é o enforcement efetivo.
@@ -196,7 +198,8 @@ package artifact_schemas
 	"government-authority" |     // SEFAZ, Receita, CREAs — regula
 	"platform-operator" |        // A própria Mesh como operador da rede
 	"industry-association" |     // Sindicatos, associações setoriais
-	"technology-provider"        // Provedores de infra ou serviços técnicos
+	"technology-provider" |      // Provedores de infra ou serviços técnicos
+	"adversarial-actor-class"    // Classe de ator cuja função é extração adversarial de valor do sistema — identidade adversarial primária, não derivada de stakeholders legítimos; obrigada a manipulationVectors (tq-sm-04): vetores são a essência da classe (adr-181)
 
 // ==============================
 // PLATFORM RELATIONSHIP
@@ -274,8 +277,9 @@ package artifact_schemas
 // Perfil de incentivos no nível do ecossistema.
 // O canvas detalha a análise específica por BC.
 // manipulationVectors é opcional no type system CUE (?);
-// obrigatório por runner (tq-sm-04) para categorias econômicas
-// ativas (network-participant, financial-institution, platform-operator).
+// obrigatório por runner (tq-sm-04) para as categorias que o
+// critério lista (economicamente ativas + adversarial-actor-class,
+// adr-181) — a lista canônica de obrigadas vive no tq-sm-04.
 // Para categorias isentas, pode ser omitido.
 #IncentiveProfile: {
 	// O que o stakeholder ganha participando da Mesh.
