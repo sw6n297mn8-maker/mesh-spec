@@ -186,7 +186,8 @@ structureIndex: {
 				"architecture/adrs/adr-177-requisition-quotation-link-and-price-provenance-gate.cue",
 				"architecture/adrs/adr-178-journey-start-surface-kit-and-net-new-origin.cue",
 				"architecture/adrs/adr-179-frontend-promotion-mandate-reading-contract.cue",
-				"architecture/adrs/adr-180-promote-frontend-codegen-contract-to-schema.cue"
+				"architecture/adrs/adr-180-promote-frontend-codegen-contract-to-schema.cue",
+				"architecture/adrs/adr-181-extend-stakeholder-category-adversarial-actor-class.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -676,6 +677,7 @@ structureIndex: {
 				"architecture/structural-checks/service-contract.cue",
 				"architecture/structural-checks/singleton-coverage.cue",
 				"architecture/structural-checks/ssc-domain-model.cue",
+				"architecture/structural-checks/stakeholder-map.cue",
 				"architecture/structural-checks/tension-entry.cue",
 				"architecture/structural-checks/work-governance.cue"
 			],

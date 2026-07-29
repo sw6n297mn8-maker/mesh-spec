@@ -20,7 +20,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		"""
 
 	steps: [{
-		actorRef: "sh-01"
+		actorRef: "sh-07"
 		action:   "O engenheiro da construtora, na visita técnica diária ao canteiro, identifica pelo cronograma físico o que as próximas etapas vão exigir — quantidades, especificações e prazos (ex.: materiais de elétrica para iniciar o forro)."
 		workItem: {
 			description:       "Registrar a necessidade identificada como demanda rastreável, ancorada na etapa do cronograma que a origina."
@@ -29,7 +29,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "Onde a jornada NASCE na narrativa real — e onde o modelo hoje não tem nenhum elemento de escrita; o passo testa a cobertura da ponta-canteiro do ciclo demanda-a-pedido."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-07"
 		action:   "O engenheiro formaliza a solicitação de compra no sistema, direto do canteiro, selecionando o centro de custo da obra e vinculando cada item a uma etapa do orçamento (ex.: reboco)."
 		workItem: {
 			description:       "Criar a requisição de compra com vínculo a centro de custo e etapa do orçamento, garantindo rastreabilidade do custo desde a origem."
@@ -40,7 +40,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "A requisição é o elo de rastreabilidade custo↔obra que as fontes tratam como fundação. No exame original (2026-07-12) este era o vazio mais importante que a story revelou — 'requisi' tinha zero ocorrências em todos os domain-models; FECHADO na mesma data pelo WI-151/adr-174: agg-purchase-requisition materializa a requisição com vínculo a Centro de Custo (costCenterRef) e etapa do orçamento (budgetStageRef, fato-de-origem), e as refs deste passo apontam os elementos reais criados."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-08"
 		action:   "O comprador, no escritório, recebe a solicitação que chega automaticamente, tria e analisa a necessidade antes de ir a mercado."
 		workItem: {
 			description:       "Disponibilizar ao comprador a fila de solicitações recebidas para triagem e análise."
@@ -53,7 +53,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "O protagonista assume a jornada aqui; a triagem é a fronteira requisitante→comprador. No exame original (2026-07-12) o passo dependia da requisição inexistente — vazio em cascata; FECHADO na mesma data pelo WI-151/adr-174: triagem materializada como ATO FORMAL (cmd-triage-requisition com outcome routed-to-sourcing | returned | rejected) sobre a fila consultável (prj-pending-requisitions), refs deste passo."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-08"
 		action:   "O comprador verifica quais fornecedores homologados atendem a categoria; não havendo homologado, busca novos parceiros no mercado e aciona sua qualificação."
 		workItem: {
 			description:       "Consultar o status de qualificação dos participantes da rede e iniciar o gate de qualificação para fornecedores novos."
@@ -64,7 +64,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "A qualificação entra INLINE na jornada real (aciona quando falta homologado), não como pré-condição estática — testa a cobertura de leitura do npm no momento de uso."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-08"
 		action:   "O comprador abre a cotação para a categoria junto aos fornecedores selecionados, pedindo no mínimo três propostas."
 		workItem: {
 			description:       "Abrir o processo de cotação (RFQ) para a categoria com o pool de fornecedores qualificados."
@@ -86,7 +86,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "Único passo do recorte com o fornecedor como ator agindo. No exame original (2026-07-12) o comando existia mas NÃO publicava evento — a submissão não virava fato observável; FECHADO em 2026-07-13 pelo WI-152: evt-quotation-submitted (internal — fato intra-BC; a confidencialidade competitiva veta evento público, não o fato existir) torna a submissão observável e alimenta o mapa de cotações."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-08"
 		action:   "O comprador consolida o mapa de cotações — no mínimo três preços lado a lado — e compara preço, prazo de entrega, condições de pagamento e qualidade."
 		workItem: {
 			description:       "Apresentar ao comprador a comparação consolidada das cotações recebidas no RFQ para suportar a escolha."
@@ -97,7 +97,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "O 'mapa de cotações' é o instrumento central do comprador nas fontes. No exame original (2026-07-12) o modelo tinha o conceito (equalização TCO como serviço interno) mas NENHUMA projection/query consultável — lacuna de leitura no coração da jornada; FECHADA em 2026-07-13 pelo WI-152: prj-quotation-map/qry-quotation-map materializam a comparação consolidada consultável (viva durante a janela de RFQ, carimbada pela decisão), refs deste passo."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-08"
 		action:   "O comprador negocia com os melhores colocados: não aceita o primeiro preço, busca reduzir o custo de aquisição e, principalmente, melhorar as condições de pagamento — o fluxo de caixa é o que evita a obra quebrar; havendo cronograma e espaço no canteiro, negocia volume com entregas programadas."
 		workItem: {
 			description:       "Registrar as rodadas de negociação (contrapropostas, condições de pagamento, volume e programação de entregas) até as condições finais."
@@ -110,7 +110,7 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "O passo que as fontes chamam de 'arte' e apontam como o que salva o fluxo de caixa. No exame original (2026-07-12) era o vazio mais denso em valor da story — zero elementos em qualquer BC; FECHADO em 2026-07-28 pelo WI-161: rodadas de contraproposta→revisão|recusa intra-open (3 commands + 3 events internal, molde dos fatos de cotação — confidencialidade preservada), condições de pagamento e entregas programadas ESTRUTURADAS (vo-payment-terms/vo-delivery-schedule), e a regra de ouro inv-negotiated-terms-materialize-on-quotation: só a revisão do fornecedor materializa condições na cotação — o gate de procedência do adr-177 resolve o preço FINAL na cotação vencedora por construção ('as condições finais que a decisão formaliza'). A mesa da negociação é o próprio mapa (prj/qry-quotation-map, agora com as rodadas), refs deste passo."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-09"
 		action:   "O gestor revisa a compra preparada pelo comprador e aprova no sistema, garantindo alinhamento com o planejamento estratégico e financeiro da construtora."
 		workItem: {
 			description:       "Formalizar a decisão de sourcing sobre a cotação vencedora, com rationale de decisão registrado."
@@ -119,9 +119,9 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 			eventRefs: ["evt-sourcing-decision-made"]
 			termRefs: ["term-sourcing-decision", "term-decision-rationale"]
 		}
-		rationale: "A decisão formal EXISTE no modelo (sourcing decision, ssc). O portão MECÂNICO de alçada pré-pedido agora existe (2026-07-12, adr-174/WI-151): cmd-approve-purchase invoca o Gate de Cobertura do bdg (Saldo Disponível + Alçada) na aprovação da requisição, pré-pedido — a divergência de ordem do exame original ('a aprovação do bdg dispara noutro momento') morreu. O que AINDA falta: a atribuição do de-acordo a um PAPEL-GESTOR específico intra-organização (a separação preparador comprador × aprovador gestor) aguarda os papéis intra-org — def-076."
+		rationale: "A decisão formal EXISTE no modelo (sourcing decision, ssc). O portão MECÂNICO de alçada pré-pedido agora existe (2026-07-12, adr-174/WI-151): cmd-approve-purchase invoca o Gate de Cobertura do bdg (Saldo Disponível + Alçada) na aprovação da requisição, pré-pedido — a divergência de ordem do exame original ('a aprovação do bdg dispara noutro momento') morreu. A separação preparador×aprovador FECHOU em 2026-07-29 pelo WI-157 (def-076 resolved): sh-09 gestor-aprovador é o actorRef deste passo; a operacionalização do papel na borda (quem PODE aprovar) é o desenho de identidade do WI-158."
 	}, {
-		actorRef: "sh-01"
+		actorRef: "sh-08"
 		action:   "O comprador converte a solicitação aprovada em pedido de compra oficial e o envia ao fornecedor, com prazo hábil para a entrega não interromper o cronograma (solicitação de quinta, entrega programada para segunda)."
 		workItem: {
 			description:       "Emitir o pedido de compra sob a authority da decisão de sourcing e publicá-lo ao fornecedor."

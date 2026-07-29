@@ -6,7 +6,8 @@ def076: artifact_schemas.#DeferredDecision & {
 	id:     "def-076"
 	title:  "Crack do stakeholder-map: instância não unifica com o schema evoluído; re-autoria na forma nova é decisão de conteúdo do founder"
 	date:   "2026-07-05"
-	status: "open"
+	status:     "resolved" // decisão do founder 2026-07-29: re-autoria consumada no WI-157 (exit completo num movimento só: instância re-unificada + sc-sm-01..03 + isenção do meta-coverage removida; categoria do sh-06 per adr-181)
+	resolvedBy: "architecture/adrs/adr-181-extend-stakeholder-category-adversarial-actor-class.cue"
 
 	description: """
 		domain/stakeholder-map.cue (6 stakeholders sh-01..sh-06) usa a shape
