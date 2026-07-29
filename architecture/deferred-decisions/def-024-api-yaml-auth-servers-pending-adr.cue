@@ -6,7 +6,8 @@ def024: artifact_schemas.#DeferredDecision & {
 	id:     "def-024"
 	title:  "OpenAPI security + servers nos api.yaml dos BCs, deferidos até existirem ADRs de auth e deploy"
 	date:   "2026-05-28"
-	status: "open"
+	status:     "resolved" // decisão do founder 2026-07-29 (WI-158): a metade AUTH resolveu — adr-182 estabelece o modelo de identidade e ator + a postura de borda (securitySchemes bearer abstrato declarável por fatia mecânica); a metade SERVERS segue deferida com escopo limpo em def-082 (aguardando ADR de deploy) — split declarado, zero pendência escondida
+	resolvedBy: "architecture/adrs/adr-182-identity-and-actor-model.cue"
 
 	description: """
 		OpenAPI 3.0.3 permite declarar securitySchemes + security global (auth) e

@@ -31,7 +31,16 @@ def080: artifact_schemas.#DeferredDecision & {
 		modelagem de atoria tem híbridos não-triviais (cmd-record-evidence
 		é ACL+stakeholder; cmd-cancel-purchase-order tem cenário
 		originadora E cenário supplier-withdraw — um enum ator ingênuo
-		cristalizaria a resposta errada). O gate nasce FUNCIONAL com
+		cristalizaria a resposta errada). AMENDMENT (2026-07-29, adr-182/
+		WI-158): RE-ADIADO COM BASE NOVA — o modelo canônico de ator agora
+		existe (adr-182 decs 1-2: kind/actorId/onBehalfOfOrg/roleRef com
+		critério tríplice + underGovernance versionado; slot #Actor no
+		envelope): a mecanização futura do campo no #Command parte de
+		CONTRATO, não de rascunho, e os híbridos acima ganham vocabulário
+		para serem modelados (kind + posição per adr-172). O gatilho
+		permanece INALTERADO: a medição de volume/ambiguidade das higienes
+		(WI-154/WI-155) segue sendo o julgamento que dispara a fatia de
+		mecanização. O gate nasce FUNCIONAL com
 		exclusão semântica: a mecanização é melhoria de precisão, não
 		condição de existência. Custo evitado: desenhar enums de
 		ator/enforcement sob pressão da fatia do gate, sem o volume real
