@@ -187,7 +187,8 @@ structureIndex: {
 				"architecture/adrs/adr-178-journey-start-surface-kit-and-net-new-origin.cue",
 				"architecture/adrs/adr-179-frontend-promotion-mandate-reading-contract.cue",
 				"architecture/adrs/adr-180-promote-frontend-codegen-contract-to-schema.cue",
-				"architecture/adrs/adr-181-extend-stakeholder-category-adversarial-actor-class.cue"
+				"architecture/adrs/adr-181-extend-stakeholder-category-adversarial-actor-class.cue",
+				"architecture/adrs/adr-182-identity-and-actor-model.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -535,7 +536,8 @@ structureIndex: {
 				"architecture/tension-log/ten-012-escalation-channel-sla-runtime-semantic-leak.cue",
 				"architecture/tension-log/ten-013-fce-subdomain-budget-allocation-imprecision.cue",
 				"architecture/tension-log/ten-014-dispute-modify-terms-authoritative-override.cue",
-				"architecture/tension-log/ten-015-port-interface-handauthored-vs-p1.cue"
+				"architecture/tension-log/ten-015-port-interface-handauthored-vs-p1.cue",
+				"architecture/tension-log/ten-016-envelope-actor-slot-expansion.cue"
 			],
 			"schema": "#TensionEntry"
 		},
@@ -642,7 +644,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-078-approval-order-gate-vs-consequence.cue",
 				"architecture/deferred-decisions/def-079-requisition-quote-link-and-amount-reconciliation.cue",
 				"architecture/deferred-decisions/def-080-structure-command-actor-and-invariant-enforcement.cue",
-				"architecture/deferred-decisions/def-081-requisition-origin-prefill-when-schedule-becomes-system-input.cue"
+				"architecture/deferred-decisions/def-081-requisition-origin-prefill-when-schedule-becomes-system-input.cue",
+				"architecture/deferred-decisions/def-082-api-yaml-servers-pending-deploy-adr.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
