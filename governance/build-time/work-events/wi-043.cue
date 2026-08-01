@@ -66,6 +66,53 @@ package work_events
 // silencioso. A GENERALIZACAO do mecanismo (eventType task-reconciled,
 // com direito de comando exclusivo do founder) NAO entra aqui: depende
 // de ADR proprio, que tera de se posicionar contra os tres precedentes.
+//
+// ── ERRATUM (2026-08-01) — a narrativa de precedente acima esta ERRADA ──
+// Correcao por nota datada: o texto original permanece intacto acima, para
+// que o que foi afirmado siga auditavel. Nao ha edicao retroativa.
+//
+// (a) O QUE FOI AFIRMADO: que este repo encarou a pergunta "fabricar evento
+//     retroativo ou documentar?" e escolheu DOCUMENTAR em TRES ocasioes,
+//     sendo a primeira "WI-015, per nota de bootstrap em event-validation.cue
+//     + ADR-024".
+//
+// (b) O QUE A VERIFICACAO DE 2026-08-01 ESTABELECEU (review isolado do
+//     adr-183, per rollout adr -> isolated-subagent de quality-gate.cue, com
+//     conferencia na fonte):
+//     - Sao DUAS ocasioes, nao tres. Os itens (2) e (3) da enumeracao acima
+//       sao a MESMA ocasiao: a nota de pre-registro da fatia-1 e a frase
+//       citada ocupam um bloco unico no cabecalho de work-events/wi-140.cue.
+//     - O adr-024 e precedente INVERTIDO. Seu decision item (3) decidiu
+//       "work-events/ -- diretorio de streams + backfill retroativo de
+//       tarefas ja concluidas com timestamps extraidos do git log": decidiu
+//       FABRICAR evento retroativo, nao documentar. A nota de bootstrap em
+//       event-validation.cue trata de ESCOPO DE VALIDACAO DE CI ("CI nao os
+//       valida retroativamente"), nao de emitir ou nao emitir evento -- as
+//       duas coisas foram lidas como uma so, e nao sao.
+//     - Estado de coisas real do repo: 65 streams em
+//       governance/build-time/work-events/ carregam commandIds sufixados
+//       -backfill, e wi-001.cue traz task-approved com actor "founder" e
+//       commandId "WI-001-approve-backfill". Fabricar cadeia de aprovacao
+//       retroativa e pratica sancionada e executada aqui -- nao excecao.
+//
+// (c) O QUE PERMANECE VALIDO: o task-completed abaixo, e a evidencia de disco
+//     que o justifica. A conferencia dos 5 outputs do WI-043 em 2e96a21 nao
+//     foi afetada; o erro estava na NARRATIVA DE PRECEDENTE do cabecalho, nao
+//     no fato registrado nem no repurpose declarado dos tres campos de
+//     completionValidation. Nenhum evento e revogado por esta nota.
+//
+// ORIGEM DO ERRO: apuracao rasa na sessao de 2026-07-30 -- o adr-024 foi
+// invocado sem leitura do seu decision item, e os backfills existentes nao
+// foram contados antes da afirmacao. A afirmacao ATRAVESSOU a aprovacao do
+// founder no PR #225 e foi depois REUTILIZADA como premissa do Gate 2 do
+// adr-183: nem a autoria nem a aprovacao verificaram as ancoras. O achado
+// veio do review isolado, instruido a conferir citacoes contra a fonte -- o
+// gate humano nao pegou. Registro deliberado: a camada de revisao que
+// funcionou aqui foi a isolada, nao a do autor nem a do aprovador.
+//
+// A reformulacao do adr-183 (fatia propria) parte do estado de coisas
+// correto: bootstrap vs steady state, com task-reconciled como sucessor
+// honesto do backfill.
 
 streams: {
 	"WI-043": {
