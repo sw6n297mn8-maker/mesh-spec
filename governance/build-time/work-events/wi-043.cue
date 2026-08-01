@@ -113,6 +113,47 @@ package work_events
 // A reformulacao do adr-183 (fatia propria) parte do estado de coisas
 // correto: bootstrap vs steady state, com task-reconciled como sucessor
 // honesto do backfill.
+//
+// ── EMENDA À NOTA DE ERRATUM (2026-08-01) — o numero e 51, nao 65 ──
+// Mesma disciplina da nota acima: emenda anexada, texto anterior intacto.
+// O erratum corrigiu a narrativa de precedente e errou o numero que usou
+// para sustenta-la.
+//
+// (a) O QUE A NOTA AFIRMA: "65 streams em
+//     governance/build-time/work-events/ carregam commandIds sufixados
+//     -backfill".
+//
+// (b) O NUMERO CORRETO E 51. Verificado em 2026-08-01:
+//       grep -l 'commandId:.*-backfill' work-events/*.cue | wc -l  ->  51
+//
+// (c) METODO DO ERRO -- registrado porque o metodo importa mais que o
+//     numero. A contagem original usou grep -l 'backfill', que casa a
+//     palavra em QUALQUER posicao, inclusive dentro de comentario. Sao 66
+//     arquivos que mencionam a palavra e 51 que carregam o campo. A
+//     diferenca de 15 decompoe-se em: 14 STREAMS que mencionam backfill
+//     apenas em prosa de cabecalho -- wi-043, wi-140 e wi-143..wi-155
+//     EXCETO wi-151 (que nao existe); varios deles declaram
+//     explicitamente NAO ser backfill -- MAIS o _constraints.cue, que nao
+//     e stream, e sim o arquivo de politica do diretorio. A contagem
+//     original subtraiu o _constraints.cue dos 66 e chegou a 65, sem
+//     notar os 14. Conferencia: 51 + 14 + 1 = 66. O predicado correto
+//     testa o CAMPO, nao a palavra: commandId:.*-backfill.
+//
+// (d) O QUE NAO MUDA: a tese que a nota sustenta -- fabricar cadeia de
+//     aprovacao retroativa e pratica sancionada neste repo, per adr-024
+//     decision item (3) -- permanece verdadeira com 51. O wi-001.cue com
+//     task-approved / actor "founder" / commandId "WI-001-approve-backfill"
+//     segue conferido. Nenhum evento e revogado por esta emenda.
+//
+// IRONIA REGISTRADA, NAO OMITIDA: o paragrafo ORIGEM DO ERRO acima aponta
+// que "os backfills existentes nao foram contados antes da afirmacao". A
+// contagem que o substituiu foi feita com predicado errado -- o mesmo modo
+// de falha, um nivel acima. Achado pelo review isolado do adr-183 (3a
+// passada), nao pela autoria nem pela aprovacao -- que e exatamente o
+// padrao que a nota original ja registrava. A decomposicao dos 15 (14
+// streams + _constraints.cue) so fechou apos o founder exigir que a
+// aritmetica da propria emenda fosse conferida: a versao proposta contava
+// o _constraints.cue duas vezes.
 
 streams: {
 	"WI-043": {
