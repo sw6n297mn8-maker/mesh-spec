@@ -53,12 +53,13 @@ def083: artifact_schemas.#DeferredDecision & {
 		directory-pair-coverage: verifica que existe task-spec para cada
 		stream, e não olha conteúdo, estado nem autoridade.
 
-		── ITENS DELEGADOS PELO adr-183 — proveniência distinta ──────────
-		Os achados (1)-(11) acima vieram do LEVANTAMENTO DO DISCO. Os dois
-		abaixo vêm da DECISÃO adr-183, que os declara fora do próprio escopo
-		e os deposita aqui. A separação é deliberada: fundir as duas origens
-		corromperia a proveniência do mapa e faria o número "onze" flutuar a
-		cada delegação futura.
+		── ITENS DELEGADOS — proveniência distinta dos onze achados ──────
+		Os achados (1)-(11) acima vieram do LEVANTAMENTO DO DISCO. Os itens
+		D-N abaixo têm OUTRA origem, e cada um declara a sua: fundir as
+		origens corromperia a proveniência do mapa e faria o número "onze"
+		flutuar a cada delegação futura. D1 e D2 vêm da DECISÃO adr-183, que
+		os declara fora do próprio escopo e os deposita aqui; D3 vem da
+		sessão de 2026-08-01, de erro observado no processo, não no motor.
 
 		(D1) INSTRUMENTO DA RAZÃO task-reconciled/task-completed. A condição
 		de falsificação do adr-183 (dec 8) é computável e NADA a computa —
@@ -78,11 +79,45 @@ def083: artifact_schemas.#DeferredDecision & {
 		ganha morada em vez de seguir órfã. Prova viva do custo: wi-140.cue
 		carrega três task-claimed consecutivos, nenhum expirado, achado (10).
 
+		(D3) STRUCTURAL-CHECK DE REFERÊNCIA-EM-PROSA. Origem: sessão de
+		2026-08-01 (não o adr-183). Regra pretendida: todo adr-NNN, def-NNN
+		e ten-NNN citado em PROSA — rationale, description, comentário de
+		cabeçalho — deve existir no disco. Hoje só campos estruturados como
+		defersTo são alcançáveis, e nem esses são verificados; a citação em
+		prosa não é alcançada por gate algum. O kind cross-file-id-exists já
+		existe no schema de structural-check: é aplicação de mecanismo
+		existente a uma superfície nova, não invenção de mecanismo.
+
+		JUSTIFICATIVA POR FREQUÊNCIA, não por hipótese. Esta família de erro
+		ocorreu QUATRO vezes numa única sessão (2026-08-01), todas
+		verificadas: (a) def-060 citado como vivo quando seu status no disco
+		é "withdrawn"; (b) o dec 7 do adr-183 descrevendo os triggers deste
+		def na versão DESCARTADA — recurrence, quando os vivos são
+		adjacent-need — defeito introduzido pela correção da rodada anterior,
+		que corrigiu o def e não o ADR que o descreve; (c) a narrativa dos
+		"três precedentes" no cabeçalho de work-events/wi-043.cue, que
+		atravessou autoria E aprovação e precisou de erratum datado em main;
+		(d) dp-10 atribuído a design-principles.cue, onde o grep retorna zero
+		ocorrências. Quatro numa sessão é sinal de família, não de descuido.
+
+		ESCOPO A RESOLVER NA FATIA, não aqui. Prosa é texto livre, então o
+		check precisa de PADRÃO DE EXTRAÇÃO declarado — sem ele, o gate é
+		irreprodutível, que é exatamente o que um gate determinístico não
+		pode ser. E precisa de tratamento de FALSO POSITIVO: menção histórica
+		a id revogado é legítima e deve passar (o def-060 citado no contexto
+		correto de "foi retirado" é uso certo, não erro), enquanto o mesmo id
+		citado como vigente é o erro que o check procura. Distinguir os dois
+		é o desenho da fatia. Registrar o item sem registrar essa dificuldade
+		produziria um check que reprova texto correto — e gate que grita em
+		caso legítimo é abandonado, não obedecido.
+
 		CUSTO DE RENUMERAR OU CONSOLIDAR ESTE ID — registrado aqui porque
 		nenhum gate o cobra. QUATRO pontos do adr-183 referenciam "def-083"
 		pelo id: dec 7 (onde a construção do fiscal é declarada pendência
 		nomeada), N1 (que aponta quem constrói o fiscal), N9 (que aponta a
-		seção ITENS DELEGADOS, D1) e o bloco FRONTEIRA do rationale (que
+		seção ITENS DELEGADOS, D1 — o título da seção mudou para acomodar o
+		D3 de outra origem, mas as duas palavras que o N9 cita permanecem) e
+		o bloco FRONTEIRA do rationale (que
 		divide o que fica no ADR e o que vem para cá). A dependência é
 		assimétrica por desenho — o ADR delega, este def carrega — e NÃO é
 		verificada: defersTo é campo livre no #ADR, sc-wg-01 é pareamento de
