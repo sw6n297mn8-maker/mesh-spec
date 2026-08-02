@@ -13,7 +13,7 @@ def083WorkGovernanceEngineEnforcementGap: build_time.#SelfReviewReport & {
 	executionMode:   "isolated-subagent"
 	generatedAt:     "2026-08-01"
 
-	roundsExecuted: 2
+	roundsExecuted: 3
 	maxRounds:      4
 
 	status: "max-rounds-reached"
@@ -96,6 +96,44 @@ def083WorkGovernanceEngineEnforcementGap: build_time.#SelfReviewReport & {
 			os achados 10 e 11 não são "enforcement sem executor"), tamanho do
 			título dentro do <= 80 do PG (89 -> 75 runes), e reconhecimento da
 			divergência consciente da heurística do PG sobre temporal.
+			"""
+	}, {
+		round:     3
+		failCount: 0
+		warnCount: 1
+		infoCount: 0
+		summary: """
+			Round pós-merge, sobre a adição do D3 (structural-check de
+			referência-em-prosa), ordenada pelo founder em 2026-08-01 após a
+			pergunta "tem como evitar que isso se repita?".
+
+			COLISÃO DE PROVENIÊNCIA detectada na autoria e resolvida antes da
+			escrita: a seção chamava-se "ITENS DELEGADOS PELO adr-183" e
+			declarava no corpo que "os dois abaixo vêm da DECISÃO adr-183". O
+			D3 NÃO vem do adr-183 -- vem de erro observado no processo desta
+			sessão. Inseri-lo sob aquele título afirmaria origem falsa, e
+			corromperia exatamente a disciplina que a seção existe para
+			proteger. Título generalizado para "ITENS DELEGADOS -- proveniência
+			distinta dos onze achados", com origem declarada por item. As duas
+			palavras que o N9 do adr-183 cita ("seção ITENS DELEGADOS")
+			permanecem no título, então aquela referência segue resolvendo --
+			verificado antes de renomear, e registrado na própria nota de custo
+			de renumeração.
+
+			As quatro ocorrências que justificam o D3 foram VERIFICADAS no
+			disco antes de virarem justificativa registrada, não aceitas por
+			enunciado: def-060 tem status "withdrawn" no arquivo; o dec 7 do
+			adr-183 citava recurrence contra os adjacent-need vivos; o erratum
+			do wi-043 está em main; e grep de "dp-10" em
+			architecture/design-principles.cue retorna ZERO. Registrar por
+			enunciado a justificativa de um check contra referência não-conferida
+			seria repetir o erro no ato de catalogá-lo.
+
+			Warn: a verificação de (d) levanta questão fora do escopo de hoje --
+			dp-10 é citado por lenses e por múltiplos ADRs, e não está no
+			artefato onde o CLAUDE.md o situa. Onde ele mora canonicamente é
+			pergunta em aberto, e é exatamente o tipo de coisa que o D3
+			revelaria em série quando construído.
 			"""
 	}]
 
