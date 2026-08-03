@@ -1,6 +1,10 @@
 package build_time
 
-import "strings"
+import (
+	"strings"
+
+	shared_types "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 // Arquitetura de Governança de Trabalho da Mesh
 //
@@ -162,10 +166,33 @@ _#workEventBase: {
 	#TaskCancelledEvent |
 	#TaskSupersededEvent
 
+// EffectProof — prova de EFEITO em repositório subordinado (adr-184 dec 4).
+// Distinta da prova de TAREFA: artifactSnapshotHash prova ESTE repositório no
+// ato da conclusão; effectProofs[].commit prova o repositório-alvo. O `gate`
+// fica DELIBERADAMENTE fora do catálogo completionGates (completion-gates.cue),
+// que nomeia gates da conclusão deste repositório — com a consequência, que o
+// adr-184 declara, de que nenhum catálogo valida o nome. `conclusion` é
+// enumeração porque os jobs cross-repo dos runtimes nascem SKIPPED sem
+// vars.MESH_SPEC_CHECKOUT_ENABLED, e "pulado" nunca pode se apresentar como
+// "verde". LIMITAÇÃO DECLARADA (adr-184): o gate nomeado pode não cobrir o
+// efeito, e nada verifica que cobre — o verificador é def-084.
+#EffectProof: {
+	repo:       shared_types.#SubordinateRepo
+	commit:     string & !=""
+	gate:       string & !=""
+	conclusion: "success" | "failure" | "skipped"
+}
+
 #CompletionValidation: {
 	validationRunId:      string & !=""
 	artifactSnapshotHash: string & !=""
 	gatesPassed:          [string & !="", ...string & !=""]
+
+	// Lista ABERTA (adr-184 dec 4): tarefa sem efeito remoto não tem prova a
+	// dar, e forma estrita quebraria os streams existentes no primeiro passo
+	// bloqueante do CI. Consequência declarada: nada obriga tarefa com
+	// effectExpectedIn a preencher effectProofs — o vínculo é NORMA, não shape.
+	effectProofs: [...#EffectProof]
 }
 
 // ============================================================
@@ -175,12 +202,10 @@ _#workEventBase: {
 // Tipo compartilhado para outputs de tarefas. Usado tanto aqui
 // (#TaskSpec, definição operacional) quanto em #WaveTask
 // (architecture/artifact-schemas/wave-plan.cue, definição de
-// planejamento). Ambos os contextos usam a mesma estrutura
-// para manter consistência semântica.
-#TaskOutput: {
-	artifact: string & !=""
-	type:     "create" | "update" | "validate"
-}
+// planejamento). MORADA ÚNICA em architecture/shared-types/task-output.cue
+// desde adr-184 dec 3 — antes eram duas definições independentes, e este
+// comentário afirmava um compartilhamento que não existia.
+#TaskOutput: shared_types.#TaskOutput
 
 // TaskSpec — definição operacional completa de uma tarefa no
 // sistema de execução.
@@ -605,7 +630,7 @@ workGovernance: {
 	// ────────────────────────────────────────────────────────
 	taskCompletion: {
 		rationale: "Prova de validação obrigatória. Alinhado com P10 (stochastic recommendations, deterministic gates) e P11 (evidence-backed movements) aplicados ao build-time."
-		requires:  "completionValidation com validationRunId, artifactSnapshotHash, gatesPassed"
+		requires:  "completionValidation com validationRunId, artifactSnapshotHash, gatesPassed; mais effectProofs quando a tarefa declara output com effectExpectedIn (adr-184 dec 4)"
 	}
 
 	// ────────────────────────────────────────────────────────

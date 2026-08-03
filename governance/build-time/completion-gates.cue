@@ -12,6 +12,11 @@ package build_time
 // Ref: P10 (design-principles.cue) — agentes recomendam, gates validam.
 // Ref: task-governance.cue — templates e criticality.
 // Ref: work-governance.cue — #CompletionValidation.gatesPassed.
+//
+// ESCOPO (adr-184 dec 6): este catálogo nomeia gates da conclusão DESTE
+// repositório. O #EffectProof.gate (work-governance.cue) fica DELIBERADAMENTE
+// fora dele — nomeia gate de repositório subordinado, cuja autoridade é do
+// alvo. Consequência declarada no adr-184: nenhum catálogo valida aquele nome.
 
 // ── Tipo de gate ────────────────────────────────────────────────
 

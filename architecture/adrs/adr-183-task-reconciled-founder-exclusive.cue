@@ -9,6 +9,13 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // BOOTSTRAP e permanece válido para o que era. Motivado pela varredura de
 // reconciliação de 2026-07-30, que provou WI-067, WI-069 e WI-151 concluídos
 // com stream zero -- par (defined, none), sem caminho na máquina de estados.
+//
+// PONTEIRO PARA FRENTE (adr-184 dec 8): quando o bloco de evidência do item
+// N4(iii) desta decisão for materializado, ele deve carregar effectProofs com
+// a forma de #EffectProof. Motivo: completionValidation vive só em
+// #TaskCompletedEvent, e o N4(xv) desta decisão manda a reconciliação concluir
+// sob bloco próprio -- sem isso, tarefa com effectExpectedIn concluída por
+// task-reconciled ficaria com expectativa e sem slot de prova.
 
 adr183: artifact_schemas.#ADR & {
 	id:    "adr-183"
