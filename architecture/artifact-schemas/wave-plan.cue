@@ -1,6 +1,10 @@
 package artifact_schemas
 
-import "list"
+import (
+	"list"
+
+	shared_types "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-types:shared_types"
+)
 
 // WavePlan — schema para planejamento de ondas de trabalho.
 //
@@ -88,7 +92,7 @@ import "list"
 // que é a definição operacional completa com version e templateRef,
 // usada pelo sistema de execução. #WaveTask é a definição de
 // planejamento: o que fazer, o que produz, o que impacta.
-// Ambos compartilham #TaskOutput para tipagem consistente de outputs.
+// Ambos compartilham #TaskOutput (morada única em shared-types, adr-184).
 #WaveTask: {
 	id:         string & =~"^WI-[0-9]{3}$"
 	title:      string & !=""
@@ -117,7 +121,5 @@ import "list"
 	rationale: string & !=""
 }
 
-#TaskOutput: {
-	artifact: string & !=""
-	type:     "create" | "update" | "validate"
-}
+// Morada canônica em architecture/shared-types/task-output.cue (adr-184 dec 3).
+#TaskOutput: shared_types.#TaskOutput

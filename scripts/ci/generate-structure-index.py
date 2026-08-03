@@ -108,6 +108,16 @@ def wave_plan_create_paths():
                         for o in out:
                             # #TaskOutput real usa o campo `artifact` (não `path`);
                             # aceita ambos por robustez. type create == sera criado.
+                            # GUARDA (adr-184 dec 3/N4 iv): output com
+                            # effectExpectedIn e EFEITO ESPERADO em repo
+                            # subordinado, nao path deste repositorio. Entraria
+                            # no create_map como local, anotando a arvore daqui
+                            # e mascarando phantom legitimo. E guarda, nao
+                            # necessidade: o uso vivo atravessa o pipeline sem
+                            # ela — mas o namespace de paths colide entre os
+                            # tres repos, e a colisao e silenciosa.
+                            if isinstance(o, dict) and o.get("effectExpectedIn"):
+                                continue
                             if isinstance(o, dict) and o.get("type") == "create":
                                 ap = o.get("artifact") or o.get("path")
                                 if isinstance(ap, str):

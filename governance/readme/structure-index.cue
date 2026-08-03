@@ -189,7 +189,8 @@ structureIndex: {
 				"architecture/adrs/adr-180-promote-frontend-codegen-contract-to-schema.cue",
 				"architecture/adrs/adr-181-extend-stakeholder-category-adversarial-actor-class.cue",
 				"architecture/adrs/adr-182-identity-and-actor-model.cue",
-				"architecture/adrs/adr-183-task-reconciled-founder-exclusive.cue"
+				"architecture/adrs/adr-183-task-reconciled-founder-exclusive.cue",
+				"architecture/adrs/adr-184-cross-repo-effect-as-completion-condition.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -647,7 +648,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-080-structure-command-actor-and-invariant-enforcement.cue",
 				"architecture/deferred-decisions/def-081-requisition-origin-prefill-when-schedule-becomes-system-input.cue",
 				"architecture/deferred-decisions/def-082-api-yaml-servers-pending-deploy-adr.cue",
-				"architecture/deferred-decisions/def-083-work-governance-engine-enforcement-gap.cue"
+				"architecture/deferred-decisions/def-083-work-governance-engine-enforcement-gap.cue",
+				"architecture/deferred-decisions/def-084-cross-repo-effect-proof-verification.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
