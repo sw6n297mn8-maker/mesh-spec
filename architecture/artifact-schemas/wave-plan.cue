@@ -70,10 +70,10 @@ import (
 			rationale:   "dependsOn e semanticPrerequisites existem como categorias distintas. Colocar dependência de conhecimento em dependsOn serializa trabalho que poderia ser paralelo; colocar dependência estrutural em semanticPrerequisites permite execução com inputs inválidos."
 		}, {
 			id:          "tq-wp-02"
-			description: "Outputs com paths conformes à estrutura do repositório"
-			test:        "Cada output.artifact usa um path que conforma com governance/repo-structure.cue — o diretório destino é uma zona válida e o nome segue as convenções de nomenclatura. Paths inventados que não cabem na estrutura declarada são erro."
+			description: "Outputs com paths conformes à estrutura do repositório, no ramo local"
+			test:        "Escopo: outputs do ramo LOCAL do #TaskOutput. Cada output.artifact usa um path que conforma com governance/repo-structure.cue — o diretório destino é uma zona válida e o nome segue as convenções de nomenclatura. Paths inventados que não cabem na estrutura declarada são erro. Outputs do ramo REMOTO (com effectExpectedIn) ficam FORA deste critério: quando carregam artifact, o path pertence ao repositório subordinado e conforma à convenção DAQUELE repositório, não à repo-structure.cue daqui — verificá-lo aqui é impossível por construção, e exigi-lo reprovaria o caso que o adr-185 dec 1 declara legítimo. A verificação do efeito remoto é pós-execução, via effectProofs (adr-184 dec 4)."
 			severity:    "fail"
-			rationale:   "Wave plan é upstream de execução. Paths inválidos propagam erro para task specs e execução, onde o custo de correção é maior."
+			rationale:   "Wave plan é upstream de execução. Paths inválidos propagam erro para task specs e execução, onde o custo de correção é maior. O escopo local é explícito porque o critério nasceu quando todo output tinha path (adr-185 tornou artifact opcional no ramo remoto); sem o recorte, o critério reprovaria output remoto legítimo."
 		}]
 		rationale: "Wave plan governa a sequência de execução. Critérios garantem que dependências e outputs são operacionais, não especulativos."
 	}

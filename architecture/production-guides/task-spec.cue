@@ -23,8 +23,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 //
 // Authoring revelou disciplinas core a capturar: ID unicidade + WI-NNN
 // regex; templateRef apontando para template existente em ai-orchestration/
-// agent-instructions/task-templates.cue; outputs concretos (artifact +
-// type create/update/validate); semanticPrerequisites verificáveis
+// agent-instructions/task-templates.cue; outputs concretos -- artifact +
+// type para output LOCAL, effectDescription + effectExpectedIn + type com
+// artifact OPCIONAL para output REMOTO (adr-185); semanticPrerequisites verificáveis
 // (paths reais ou seções identificáveis); rationale substantivo (não
 // repetição do title); affects vs outputs sem duplicação; work-events
 // stream com task-proposed event criado pareado com task-spec; cross-task
@@ -58,10 +59,10 @@ taskSpecGuide: artifact_schemas.#ProductionGuide & {
 			rationale:   "templateRef inválido aciona cue vet fail por regex. templateRef apontando para template inexistente em task-templates.cue é configuração fantasma — agente não consegue resolver protocolo de execução. task-governance.cue rules são por templateRef; mismatch quebra elegibilidade."
 		}, {
 			id:          "tq-tsg-03"
-			description: "Guide enforça outputs concretos com artifact + type"
-			test:        "Process da section id-template-and-outputs declara passo de validar: cada outputs[] tem artifact (path canônico não-vazio) + type (∈ create/update/validate). outputs vazio aceitável apenas para pure-validation, com rationale explicando alvo validado; affects recomendado quando houver superfície indireta. outputs com path vago ('contexts/.../algo.cue') ou type fora do enum são bloqueados. Para tasks de bootstrap BC, outputs incluem todos artifacts esperados (canvas + glossary + domain-model + agent-spec + governance per ordem canônica)."
+			description: "Guide enforça outputs concretos: artifact + type no ramo local; effectDescription + effectExpectedIn + type no ramo remoto"
+			test:        "Process da section id-template-and-outputs declara passo de validar, POR RAMO do #TaskOutput. Ramo LOCAL (artefato produzido ou alterado neste repositório): cada outputs[] tem artifact (path canônico não-vazio) + type (∈ create/update/validate); path vago ('contexts/.../algo.cue') é bloqueado. Ramo REMOTO (efeito esperado em repositório subordinado, per adr-184 e adr-185): cada outputs[] tem effectExpectedIn (∈ mesh-runtime/mesh-frontend-runtime) + effectDescription (≥30 runes, consequência observável no repositório-alvo, NUNCA um path) + type; artifact é OPCIONAL e só entra quando o path já existe e é descritivo — exigi-lo faria o mesh-spec nomear o arquivo que o repositório soberano deve escrever, que é a alternativa (c) rejeitada no adr-184. type fora do enum é bloqueado nos dois ramos. outputs vazio aceitável apenas para pure-validation, com rationale explicando alvo validado; affects recomendado quando houver superfície indireta. Para tasks de bootstrap BC, outputs incluem todos artifacts esperados (canvas + glossary + domain-model + agent-spec + governance per ordem canônica)."
 			severity:    "fail"
-			rationale:   "Outputs declaram contrato de produção da task — sem artifact concreto, completion validation não tem alvo verificável. Empirical bootstrap pattern: WI-060 SSC declara 5 outputs (canvas/glossary/domain-model/agent-spec/governance.cue) — validation gate aceita task-completed somente quando todos existem."
+			rationale:   "Outputs declaram contrato de produção da task — sem alvo verificável, completion validation não tem o que checar. No ramo local o alvo é o artifact; no ramo remoto é o EFEITO descrito, cuja prova vive em effectProofs no evento de conclusão (adr-184 dec 4), não no path. Empirical bootstrap pattern: WI-060 SSC declara 5 outputs (canvas/glossary/domain-model/agent-spec/governance.cue) — validation gate aceita task-completed somente quando todos existem."
 		}, {
 			id:          "tq-tsg-04"
 			description: "Guide enforça work-events stream com task-proposed event pareado"
@@ -101,11 +102,11 @@ taskSpecGuide: artifact_schemas.#ProductionGuide & {
 		collectFromFounder: [
 			"ID alvo (formato WI-NNN; próximo disponível derivado de ls task-specs/) — founder confirma reuso de número aposentado vs próximo livre",
 			"templateRef + version (canônicos: tmpl-create-instance@v1 para autoria de instância de schema; tmpl-create-schema@v1 para criação de schema; tmpl-validate-artifact@v1 para validação; tmpl-create-script@v1 para scripts; tmpl-create-convention@v1 para convenções)",
-			"Outputs esperados (lista de artifacts + type create/update/validate) — para bootstrap BC: ordem canônica canvas → glossary → domain-model → agent-spec → governance",
+			"Outputs esperados, POR RAMO. Locais: lista de artifacts + type create/update/validate — para bootstrap BC, ordem canônica canvas → glossary → domain-model → agent-spec → governance. Remotos (efeito em repositório subordinado): repositório-alvo + descrição do efeito em consequência observável + type; o path do alvo NÃO é coletado, porque a forma pertence ao repositório soberano (adr-185 dec 1)",
 			"Cross-task dependencies (semantic OR schema) que devem entrar em work-graph executionDependencies — heurística: BC bootstrap depende de WI-009/011/020/021/022/028 + assimetric inter-BC quando consume signal específico",
 			"Criticality default vem do template (task-governance.cue) — override por task se diverge materialmente; nesta fase: zero overrides per task-governance.cue declaração",
 		]
-		gapPolicy:     "Se ID conflita com task-spec existente, escolher próximo disponível ou (raro) revisar task-spec existente. Se templateRef aponta para template inexistente em task-templates.cue, criar template primeiro (separate WI) — task-spec fica blocked. Se outputs lista artifacts cuja localização canonicalPathRegex não está definida em schema, declarar e validar pós-creation. NÃO criar task-spec sem work-events stream pareado — task fica admission-undefined e nunca entra em backlog. NÃO declarar criticality override sem rationale documentando divergência material do template. NÃO inventar templates novos sem aprovação founder — cardinalidade de templates é deliberadamente baixa (5 atuais) para evitar fragmentação."
+		gapPolicy:     "Se ID conflita com task-spec existente, escolher próximo disponível ou (raro) revisar task-spec existente. Se templateRef aponta para template inexistente em task-templates.cue, criar template primeiro (separate WI) — task-spec fica blocked. Se outputs lista artifacts LOCAIS cuja localização canonicalPathRegex não está definida em schema, declarar e validar pós-creation — outputs remotos ficam fora desta regra por construção: nenhum canonicalPathRegex deste repositório governa arquivo de repositório subordinado (adr-185). NÃO criar task-spec sem work-events stream pareado — task fica admission-undefined e nunca entra em backlog. NÃO declarar criticality override sem rationale documentando divergência material do template. NÃO inventar templates novos sem aprovação founder — cardinalidade de templates é deliberadamente baixa (5 atuais) para evitar fragmentação."
 		validatorNote: "Em Phase 0, founder review é obrigatório. WI-068 (pendente) cria structural-checks para task-spec — quando completar, tq-tsg-01/02/03 automatizam-se. tq-tsg-04 (pareamento work-events) requer cross-file check. tq-tsg-05/06/07 são warn semântico — inspeção visual permanece relevante. tq-tsg-08 (work-graph) requer cross-file check + análise semântica de deps."
 		outputNote:    "Output é arquivo único governance/build-time/task-specs/wi-NNN.cue conformante a #TaskSpec. Tamanho típico: 25-45 linhas (per wi-060.cue 39 linhas, wi-043.cue ~30 linhas). Task-spec inicial declara version=1; updates incrementais via supersession (task-superseded event + nova task-spec com version=N+1)."
 	}
@@ -127,8 +128,8 @@ taskSpecGuide: artifact_schemas.#ProductionGuide & {
 				action: "Selecionar templateRef apropriado"
 				detail: "Mapping canônico: tmpl-create-instance@v1 (criar instância de schema, e.g., canvas/domain-model/agent-spec); tmpl-create-schema@v1 (criar novo schema em artifact-schemas/); tmpl-validate-artifact@v1 (revisar artefato existente); tmpl-create-script@v1 (criar script bash/CI); tmpl-create-convention@v1 (criar convenção de naming/structure). 5 templates atuais; novos exigem aprovação founder + edição de task-templates.cue."
 			}, {
-				action: "Declarar outputs concretos com artifact + type"
-				detail: "Cada outputs[] = {artifact: path-canonical, type: create|update|validate}. Para bootstrap BC: 5 outputs com type=create (canvas + glossary + domain-model + agent-spec + governance.cue). Para schema-change: outputs com type=update + create combinados. Para validation-only task: outputs vazio aceitável quando rationale explica alvo validado + affects recomendado quando há superfície indireta."
+				action: "Declarar outputs concretos, no ramo certo do #TaskOutput"
+				detail: "Ramo LOCAL: cada outputs[] = {artifact: path-canonical, type: create|update|validate}. Ramo REMOTO (efeito em repositório subordinado): {effectExpectedIn: mesh-runtime|mesh-frontend-runtime, effectDescription: consequência observável com ≥30 runes e nunca um path, type: create|update|validate, artifact?: path quando já existir}. Para bootstrap BC: 5 outputs com type=create (canvas + glossary + domain-model + agent-spec + governance.cue). Para schema-change: outputs com type=update + create combinados. Para validation-only task: outputs vazio aceitável quando rationale explica alvo validado + affects recomendado quando há superfície indireta."
 			}, {
 				action: "Confirmar esqueleto com founder antes de prosseguir"
 				detail: "Apresentar header completo: id + version + title + templateRef + outputs. Founder filtra: ID disponível confirmado; templateRef apropriado; outputs cobrindo todo escopo da task. Compor esqueleto confirmado antes de section 2."
@@ -148,10 +149,11 @@ taskSpecGuide: artifact_schemas.#ProductionGuide & {
 				"Bootstrap BC pattern: 5 outputs canônicos (canvas + glossary + domain-model + agent-spec + governance) + criticality medium per task-governance.cue.",
 				"Schema-change pattern: 1-2 outputs (schema + downstream artifacts impactados) + criticality high.",
 				"Validation-only pattern: outputs vazio + rationale explicando alvo validado + affects recomendado quando houver superfície indireta.",
+				"Cross-repo effect pattern (adr-184 + adr-185): 1+ outputs remotos com effectExpectedIn + effectDescription + type, artifact ausente quando a forma pertence ao alvo ou o path ainda não existe; a PROVA do efeito não vive no output — vive em effectProofs no evento de conclusão.",
 				"Próximo ID disponível derivável programaticamente: highest existing ID + 1; founder confirma para evitar conflito com proposta paralela.",
 			]
-			doneCriteria: "ID validado contra regex + unicidade; templateRef apontando para template existente em task-templates.cue; outputs concretos com artifact + type declarados (ou vazio justificado para pure-validation); founder aprovou esqueleto antes de proceder à section 2."
-			ifGap:        "Se ID conflita, escolher próximo livre. Se templateRef inválido (regex fail), corrigir para formato @vN. Se templateRef aponta para template inexistente, criar template primeiro (separate WI) ou usar template existente. Se outputs vagos (path com '...'), substituir por path canônico do schema location. Se task tem outputs em locations sem canonicalPathRegex declarado, escalar founder."
+			doneCriteria: "ID validado contra regex + unicidade; templateRef apontando para template existente em task-templates.cue; outputs concretos declarados no ramo correto — artifact + type no local, effectDescription + effectExpectedIn + type no remoto (ou vazio justificado para pure-validation); founder aprovou esqueleto antes de proceder à section 2."
+			ifGap:        "Se ID conflita, escolher próximo livre. Se templateRef inválido (regex fail), corrigir para formato @vN. Se templateRef aponta para template inexistente, criar template primeiro (separate WI) ou usar template existente. Se outputs vagos (path com '...'), substituir por path canônico do schema location. Se task tem outputs LOCAIS em locations sem canonicalPathRegex declarado, escalar founder — outputs remotos não escalam por este motivo, pois seu alvo está fora do alcance dos canonicalPathRegex deste repositório."
 		}
 
 		"prerequisites-and-rationale": {
@@ -233,7 +235,7 @@ taskSpecGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar shape: instância valida contra #TaskSpec (id regex WI-NNN, version int >=1, title não-vazio, templateRef regex tmpl-XXX@vN, outputs estrutura, rationale não-vazio).",
 			"Verificar ID + unicidade (tq-tsg-01 fail): id segue regex ^WI-[0-9]{3}$; ID não conflita com task-specs existentes (cue vet enforce automático via _constraints.cue chave=id).",
 			"Verificar templateRef válido (tq-tsg-02 fail): templateRef segue regex ^tmpl-[a-z][a-z0-9-]*@v[0-9]+$; template ID base existe em ai-orchestration/agent-instructions/task-templates.cue (5 templates canônicos atuais).",
-			"Verificar outputs concretos (tq-tsg-03 fail): cada outputs[] tem artifact (path canônico) + type (create/update/validate); outputs vazio aceitável apenas para tasks pure-validation, com rationale explicando alvo validado; affects recomendado quando houver superfície indireta.",
+			"Verificar outputs concretos (tq-tsg-03 fail): outputs locais têm artifact (path canônico) + type (create/update/validate); outputs remotos têm effectExpectedIn + effectDescription (≥30 runes, não um path) + type, com artifact opcional; outputs vazio aceitável apenas para tasks pure-validation, com rationale explicando alvo validado; affects recomendado quando houver superfície indireta.",
 			"Verificar work-events stream pareado (tq-tsg-04 fail): governance/build-time/work-events/wi-NNN.cue existe; streams[WI-NNN].events[0] é task-proposed; sem stream, task fica admission-undefined.",
 			"Verificar semanticPrerequisites verificáveis (tq-tsg-05 warn): cada item aponta para path real OU seção identificável; vagos ('contexto geral', 'leitura de princípios') flagged.",
 			"Verificar affects sem duplicação (tq-tsg-06 warn): affects[] não repete outputs[*].artifact; lista vazia aceitável quando task impacta apenas seus outputs.",

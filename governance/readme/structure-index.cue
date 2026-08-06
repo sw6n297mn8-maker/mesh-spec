@@ -190,7 +190,8 @@ structureIndex: {
 				"architecture/adrs/adr-181-extend-stakeholder-category-adversarial-actor-class.cue",
 				"architecture/adrs/adr-182-identity-and-actor-model.cue",
 				"architecture/adrs/adr-183-task-reconciled-founder-exclusive.cue",
-				"architecture/adrs/adr-184-cross-repo-effect-as-completion-condition.cue"
+				"architecture/adrs/adr-184-cross-repo-effect-as-completion-condition.cue",
+				"architecture/adrs/adr-185-optional-artifact-and-effect-description.cue"
 			],
 			"schema": "#ADRBase"
 		},

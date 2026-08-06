@@ -9,6 +9,14 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // conclusão, ao lado (não no lugar) da prova de tarefa do
 // #CompletionValidation. Expectativa é pré-execução; prova é pós-execução.
 
+// EMENDADO POR adr-185 (dec 3 daquele ADR): no ramo remoto do #TaskOutput,
+// `artifact` deixou de ser obrigatório e entrou `effectDescription` com piso
+// de trivialidade (MinRunes(30)). Motivo: exigir o path contradizia a
+// alternativa (c) rejeitada AQUI — o mesh-spec nomeando o arquivo que o alvo
+// deve escrever — e não expressava efeito fan-out. Nenhum dos oito decision
+// items abaixo é revogado; quem materializar lendo este ADR precisa ler o
+// adr-185 junto.
+
 adr184: artifact_schemas.#ADR & {
 	id:    "adr-184"
 	title: "Estabelecer efeito cross-repo como condição de conclusão, provado no evento"
