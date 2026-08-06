@@ -1,5 +1,7 @@
 package shared_types
 
+import "strings"
+
 // TaskOutput — tipo de output de tarefa, compartilhado entre #TaskSpec
 // (governance/build-time/work-governance.cue, definição operacional) e
 // #WaveTask (architecture/artifact-schemas/wave-plan.cue, definição de
@@ -25,6 +27,11 @@ package shared_types
 // Ramo remoto: EFEITO ESPERADO em repositório subordinado — condição de
 // conclusão da tarefa, nunca ordem de serviço nem reivindicação de autoria
 // (adr-184 dec 1). O repositório-alvo permanece soberano sobre implementação.
+// Per adr-185: artifact é OPCIONAL no ramo remoto — exigi-lo obrigava o
+// mesh-spec a nomear o arquivo que o alvo deve escrever (alternativa (c)
+// rejeitada no adr-184) e não expressava fan-out. A carga semântica vive em
+// effectDescription: consequência observável no alvo, NUNCA um path, com
+// piso MinRunes(30) contra trivialidade — o piso não prova substância (N5).
 // A PROVA do efeito não vive aqui: vive no evento de conclusão, em
 // #CompletionValidation.effectProofs (adr-184 dec 4/5) — expectativa é
 // pré-execução, prova é pós-execução.
@@ -32,7 +39,8 @@ package shared_types
 	artifact: string & !=""
 	type:     "create" | "update" | "validate"
 } | {
-	artifact:         string & !=""
-	type:             "create" | "update" | "validate"
-	effectExpectedIn: #SubordinateRepo
+	effectExpectedIn:  #SubordinateRepo
+	effectDescription: string & strings.MinRunes(30)
+	type:              "create" | "update" | "validate"
+	artifact?:         string & !=""
 }
