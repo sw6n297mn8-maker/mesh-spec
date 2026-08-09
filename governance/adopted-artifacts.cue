@@ -14,7 +14,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 
 adoptedArtifacts: artifact_schemas.#AdoptedArtifactsManifest & {
 	repoId:      "sw6n297mn8-maker/mesh-spec"
-	lastUpdated: "2026-04-27"
+	lastUpdated: "2026-08-09"
 
 	artifacts: [{
 		artifact:         "architecture/artifact-schemas/adopted-artifacts.cue"
@@ -52,5 +52,23 @@ adoptedArtifacts: artifact_schemas.#AdoptedArtifactsManifest & {
 		localContentHash: "sha256:0019ced779eea26181045a37e0f73ede49d45464c3b9c7f72f1046d65fd9620c"
 		adoptionMode:     "verbatim"
 		adoptedAt:        "2026-04-27"
+	}, {
+		artifact:         "architecture/artifact-schemas/evidence-types.cue"
+		sourceRepo:       "sw6n297mn8-maker/tekton-spec"
+		sourcePath:       "portfolio/artifact-schemas/evidence-types.cue"
+		sourceVersion:    "0.4.0"
+		sourceCommitHash: "0de85b30b67cfc276ac6c73e6685cc26ec4e4131"
+		localContentHash: "sha256:85add799ba88f69f32072244f75806f7712826b14196f5e1ee5a5fb0705290af"
+		adoptionMode:     "verbatim"
+		adoptedAt:        "2026-08-09"
+	}, {
+		artifact:         "architecture/artifact-schemas/verifier-types.cue"
+		sourceRepo:       "sw6n297mn8-maker/tekton-spec"
+		sourcePath:       "portfolio/artifact-schemas/verifier-types.cue"
+		sourceVersion:    "0.4.0"
+		sourceCommitHash: "0de85b30b67cfc276ac6c73e6685cc26ec4e4131"
+		localContentHash: "sha256:55d357b4aaabe5aacfa83ba74635f52a93337a413a8fceef61cc6c3a11939350"
+		adoptionMode:     "verbatim"
+		adoptedAt:        "2026-08-09"
 	}]
 }
