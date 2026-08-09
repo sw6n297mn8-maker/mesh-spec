@@ -191,7 +191,8 @@ structureIndex: {
 				"architecture/adrs/adr-182-identity-and-actor-model.cue",
 				"architecture/adrs/adr-183-task-reconciled-founder-exclusive.cue",
 				"architecture/adrs/adr-184-cross-repo-effect-as-completion-condition.cue",
-				"architecture/adrs/adr-185-optional-artifact-and-effect-description.cue"
+				"architecture/adrs/adr-185-optional-artifact-and-effect-description.cue",
+				"architecture/adrs/adr-186-adopt-tekton-proof-model-binding.cue"
 			],
 			"schema": "#ADRBase"
 		},
