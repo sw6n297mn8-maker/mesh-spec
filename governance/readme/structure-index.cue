@@ -194,7 +194,8 @@ structureIndex: {
 				"architecture/adrs/adr-185-optional-artifact-and-effect-description.cue",
 				"architecture/adrs/adr-186-adopt-tekton-proof-model-binding.cue",
 				"architecture/adrs/adr-187-verifier-registry-and-governance-authority.cue",
-				"architecture/adrs/adr-188-establish-taskspec-v2-typed-completion.cue"
+				"architecture/adrs/adr-188-establish-taskspec-v2-typed-completion.cue",
+				"architecture/adrs/adr-189-activate-verifier-registry-governed-mutation.cue"
 			],
 			"schema": "#ADRBase"
 		},
