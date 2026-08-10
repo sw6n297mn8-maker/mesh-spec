@@ -544,7 +544,8 @@ structureIndex: {
 				"architecture/tension-log/ten-013-fce-subdomain-budget-allocation-imprecision.cue",
 				"architecture/tension-log/ten-014-dispute-modify-terms-authoritative-override.cue",
 				"architecture/tension-log/ten-015-port-interface-handauthored-vs-p1.cue",
-				"architecture/tension-log/ten-016-envelope-actor-slot-expansion.cue"
+				"architecture/tension-log/ten-016-envelope-actor-slot-expansion.cue",
+				"architecture/tension-log/ten-017-declared-blocking-gate-without-required-check-path.cue"
 			],
 			"schema": "#TensionEntry"
 		},
