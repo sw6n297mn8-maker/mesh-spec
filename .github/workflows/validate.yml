@@ -16,12 +16,16 @@ jobs:
       - name: Validate all CUE
         run: cue vet ./...
 
-      - name: Deferred-trigger runner tests (adr-166)
-        # Suite do core do runner (exclusões por construção, pathScope, gate
-        # multi-trigger, structural-predicates + calibração congelada dos 4
-        # ddp-NNN). Após Install CUE: os testes de calibração exportam
-        # predicados reais via cue. Inclui também as fixtures do gate de
-        # frescura de materialização (adr-168, test_materialization_freshness).
+      - name: Suites de CI (discovery — deferred-triggers, frescura, ContractGate V2)
+        # Discovery ABRANGENTE sobre scripts/ci/tests — o step NÃO é só do runner
+        # de deferred-triggers. Cobre hoje: (a) o core do runner (exclusões por
+        # construção, pathScope, gate multi-trigger, structural-predicates +
+        # calibração congelada dos 4 ddp-NNN; após Install CUE os testes de
+        # calibração exportam predicados reais via cue); (b) as fixtures do gate de
+        # frescura de materialização (adr-168, test_materialization_freshness);
+        # (c) o ContractGate do contrato V2 da tarefa (adr-190 / M-182): corpus
+        # positivo + negativo sob cue vet -c. Suite nova em scripts/ci/tests entra
+        # aqui automaticamente e herda o blocking do required check cue-validate.
         run: python3 -m unittest discover -s scripts/ci/tests -v
 
       - name: Freshness gate — invariante durável (adr-168 --ci)
