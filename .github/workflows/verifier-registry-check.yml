@@ -28,3 +28,6 @@ jobs:
 
       - name: Governance coverage (event types x acoes autorizaveis)
         run: bash scripts/ci/check-verifier-governance-coverage.sh
+
+      - name: Consumer declaration (idioma canonico exige consumerhood declarada)
+        run: bash scripts/ci/check-verifier-resolution-consumer-declaration.sh
