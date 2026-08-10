@@ -1,0 +1,27 @@
+name: Verifier Registry Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verifier-registry-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0 # o append-only compara base (origin/main) x candidato
+
+      - name: Install CUE
+        uses: cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1 # v1.0.1 — node20 — sem release node24 disponivel; risco aceito ate set/2026, substituicao por download direto do binario
+        with:
+          version: v0.16.0
+
+      - name: Append-only (Git-prefix base x candidato)
+        run: bash scripts/ci/check-verifier-registry-append-only.sh
+
+      - name: Terminal quiescence (pos-revoked)
+        run: bash scripts/ci/check-verifier-registry-terminal-quiescence.sh
