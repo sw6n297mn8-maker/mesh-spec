@@ -195,7 +195,8 @@ structureIndex: {
 				"architecture/adrs/adr-186-adopt-tekton-proof-model-binding.cue",
 				"architecture/adrs/adr-187-verifier-registry-and-governance-authority.cue",
 				"architecture/adrs/adr-188-establish-taskspec-v2-typed-completion.cue",
-				"architecture/adrs/adr-189-activate-verifier-registry-governed-mutation.cue"
+				"architecture/adrs/adr-189-activate-verifier-registry-governed-mutation.cue",
+				"architecture/adrs/adr-190-verifier-identity-resolution-for-completion-v2.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -545,7 +546,8 @@ structureIndex: {
 				"architecture/tension-log/ten-014-dispute-modify-terms-authoritative-override.cue",
 				"architecture/tension-log/ten-015-port-interface-handauthored-vs-p1.cue",
 				"architecture/tension-log/ten-016-envelope-actor-slot-expansion.cue",
-				"architecture/tension-log/ten-017-declared-blocking-gate-without-required-check-path.cue"
+				"architecture/tension-log/ten-017-declared-blocking-gate-without-required-check-path.cue",
+				"architecture/tension-log/ten-018-consumerhood-norm-vs-idiom-bound-detection.cue"
 			],
 			"schema": "#TensionEntry"
 		},
@@ -655,7 +657,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-081-requisition-origin-prefill-when-schedule-becomes-system-input.cue",
 				"architecture/deferred-decisions/def-082-api-yaml-servers-pending-deploy-adr.cue",
 				"architecture/deferred-decisions/def-083-work-governance-engine-enforcement-gap.cue",
-				"architecture/deferred-decisions/def-084-cross-repo-effect-proof-verification.cue"
+				"architecture/deferred-decisions/def-084-cross-repo-effect-proof-verification.cue",
+				"architecture/deferred-decisions/def-085-verifier-resolution-shared-abstraction-home.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
