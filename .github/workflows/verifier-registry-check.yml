@@ -25,3 +25,6 @@ jobs:
 
       - name: Terminal quiescence (pos-revoked)
         run: bash scripts/ci/check-verifier-registry-terminal-quiescence.sh
+
+      - name: Governance coverage (event types x acoes autorizaveis)
+        run: bash scripts/ci/check-verifier-governance-coverage.sh

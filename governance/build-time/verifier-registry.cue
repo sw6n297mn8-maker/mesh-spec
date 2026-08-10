@@ -18,17 +18,27 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // estruturais do cue vet (#VerifierRegistry: register-once, referências causais
 // válidas, grants resolvíveis e projeção derivada do stream).
 //
-// AINDA NÃO — A AUTORIDADE EXECUTÁVEL DE MUTAÇÃO: a superfície governada que
-// decide QUEM pode mutar (distinta dos eventos persistidos) pertence ao Slice C2.
-// Enquanto ela não existir, NÃO se afirma "governed mutation operational": há
-// integridade causal, não ainda a superfície de autoridade.
+// AUTORIDADE DE MUTAÇÃO — SUPERFÍCIE DECLARATIVA MATERIALIZADA: quem pode
+// AUTORIZAR mutação (distinto dos eventos persistidos) vive em
+// governance/build-time/verifier-governance-authority.cue (adr-189 decisões 1 e
+// 2): vocabulário Mesh-local de AÇÕES, founder-held, com correspondência
+// EXAUSTIVA aos caminhos de mutação — igualdade de conjuntos entre os event
+// types da união adotada e as ações autorizáveis, enforçada por
+// scripts/ci/check-verifier-governance-coverage.sh.
 //
-// events permanece [] (machine-first, adr-189 decisão 6): C1 entrega a máquina;
+// LIMITE DO QUE ESTÁ PROVADO: autoridade DECLARATIVA + exaustividade dos
+// caminhos + integridade causal. NÃO se afirma "governed mutation operational":
+// não existe (nem foi testado) o caminho executor→autorização→append, isto é,
+// nada prova que uma mutação executada consultou esta superfície antes de anexar
+// o evento. Authority Surface materializada ≠ enforcement de autorização no
+// executor.
+//
+// events permanece [] (machine-first, adr-189 decisão 6): a máquina existe;
 // nenhum verifier produtivo é semeado até existir um verifier real (downstream).
 // Nenhuma tarefa Mesh depende do Registry para admission/completion nesta fase.
 //
 // Autoridade decisória: verifier-governance founder-held (adr-187 item 2;
-// superfície executável = Slice C2).
+// superfície declarativa em governance/build-time/verifier-governance-authority.cue).
 verifierRegistry: artifact_schemas.#VerifierRegistry & {
 	events: []
 }
