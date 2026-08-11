@@ -111,5 +111,20 @@ def085: artifact_schemas.#DeferredDecision & {
 		threshold: 2
 	}]
 
-	status: "open"
+	status: "resolved" // decisão do founder 2026-08-11 (C3a): centralização Mesh-local
+	resolvedBy: "architecture/adrs/adr-191-centralize-verifier-resolution-mesh-local.cue"
+	triggeredAt: "2026-08-11"
+	triggeredCondition: """
+		A segunda necessidade de consumo da resolução foi estabelecida pela
+		DECISÃO DE DESIGN de C3 (o #TaskAdmissionV2 Mesh deve exigir que todo
+		verifierRef declarado resolva pela mesma definição da completion) antes
+		da materialização da segunda declaração — a condição semântica do
+		deferimento ocorreu antes de seu proxy automatizado conseguir observá-la
+		(os sensores contam declarações, limitação iv; contagem no ato: 1 < 2).
+		Por isso NÃO houve transição por 'triggered': gravar esse estado
+		atribuiria ao runner uma observação que ele não fez. Os triggers abaixo
+		permanecem como registro histórico do mecanismo e da calibração, SEM
+		função normativa pós-resolução — não são sensor de promoção upstream
+		(adr-191 dec 8/10).
+		"""
 }

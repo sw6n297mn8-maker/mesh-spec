@@ -95,39 +95,27 @@ import (
 	// NO ORPHAN: todo proofResult referencia um requirement realmente declarado.
 	_noOrphan: [for p in completion.proofResults {true & list.Contains(_reqIds, p.requirementId)}]
 
-	// ── Slice C2: RESOLUÇÃO DE IDENTIDADE DE VERIFIER (adr-190) ──────────────
-	// O Registry é parâmetro TIPADO (adr-190 dec 9): é o compilador que impede
-	// um chamador de passar valor que não satisfaça as invariantes do Registry
-	// — inclusive o register-once (_uniqueRegister), do qual esta re-derivação
-	// DEPENDE sem reimplementar (dec 10).
+	// ── RESOLUÇÃO DE IDENTIDADE DE VERIFIER (adr-190), via abstração ÚNICA ──
+	// A regra (exact-ref ∧ active ∧ compatible-grant) vive em #VerifierResolution
+	// (verifier-resolution.cue, adr-191) — este join CONSOME a definição canônica,
+	// não a redefine. O Registry é parâmetro TIPADO (adr-190 dec 9): é o
+	// compilador que impede chamador de passar valor fora das invariantes —
+	// inclusive register-once (dec 10), do qual a resolução depende sem
+	// reimplementar.
 	registry!: as.#VerifierRegistry
 
 	// Declaração canônica de consumerhood (adr-190 item 11), ANINHADA.
 	_verifierResolutionConsumer: "task-completion-v2"
 
-	// Re-derivação do contrato mínimo a partir do stream PÚBLICO (dec 2): a
-	// tripla resolvível carrega a revision REGISTRADA, logo exact-ref (dec 4) é
-	// propriedade da construção, não teste à parte. Os dois guards são active
-	// (dec 6) e grant compatível com o assertionSchemaRef do próprio contrato
-	// (dec 5 + dec 7).
-	_resolvableRefKeys: [
-		for e in registry.events
-		if e.event == "verifier-registered"
-		if registry.projection.lifecycle["\(e.contract.ref.id)::\(e.contract.ref.version)"] == "active"
-		if list.Contains(registry.projection.effectiveGrantKeys, "\(e.contract.ref.id)::\(e.contract.ref.version)::\(e.contract.assertionSchemaRef)")
-		{"\(e.contract.ref.id)::\(e.contract.ref.version)::\(e.contract.ref.revision)"},
-	]
+	_resolution: #VerifierResolution & {"registry": registry}
 
 	// RESOLUÇÃO EXIGIDA (dec 8), calculada REQUIREMENT-SIDE. O motivo é
-	// estrutural, não de força: dentro de um #TaskCompletionV2 válido,
-	// _coveredByRightVerifier já torna requirement↔proof uma relação TOTAL e
-	// REF-EXATA (adr-188), logo provar que todo requirement aponta para verifier
-	// resolvível implica o mesmo para todo proof que o satisfaz — sem repetir o
-	// join sobre proofResults. NÃO se alega rejeição no ato da autoria: C2 é
-	// completion; declarar requirement com verifier revogado torna a tarefa
-	// IMPOSSÍVEL DE COMPLETAR sob este join, e só isso. Fazer admission consumir
-	// esta resolução é assunto de C3.
-	_verifierResolves: [for r in taskSpec.requiredEvidence {
-		true & list.Contains(_resolvableRefKeys, "\(r.verifierRef.id)::\(r.verifierRef.version)::\(r.verifierRef.revision)")
-	}]
+	// estrutural, não de força: _coveredByRightVerifier já torna
+	// requirement↔proof uma relação TOTAL e REF-EXATA (adr-188), logo provar que
+	// todo requirement aponta para verifier resolvível implica o mesmo para todo
+	// proof que o satisfaz — sem repetir o join sobre proofResults. NÃO se alega
+	// rejeição no ato da autoria: C2 é completion; admission é assunto de C3.
+	_verifierResolves: (_resolution.resolve & {
+		refs: [for r in taskSpec.requiredEvidence {r.verifierRef}]
+	}).out
 }

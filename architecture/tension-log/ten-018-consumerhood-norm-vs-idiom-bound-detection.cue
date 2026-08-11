@@ -51,17 +51,38 @@ ten018: artifact_schemas.#TensionEntry & {
 		que não temos — e a propriedade de permitir dois consumidores no mesmo arquivo
 		foi decisão deliberada (adr-190 item 11), para que a topologia do código não
 		seja ditada pelo detector.
+
+		ATUALIZAÇÃO (adr-191, C3a): a resolução foi CENTRALIZADA em
+		#VerifierResolution (governance/build-time/verifier-resolution.cue) e o
+		detector foi re-apontado — consumidor reconhecível passou a ser "quem
+		referencia/instancia a abstração canônica" (R1), com os dois bypasses
+		conhecidos virando violação: re-derivação pelo idioma cru (R2) e acesso
+		direto a _resolvableRefKeys (R3 — hidden em CUE é package-scoped; o
+		compilador não impede o acesso dentro do package, verificado por
+		execução). Isso REDUZ a tensão sem resolvê-la: instanciar um tipo nomeado
+		é difícil de reproduzir por acidente, e os bypasses conhecidos agora têm
+		observador — mas o detector permanece TEXTUAL. Uma implementação futura
+		da MESMA semântica por construção sintaticamente nova escapa das três
+		regras (a suite documenta a fronteira em
+		test_semantica_reimplementada_sem_tokens_escapa). A natureza da tensão
+		mudou: de "reconhecemos consumidores por uma comprehension incidental"
+		para "reconhecemos consumidores por uso textual da abstração canônica".
 		"""
 
 	status: "open"
 
 	structuralResolutionPath: """
-		Fechar a lacuna exige tornar consumerhood estruturalmente derivável em vez de
-		declarada: por exemplo, se a resolução passar a viver numa abstração
-		compartilhada única (a decisão deferida em def-085), consumidor passa a ser
-		"quem importa a abstração" — fato derivável do grafo de imports, não de
-		disciplina. Enquanto a resolução for re-derivada em cada consumidor, a norma
-		permanece semântica e o detector permanece idiom-bound.
+		Fechar a lacuna exige tornar consumerhood estruturalmente derivável em vez
+		de declarada. O primeiro degrau foi dado (adr-191): a resolução vive numa
+		abstração compartilhada única e consumidor passou a ser "quem
+		referencia/instancia a abstração canônica" — que é o que R1 observa. O
+		degrau imaginado originalmente ("quem importa a abstração", derivável do
+		grafo de imports) não se aplica na topologia atual: definição e
+		consumidores vivem no MESMO package build_time, onde não há import a
+		derivar. O fechamento real exige derivação SEMÂNTICA de consumerhood do
+		grafo de tipos — analisar quem unifica com #VerifierResolution no valor
+		avaliado, não no texto. Enquanto isso não existir, a norma permanece
+		semântica e o detector permanece textual.
 		"""
 
 	relatedADR: "adr-190"
