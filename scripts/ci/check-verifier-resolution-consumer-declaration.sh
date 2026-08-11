@@ -1,38 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-verifier-resolution-consumer-declaration.sh — Declaração canônica de
-# consumerhood da resolução de verifier (adr-190 item 11).
+# check-verifier-resolution-consumer-declaration.sh — Consumerhood da resolução
+# de verifier via abstração canônica (adr-190 item 11 [norma] + adr-191 dec 7
+# [contrato de enforcement re-apontado]).
 #
-# CONTRATO ESTREITO E VERDADEIRO (leia antes de ampliar a expectativa):
-#   Qualquer arquivo .cue em governance/build-time/ que utilize o IDIOMA
-#   ATUALMENTE CANÔNICO de re-derivação de contratos de verifier — a
-#   comprehension que filtra eventos "verifier-registered" do stream do Registry
-#   — DEVE conter a declaração canônica de consumerhood
-#   (_verifierResolutionConsumer:).
+# CONTRATO ESTREITO E VERDADEIRO — três regras sobre .cue em governance/build-time/,
+# sempre em linhas NÃO-COMENTADAS; verifier-resolution.cue (a DEFINIÇÃO da
+# abstração) está isento de R1 e é a única morada legal do idioma e dos internals:
+#   R1 (declaração): arquivo que INSTANCIA/UNIFICA #VerifierResolution — o
+#      token em posição de binding (após ':' ou '=', ou seguido de '&') — DEVE
+#      conter a declaração canônica _verifierResolutionConsumer: (aninhada, per
+#      adr-190 item 11). O arquivo que define a abstração não é consumidor;
+#      menção em comentário ou em prosa de string (fora de binding) não conta.
+#   R2 (anti-bypass do idioma): a comprehension crua de re-derivação — filtro de
+#      eventos "verifier-registered" — FORA de verifier-resolution.cue é
+#      VIOLAÇÃO: re-derivar fora da abstração é bypass da localização canônica
+#      (P0), não consumerhood legítima.
+#   R3 (anti-bypass de internals): o token _resolvableRefKeys FORA de
+#      verifier-resolution.cue é VIOLAÇÃO — hidden em CUE é package-scoped e o
+#      compilador NÃO impede o acesso dentro do package (adr-191 dec 4); este é
+#      o observador textual explícito dessa fronteira.
 #
-# Idioma e declaração são procurados apenas em linhas NÃO-COMENTADAS: comentário
-# que mencione o idioma não compele declaração falsa, e declaração que exista só
-# em comentário não satisfaz o gate. Isso REDUZ falso-positivo e falso-verde; não
-# os elimina — o detector permanece textual/híbrido e pode coincidir com formas
-# não-consumidoras (ten-018).
+# O QUE ESTE GATE NÃO FAZ (ten-018): não prova a norma universal de consumerhood
+# nem detecta uma implementação futura da MESMA semântica por construção
+# sintaticamente nova. R1-R3 cobrem o caminho canônico e os DOIS bypasses
+# conhecidos; o detector permanece textual. Ignorar linhas comentadas REDUZ
+# falso-positivo e falso-verde; não os elimina.
 #
-# O QUE ESTE GATE NÃO FAZ (ten-018): ele NÃO prova a norma universal "todo
-# consumidor governado da resolução declara consumerhood". Ele detecta OMISSÃO no
-# caminho que conhecemos hoje — o idioma canônico. Uma implementação futura que
-# resolva verifier por outra construção escapa do detector. A diferença entre a
-# norma (semântica) e a cobertura automática (sintática, limitada ao idioma
-# conhecido) está registrada em architecture/tension-log/ten-018-*.cue.
-#
-# Por que a declaração é uma FORMA CUE fechada e não uma string solta: uma
-# substring solta contaria menção incidental (comentário + campo = duas
-# ocorrências), produzindo falso disparo no sensor de def-085. A declaração
-# canônica é um campo hidden, procurado com o dois-pontos.
-#
-# Exit: 0 ok · 1 arquivo usa o idioma sem declarar consumerhood · 2 infra.
+# Exit: 0 ok · 1 violação (R1, R2 ou R3) · 2 infra.
 
 SCOPE_DIR="governance/build-time"
+DEF_FILE="${SCOPE_DIR}/verifier-resolution.cue"
+ABSTRACTION_BINDING='([:=][[:space:]]*#VerifierResolution([^A-Za-z0-9_]|$))|(#VerifierResolution[[:space:]]*&)'
 IDIOM='event == "verifier-registered"'
+INTERNALS='_resolvableRefKeys'
 DECLARATION='_verifierResolutionConsumer:'
 
 if [ ! -d "${SCOPE_DIR}" ]; then
@@ -40,32 +42,48 @@ if [ ! -d "${SCOPE_DIR}" ]; then
 	exit 2
 fi
 
-# Arquivos no escopo que usam o idioma canônico em linha NÃO-COMENTADA.
-CANDIDATES="$(grep -rlF "${IDIOM}" --include='*.cue' "${SCOPE_DIR}" 2>/dev/null || true)"
-USERS=""
-for c in ${CANDIDATES}; do
-	if grep -vE '^[[:space:]]*//' "${c}" | grep -qF "${IDIOM}"; then
-		USERS="${USERS}${c} "
+# linhas não-comentadas de um arquivo
+noncomment() { grep -vE '^[[:space:]]*//' "$1"; }
+
+R1_MISSING=""
+R2_BYPASS=""
+R3_BYPASS=""
+CONSUMERS=0
+
+while IFS= read -r f; do
+	[ "${f}" = "${DEF_FILE}" ] && continue
+	nc="$(noncomment "${f}")"
+	if printf '%s' "${nc}" | grep -qF "${IDIOM}"; then
+		R2_BYPASS="${R2_BYPASS}${f} "
 	fi
-done
-
-if [ -z "${USERS}" ]; then
-	echo "consumer-declaration ok: nenhum arquivo em ${SCOPE_DIR} usa o idioma canônico de re-derivação (nada a exigir)."
-	exit 0
-fi
-
-MISSING=""
-COUNT=0
-for f in ${USERS}; do
-	COUNT=$((COUNT + 1))
-	if ! grep -vE '^[[:space:]]*//' "${f}" | grep -qF "${DECLARATION}"; then
-		MISSING="${MISSING}${f} "
+	if printf '%s' "${nc}" | grep -qF "${INTERNALS}"; then
+		R3_BYPASS="${R3_BYPASS}${f} "
 	fi
-done
+	if printf '%s' "${nc}" | grep -qE "${ABSTRACTION_BINDING}"; then
+		CONSUMERS=$((CONSUMERS + 1))
+		if ! printf '%s' "${nc}" | grep -qF "${DECLARATION}"; then
+			R1_MISSING="${R1_MISSING}${f} "
+		fi
+	fi
+done < <(find "${SCOPE_DIR}" -name '*.cue' -type f | sort)
 
-if [ -n "${MISSING}" ]; then
-	echo "::error::consumer-declaration: arquivo(s) usam o idioma canônico de re-derivação de verifier SEM a declaração canônica de consumerhood (${DECLARATION}): ${MISSING}" >&2
-	exit 1
+FAIL=0
+if [ -n "${R2_BYPASS}" ]; then
+	echo "::error::consumer-declaration R2: idioma cru de re-derivação (${IDIOM}) fora de ${DEF_FILE} — bypass da abstração canônica (adr-191 dec 7): ${R2_BYPASS}" >&2
+	FAIL=1
 fi
+if [ -n "${R3_BYPASS}" ]; then
+	echo "::error::consumer-declaration R3: acesso a ${INTERNALS} fora de ${DEF_FILE} — bypass de internals (adr-191 dec 4/7): ${R3_BYPASS}" >&2
+	FAIL=1
+fi
+if [ -n "${R1_MISSING}" ]; then
+	echo "::error::consumer-declaration R1: arquivo(s) instanciam/unificam #VerifierResolution (binding) SEM a declaração canônica de consumerhood (${DECLARATION}): ${R1_MISSING}" >&2
+	FAIL=1
+fi
+[ "${FAIL}" -eq 1 ] && exit 1
 
-echo "consumer-declaration ok: ${COUNT} arquivo(s) com o idioma canônico, todos com declaração de consumerhood."
+if [ "${CONSUMERS}" -eq 0 ]; then
+	echo "consumer-declaration ok: nenhum consumidor da abstração canônica em ${SCOPE_DIR} (nada a exigir); zero bypass."
+else
+	echo "consumer-declaration ok: ${CONSUMERS} consumidor(es) da abstração canônica, todos com declaração; zero bypass."
+fi

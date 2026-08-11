@@ -196,7 +196,8 @@ structureIndex: {
 				"architecture/adrs/adr-187-verifier-registry-and-governance-authority.cue",
 				"architecture/adrs/adr-188-establish-taskspec-v2-typed-completion.cue",
 				"architecture/adrs/adr-189-activate-verifier-registry-governed-mutation.cue",
-				"architecture/adrs/adr-190-verifier-identity-resolution-for-completion-v2.cue"
+				"architecture/adrs/adr-190-verifier-identity-resolution-for-completion-v2.cue",
+				"architecture/adrs/adr-191-centralize-verifier-resolution-mesh-local.cue"
 			],
 			"schema": "#ADRBase"
 		},
