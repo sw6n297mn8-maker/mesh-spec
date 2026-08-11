@@ -244,3 +244,27 @@ taskTemplateSchemaV3: build_time.#SelfReviewReport & {
 		inspection direta.
 		"""
 }
+
+// Amendment (adr-192): mandatoryVerifiers no #TaskTemplate — mesmo padrão dos
+// amendments de kind (abril/2026): report novo por emenda de schema, append-only.
+taskTemplateMandatoryVerifiers: build_time.#SelfReviewReport & {
+	reportId:           "srr-task-template-mandatory-verifiers"
+	artifactPath:       "architecture/artifact-schemas/task-template.cue"
+	artifactSchemaPath: "architecture/artifact-schemas/task-template.cue"
+	artifactType:       "artifact-schema"
+	executionMode:      "isolated-subagent"
+	generatedAt:        "2026-08-11"
+	roundsExecuted:     1
+	maxRounds:          4
+	status:             "stable"
+	roundDetails: [{
+		round:     1
+		failCount: 0
+		warnCount: 0
+		infoCount: 1
+		summary: "Emenda aditiva revisada no ciclo do adr-192: campo OPCIONAL mandatoryVerifiers?: [...#MandatoryVerifier] após qualityGates. Compatibilidade das 5 instâncias existentes provada por cue vet sem edição; consumo normativo garantido pelo join #TaskAdmissionV2 no mesmo commit (campo nunca nasce inerte — D7). Info: precedente tekton adr-009 usado como referência normativa, não adoção verbatim (schema Mesh-local, shape próprio)."
+	}]
+	findings: {}
+	summary: "mandatoryVerifiers entra opcional e já consumido (admission), preservando as instâncias existentes por construção."
+	singleRoundRationale: "Emenda aditiva de um campo opcional, provada por vet + suite de admission no mesmo pacote (adr-192); round único suficiente, mesmo regime dos amendments de kind."
+}

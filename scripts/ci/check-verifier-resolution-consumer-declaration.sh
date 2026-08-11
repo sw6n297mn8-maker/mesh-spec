@@ -83,7 +83,7 @@ fi
 [ "${FAIL}" -eq 1 ] && exit 1
 
 if [ "${CONSUMERS}" -eq 0 ]; then
-	echo "consumer-declaration ok: nenhum consumidor da abstração canônica em ${SCOPE_DIR} (nada a exigir); zero bypass."
+	echo "consumer-declaration ok: nenhum arquivo com consumerhood reconhecível em ${SCOPE_DIR} (nada a exigir); zero bypass conhecido."
 else
-	echo "consumer-declaration ok: ${CONSUMERS} consumidor(es) da abstração canônica, todos com declaração; zero bypass."
+	echo "consumer-declaration ok: ${CONSUMERS} arquivo(s) com consumerhood reconhecível (granularidade por arquivo); todas as instanciações reconhecidas com declaração; zero bypass conhecido."
 fi

@@ -11,9 +11,10 @@ import (
 // Coexiste com #TaskSpec/#CompletionValidation V1 (work-governance.cue,
 // CONGELADOS, intocados). NENHUMA união validante V1|V2 sobre o legado:
 // disjunção por construção (discriminador de versão obrigatório + closedness).
-// V2 é autorável/validável como contrato AGORA, mas NÃO-elegível para uso
-// produtivo/admission até Slice C ativar o Registry e a catraca born-reject
-// (adr-188 item 6; consistente com adr-187 Registry não-operacional).
+// V2 é autorável/validável como contrato AGORA. O Registry está ativo
+// (adr-189) e a catraca born-reject de admission existe como CONTRATO
+// (#TaskAdmissionV2, adr-192, abaixo); uso produtivo depende de executor
+// operacional que a consuma — fronteira seguinte (adr-192 dec 9).
 
 // #LocalOutputV2 — output SOB AUTORIDADE DIRETA da tarefa (materialização
 // local). V2 NÃO carrega ramo remoto: a expectativa de efeito fora da
@@ -117,5 +118,44 @@ import (
 	// rejeição no ato da autoria: C2 é completion; admission é assunto de C3.
 	_verifierResolves: (_resolution.resolve & {
 		refs: [for r in taskSpec.requiredEvidence {r.verifierRef}]
+	}).out
+}
+
+// #TaskAdmissionV2 — join de ADMISSION: task × template × registry (adr-192;
+// born-reject prometido por adr-188 item 6 / adr-189). Duas relações:
+//  (1) COBERTURA: mandatoryVerifiers(template) ⊆ verifierIds(requiredEvidence).
+//      Campo opcional no template (compat com instâncias existentes); quando
+//      presente, cobertura é obrigatória — sem este join, mandatoryVerifiers
+//      seria campo declarativo inerte (o que o D7 do protocolo proíbe).
+//  (2) RESOLVABILITY: todo verifierRef declarado resolve pela MESMA abstração
+//      #VerifierResolution consumida pela completion (adr-191) — admission e
+//      completion NÃO PODEM divergir sobre "resolve?": consomem literalmente a
+//      mesma definição. NENHUMA lógica de resolução é copiada para cá.
+// Admission NÃO substitui completion: satisfaz-se na ENTRADA (a task pode ser
+// admitida e ainda falhar completion por cobertura/conclusão — adr-188).
+#TaskAdmissionV2: {
+	task!:     #TaskSpecV2
+	template!: as.#TaskTemplate
+	registry!: as.#VerifierRegistry
+
+	// Declaração canônica de consumerhood (adr-190 item 11), ANINHADA.
+	_verifierResolutionConsumer: "task-admission-v2"
+
+	// COERÊNCIA DE IDENTIDADE: o template passado É o que a task referencia —
+	// sem isto, as relações seriam prováveis contra um template arbitrário.
+	_templateMatches: true & (task.templateRef == "\(template.id)@v\(template.version)")
+
+	_declaredVerifierIds: [for r in task.requiredEvidence {r.verifierRef.id}]
+
+	// (1) cobertura de mandatoryVerifiers (template pode omitir o campo).
+	_mandatoryCovered: [if template.mandatoryVerifiers != _|_
+		for mv in template.mandatoryVerifiers {
+			true & list.Contains(_declaredVerifierIds, mv.verifierId)
+		}]
+
+	// (2) resolvability pela abstração canônica — instancia, não copia.
+	_resolution: #VerifierResolution & {"registry": registry}
+	_verifiersResolve: (_resolution.resolve & {
+		refs: [for r in task.requiredEvidence {r.verifierRef}]
 	}).out
 }
