@@ -169,6 +169,48 @@ class CheckSelfReviewRulesTest(unittest.TestCase):
         self.assertIn("0 stale", r.stdout)
         self.assertNotIn("SKIP (bootstrap-exempt)", r.stdout)
 
+    # ── Regressão multi-report (fix pós-C3b): um arquivo de SRR pode conter
+    #    MÚLTIPLOS reports (precedente: amendments de schema em
+    #    task-template.self-review.cue). O check antigo comparava o PRIMEIRO
+    #    roundsExecuted com o total de roundDetails do arquivo → falso RED. ──
+    def test_srr_multi_report_consistente_passa(self):
+        multi = (srr_cue("adr-002-multi", "architecture/adrs/adr-002-multi.cue", "adr")
+                 + srr_cue("adr-002-multi-amend", "architecture/adrs/adr-002-multi.cue", "adr")
+                 .replace("package self_reviews\n\n", ""))
+        repo = self.build_fixture(
+            policy_entries=[("architecture/adrs/adr-002-multi.cue", "permanent")],
+            srrs=[],
+            artifacts=[("architecture/adrs/adr-002-multi.cue", "adr: true\n")],
+        )
+        _write(repo, f"{SRR_DIR}/adr-002-multi.self-review.cue", multi)
+        _git(repo, "add", "-A"); _git(repo, "commit", "-q", "-m", "srr multi")
+        with open(os.path.join(repo, "architecture/adrs/adr-002-multi.cue"), "a") as f:
+            f.write("// modificado\n")
+        r = self.run_check(repo)
+        # 2 reports, soma roundsExecuted=2, total roundDetails=2 → GREEN
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("roundDetails count mismatch", r.stdout + r.stderr)
+
+    def test_srr_soma_divergente_continua_red(self):
+        # controle: soma(roundsExecuted)=2 mas 3 roundDetails → RED
+        bad = (srr_cue("adr-003-bad", "architecture/adrs/adr-003-bad.cue", "adr")
+               + srr_cue("adr-003-bad-amend", "architecture/adrs/adr-003-bad.cue", "adr")
+               .replace("package self_reviews\n\n", "")
+               .replace("\troundDetails: [{round: 1}]\n",
+                        "\troundDetails: [{round: 1}, {round: 2}]\n"))
+        repo = self.build_fixture(
+            policy_entries=[("architecture/adrs/adr-003-bad.cue", "permanent")],
+            srrs=[],
+            artifacts=[("architecture/adrs/adr-003-bad.cue", "adr: true\n")],
+        )
+        _write(repo, f"{SRR_DIR}/adr-003-bad.self-review.cue", bad)
+        _git(repo, "add", "-A"); _git(repo, "commit", "-q", "-m", "srr bad")
+        with open(os.path.join(repo, "architecture/adrs/adr-003-bad.cue"), "a") as f:
+            f.write("// modificado\n")
+        r = self.run_check(repo)
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("roundDetails count mismatch", r.stdout + r.stderr)
+
     def test_ciclo_completo_num_unico_pr(self):
         repo = self.build_fixture(
             policy_entries=[("contexts/foo/canvas.cue", "transient"),

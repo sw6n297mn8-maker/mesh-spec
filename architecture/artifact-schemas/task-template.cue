@@ -39,6 +39,15 @@ import "list"
 	// Todo gate é mandatório — se algo é opcional, não é gate.
 	qualityGates: [...#QualityGate] & list.MinItems(1)
 
+	// Verifiers exigidos por este template (adr-192; precedente normativo:
+	// tekton adr-009 — referência, não adoção verbatim). OPCIONAL para
+	// compatibilidade das instâncias existentes; quando presente, a cobertura
+	// é OBRIGATÓRIA no admission (#TaskAdmissionV2): todo verifierId exigido
+	// deve aparecer em requiredEvidence da task. Exige por id (nome); a task
+	// escolhe a versão — a resolvability da versão pinada é a outra relação
+	// do admission, via #VerifierResolution (adr-191).
+	mandatoryVerifiers?: [...#MandatoryVerifier]
+
 	_schema: {
 		location: {
 			canonicalPathRegex: "^ai-orchestration/agent-instructions/task-templates\\.cue$"

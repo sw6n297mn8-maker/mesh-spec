@@ -83,7 +83,7 @@ class ConsumerDeclarationGateTest(unittest.TestCase):
     def test_definicao_sozinha_nao_e_consumidor(self):
         r = self.run_check(self.build([]))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("nenhum consumidor", r.stdout)
+        self.assertIn("nenhum arquivo", r.stdout)
         self.assertIn("zero bypass", r.stdout)
 
     # ── R1: consumidor conforme (instancia + declaracao aninhada) → verde ──
@@ -92,7 +92,7 @@ class ConsumerDeclarationGateTest(unittest.TestCase):
             (f"{SCOPE}/consumidor.cue", "package build_time\n" + consumer("completion-v2")),
         ]))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("1 consumidor", r.stdout)
+        self.assertIn("1 arquivo(s) com consumerhood", r.stdout)
 
     # ── R1: instancia SEM declaracao → vermelho nomeando o arquivo ──
     def test_instanciacao_sem_declaracao_falha(self):
@@ -119,7 +119,7 @@ class ConsumerDeclarationGateTest(unittest.TestCase):
              "package build_time\n// consome #VerifierResolution no futuro\n_y: 2\n"),
         ]))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("nenhum consumidor", r.stdout)
+        self.assertIn("nenhum arquivo", r.stdout)
 
     # ── R1: mencao em STRING de prosa (nao binding) nao compele — caso real
     #    encontrado na bateria: o SRR de adr-191 menciona o token em summary ──
@@ -129,7 +129,7 @@ class ConsumerDeclarationGateTest(unittest.TestCase):
              'package build_time\n_s: {summary: "centraliza em #VerifierResolution, Mesh-local"}\n'),
         ]))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("nenhum consumidor", r.stdout)
+        self.assertIn("nenhum arquivo", r.stdout)
 
     # ── R1: binding por tipo (campo tipado com a abstracao) COMPELE ──
     def test_binding_por_tipo_compele(self):

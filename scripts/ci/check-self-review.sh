@@ -143,9 +143,12 @@ check_round_count() {
   python3 -c "
 import re, sys
 text = open(sys.argv[1]).read()
-m = re.search(r'roundsExecuted:\s*([0-9]+)', text)
-if not m: sys.exit('missing roundsExecuted')
-rounds = int(m.group(1))
+# Um arquivo de SRR pode conter MULTIPLOS reports (precedente: amendments de
+# schema em task-template.self-review.cue, abril/2026). O invariante vale por
+# arquivo como SOMA: sum(roundsExecuted) == total de roundDetails.
+ms = re.findall(r'roundsExecuted:\s*([0-9]+)', text)
+if not ms: sys.exit('missing roundsExecuted')
+rounds = sum(int(x) for x in ms)
 entries = len(re.findall(r'\bround:\s+[0-9]+', text))
 if entries != rounds:
     sys.exit(f'roundDetails count ({entries}) != roundsExecuted ({rounds})')
