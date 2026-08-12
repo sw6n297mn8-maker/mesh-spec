@@ -5,14 +5,21 @@ description: Formato obrigatório para criar ou editar issues do time Mesh no Li
 
 # mesh-issue-format — Formato de tarefa Mesh (v2)
 
-ARTEFATO DERIVADO. A fonte canônica é o Team Document do Linear
-**"Formato de tarefa Mesh (v2)"**
-(https://linear.app/meshbr/document/formato-de-tarefa-mesh-v2-27d21ff29e29),
-que se declara "a fonte da Skill (autoria) e do C5 (enforcement)".
-Snapshot da fonte: updatedAt 2026-08-07T19:38:11.910Z.
-Se o `updatedAt` retornado pelo Linear for POSTERIOR a este snapshot,
-O DOCUMENTO VENCE — leia-o via MCP (`get_document`) e sinalize que esta
-skill precisa de re-derivação. Nunca invente formato de memória.
+ARTEFATO DERIVADO de DUAS fontes canônicas no Linear (Team Documents),
+cada uma com snapshot e precedência próprios sobre a seção correspondente:
+
+- **"Formato de tarefa Mesh (v2)"** — Tarefa e regras gerais
+  (https://linear.app/meshbr/document/formato-de-tarefa-mesh-v2-27d21ff29e29)
+  — snapshot: updatedAt 2026-08-07T19:38:11.910Z.
+- **"Achado Mesh (v1)"** — o tipo Achado
+  (https://linear.app/meshbr/document/achado-mesh-v1-b84970e05b82)
+  — snapshot: updatedAt 2026-08-12T01:22:34.706Z.
+
+Regra de re-derivação POR FONTE: se o `updatedAt` retornado pelo Linear
+para uma fonte for POSTERIOR ao snapshot correspondente, AQUELA FONTE
+VENCE — leia-a via MCP (`get_document`) e sinalize que a seção derivada
+dela precisa de re-derivação. Fonte atualizada não invalida as seções
+derivadas da outra. Nunca invente formato de memória.
 
 ## Princípio
 
@@ -28,11 +35,9 @@ de conclusão.
   `repo:`** coerente com o repo alvo, não tipo próprio — o label roteia
   a verificação para o repo alvo. Use um label `repo:<repo-alvo>`
   EXISTENTE; não crie nova taxonomia de repo pela Skill.
-- **Achado** — tipo à parte, nasce na Triagem e fecha por
-  **disposição explícita**, nunca por silêncio. O schema próprio ainda
-  NÃO está cristalizado na fonte canônica ("governado em documento
-  próprio"). Não invente sua estrutura: consulte a fonte própria quando
-  existir ou escale ao founder.
+- **Achado** — tipo semântico próprio, distinto de Tarefa (label
+  `achado`; usa o workflow compartilhado, não workflow próprio).
+  Governado por "Achado Mesh (v1)" — ver seção "Achado" abaixo.
 
 ## Campos da Tarefa — ordem contrato-primeiro
 
@@ -125,6 +130,42 @@ escalation:
 Fronteira: se `authority` virar como a Mesh roteia TODA decisão, é
 conceito de **spec** (ADR no mesh-spec), não convenção do Linear.
 
+## Achado (fonte: "Achado Mesh (v1)")
+
+Achado é um tropeço registrado: o fato observado durante outro
+trabalho, não o trabalho em si. Separa fato de interpretação: o campo
+Achado contém apenas o observado; impacto e decisão ficam em campos
+separados. Hipóteses causais, quando existirem, não fazem parte do
+fato observado.
+
+Não é Tarefa (sem Objetivo/Outputs/Feito quando — se merece trabalho,
+a disposição cria a Tarefa). Não é escalação (escalação é transição de
+ordem EM EXECUÇÃO para `escalated`; Achado é entrada NOVA na Triagem).
+
+Nasce na Triagem, com label `achado`. Fecha SOMENTE por disposição
+válida — silêncio, arquivamento ou passagem do tempo não substituem.
+
+Campos (todos os 4):
+
+1. **Achado** — fato observado, sem hipótese causal; com a contagem ou
+   o nome do artefato.
+2. **Evidência** — o que sustenta o fato: comando, path, query, link,
+   payload, log, screenshot ou outra referência verificável. Registrar
+   caminho reproduzível quando houver; reprodução determinística NÃO é
+   obrigatória — mas ausência de qualquer evidência exige explicitação.
+3. **Por que importa** — consequência/risco se ficar sem disposição.
+4. **Disposição** — UMA e somente uma, satisfazendo o requisito da
+   variante:
+   - `resolver agora` → referência à resolução (PR/commit/edição);
+   - `vira tarefa` → referência à issue criada (no formato v2);
+   - `deferimento consciente` → rationale + condição objetiva de
+     revisita (trigger) + referência ao artefato canônico portador,
+     quando aplicável (o Achado não escolhe por si só qual artefato de
+     governança deve existir);
+   - `inerte` → rationale explícito.
+
+   Disposição sem o requisito da variante = achado ainda aberto.
+
 ## Auto-checagem antes de salvar (espelho do C5)
 
 O C5 (vigilância noturna, camada 2) valida contra o payload cru da API,
@@ -144,13 +185,15 @@ mesmo:
       + ADR previsto no mesmo commit.
 - [ ] Tarefa que escreve em repo ⇒ camada de escrita (4–8) presente.
 - [ ] Nenhuma linha "Estado:" no corpo.
-- [ ] Achado ⇒ Triagem + disposição explícita.
+- [ ] Achado ⇒ Triagem + label `achado` + Achado/Evidência/Por que
+      importa/Disposição presentes + disposição válida para a variante
+      escolhida.
 
 ## Limites desta skill
 
 - Ela governa AUTORIA de issues; não substitui o regime gated dos repos
-  nem o C5 (enforcement noturno) — as três camadas leem a mesma fonte.
-- Variantes ainda não fechadas na fonte: o detalhamento T2 (cross-repo
-  + tabela de effectProofs) e T3 (Achado como schema próprio). Onde a
-  fonte for omissa, não improvise: pergunte ao founder e registre a
-  resposta no Team Document primeiro.
+  nem o C5 (enforcement noturno) — as projeções de autoria e o C5
+  derivam das fontes canônicas correspondentes.
+- Variante ainda não fechada na fonte: o detalhamento T2 (cross-repo
+  + tabela de effectProofs). Onde a fonte for omissa, não improvise:
+  pergunte ao founder e registre a resposta na fonte canônica primeiro.
