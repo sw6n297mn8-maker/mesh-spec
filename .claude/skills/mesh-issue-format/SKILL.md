@@ -10,7 +10,7 @@ cada uma com snapshot e precedência próprios sobre a seção correspondente:
 
 - **"Formato de tarefa Mesh (v2)"** — Tarefa e regras gerais
   (https://linear.app/meshbr/document/formato-de-tarefa-mesh-v2-27d21ff29e29)
-  — snapshot: updatedAt 2026-08-07T19:38:11.910Z.
+  — snapshot: updatedAt 2026-08-12T15:26:25.029Z.
 - **"Achado Mesh (v1)"** — o tipo Achado
   (https://linear.app/meshbr/document/achado-mesh-v1-b84970e05b82)
   — snapshot: updatedAt 2026-08-12T01:22:34.706Z.
@@ -41,6 +41,34 @@ de conclusão.
 
 ## Campos da Tarefa — ordem contrato-primeiro
 
+### Representação dos campos
+
+Cada campo estrutural começa em início de linha, com o nome canônico
+exato em negrito, seguido de dois-pontos:
+
+```text
+**Objetivo:**
+**Outputs:**
+**Feito quando:**
+**Regime de escrita:**
+**Classificação:**
+**Fronteiras de autoridade (Stop Conditions):**
+**Protocolo de escalação:**
+**Contratos a ler** (base: `<sha>`):
+**Rationale:**
+```
+
+- nome canônico **exato** — sinônimo não é campo;
+- `**` obrigatório; `:` obrigatório;
+- em `Contratos a ler`, o negrito fecha antes do complemento e os
+  dois-pontos vêm depois de `(base: <sha>)`;
+- `.` no lugar de `:` **não** é equivalente; heading **não** é
+  equivalente;
+- nome fora desta lista não é campo estrutural.
+
+`Rationale` é opcional como campo; quando presente, sua representação
+é tão estrita quanto a dos demais.
+
 ### Núcleo (SEMPRE obrigatório)
 
 1. **Objetivo** — 1 linha: o efeito a atingir. Não "implementar X" — o
@@ -48,11 +76,18 @@ de conclusão.
 2. **Outputs** — sintaxe ESTRITA, um por linha:
 
    ```text
-   - [ ] `path` *(create|update)*
+   - [ ] `<path>` *(create|update)*
    ```
 
    É o contrato do executor e da vigilância C2. Cross-repo: cada path
-   prefixado pelo repo alvo.
+   prefixado pelo repo alvo:
+
+   ```text
+   - [ ] `<repo-alvo>/<path>` *(create|update)*
+   ```
+
+   O path é token literal e deve estar entre crases. A ausência das
+   crases torna o marcador malformado para fins de enforcement.
 3. **Feito quando** — predicado de conclusão. A forma é ditada pela
    **classificação do trabalho**, não pela escolha do autor:
    - *scaffold puro* → paths existem;
@@ -173,10 +208,12 @@ não contra o render (RT-FMT-11). Antes de `save_issue`, verifique você
 mesmo:
 
 - [ ] Núcleo presente (Objetivo · Outputs · Feito quando).
-- [ ] Todo marcador de output bem-formado:
+- [ ] Todo campo estrutural na representação canônica (`**Campo:**`) —
+      ponto, heading ou sinônimo não contam.
+- [ ] Todo marcador de output bem-formado, com o path entre crases:
 
       ```text
-      - [ ] `path` *(create|update)*
+      - [ ] `<path>` *(create|update)*
       ```
 - [ ] Output fora do mesh-spec ⇒ label `repo:` presente e coerente +
       effectProofs no Feito quando.
