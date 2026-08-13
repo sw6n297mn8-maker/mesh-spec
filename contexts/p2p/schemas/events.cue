@@ -2,14 +2,13 @@ package p2p
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared_schemas"
 
-// schemas/events.cue — Payload schemas dos 6 eventos da REQUISIÇÃO do
-// domain-model P2P (recorte adr-178: o início da jornada — agg-purchase-
-// requisition apenas).
-//
-// FATIA PARCIAL (precedente FCE/WI-140: kit parcial não conclui a cobertura
-// do BC): os eventos do agg-purchase-order (emitted/cancelled + 3 ACL
-// -received) ficam FORA — entram quando a fatia do PO abrir a superfície
-// correspondente. Espelha o pattern FCE/DLV/CMT: #Envelope consolidado
+// schemas/events.cue — Payload schemas dos eventos do domain-model P2P:
+// os 6 da REQUISIÇÃO (recorte adr-178: o início da jornada) e, desde a
+// fatia da superfície do PO (missão M1, adr-193), os 5 do agg-purchase-
+// order (emitted/cancelled + 3 ACL -received) — a fatia que o header
+// anterior deferia ("entram quando a fatia do PO abrir a superfície
+// correspondente") abriu com o fecho da ds-buyer-procurement-journey.
+// Espelha o pattern FCE/DLV/CMT: #Envelope consolidado
 // (shared-schemas, def-022), opaque refs cross-BC, eventos como
 // #Envelope & {type, data}. source mesh://contexts/p2p; types próprios
 // mesh.p2p.<event-name>.v1.
@@ -36,10 +35,36 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #CoverageReservationRef: string & !="" // owned by bdg (reserva do Gate de Cobertura, adr-174; two-phase §2.0.8)
 #SourcingDecisionRef:    string & !="" // owned by ssc (vo-sourcing-decision-id; o elo requisição↔cotação, adr-177)
 
-// ── Value-objects locais do P2P (recorte da requisição) ──
+// ── Value-objects locais do P2P ──
 #RequisitionId:   string & !="" // vo-requisition-id (root identity do agg-purchase-requisition)
-#PurchaseOrderId: string & !="" // vo-purchase-order-id (referenciado pelo Converted; o PO em si está fora do recorte)
+#PurchaseOrderId: string & !="" // vo-purchase-order-id (root identity do agg-purchase-order)
 #CategoryRef:     string & !="" // vo-category-ref (taxonomia configurada externamente)
+
+// ── Value-objects da fatia do PO (superfície do agg-purchase-order) ──
+#SupplierRef:  string & !="" // vo-supplier-ref: owned by npm — p2p consome ref sem revalidar (inv-no-supplier-revalidation-by-p2p)
+#AuthorityRef: string & !="" // vo-authority-ref: sourcingDecisionId SSC-mantido — p2p APLICA authority, não emite (anti-mini-NIM)
+
+// vo-authority-type — FECHADO com fidelidade: o VO fecha via constraint
+// ("value deve ser um dos: one-shot-decision, preferred-designation,
+// strategic-award"), então o schema fecha junto (P14; mesmo padrão do
+// #CancellationReason.reasonCode).
+#AuthorityType: "one-shot-decision" | "preferred-designation" | "strategic-award"
+
+// Estado do PurchaseOrder — disjunção FECHADA: o gerador REUSA este enum
+// (schemas-preference, rtd-013) e valida contra lifecycle.states do
+// am-purchase-order (ordem espelha agg-purchase-order.lifecycle.states).
+// requested é 'emit attempt recorded' (Patch 1 founder) — persiste mesmo
+// quando a validação falha.
+#PurchaseOrderState: "requested" | "emitted" | "cancelled"
+
+// Tradução ACL local de vo-allocation-policy (ssc) — língua local do P2P
+// para os fatos -received (sufixo ACL). type FECHADO (constraint do VO
+// upstream); splitDetails ABERTO (AllocationSplitDetails sem shape
+// declarado — o espelho não inventa, P14).
+#AllocationPolicy: {
+	type: "single" | "split-by-percentage" | "split-by-criteria"
+	splitDetails: {...}
+}
 
 // Escopo da demanda (vo-purchase-scope): descrição, volume estimado, prazo,
 // location. estimatedVolume é ESTIMATIVA da submissão — NUNCA base de
@@ -157,5 +182,89 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 		cancelledBy:   string & !=""
 		reason:        #CancellationReason
 		cancelledAt:   #RFC3339Timestamp
+	}
+}
+
+// ════════════════════════════════════════════════════════════════════
+// EVENTOS DO PURCHASE ORDER (2 published + 3 ACL internal) — a fatia da
+// superfície do agg-purchase-order (missão M1). Payloads espelham
+// verbatim os fields do catálogo de events do domain-model.
+// ════════════════════════════════════════════════════════════════════
+
+// evt-purchase-order-emitted — o desfecho do recorte da jornada: pedido
+// emitido sob authority validada (published; CMT consome como trigger
+// canônico de commitment). authorityRef + authorityType + supplier +
+// requisitionRef imutáveis pós-emit.
+#PurchaseOrderEmitted: #Envelope & {
+	type: "mesh.p2p.purchase-order-emitted.v1"
+	data: {
+		purchaseOrderId: #PurchaseOrderId
+		authorityRef:    #AuthorityRef
+		authorityType:   #AuthorityType
+		supplier:        #SupplierRef
+		categoryRef:     #CategoryRef
+		scope:           #PurchaseScope
+		amount:          #Money
+		emittedAt:       #RFC3339Timestamp
+		emittedBy:       string & !=""
+		requestedBy:     string & !=""
+		requisitionRef:  #RequisitionId
+	}
+}
+
+// evt-purchase-order-cancelled — withdrawal/negative signal a CMT
+// pré-formalization (published). supplier optional: populated apenas
+// quando o cancel ocorre de emitted (attempt em requested nunca teve
+// supplier vinculado).
+#PurchaseOrderCancelled: #Envelope & {
+	type: "mesh.p2p.purchase-order-cancelled.v1"
+	data: {
+		purchaseOrderId: #PurchaseOrderId
+		supplier?:       #SupplierRef
+		cancelledAt:     #RFC3339Timestamp
+		cancelledBy:     string & !=""
+		reason:          #CancellationReason
+	}
+}
+
+// evt-sourcing-decision-made-received — tradução ACL de SourcingDecisionMade
+// (ssc, hard binding one-shot). Alimenta prj-active-purchase-authorities.
+// Eventos ACL -received não carregam actor (adr-182, critério tríplice).
+#SourcingDecisionMadeReceived: #Envelope & {
+	type: "mesh.p2p.sourcing-decision-made-received.v1"
+	data: {
+		sourcingDecisionId: string & !=""
+		categoryRef:        #CategoryRef
+		selectedSuppliers: [...#SupplierRef]
+		allocationPolicy: #AllocationPolicy
+		receivedAt:       #RFC3339Timestamp
+	}
+}
+
+// evt-preferred-supplier-designated-received — tradução ACL de
+// PreferredSupplierDesignated (ssc, soft binding com validade).
+#PreferredSupplierDesignatedReceived: #Envelope & {
+	type: "mesh.p2p.preferred-supplier-designated-received.v1"
+	data: {
+		sourcingDecisionId: string & !=""
+		categoryRef:        #CategoryRef
+		preferredSuppliers: [...#SupplierRef]
+		allocationPolicy: #AllocationPolicy
+		validUntil: #RFC3339Timestamp
+		receivedAt: #RFC3339Timestamp
+	}
+}
+
+// evt-strategic-award-completed-received — tradução ACL de
+// StrategicAwardCompleted (ssc, advisory Phase 0; hard pós-CTR
+// ContractActivated Phase 1+, oq-p2p-1).
+#StrategicAwardCompletedReceived: #Envelope & {
+	type: "mesh.p2p.strategic-award-completed-received.v1"
+	data: {
+		sourcingDecisionId: string & !=""
+		categoryRef:        #CategoryRef
+		awardedSuppliers: [...#SupplierRef]
+		allocationPolicy: #AllocationPolicy
+		receivedAt: #RFC3339Timestamp
 	}
 }

@@ -256,6 +256,7 @@ structureIndex: {
 				"contexts/cmt/aggregate-manifests/am-commitment.cue",
 				"contexts/dlv/aggregate-manifests/am-verification.cue",
 				"contexts/fce/aggregate-manifests/am-payment.cue",
+				"contexts/p2p/aggregate-manifests/am-purchase-order.cue",
 				"contexts/p2p/aggregate-manifests/am-purchase-requisition.cue",
 				"contexts/rew/aggregate-manifests/am-risk-evaluation.cue",
 				"contexts/ssc/aggregate-manifests/am-sourcing-process.cue"

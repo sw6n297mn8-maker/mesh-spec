@@ -49,6 +49,14 @@ package build_time
 // am-sourcing-process (3 commands + 3 events internal) -- entram como
 // pendencias reconhecidas no MESMO regime da onda ssc (24 entries; a
 // decisao de Forma A dos 6 pertence a mesma fatia de higiene futura).
+//
+// ESTENDIDA (missao M1/adr-193, fatia do fecho): o am-purchase-order traz
+// 8 conceitos NOVOS ao sc-fct-01 (1 agg + 2 commands + 2 events published
+// + 3 events ACL -received) -- o fecho da ds-buyer-procurement-journey
+// abre a superficie do PO; as decisoes de Forma A (firstClass/reason/
+// coreNoun + termos) sao modelagem de dominio e pertencem a onda p2p-po
+// de higiene propria, MESMO regime das ondas anteriores (adr-178/WI-159:
+// pendente-reconhecido != verde-falso; o gate segue reject e visivel).
 
 
 firstClassBackfillWorklist: {
@@ -77,5 +85,13 @@ firstClassBackfillWorklist: {
 		{conceptCode: "evt-counter-terms-proposed", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
 		{conceptCode: "evt-quotation-revised", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
 		{conceptCode: "evt-counter-terms-declined", bc: "ssc", reason: "negociacao (WI-161) entra no am-sourcing-process; Forma A pendente -- onda ssc (mesmo regime do WI-159)", status: "pending"},
+		{conceptCode: "agg-purchase-order", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "cmd-emit-purchase-order", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "cmd-cancel-purchase-order", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "evt-purchase-order-emitted", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "evt-purchase-order-cancelled", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "evt-sourcing-decision-made-received", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "evt-preferred-supplier-designated-received", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "evt-strategic-award-completed-received", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
 	]
 }

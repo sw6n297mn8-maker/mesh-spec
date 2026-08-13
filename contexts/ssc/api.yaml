@@ -8,20 +8,24 @@ info:
     Source canônica de identidade: contexts/ssc/canvas.cue.
     Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
 
-    RECORTE (WI-159 + WI-160, molde adr-178 — a cotação entra na jornada):
-    a abertura de RFQ (cmd-open-rfq — o passo 5 da
-    ds-buyer-procurement-journey, onde a jornada modelada originalmente
-    começava), a leitura das decisões vigentes
+    RECORTE (WI-159 + WI-160 + fatia do fecho, missão M1/adr-193 — a
+    cotação atravessa a jornada): a abertura de RFQ (cmd-open-rfq — o
+    passo 5 da ds-buyer-procurement-journey, onde a jornada modelada
+    originalmente começava), a leitura das decisões vigentes
     (qry-active-sourcing-decisions — o comprador vê o que já vige na
     categoria antes de abrir RFQ nova; P2P consome como cache de policies;
-    controllers para reporting) e o GET do mapa de cotações
+    controllers para reporting), o GET do mapa de cotações
     (qry-quotation-map — WI-160/adr-180, a 3ª família do frontend: a
     comparação consolidada que suporta a escolha, passo do mapa da
-    jornada).
-    Deferido: o lookup por id (qry-sourcing-decision — entra com a fatia
-    da aprovação); os commands de cotação, conclusão e cancelamento — cada
-    um com fatia própria. qry-rfq-history-by-category é INTERNO por
-    decisão do domínio (nunca entra nesta superfície).
+    jornada), a submissão de cotação (cmd-submit-quotation — o único passo
+    do recorte com o fornecedor agindo) e a decisão one-shot
+    (cmd-make-one-shot-sourcing-decision — a conclusão atômica da janela:
+    RFQConcluded + SourcingDecisionMade no mesmo ato).
+    Deferido: o lookup por id (qry-sourcing-decision); withdraw, os
+    commands da negociação (WI-161) e os demais tipos de conclusão
+    (preferred/strategic) e cancelamento — cada um com fatia própria.
+    qry-rfq-history-by-category é INTERNO por decisão do domínio (nunca
+    entra nesta superfície).
 
     A abertura é NASCIMENTO-COM-EVENTO (agg-sourcing-process criado em
     initialState=open, mesmo padrão do submit do p2p): não há stream nem
@@ -166,6 +170,112 @@ paths:
                 $ref: '#/components/schemas/RFQOpened'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/ssc/commands/submit-quotation:
+    post:
+      operationId: submitQuotation
+      summary: Submeter cotação — a proposta comercial do fornecedor à RFQ aberta
+      description: >
+        Materializa cmd-submit-quotation (WI-152): o fornecedor convidado
+        registra sua proposta comercial na RFQ aberta — mutação intra-open
+        (a ent-quotation nasce nested com status=submitted e
+        revisionNumber=0; NÃO é transição de lifecycle). O 200 devolve O
+        EVENTO emitido (QuotationSubmitted, internal — fato intra-BC: a
+        confidencialidade competitiva veta evento público, não o fato
+        existir) como confirmação estruturada, molde CMT/FCE. 404 para RFQ
+        inexistente; 409 quando a janela não está open (concluded/
+        cancelled); 422 quando o julgamento não se sustenta (fornecedor
+        fora do pool convidado; segunda cotação do mesmo fornecedor —
+        re-submissão é withdraw + submit, e withdraw é fatia própria).
+        paymentTerms/deliverySchedule (campos opcionais do command,
+        WI-161) ficam FORA deste request — a superfície das condições
+        estruturadas entra com a fatia da negociação. CONFIDENCIALIDADE:
+        um fornecedor jamais vê a cotação do outro — esta borda só
+        confirma a própria submissão. POSTURA (def-024): supplierRef é
+        atribuição nominal NÃO-verificada nesta borda até o ADR de auth;
+        security ausente por design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitQuotationRequest'
+      responses:
+        '200':
+          description: Cotação submetida — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotationSubmitted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/ssc/commands/make-one-shot-sourcing-decision:
+    post:
+      operationId: makeOneShotSourcingDecision
+      summary: Concluir a RFQ one-shot — a decisão de sourcing formalizada
+      description: >
+        Materializa cmd-make-one-shot-sourcing-decision: a conclusão da
+        janela E a decisão são o MESMO ato atômico — transição
+        open→concluded emitindo RFQConcluded + SourcingDecisionMade no
+        mesmo append. Payload mínimo (rfqId + decidedBy): rationale,
+        ranking (evaluatedSuppliers) e allocation são produzidos por
+        svc-fitness-rule-evaluator (determinístico, fitness rules
+        versionadas sobre os sinais estruturados — nunca julgamento
+        manual no payload). Guards da transição: decisionType declarado
+        upfront deve ser one-shot (inv-decision-type-declared-upfront);
+        qualificação re-validada no decision time
+        (inv-qualification-as-precondition, via NPM); pool competitivo ≥2
+        qualificados com cotação vigente
+        (inv-competitive-pool-or-supervised-exception — o caminho da
+        exceção supervisionada é fatia própria); rationale completo
+        (inv-decision-rationale-required); snapshot versionado
+        (inv-fitness-rules-versioned-config); decisão apenas de sinais
+        estruturados (inv-decision-from-structured-signals). O 200 devolve
+        SourcingDecisionMade (o fato decisório; RFQConcluded é o
+        bookkeeping da janela, appended atomicamente no mesmo ato). 404
+        para RFQ inexistente; 409 quando a janela não está open; 422
+        quando qualquer guard barra. A decisão formaliza as condições
+        VIGENTES nas cotações no decision time
+        (inv-negotiated-terms-materialize-on-quotation) — sem rodadas de
+        negociação, valem as condições da submissão original. POSTURA
+        (def-024): decidedBy é atribuição nominal NÃO-verificada nesta
+        borda até o ADR de auth; security ausente por design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MakeOneShotSourcingDecisionRequest'
+      responses:
+        '200':
+          description: Decisão formalizada — o fato decisório como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourcingDecisionMade'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
@@ -625,3 +735,179 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/SupplierRef'
+
+    # ── Espelho da decisão (schemas/events.cue#DecisionRationale) ──
+    DecisionRationale:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#DecisionRationale'
+      type: object
+      description: >
+        Rationale estruturado da decisão (vo-decision-rationale) — produzido
+        por svc-fitness-rule-evaluator, nunca julgamento manual. weights é
+        mapa critério→peso ABERTO no espelho (mapa de decimal, P14).
+      required: [criteria, weights, evaluatedSuppliers, tradeoffs]
+      properties:
+        criteria:
+          type: array
+          items:
+            type: string
+        weights:
+          type: object
+          additionalProperties:
+            type: string
+            pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        evaluatedSuppliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluatedSupplier'
+        tradeoffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tradeoff'
+
+    # ── Command request (cmd-submit-quotation; fatia do fecho, M1) ──
+    SubmitQuotationRequest:
+      x-mesh-cue-ref: 'contexts/ssc/domain-model.cue#commands.cmd-submit-quotation'
+      type: object
+      description: >
+        Espelho dos campos do command na superfície desta fatia —
+        paymentTerms/deliverySchedule (opcionais, WI-161) entram com a
+        fatia da negociação.
+      required: [rfqId, supplierRef, unitPrice, currency, declaredCapacity, termsNotes]
+      properties:
+        rfqId:
+          $ref: '#/components/schemas/RFQId'
+        supplierRef:
+          $ref: '#/components/schemas/SupplierRef'
+        unitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        declaredCapacity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        termsNotes:
+          type: string
+          description: pode ser vazia (espelho de events.cue)
+
+    # ── Command request (cmd-make-one-shot-sourcing-decision; fatia do fecho, M1) ──
+    MakeOneShotSourcingDecisionRequest:
+      x-mesh-cue-ref: 'contexts/ssc/domain-model.cue#commands.cmd-make-one-shot-sourcing-decision'
+      type: object
+      description: >
+        Payload MÍNIMO por design — rationale/ranking/allocation são
+        derivados deterministicamente por svc-fitness-rule-evaluator.
+      required: [rfqId, decidedBy]
+      properties:
+        rfqId:
+          $ref: '#/components/schemas/RFQId'
+        decidedBy:
+          type: string
+          minLength: 1
+          description: >
+            Gestor que formaliza a decisão — atribuição nominal
+            NÃO-verificada nesta borda até o ADR de auth (def-024).
+
+    # ── Event envelope (200 do submit-quotation; molde CMT/FCE/p2p) ──
+    QuotationSubmitted:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#QuotationSubmitted'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/ssc
+        type:
+          type: string
+          const: mesh.ssc.quotation-submitted.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/ssc/schemas/events.cue#QuotationSubmitted
+        data:
+          type: object
+          required: [rfqId, supplierRef, unitPrice, currency, declaredCapacity, termsNotes, submittedAt]
+          properties:
+            rfqId:
+              $ref: '#/components/schemas/RFQId'
+            supplierRef:
+              $ref: '#/components/schemas/SupplierRef'
+            unitPrice:
+              type: string
+              pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+            currency:
+              type: string
+              pattern: '^[A-Z]{3}$'
+            declaredCapacity:
+              type: string
+              pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+            termsNotes:
+              type: string
+            submittedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 da decisão; molde CMT/FCE/p2p) ──
+    SourcingDecisionMade:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#SourcingDecisionMade'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/ssc
+        type:
+          type: string
+          const: mesh.ssc.sourcing-decision-made.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/ssc/schemas/events.cue#SourcingDecisionMade
+        data:
+          type: object
+          required: [sourcingDecisionId, rfqId, categoryRef, selectedSuppliers, allocationPolicy, decisionRationale, fitnessRuleSnapshot, decidedAt, decidedBy]
+          properties:
+            sourcingDecisionId:
+              $ref: '#/components/schemas/SourcingDecisionId'
+            rfqId:
+              $ref: '#/components/schemas/RFQId'
+            categoryRef:
+              $ref: '#/components/schemas/CategoryRef'
+            selectedSuppliers:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/SupplierRef'
+            allocationPolicy:
+              $ref: '#/components/schemas/AllocationPolicy'
+            decisionRationale:
+              $ref: '#/components/schemas/DecisionRationale'
+            fitnessRuleSnapshot:
+              $ref: '#/components/schemas/FitnessRuleSnapshot'
+            decidedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+            decidedBy:
+              type: string
+              minLength: 1
