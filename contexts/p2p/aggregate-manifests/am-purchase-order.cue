@@ -19,12 +19,14 @@ package p2p
 // os dois aggregates do P2P tem manifest (a nota "manifest proprio quando a
 // fatia da superficie do PO abrir" do am-purchase-requisition realizou-se).
 //
-// NOME DO CAMPO: primeiro BC com DOIS manifests no mesmo package — o campo
-// top-level ganha nome unico por arquivo (aggregateManifestPurchaseOrder),
-// convencao das familias multi-instancia do repo (adrs, defs), porque dois
-// campos `aggregateManifest` no mesmo package instance colidem em cue vet.
-// Consumidores por-arquivo (structural-check-runner load_artifact; codegen
-// LoadSkeletonModel) desembrulham o unico campo top-level do arquivo.
+// NOME DO CAMPO: primeiro BC com DOIS manifests no mesmo package instance —
+// dois campos `aggregateManifest` colidem em cue vet (e CUE rejeita dois
+// packages no mesmo diretorio), entao o campo top-level ganha nome unico
+// por arquivo (aggregateManifestPurchaseOrder), convencao das familias
+// multi-instancia do repo (adrs, defs). Os consumidores sao por-arquivo e
+// desembrulham o unico campo top-level (structural-check-runner
+// load_artifact) ou localizam o struct com aggregateRef (codegen
+// LoadSkeletonModel com fallback multi-manifest).
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
