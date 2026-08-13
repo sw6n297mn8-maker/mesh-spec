@@ -198,7 +198,8 @@ structureIndex: {
 				"architecture/adrs/adr-189-activate-verifier-registry-governed-mutation.cue",
 				"architecture/adrs/adr-190-verifier-identity-resolution-for-completion-v2.cue",
 				"architecture/adrs/adr-191-centralize-verifier-resolution-mesh-local.cue",
-				"architecture/adrs/adr-192-establish-task-admission-v2-born-reject.cue"
+				"architecture/adrs/adr-192-establish-task-admission-v2-born-reject.cue",
+				"architecture/adrs/adr-193-mission-scoped-autonomous-execution.cue"
 			],
 			"schema": "#ADRBase"
 		},

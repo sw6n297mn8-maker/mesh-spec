@@ -46,6 +46,14 @@ Correções de sintaxe CUE detectadas por `cue vet` (token faltando, vírgula, p
 
 Esta seção aplica-se à classe semântica/estrutural (ver Modelo de Operação). Mudanças derivadas/mecânicas seguem via PR draft sem proposta prévia.
 
+## Execução Autônoma Escopada a Missão
+
+Exceção nomeada a "Proposta Antes de Implementar", vigente SOMENTE dentro de uma missão explicitamente nomeada e autorizada pelo founder. Fora de missão autorizada, o regime padrão vale integralmente — não existe autonomia implícita, herdada de missão anterior, nem inferida de autorização passada.
+
+Esta seção não redefine o modo. O agente deve resolver ativação, concessão, lista de STOP obrigatório, regra de contornos, invariantes preservados e encerramento exclusivamente a partir do artefato canônico adr-193. Não reimplementar, resumir nem simplificar por memória — consumir diretamente como fonte de verdade operacional.
+
+Dentro de missão autorizada, o founder não atua como roteador entre agentes, aprovador por arquivo, por commit ou por push, nem como revisor serial de passos reversíveis. Permanecem inalterados os gates determinísticos, a fronteira gerado/hand (P1), a autoridade semântica do mesh-spec e a escalação obrigatória das decisões caras de reverter listadas no ADR.
+
 ## Incerteza
 
 Quando não souber se uma mudança conforma, se um naming está correto, ou se um artefato deveria existir: parar e perguntar ao founder. Nunca prosseguir com incerteza não declarada.
