@@ -72,6 +72,18 @@ config: #AgentConfig & {
 			rationale: "Ciclo de aprovação humana protege contra qualquer escrita não revisada. A regra cobre todo tipo de arquivo — não apenas artefatos formais — porque qualquer conteúdo commitado no repo se torna parte do histórico permanente."
 		},
 		{
+			title:           "Execução Autônoma Escopada a Missão"
+			canonicalSource: "architecture/adrs/adr-193-mission-scoped-autonomous-execution.cue"
+			content: #"""
+				Exceção nomeada a "Proposta Antes de Implementar", vigente SOMENTE dentro de uma missão explicitamente nomeada e autorizada pelo founder. Fora de missão autorizada, o regime padrão vale integralmente — não existe autonomia implícita, herdada de missão anterior, nem inferida de autorização passada.
+
+				Esta seção não redefine o modo. O agente deve resolver ativação, concessão, lista de STOP obrigatório, regra de contornos, invariantes preservados e encerramento exclusivamente a partir do artefato canônico adr-193. Não reimplementar, resumir nem simplificar por memória — consumir diretamente como fonte de verdade operacional.
+
+				Dentro de missão autorizada, o founder não atua como roteador entre agentes, aprovador por arquivo, por commit ou por push, nem como revisor serial de passos reversíveis. Permanecem inalterados os gates determinísticos, a fronteira gerado/hand (P1), a autoridade semântica do mesh-spec e a escalação obrigatória das decisões caras de reverter listadas no ADR.
+				"""#
+			rationale: "O regime gated cobrava o mesmo pedágio de decisão semântica e de implementação de semântica já decidida, tornando o founder componente serial da execução (adr-193 context); a exceção escopada remove o pedágio onde ele não protege nada e o mantém onde protege. Ponteiro em vez de cópia mantém a norma numa única localização canônica per P0 — replicá-la aqui seria drift por construção no artefato que define o comportamento do agente."
+		},
+		{
 			title:           "Incerteza"
 			canonicalSource: "self"
 			content:         "Quando não souber se uma mudança conforma, se um naming está correto, ou se um artefato deveria existir: parar e perguntar ao founder. Nunca prosseguir com incerteza não declarada."
