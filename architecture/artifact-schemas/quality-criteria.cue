@@ -56,7 +56,8 @@ package artifact_schemas
 	"port-manifest" |
 	"aggregate-manifest" |
 	"golden-example" |
-	"frontend-codegen-contract"
+	"frontend-codegen-contract" |
+	"design-system-constitution"
 
 // Convenção de IDs:
 //   uq-NN     — critério universal (quality-gate.cue)
@@ -78,7 +79,8 @@ package artifact_schemas
 // emm (economic-mechanism-model),
 // app (agent-probe-protocol), apr (agent-probe-record),
 // pm (port-manifest), am (aggregate-manifest), ge (golden-example),
-// fcc (frontend-codegen-contract), fcg (frontend-codegen-contract-guide).
+// fcc (frontend-codegen-contract), fcg (frontend-codegen-contract-guide),
+// dsc (design-system-constitution), dcg (design-system-constitution-guide).
 #QualityCriterion: {
 	id:          string & =~"^(uq|tq-[a-z]{2,3})-[0-9]{2}$"
 	description: string & !=""

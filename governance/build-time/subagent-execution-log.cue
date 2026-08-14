@@ -1111,15 +1111,107 @@ subagentExecutionLog: {
 			// dispatch e esta entry) — zeros são placeholder honesto, não
 			// medição; registro qualitativo nas notes.
 		}
+	}, {
+		dispatchId:   "disp-011"
+		workItem:     "M7.5"
+		date:         "2026-08-14"
+		target:       "architecture/production-guides/design-system-constitution.cue"
+		artifactType: "production-guide"
+
+		authoringSubagent: {
+			dispatched:         false
+			subagentType:       "none"
+			result:             "fallback-manual"
+			cueVetAttempts:     1
+			cueVetExitCode:     0
+			abbreviationChosen: "dcg"
+			notes: """
+				DISPATCH NÃO EXECUTADO — fallback manual documentado:
+				o ambiente do builder da missão M7.5 (adr-193, sessão de
+				agent-team) NÃO dispõe de ferramenta de spawn de subagente
+				(sem Task tool); a infraestrutura de dispatch das disp-001..
+				010 não estava disponível nesta sessão. Per fallbackPolicy
+				da authoring-policy + CLAUDE.md: manual takeover com motivo
+				documentado no commit message ("subagent dispatch failed:
+				no subagent dispatch tool available in builder session;
+				manual takeover"). Autoria manual aplicou o meta-guide
+				(architecture/production-guides/production-guide.cue) com
+				o molde do PG frontend-codegen-contract (disp-010): guide
+				MÍNIMO por decisão da missão — 3 sections
+				(amendment-and-derivation, token-and-promulgation,
+				jurisprudence-and-pendencias) + 3 tq-dcg (todos fail),
+				cobrindo só o que o shape do schema não alcança. cue vet
+				PASSED first attempt.
+				"""
+		}
+
+		reviewSubagent: {
+			dispatched:   false
+			subagentType: "none"
+			result:       "fallback-self-reported"
+			notes: """
+				Review subagent isolado (quality-gate executionPolicy:
+				production-guide = isolated-subagent) TAMBÉM indisponível
+				pela mesma limitação de ambiente. Self-review executado em
+				modo self-reported (executionMode honesto no SRR) com
+				passada fresh-eyes contra uq-01..09 + tq-pg-01..06 +
+				tq-mg-01..04 + tq-dcg-01..03; findings e correções no SRR
+				production-guide-design-system-constitution.self-review.cue.
+				Limitação declarada: sem isolation, o viés de
+				auto-ratificação (adr-054 dec 10) não é mitigado por
+				processo — mitigado apenas por founder review no PR da
+				missão.
+				"""
+		}
+
+		founderDecision: {
+			outcome: "pending-pr-review"
+			notes: """
+				Missão M7.5 (adr-193): a autorização da missão pelo founder
+				cobre a materialização; o founder review acontece no PR da
+				missão (aberto pelo Lead), onde o fallback manual está
+				declarado no commit message e nesta entry.
+				"""
+		}
+
+		fallbackPathsTested: {
+			cueVetFailureRetry:  false
+			selfReviewFailRetry: false
+			ambiguityEscalation: false
+			manualTakeoverPath:  true
+			notes: """
+				manualTakeoverPath exercitado por CAUSA NOVA: indisponibilidade
+				de infraestrutura de dispatch no ambiente da sessão (não
+				falha de subagent — classe distinta de disp-003/004
+				apiTimeout). Sinal de calibração: a fallbackPolicy cobre
+				falhas DO dispatch, não ausência DA infraestrutura; esta
+				entry estende o precedente.
+				"""
+		}
+
+		calibrationFindings: [
+			"Causa nova de fallback manual: ambiente de execução sem ferramenta de dispatch (agent-team/adr-193 builder session). A authoring-policy fallbackPolicy enumera onCueVetFailure/onSelfReviewFail/onAmbiguity — 'no dispatch infrastructure' não tem cláusula própria; o caminho seguido (manual takeover + transparência em commit message + entry no log) é o do CLAUDE.md. Candidato a cláusula explícita na policy se o padrão recorrer em missões multi-agente; decisão do founder.",
+			"Terceiro PG cuja fatia aterrissa schema alvo + PG no MESMO commit (precedentes disp-009 domain-story, disp-010 fcc): cascade ordering adr-054 dec 13 satisfeito no ato, sc-pg-01 cresce por change-on-touch sem janela.",
+		]
+
+		pipelineOutcome: "fallback-manual-takeover"
+
+		executionTimings: {
+			authoringMs: 0
+			reviewMs:    0
+			totalMs:     0
+			// Sem dispatch não há medição de subagent; zeros são
+			// placeholder honesto (autoria manual na sessão da missão).
+		}
 	}]
 
 	// Métrica observable derivada (calculada por leitura do log;
 	// runner futuro pode automatizar quando volume justificar).
 	currentMetrics: {
-		totalDispatches:    10
+		totalDispatches:    11
 		successfulPipeline: 2 // disp-001 (WI-069) + disp-010 (WI-160: authoring → review isolado → founder approval)
-		failureRate:        0.3 // 3/10 failures (disp-002 + disp-003 + disp-004)
-		fallbacksExercised: 6 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry + disp-010 selfReviewFailRetry
+		failureRate:        0.27 // 3/11 failures (disp-002 + disp-003 + disp-004); disp-011 não é failure de subagent — dispatch nunca iniciado (infra ausente no ambiente da missão M7.5)
+		fallbacksExercised: 7 // disp-002 cascade + disp-003 manual + disp-004 manual + disp-005 cueVetRetry + disp-006 cueVetRetry + disp-010 selfReviewFailRetry + disp-011 manualTakeover (infra ausente)
 		failureBreakdown: {
 			cascadeOrdering: 1 // disp-002
 			apiTimeout:      2 // disp-003 + disp-004

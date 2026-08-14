@@ -199,7 +199,8 @@ structureIndex: {
 				"architecture/adrs/adr-190-verifier-identity-resolution-for-completion-v2.cue",
 				"architecture/adrs/adr-191-centralize-verifier-resolution-mesh-local.cue",
 				"architecture/adrs/adr-192-establish-task-admission-v2-born-reject.cue",
-				"architecture/adrs/adr-193-mission-scoped-autonomous-execution.cue"
+				"architecture/adrs/adr-193-mission-scoped-autonomous-execution.cue",
+				"architecture/adrs/adr-194-establish-design-system-constitution.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -358,6 +359,15 @@ structureIndex: {
 			"schema": "#CrossContextFlow"
 		},
 		{
+			"canonicalPathRegex": "^architecture/design-system/[a-z0-9-]+\\.cue$",
+			"files": [
+				"architecture/design-system/canonical-cases.cue",
+				"architecture/design-system/constitution.cue",
+				"architecture/design-system/token-contract.cue"
+			],
+			"schema": "#DesignSystemConstitution"
+		},
+		{
 			"canonicalPathRegex": "^([a-z0-9][a-z0-9-]*/)*_meta\\.cue$",
 			"files": [
 				"ai-orchestration/_meta.cue",
@@ -373,6 +383,7 @@ structureIndex: {
 				"architecture/c4/views/_meta.cue",
 				"architecture/cross-context-workflows/_meta.cue",
 				"architecture/deferred-decisions/_meta.cue",
+				"architecture/design-system/_meta.cue",
 				"architecture/lenses/_meta.cue",
 				"architecture/production-guides/_meta.cue",
 				"architecture/shared-schemas/_meta.cue",
@@ -663,7 +674,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-082-api-yaml-servers-pending-deploy-adr.cue",
 				"architecture/deferred-decisions/def-083-work-governance-engine-enforcement-gap.cue",
 				"architecture/deferred-decisions/def-084-cross-repo-effect-proof-verification.cue",
-				"architecture/deferred-decisions/def-085-verifier-resolution-shared-abstraction-home.cue"
+				"architecture/deferred-decisions/def-085-verifier-resolution-shared-abstraction-home.cue",
+				"architecture/deferred-decisions/def-086-frontend-design-system-vendor-and-tooling.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
@@ -680,6 +692,7 @@ structureIndex: {
 				"architecture/structural-checks/cross-context-flow.cue",
 				"architecture/structural-checks/ctr-domain-model.cue",
 				"architecture/structural-checks/deferred-decision.cue",
+				"architecture/structural-checks/design-system-constitution.cue",
 				"architecture/structural-checks/dlv-domain-model.cue",
 				"architecture/structural-checks/domain-definition.cue",
 				"architecture/structural-checks/domain-model-event-convention.cue",
@@ -722,6 +735,7 @@ structureIndex: {
 				"architecture/production-guides/asyncapi-spec.cue",
 				"architecture/production-guides/canvas.cue",
 				"architecture/production-guides/deferred-decision.cue",
+				"architecture/production-guides/design-system-constitution.cue",
 				"architecture/production-guides/domain-model.cue",
 				"architecture/production-guides/domain-story.cue",
 				"architecture/production-guides/frontend-codegen-contract.cue",
