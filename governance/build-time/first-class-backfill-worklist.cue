@@ -58,11 +58,16 @@ package build_time
 // de higiene propria, MESMO regime das ondas anteriores (adr-178/WI-159:
 // pendente-reconhecido != verde-falso; o gate segue reject e visivel).
 //
-// ESTENDIDA (missao M7/adr-193, Frente S): o am-participant traz 15
-// conceitos NOVOS ao sc-fct-01 (1 agg + 7 commands + 5 events published +
-// 1 event internal + 1 event ACL -received) -- o npm nao passou pelas
-// ondas anteriores porque nao tinha manifest (Forma A: zero firstClass no
-// domain-model do npm). Entries pending reconhecidas per falsificacao 4
+// ESTENDIDA (missao M7/adr-193, Frente S): a superficie do npm (schemas
+// + port-manifest + api.yaml) traz 15 conceitos NOVOS ao sc-fct-01 (1 agg
+// + 7 commands + 5 events published + 1 event internal + 1 event ACL
+// -received) -- o npm nao passou pelas ondas anteriores porque nao tinha
+// superficie (Forma A: zero firstClass no domain-model do npm). O
+// am-participant NAO entrou nesta fatia: o estagio aggregate-skeleton do
+// codegen exige `fields` declarados nos commands do domain-model, que o
+// npm (era WI-055) nao declara -- o manifest entra JUNTO com a onda npm
+// de Forma A (mesma fatia que declara os fields). npm segue types-only
+// (molde inv) ate la. Entries pending reconhecidas per falsificacao 4
 // do adr-151 (pendente-reconhecido != verde-falso; o gate segue reject e
 // visivel). DRENAGEM: onda npm (molde das ondas anteriores) -- fatia de
 // higiene propria com as 15 decisoes de Forma A (firstClass/reason/
