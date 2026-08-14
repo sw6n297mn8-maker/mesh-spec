@@ -57,6 +57,17 @@ package build_time
 // coreNoun + termos) sao modelagem de dominio e pertencem a onda p2p-po
 // de higiene propria, MESMO regime das ondas anteriores (adr-178/WI-159:
 // pendente-reconhecido != verde-falso; o gate segue reject e visivel).
+//
+// ESTENDIDA (missao M7/adr-193, Frente S): o am-participant traz 15
+// conceitos NOVOS ao sc-fct-01 (1 agg + 7 commands + 5 events published +
+// 1 event internal + 1 event ACL -received) -- o npm nao passou pelas
+// ondas anteriores porque nao tinha manifest (Forma A: zero firstClass no
+// domain-model do npm). Entries pending reconhecidas per falsificacao 4
+// do adr-151 (pendente-reconhecido != verde-falso; o gate segue reject e
+// visivel). DRENAGEM: onda npm (molde das ondas anteriores) -- fatia de
+// higiene propria com as 15 decisoes de Forma A (firstClass/reason/
+// coreNoun + termos de glossario), que sao modelagem de dominio e NAO
+// foram tomadas nesta fatia de superficie.
 
 
 firstClassBackfillWorklist: {
@@ -93,5 +104,20 @@ firstClassBackfillWorklist: {
 		{conceptCode: "evt-sourcing-decision-made-received", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
 		{conceptCode: "evt-preferred-supplier-designated-received", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
 		{conceptCode: "evt-strategic-award-completed-received", bc: "p2p", reason: "am-purchase-order (fatia do fecho, missao M1/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda p2p-po", status: "pending"},
+		{conceptCode: "agg-participant", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "cmd-register-participant", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "cmd-submit-qualification-documents", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "cmd-approve-qualification", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "cmd-suspend-participant", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "cmd-reactivate-participant", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "cmd-terminate-participant", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "cmd-record-identity-verification", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "evt-participant-registered", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "evt-participant-qualified", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "evt-participant-suspended", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "evt-participant-terminated", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "evt-participant-reactivated", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "evt-qualification-documents-received", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
+		{conceptCode: "evt-identity-verification-received", bc: "npm", reason: "1o manifest do npm (missao M7/adr-193) traz o conceito ao sc-fct-01; Forma A pendente -- onda npm", status: "pending"},
 	]
 }

@@ -256,6 +256,7 @@ structureIndex: {
 				"contexts/cmt/aggregate-manifests/am-commitment.cue",
 				"contexts/dlv/aggregate-manifests/am-verification.cue",
 				"contexts/fce/aggregate-manifests/am-payment.cue",
+				"contexts/npm/aggregate-manifests/am-participant.cue",
 				"contexts/p2p/aggregate-manifests/am-purchase-order.cue",
 				"contexts/p2p/aggregate-manifests/am-purchase-requisition.cue",
 				"contexts/rew/aggregate-manifests/am-risk-evaluation.cue",
@@ -481,6 +482,7 @@ structureIndex: {
 				"contexts/cmt/port-manifest.cue",
 				"contexts/dlv/port-manifest.cue",
 				"contexts/fce/port-manifest.cue",
+				"contexts/npm/port-manifest.cue",
 				"contexts/p2p/port-manifest.cue",
 				"contexts/rew/port-manifest.cue",
 				"contexts/ssc/port-manifest.cue"
