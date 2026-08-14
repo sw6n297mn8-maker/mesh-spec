@@ -2,11 +2,28 @@ package deferred_decisions
 
 import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:artifact_schemas"
 
+// WITHDRAWN per adr-194 (forma adr-159: parent withdrawn + sucessor por
+// peça ainda deferida). A identidade (tokens, tipografia, marca) foi
+// DECIDIDA pela Constituição do Design System (architecture/design-system/);
+// a peça ainda deferida (vendor, component library, styling tooling)
+// vive no sucessor def-086. Arquivo permanece no disco como charneira
+// histórica — ponteiros cross-repo seguem resolvendo.
+
 def068: artifact_schemas.#DeferredDecision & {
 	id:     "def-068"
 	title:  "Vendor de design system visual do frontend deferido ao frontend-runtime"
 	date:   "2026-06-23"
-	status: "open"
+	status: "withdrawn"
+
+	withdrawalRationale: """
+		Decomposto per adr-194 (forma adr-159): a premissa do deferimento — "antes
+		de a marca estar definida" — venceu quando o founder promulgou a
+		Constituição do Design System (v1.0, julho/2026), canonizada em
+		architecture/design-system/ pelo adr-194. A identidade (tokens, tipografia,
+		marca) está DECIDIDA e não é mais deferível; a peça ainda deferida (vendor,
+		component library, styling/tooling e mecânica de promulgação) segue viva no
+		sucessor estreitado def-086-frontend-design-system-vendor-and-tooling.cue.
+		"""
 
 	description: """
 		Fica deferida a seleção do vendor de design system visual do frontend — tokens, tipografia,

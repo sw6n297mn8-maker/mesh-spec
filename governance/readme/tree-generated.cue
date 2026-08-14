@@ -23,6 +23,7 @@ treeAscii: """
 	│   ├── conventions/             # Convenções arquiteturais condicionais a capability flags do BC (API sync/async, etc.).
 	│   ├── cross-context-workflows/ # Processos que atravessam múltiplos bounded contexts (ex: commitment lifecycle).
 	│   ├── deferred-decisions/      # Deferimentos conscientes governados: decisões explícitas de não resolver agora, com trade-off articulado e condição codificada de revisita (per adr-062).
+	│   ├── design-system/           # Constituição do Design System Mesh: a lei da expressão — identidade, camadas, contrato de tokens e regime de mudança (adr-194).
 	│   ├── lenses/                  # Lenses analíticas: protocolos de raciocínio para domínios especializados (economia, segurança, crédito, AI).
 	│   ├── production-guides/       # Production guides: instruções de produção executadas por agente antes de criar instância de cada tipo de artefato governado (simétricos a validation-prompts, que validam depois).
 	│   ├── shared-schemas/          # Schemas compartilhados entre BCs (Money canônico, CloudEvents envelope, assertions formais, Ion rules).
@@ -200,6 +201,17 @@ treeEntries: [
 		"path": "architecture/deferred-decisions",
 		"purpose": "Deferimentos conscientes governados: decisões explícitas de não resolver agora, com trade-off articulado e condição codificada de revisita (per adr-062).",
 		"rationale": "Separar deferimento consciente de prose 'Known gaps' em ADRs e de WIs rotineiros torna a dívida deliberada rastreável e sujeita a trigger — evita virar dumping ground de débito técnico genérico."
+	},
+	{
+		"conventions": [
+			"Instância única composta por merge de structs CUE: constitution.cue + canonical-cases.cue + token-contract.cue compõem UM designSystemConstitution.",
+			"Camadas congeladas: emenda exige ADR apontando o elo superior mudado (cláusula IX); token calibratable recalibra por commit no frontend-runtime dentro da moldura; token constitution-bound exige emenda.",
+			"Casos canônicos novos são candidatos — nunca entram sem decisão do founder.",
+			"Preservação é lei: o texto promulgado pelo founder não é resumido, parafraseado nem 'melhorado'."
+		],
+		"path": "architecture/design-system",
+		"purpose": "Constituição do Design System Mesh: a lei da expressão — identidade, camadas, contrato de tokens e regime de mudança (adr-194).",
+		"rationale": "A lei da expressão vive no spec (autoridade semântica); os valores promulgados vivem no mesh-frontend-runtime sob o token-contract — separação declarada em adr-194."
 	},
 	{
 		"conventions": [
