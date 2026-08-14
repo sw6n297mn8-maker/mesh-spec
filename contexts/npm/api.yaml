@@ -1,0 +1,699 @@
+openapi: 3.0.3
+
+info:
+  title: Network Participant Management sync surface
+  version: 0.1.0
+  description: >
+    Superfície síncrona do BC Network Participant Management.
+    Source canônica de identidade: contexts/npm/canvas.cue.
+    Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
+
+    RECORTE (fatia M7/adr-193 — a ds-buyer-procurement-journey exige o
+    fornecedor qualificado que sustenta o pool do ssc): o registro
+    (cmd-register-participant — a entrada no lifecycle, nascimento em
+    pending), a recepção de documentação KYC/AML
+    (cmd-submit-qualification-documents), o registro do resultado de
+    verificação de identidade (cmd-record-identity-verification — command
+    INTERNO per domain-model, alvo da policy pol-record-identity-
+    verification; a rota materializa a entrega do sinal traduzido de IDC
+    nesta fatia), a aprovação supervisionada
+    (cmd-approve-qualification — o gate pending→qualified) e a leitura de
+    status (qry-participant-status da prj-participant-status-view: by-id
+    devolvendo os 2 campos de vo-participant-status; listagem com filtro
+    por estado — state=qualified sustenta o svc-supplier-pool-builder do
+    ssc via QueryParticipantStatus).
+    Deferido: suspend, reactivate, terminate e o perfil completo
+    (qry-participant-profile) — cada um com fatia própria.
+    ELO PARTICIPANTE↔CATEGORIA: oq-ssc-6 permanece ABERTA — esta
+    superfície NÃO o inventa; o pool é category-agnostic em Phase 0
+    (a qualificação por categoria entra quando o domínio a decidir).
+
+    O registro é NASCIMENTO-COM-EVENTO (agg-participant criado em
+    initialState=pending, mesmo padrão do submit do p2p / open-rfq do
+    ssc): não há stream nem estado prévio — por isso o POST não expõe
+    404/409. Expõe 422: o julgamento do registro pode não se sustentar
+    (completude cadastral — inv-registration-completeness; identidade
+    ativa duplicada — inv-single-active-identity).
+
+    security e servers ausentes por design — ver
+    architecture/deferred-decisions/def-024 (auth) e def-082 (servers).
+
+tags:
+  - name: mesh
+    description: bc=npm
+
+paths:
+  /v1/npm/queries/participant-status:
+    get:
+      operationId: queryParticipantStatusList
+      summary: Listar status de participantes (filtro opcional por estado)
+      description: >
+        Implementa a query capability qry-participant-status da
+        prj-participant-status-view em forma de LISTAGEM: status de
+        qualificação + data de última transição por participante. Leitura
+        pura sem side-effects (read model do event log). Envelope {items}
+        desde o v1; lista vazia devolve items vazio (200), não 404. Filtro
+        state opcional (enum fechado com fidelidade à constraint do
+        vo-participant-status); state=qualified é o recorte que sustenta o
+        svc-supplier-pool-builder do ssc (canvas query-surface
+        QueryParticipantStatus — pool de qualificados na abertura de RFQ e
+        re-validation no decision time, inv-qualification-as-precondition
+        do ssc). Consumers canônicos da projection: CTR (registro de
+        termos, gate binário) e SSC (decisão de sourcing); item carrega
+        participantId (vo-participant-id — chave de lookup e correlação
+        cross-BC). Pool category-agnostic Phase 0 (oq-ssc-6 aberta — sem
+        filtro por categoria; a superfície não o inventa).
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ParticipantState'
+      responses:
+        '200':
+          description: Lista de status (possivelmente vazia)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantStatusListView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/npm/queries/participant-status/{participantId}:
+    get:
+      operationId: queryParticipantStatus
+      summary: Consultar status de qualificação de um participante
+      description: >
+        Implementa a query capability qry-participant-status da
+        prj-participant-status-view (lookup by-id, molde FCE): os 2 campos
+        de vo-participant-status — state (4 estados internos: pending |
+        qualified | suspended | terminated; enum FECHADO com fidelidade à
+        constraint do VO) e since (data/hora da última transição). Leitura
+        pura sem side-effects (read model do event log). Externamente o
+        gate de qualificação opera como BINÁRIO (inv-qualification-gate):
+        apenas qualified habilita operações contratuais e financeiras;
+        observação por REW/NIM não é restrita pelo gate. 404 quando o
+        participante não existe.
+      parameters:
+        - name: participantId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Status do participante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantStatusView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/npm/commands/register-participant:
+    post:
+      operationId: registerParticipant
+      summary: Registrar participante — a entrada no lifecycle da rede
+      description: >
+        Materializa cmd-register-participant: inicia o ciclo de vida do
+        participante em estado pending. Nascimento-com-evento:
+        agg-participant criado em initialState=pending; o 200 devolve O
+        EVENTO emitido (ParticipantRegistered) como confirmação
+        estruturada, molde CMT/FCE/p2p/ssc. participantId é GERADO por NPM
+        no momento do registro (vo-participant-id) — não entra no request.
+        422 quando o julgamento não se sustenta: dados cadastrais mínimos
+        incompletos (identificador legal qualificado — br-cnpj no Brasil
+        per adr-173 —, razão social, dados de contato;
+        inv-registration-completeness — registro incompleto é rejeitado
+        ANTES de criar entidade) ou identidade ativa duplicada para o
+        mesmo identificador legal (inv-single-active-identity; re-registro
+        pós-terminação cria novo participante com novo lifecycle).
+        cadastralData é ABERTO no espelho — o domain-model não fecha o
+        shape de CadastralData (P14; espelho de schemas/events.cue).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterParticipantRequest'
+      responses:
+        '200':
+          description: Participante registrado — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantRegistered'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/npm/commands/submit-qualification-documents:
+    post:
+      operationId: submitQualificationDocuments
+      summary: Submeter documentação KYC/AML — a recepção que precede a verificação
+      description: >
+        Materializa cmd-submit-qualification-documents: recebe a
+        documentação KYC/AML do participante — recepção AUTÔNOMA (validação
+        de formato/completude é determinística), separada da aprovação
+        (supervisionada). Não é transição de lifecycle: o participante
+        permanece no estado corrente; o fato interno
+        QualificationDocumentsReceived sinaliza prontidão para verificação
+        — o 200 o devolve como confirmação estruturada. documents é ABERTO
+        no espelho: o domain-model não declara shape da documentação e o
+        agregado não a armazena (P14 — a superfície não inventa; o
+        payload do evento carrega o mínimo: identidade + timestamp,
+        espelho de schemas/events.cue). 404 para participante inexistente;
+        422 quando a validação autônoma de formato/completude rejeita a
+        recepção.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitQualificationDocumentsRequest'
+      responses:
+        '200':
+          description: Documentação recebida — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualificationDocumentsReceived'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/npm/commands/record-identity-verification:
+    post:
+      operationId: recordIdentityVerification
+      summary: Registrar verificação de identidade — o sinal traduzido de IDC
+      description: >
+        Materializa cmd-record-identity-verification: registra o resultado
+        de verificação de identidade recebido de IDC via ACL, atualizando a
+        flag identityVerified no agg-participant para uso posterior por
+        ApproveQualification. Command INTERNO per domain-model (alvo da
+        policy pol-record-identity-verification; não é command de
+        fronteira do canvas) — esta rota materializa a ENTREGA do sinal
+        traduzido nesta fatia (M7). NÃO dispara qualificação: supervisor
+        decide quando aprovar (a policy apenas registra fato). Integração
+        DUAL com IDC: este evento é o trigger push; no momento da
+        aprovação a query pull (QueryIdentityVerificationStatus) PREVALECE
+        em caso de divergência (inv-approval-requires-identity-
+        verification). O 200 devolve IdentityVerificationReceived
+        (internal ACL — eventos -received não carregam actor, adr-182).
+        404 para participante inexistente.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordIdentityVerificationRequest'
+      responses:
+        '200':
+          description: Verificação registrada — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentityVerificationReceived'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/npm/commands/approve-qualification:
+    post:
+      operationId: approveQualification
+      summary: Aprovar qualificação — o gate supervisionado pending→qualified
+      description: >
+        Materializa cmd-approve-qualification: transição pending→qualified
+        — o gate de qualificação materializado como command SUPERVISIONADO
+        (sync: o supervisor precisa de confirmação imediata;
+        inv-supervision-required-for-material-decisions — agente recomenda
+        e prepara, humano autoriza). PRÉ-CONDIÇÃO (guard da transição):
+        verificação de identidade em IDC confirmada — a query
+        QueryIdentityVerificationStatus PREVALECE sobre evento previamente
+        recebido em caso de divergência (inv-approval-requires-identity-
+        verification; gate determinístico no momento da decisão). O 200
+        devolve O EVENTO emitido (ParticipantQualified — o evento
+        cross-context mais importante do NPM: habilita sourcing e
+        operações contratuais downstream, o gate binário de
+        inv-qualification-gate) como confirmação estruturada. Alcançável
+        só de pending (molde FCE: 409 para qualquer outro estado; 404
+        para participante inexistente; 422 quando o guard barra —
+        verificação IDC não confirmada, ou justificativa ausente).
+        justification alimenta o vo-qualification-result imutável
+        (lastQualificationResult do agregado). POSTURA (def-024): a
+        identidade do supervisor NÃO é campo declarado pelo domain-model
+        nesta borda — atribuição de ator entra pelo slot estruturado do
+        envelope (adr-182) quando o handler processar o ato; sem
+        verificação até o ADR de auth.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveQualificationRequest'
+      responses:
+        '200':
+          description: Participante qualificado — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantQualified'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Chave única gerada pelo cliente (UUID v4 recomendado) usada pelo
+        servidor para cachear resultado dentro de uma janela curta e detectar
+        retry — request repetido com mesma key retorna mesmo resultado sem
+        executar de novo. Padrão informal de mercado (RFC draft); janela
+        exata definida quando ADR de stack chegar.
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    BadRequest:
+      description: Request malformado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Participante inexistente
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Estado não permite a operação (aprovação alcançável só de pending)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Payload bem-formado, mas o julgamento não se sustenta no domínio
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Erro interno
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      description: >
+        RFC 7807 Problem Details. Cross-BC shared contract; NÃO customizar
+        por BC. additionalProperties=true porque RFC 7807 §3.2 permite
+        extensões por problem type — mas extensões só por coordenação
+        cross-BC (tension-entry), nunca fork local.
+      additionalProperties: true
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        traceId:
+          type: string
+          description: Correlation id para auditoria
+
+    # ── Value-objects do NPM (mirror de schemas/events.cue) ──
+    ParticipantId:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#ParticipantId'
+      type: string
+      minLength: 1
+      description: >
+        vo-participant-id — gerado por NPM no registro; chave de lookup e
+        correlação para BCs downstream (CTR, REW, NIM, SSC).
+    ParticipantState:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#ParticipantState'
+      type: string
+      enum: [pending, qualified, suspended, terminated]
+      description: >
+        Estado do participante (vo-participant-status.state) — FECHADO com
+        fidelidade: o VO fecha via constraint declarada ("state ∈
+        {pending, qualified, suspended, terminated}"). Externamente o gate
+        é binário (inv-qualification-gate): qualified habilita operações
+        contratuais e financeiras; observação não é restrita.
+    CadastralData:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#CadastralData'
+      type: object
+      description: >
+        ABERTO no espelho — o domain-model não fecha o shape de
+        CadastralData (prosa: razão social, CNPJ, endereço, contato); o
+        espelho não inventa (P14).
+      additionalProperties: true
+    QualificationResult:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#QualificationResult'
+      type: object
+      description: >
+        Resultado da avaliação KYC/AML (vo-qualification-result) — binário
+        + justificativa documentada + data da decisão; imutável após
+        produção.
+      required: [approved, justification, decidedAt]
+      properties:
+        approved:
+          type: boolean
+        justification:
+          type: string
+        decidedAt:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Projection responses (qry-participant-status) ──
+    ParticipantStatusView:
+      type: object
+      description: >
+        Read model da qry-participant-status (lookup by-id): os 2 campos
+        de vo-participant-status — state + since (data/hora da última
+        transição).
+      required: [state, since]
+      properties:
+        state:
+          $ref: '#/components/schemas/ParticipantState'
+        since:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    ParticipantStatusItem:
+      type: object
+      description: >
+        Um participante na listagem — vo-participant-status (state + since)
+        + participantId (vo-participant-id: chave de lookup e correlação
+        cross-BC; sem ela a listagem não sustentaria o pool builder do
+        ssc).
+      required: [participantId, state, since]
+      properties:
+        participantId:
+          $ref: '#/components/schemas/ParticipantId'
+        state:
+          $ref: '#/components/schemas/ParticipantState'
+        since:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    ParticipantStatusListView:
+      type: object
+      description: >
+        Read model da listagem de status. Envelope de objeto desde o v1:
+        paginação/metadados entram ADITIVAMENTE como campos irmãos de
+        items em versões futuras — nenhum no v1.
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantStatusItem'
+
+    # ── Command request (cmd-register-participant) ──
+    RegisterParticipantRequest:
+      x-mesh-cue-ref: 'contexts/npm/domain-model.cue#commands.cmd-register-participant'
+      type: object
+      description: >
+        O domain-model não declara fields no command — o request deriva o
+        MÍNIMO dos fields do agregado que o registro escreve:
+        legalIdentifier + cadastralData (inv-registration-completeness).
+        participantId é gerado por NPM (fica fora); currentStatus nasce
+        pending handler-side.
+      required: [legalIdentifier, cadastralData]
+      properties:
+        legalIdentifier:
+          type: string
+          minLength: 1
+          description: >
+            Identificador legal qualificado (esquema+valor; br-cnpj no
+            Brasil per adr-173) — chave de negócio para unicidade
+            (inv-single-active-identity).
+        cadastralData:
+          $ref: '#/components/schemas/CadastralData'
+
+    # ── Command request (cmd-submit-qualification-documents) ──
+    SubmitQualificationDocumentsRequest:
+      x-mesh-cue-ref: 'contexts/npm/domain-model.cue#commands.cmd-submit-qualification-documents'
+      type: object
+      description: >
+        O domain-model não declara fields no command nem shape da
+        documentação KYC/AML (o agregado não a armazena) — documents é
+        ABERTO no espelho (P14; a superfície não inventa estrutura).
+      required: [participantId, documents]
+      properties:
+        participantId:
+          $ref: '#/components/schemas/ParticipantId'
+        documents:
+          type: object
+          description: >
+            Documentação KYC/AML — shape NÃO declarado pelo domain-model;
+            aberto no espelho (P14). Validação de formato/completude é do
+            handler (autônoma, determinística; 422).
+          additionalProperties: true
+
+    # ── Command request (cmd-record-identity-verification) ──
+    RecordIdentityVerificationRequest:
+      x-mesh-cue-ref: 'contexts/npm/domain-model.cue#commands.cmd-record-identity-verification'
+      type: object
+      description: >
+        O domain-model não declara fields no command — o request deriva o
+        MÍNIMO do field do agregado que o command atualiza: a flag
+        identityVerified (resultado de verificação traduzido de IDC).
+      required: [participantId, verified]
+      properties:
+        participantId:
+          $ref: '#/components/schemas/ParticipantId'
+        verified:
+          type: boolean
+          description: >
+            Resultado da verificação de identidade — atualiza
+            agg-participant.identityVerified; a query a IDC prevalece em
+            divergência (inv-approval-requires-identity-verification).
+
+    # ── Command request (cmd-approve-qualification) ──
+    ApproveQualificationRequest:
+      x-mesh-cue-ref: 'contexts/npm/domain-model.cue#commands.cmd-approve-qualification'
+      type: object
+      description: >
+        O domain-model não declara fields no command — o request deriva o
+        MÍNIMO dos fields que a transição escreve: participantId +
+        justification (vo-qualification-result.justification — documentada
+        pelo supervisor; inv-supervision-required-for-material-decisions).
+        approved e decidedAt são handler-side (a rota aprova; decidedAt é
+        o carimbo da decisão).
+      required: [participantId, justification]
+      properties:
+        participantId:
+          $ref: '#/components/schemas/ParticipantId'
+        justification:
+          type: string
+          minLength: 1
+          description: >
+            Justificativa documentada pelo supervisor
+            (vo-qualification-result.justification) — ausência gera 422.
+
+    # ── Event envelope (200 do register; molde CMT/FCE/p2p/ssc) ──
+    ParticipantRegistered:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#ParticipantRegistered'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/npm
+        type:
+          type: string
+          const: mesh.npm.participant-registered.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/npm/schemas/events.cue#ParticipantRegistered
+        data:
+          type: object
+          required: [participantId, legalIdentifier, cadastralData, registeredAt]
+          properties:
+            participantId:
+              $ref: '#/components/schemas/ParticipantId'
+            legalIdentifier:
+              type: string
+              minLength: 1
+            cadastralData:
+              $ref: '#/components/schemas/CadastralData'
+            registeredAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 do submit-qualification-documents) ──
+    QualificationDocumentsReceived:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#QualificationDocumentsReceived'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/npm
+        type:
+          type: string
+          const: mesh.npm.qualification-documents-received.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/npm/schemas/events.cue#QualificationDocumentsReceived
+        data:
+          type: object
+          required: [participantId, receivedAt]
+          properties:
+            participantId:
+              $ref: '#/components/schemas/ParticipantId'
+            receivedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 do record-identity-verification; ACL) ──
+    IdentityVerificationReceived:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#IdentityVerificationReceived'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/npm
+        type:
+          type: string
+          const: mesh.npm.identity-verification-received.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/npm/schemas/events.cue#IdentityVerificationReceived
+        data:
+          type: object
+          required: [participantId, verified, receivedAt]
+          properties:
+            participantId:
+              $ref: '#/components/schemas/ParticipantId'
+            verified:
+              type: boolean
+            receivedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 do approve-qualification) ──
+    ParticipantQualified:
+      x-mesh-cue-ref: 'contexts/npm/schemas/events.cue#ParticipantQualified'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/npm
+        type:
+          type: string
+          const: mesh.npm.participant-qualified.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/npm/schemas/events.cue#ParticipantQualified
+        data:
+          type: object
+          required: [participantId, qualificationResult, qualifiedAt]
+          properties:
+            participantId:
+              $ref: '#/components/schemas/ParticipantId'
+            qualificationResult:
+              $ref: '#/components/schemas/QualificationResult'
+            qualifiedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'

@@ -8,22 +8,28 @@ info:
     Source canônica de identidade: contexts/ssc/canvas.cue.
     Commands → POST RPC; Queries → GET. Não usa REST resource-oriented.
 
-    RECORTE (WI-159 + WI-160 + fatia do fecho, missão M1/adr-193 — a
-    cotação atravessa a jornada): a abertura de RFQ (cmd-open-rfq — o
-    passo 5 da ds-buyer-procurement-journey, onde a jornada modelada
-    originalmente começava), a leitura das decisões vigentes
-    (qry-active-sourcing-decisions — o comprador vê o que já vige na
-    categoria antes de abrir RFQ nova; P2P consome como cache de policies;
-    controllers para reporting), o GET do mapa de cotações
+    RECORTE (WI-159 + WI-160 + fatia do fecho M1 + fatia da negociação,
+    missão M7/adr-193 — a cotação atravessa a jornada): a abertura de RFQ
+    (cmd-open-rfq — o passo 5 da ds-buyer-procurement-journey, onde a
+    jornada modelada originalmente começava), a leitura das decisões
+    vigentes (qry-active-sourcing-decisions — o comprador vê o que já vige
+    na categoria antes de abrir RFQ nova; P2P consome como cache de
+    policies; controllers para reporting), o GET do mapa de cotações
     (qry-quotation-map — WI-160/adr-180, a 3ª família do frontend: a
     comparação consolidada que suporta a escolha, passo do mapa da
-    jornada), a submissão de cotação (cmd-submit-quotation — o único passo
-    do recorte com o fornecedor agindo) e a decisão one-shot
-    (cmd-make-one-shot-sourcing-decision — a conclusão atômica da janela:
-    RFQConcluded + SourcingDecisionMade no mesmo ato).
+    jornada; com a negociação, o mapa carrega as RODADAS por cotação), a
+    submissão de cotação (cmd-submit-quotation), a NEGOCIAÇÃO (WI-161,
+    aberta nesta fatia M7 — o passo 8 da jornada: cmd-propose-counter-
+    terms, o pedido do comprador; cmd-revise-quotation, o fornecedor
+    materializa as condições negociadas na própria cotação;
+    cmd-decline-counter-terms, o fornecedor mantém — os 2 desfechos de
+    uma contraproposta, per inv-negotiated-terms-materialize-on-quotation)
+    e a decisão one-shot (cmd-make-one-shot-sourcing-decision — a
+    conclusão atômica da janela: RFQConcluded + SourcingDecisionMade no
+    mesmo ato).
     Deferido: o lookup por id (qry-sourcing-decision); withdraw, os
-    commands da negociação (WI-161) e os demais tipos de conclusão
-    (preferred/strategic) e cancelamento — cada um com fatia própria.
+    demais tipos de conclusão (preferred/strategic) e cancelamento —
+    cada um com fatia própria.
     qry-rfq-history-by-category é INTERNO por decisão do domínio (nunca
     entra nesta superfície).
 
@@ -192,8 +198,9 @@ paths:
         fora do pool convidado; segunda cotação do mesmo fornecedor —
         re-submissão é withdraw + submit, e withdraw é fatia própria).
         paymentTerms/deliverySchedule (campos opcionais do command,
-        WI-161) ficam FORA deste request — a superfície das condições
-        estruturadas entra com a fatia da negociação. CONFIDENCIALIDADE:
+        WI-161) ficam FORA deste request — o evt-quotation-submitted não
+        os carrega; condições estruturadas entram pela via da REVISÃO
+        (cmd-revise-quotation, superfície da negociação). CONFIDENCIALIDADE:
         um fornecedor jamais vê a cotação do outro — esta borda só
         confirma a própria submissão. POSTURA (def-024): supplierRef é
         atribuição nominal NÃO-verificada nesta borda até o ADR de auth;
@@ -213,6 +220,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QuotationSubmitted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/ssc/commands/propose-counter-terms:
+    post:
+      operationId: proposeCounterTerms
+      summary: Propor contraproposta — o pedido do comprador sobre uma cotação
+      description: >
+        Materializa cmd-propose-counter-terms (WI-161): o comprador
+        registra contraproposta sobre uma cotação específica durante a
+        janela — mutação intra-open que abre uma RODADA de negociação.
+        NÃO muta a ent-quotation (inv-negotiated-terms-materialize-on-
+        quotation — a regra de ouro: contraproposta é PEDIDO aguardando
+        resposta do fornecedor; quem declara condições comerciais é o
+        fornecedor, o comprador nunca escreve na cotação). O 200 devolve
+        O EVENTO emitido (CounterTermsProposed, internal — mesmo veto de
+        confidencialidade dos fatos de cotação: um fornecedor jamais vê a
+        negociação do outro) como confirmação estruturada, molde
+        CMT/FCE/p2p. Invariantes de handler: RFQ status=open obrigatório
+        (409 quando a janela não está open); counterTerms exige ≥1 eixo
+        preenchido — contraproposta vazia não é rodada (422); cotação
+        deve estar status=submitted — rodada sobre cotação withdrawn não
+        se sustenta (422). 404 para RFQ ou cotação inexistente. POSTURA
+        (def-024): proposedBy é atribuição nominal NÃO-verificada nesta
+        borda até o ADR de auth; security ausente por design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposeCounterTermsRequest'
+      responses:
+        '200':
+          description: Contraproposta registrada — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CounterTermsProposed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/ssc/commands/revise-quotation:
+    post:
+      operationId: reviseQuotation
+      summary: Revisar cotação — o fornecedor materializa as condições negociadas
+      description: >
+        Materializa cmd-revise-quotation (WI-161): o fornecedor revisa a
+        PRÓPRIA cotação durante a janela (mutação intra-open) —
+        tipicamente em resposta a contraproposta. É o ÚNICO mecanismo pelo
+        qual condições negociadas entram na comparação, na avaliação e na
+        decisão (inv-negotiated-terms-materialize-on-quotation): a revisão
+        atualiza a ent-quotation in-place preservando quotationId
+        (continuidade para decisionRationale.evaluatedSuppliers e para o
+        gate de procedência do p2p — adr-177 resolve unitPrice × quantity
+        na cotação vencedora com o preço FINAL por construção), incrementa
+        revisionNumber e carimba lastRevisedAt; o histórico de rodadas
+        vive no event log. Restatement: unitPrice obrigatório;
+        paymentTerms/deliverySchedule/termsNotes opcionais (ausente =
+        mantém vigente). CURRENCY IMUTÁVEL por construção — o request não
+        a carrega (invariante de handler). Status da cotação INALTERADO
+        (submitted — revisão não é lifecycle). O 200 devolve O EVENTO
+        emitido (QuotationRevised, internal) como confirmação
+        estruturada. Invariantes de handler: RFQ status=open (409 quando
+        a janela não está open); cotação status=submitted (422);
+        supplierRef deve match o da cotação original (422). 404 para RFQ
+        ou cotação inexistente. POSTURA (def-024): supplierRef é
+        atribuição nominal NÃO-verificada nesta borda até o ADR de auth;
+        security ausente por design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviseQuotationRequest'
+      responses:
+        '200':
+          description: Cotação revisada — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotationRevised'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/ssc/commands/decline-counter-terms:
+    post:
+      operationId: declineCounterTerms
+      summary: Declinar contraproposta — o fornecedor mantém as condições vigentes
+      description: >
+        Materializa cmd-decline-counter-terms (WI-161): o fornecedor
+        declina a contraproposta e mantém as condições vigentes da
+        cotação — fecha a rodada SEM revisão (mutação intra-open). Par
+        simétrico do revise: os 2 desfechos possíveis de uma
+        contraproposta viram fatos — sem o ato de recusa, silêncio e
+        manutenção deliberada seriam indistinguíveis na fila do comprador
+        ('manteve' vs 'aguardando'). O 200 devolve O EVENTO emitido
+        (CounterTermsDeclined, internal) como confirmação estruturada.
+        declineNote possivelmente vazia — recusa seca é legítima (a
+        obrigação de justificativa é do cancelamento de RFQ, não daqui).
+        Invariantes de handler: RFQ status=open (409 quando a janela não
+        está open); supplierRef deve match o da cotação (422); cotação
+        status=submitted (422). 404 para RFQ ou cotação inexistente.
+        POSTURA (def-024): supplierRef é atribuição nominal NÃO-verificada
+        nesta borda até o ADR de auth; security ausente por design.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeclineCounterTermsRequest'
+      responses:
+        '200':
+          description: Contraproposta declinada — o evento emitido como confirmação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CounterTermsDeclined'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -311,7 +465,7 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
     NotFound:
-      description: RFQ inexistente
+      description: RFQ (ou cotação referenciada) inexistente
       content:
         application/problem+json:
           schema:
@@ -372,6 +526,79 @@ components:
       x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#SourcingDecisionId'
       type: string
       minLength: 1
+    QuotationId:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#QuotationId'
+      type: string
+      minLength: 1
+      description: >
+        vo-quotation-id — root identity de ent-quotation nested; preservada
+        através das rodadas de negociação (a continuidade que sustenta o
+        gate de procedência do adr-177).
+    PaymentTerms:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#PaymentTerms'
+      type: object
+      description: >
+        Condições de pagamento estruturadas (vo-payment-terms, WI-161) — o
+        eixo do fluxo de caixa. termScheduleDays: vencimentos em dias,
+        lista NÃO-VAZIA (o domínio a declara — shape fecha junto);
+        ESTRITAMENTE CRESCENTE é invariante de handler (não
+        shape-expressível). description pode ser vazia.
+      required: [termScheduleDays, description]
+      properties:
+        termScheduleDays:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+        description:
+          type: string
+    DeliveryScheduleEntry:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#DeliveryScheduleEntry'
+      type: object
+      required: [quantity, dueDate]
+      properties:
+        quantity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        dueDate:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    DeliverySchedule:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#DeliverySchedule'
+      type: object
+      description: >
+        Volume com entregas programadas (vo-delivery-schedule, WI-161) —
+        entries não-vazia quando o VO está presente (o domínio a declara).
+        notes pode ser vazia.
+      required: [entries, notes]
+      properties:
+        entries:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DeliveryScheduleEntry'
+        notes:
+          type: string
+    CounterTerms:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#CounterTerms'
+      type: object
+      description: >
+        Contraproposta do comprador (vo-counter-terms, WI-161) — os 3
+        eixos opcionais individualmente; '≥1 eixo preenchido' é invariante
+        de handler (o espelho não fecha disjunção que o domínio declara
+        como handler-level; violação gera 422). message pode ser vazia.
+      required: [message]
+      properties:
+        targetUnitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        requestedPaymentTerms:
+          $ref: '#/components/schemas/PaymentTerms'
+        requestedDeliverySchedule:
+          $ref: '#/components/schemas/DeliverySchedule'
+        message:
+          type: string
     DecisionType:
       x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#DecisionType'
       type: string
@@ -560,15 +787,76 @@ components:
         (submitted → withdrawn, enum FECHADO com fidelidade) +
         equalizedScore DERIVADO deterministicamente (fitness rules
         aplicadas sobre a cotação — ausente quando a derivação não
-        produziu score para o item; nunca input manual). termsNotes pode
-        ser vazia (espelho de events.cue).
-      required: [supplierRef, unitPrice, currency, declaredCapacity, termsNotes, status, submittedAt]
+        produziu score para o item; nunca input manual) e, com a
+        negociação (WI-161, prosa canônica de prj-quotation-map/
+        qry-quotation-map), as RODADAS por cotação: quotationId,
+        revisionNumber, preço inicial vs vigente (a economia da
+        negociação observável — unitPrice é o VIGENTE; initialUnitPrice o
+        da submissão original), condições estruturadas comparáveis
+        (paymentTerms/deliverySchedule — vigentes, da submissão ou da
+        última revisão) e o estado da rodada (counterTermsState +
+        pendingCounterTerms). termsNotes pode ser vazia (espelho de
+        events.cue).
+      required: [quotationId, supplierRef, unitPrice, initialUnitPrice, revisionNumber, counterTermsState, currency, declaredCapacity, termsNotes, status, submittedAt]
       properties:
+        quotationId:
+          allOf:
+            - $ref: '#/components/schemas/QuotationId'
+          description: >
+            Identidade da cotação no mapa — Phase 0: 1 fornecedor → 1
+            cotação por RFQ (rfqId + supplierRef também identificam;
+            quotationId é a identidade canônica que as rodadas e o gate
+            de procedência referenciam).
         supplierRef:
           $ref: '#/components/schemas/SupplierRef'
         unitPrice:
           type: string
           pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+          description: >
+            Preço unitário VIGENTE (da submissão ou da última revisão —
+            a casa canônica do preço, inv-negotiated-terms-materialize-
+            on-quotation).
+        initialUnitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+          description: >
+            Preço unitário da submissão original (revisionNumber=0) — o
+            'preço inicial vs vigente' da prosa da projection: a economia
+            da negociação observável.
+        revisionNumber:
+          type: integer
+          description: >
+            Contador de revisões da cotação (0 na submissão original;
+            incrementa a cada revisão — rodadas contáveis no event log).
+        counterTermsState:
+          type: string
+          enum: [none, pending, revised, declined]
+          description: >
+            Estado da rodada de negociação, DERIVADO dos 3 events de
+            negociação (mapeamento da prosa 'contraproposta
+            aberta/respondida/declinada' de prj-quotation-map): none =
+            sem rodada; pending = contraproposta ABERTA aguardando
+            resposta (evt-counter-terms-proposed sem desfecho); revised =
+            RESPONDIDA com revisão (evt-quotation-revised); declined =
+            RESPONDIDA com manutenção (evt-counter-terms-declined).
+        pendingCounterTerms:
+          allOf:
+            - $ref: '#/components/schemas/CounterTerms'
+          description: >
+            O conteúdo da contraproposta aguardando resposta — presente
+            apenas quando counterTermsState=pending ('qual alvo foi
+            pedido', prosa do evt-counter-terms-proposed).
+        paymentTerms:
+          allOf:
+            - $ref: '#/components/schemas/PaymentTerms'
+          description: >
+            Opcional — condições de pagamento estruturadas VIGENTES (da
+            submissão ou da última revisão; WI-161).
+        deliverySchedule:
+          allOf:
+            - $ref: '#/components/schemas/DeliverySchedule'
+          description: >
+            Opcional — volume com entregas programadas VIGENTE (WI-161).
         currency:
           type: string
           minLength: 1
@@ -791,6 +1079,96 @@ components:
           type: string
           description: pode ser vazia (espelho de events.cue)
 
+    # ── Command request (cmd-propose-counter-terms; fatia da negociação, M7) ──
+    ProposeCounterTermsRequest:
+      x-mesh-cue-ref: 'contexts/ssc/domain-model.cue#commands.cmd-propose-counter-terms'
+      type: object
+      description: >
+        Espelho dos campos do command — counterTerms exige ≥1 eixo
+        preenchido (invariante de handler; 422).
+      required: [rfqId, quotationId, counterTerms, proposedBy]
+      properties:
+        rfqId:
+          $ref: '#/components/schemas/RFQId'
+        quotationId:
+          $ref: '#/components/schemas/QuotationId'
+        counterTerms:
+          $ref: '#/components/schemas/CounterTerms'
+        proposedBy:
+          type: string
+          minLength: 1
+          description: >
+            Comprador — atribuição nominal NÃO-verificada nesta borda até
+            o ADR de auth (def-024).
+
+    # ── Command request (cmd-revise-quotation; fatia da negociação, M7) ──
+    ReviseQuotationRequest:
+      x-mesh-cue-ref: 'contexts/ssc/domain-model.cue#commands.cmd-revise-quotation'
+      type: object
+      description: >
+        Espelho dos campos do command — restatement das condições
+        comerciais: unitPrice obrigatório; paymentTerms/deliverySchedule/
+        termsNotes opcionais (ausente = mantém vigente). CURRENCY IMUTÁVEL
+        por construção — o command não a carrega (invariante de handler).
+      required: [rfqId, quotationId, supplierRef, unitPrice, revisionNote]
+      properties:
+        rfqId:
+          $ref: '#/components/schemas/RFQId'
+        quotationId:
+          $ref: '#/components/schemas/QuotationId'
+        supplierRef:
+          allOf:
+            - $ref: '#/components/schemas/SupplierRef'
+          description: >
+            Supplier que revisa — deve match o da cotação original
+            (invariante de handler; 422). Atribuição nominal
+            NÃO-verificada até o ADR de auth (def-024).
+        unitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        paymentTerms:
+          allOf:
+            - $ref: '#/components/schemas/PaymentTerms'
+          description: Opcional — ausente mantém as condições vigentes.
+        deliverySchedule:
+          allOf:
+            - $ref: '#/components/schemas/DeliverySchedule'
+          description: Opcional — ausente mantém a programação vigente.
+        termsNotes:
+          type: string
+          description: >
+            Opcional — prosa complementar revisada; ausente mantém a
+            vigente.
+        revisionNote:
+          type: string
+          description: >
+            O que mudou e por quê — audit da rodada (espelho de
+            events.cue; pode ser vazia por shape).
+
+    # ── Command request (cmd-decline-counter-terms; fatia da negociação, M7) ──
+    DeclineCounterTermsRequest:
+      x-mesh-cue-ref: 'contexts/ssc/domain-model.cue#commands.cmd-decline-counter-terms'
+      type: object
+      description: >
+        Espelho dos campos do command — declineNote possivelmente vazia
+        (recusa seca é legítima).
+      required: [rfqId, quotationId, supplierRef, declineNote]
+      properties:
+        rfqId:
+          $ref: '#/components/schemas/RFQId'
+        quotationId:
+          $ref: '#/components/schemas/QuotationId'
+        supplierRef:
+          allOf:
+            - $ref: '#/components/schemas/SupplierRef'
+          description: >
+            Supplier que declina — deve match o da cotação original
+            (invariante de handler; 422). Atribuição nominal
+            NÃO-verificada até o ADR de auth (def-024).
+        declineNote:
+          type: string
+          description: Justificativa — possivelmente vazia.
+
     # ── Command request (cmd-make-one-shot-sourcing-decision; fatia do fecho, M1) ──
     MakeOneShotSourcingDecisionRequest:
       x-mesh-cue-ref: 'contexts/ssc/domain-model.cue#commands.cmd-make-one-shot-sourcing-decision'
@@ -854,6 +1232,150 @@ components:
             termsNotes:
               type: string
             submittedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 do propose-counter-terms; molde CMT/FCE/p2p) ──
+    CounterTermsProposed:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#CounterTermsProposed'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/ssc
+        type:
+          type: string
+          const: mesh.ssc.counter-terms-proposed.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/ssc/schemas/events.cue#CounterTermsProposed
+        data:
+          type: object
+          required: [rfqId, quotationId, counterTerms, proposedBy, proposedAt]
+          properties:
+            rfqId:
+              $ref: '#/components/schemas/RFQId'
+            quotationId:
+              $ref: '#/components/schemas/QuotationId'
+            counterTerms:
+              $ref: '#/components/schemas/CounterTerms'
+            proposedBy:
+              type: string
+              minLength: 1
+            proposedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 do revise-quotation; molde CMT/FCE/p2p) ──
+    QuotationRevised:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#QuotationRevised'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/ssc
+        type:
+          type: string
+          const: mesh.ssc.quotation-revised.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/ssc/schemas/events.cue#QuotationRevised
+        data:
+          type: object
+          required: [rfqId, quotationId, supplierRef, revisionNumber, unitPrice, revisionNote, revisedAt]
+          properties:
+            rfqId:
+              $ref: '#/components/schemas/RFQId'
+            quotationId:
+              $ref: '#/components/schemas/QuotationId'
+            supplierRef:
+              $ref: '#/components/schemas/SupplierRef'
+            revisionNumber:
+              type: integer
+            unitPrice:
+              type: string
+              pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+            paymentTerms:
+              allOf:
+                - $ref: '#/components/schemas/PaymentTerms'
+              description: Opcional — presente quando a revisão altera condições de pagamento.
+            deliverySchedule:
+              allOf:
+                - $ref: '#/components/schemas/DeliverySchedule'
+              description: Opcional — presente quando a revisão altera volume/programação.
+            termsNotes:
+              type: string
+              description: Opcional — prosa complementar revisada.
+            revisionNote:
+              type: string
+            revisedAt:
+              type: string
+              format: date-time
+              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+
+    # ── Event envelope (200 do decline-counter-terms; molde CMT/FCE/p2p) ──
+    CounterTermsDeclined:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#CounterTermsDeclined'
+      type: object
+      required: [id, source, type, envelopeVersion, time, data]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          const: mesh://contexts/ssc
+        type:
+          type: string
+          const: mesh.ssc.counter-terms-declined.v1
+        envelopeVersion:
+          type: string
+          const: mesh-1
+        time:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        dataschema:
+          type: string
+          const: contexts/ssc/schemas/events.cue#CounterTermsDeclined
+        data:
+          type: object
+          required: [rfqId, quotationId, supplierRef, declineNote, declinedAt]
+          properties:
+            rfqId:
+              $ref: '#/components/schemas/RFQId'
+            quotationId:
+              $ref: '#/components/schemas/QuotationId'
+            supplierRef:
+              $ref: '#/components/schemas/SupplierRef'
+            declineNote:
+              type: string
+              description: possivelmente vazia — recusa seca é legítima
+            declinedAt:
               type: string
               format: date-time
               pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'

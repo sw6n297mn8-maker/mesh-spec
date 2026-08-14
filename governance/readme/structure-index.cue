@@ -481,6 +481,7 @@ structureIndex: {
 				"contexts/cmt/port-manifest.cue",
 				"contexts/dlv/port-manifest.cue",
 				"contexts/fce/port-manifest.cue",
+				"contexts/npm/port-manifest.cue",
 				"contexts/p2p/port-manifest.cue",
 				"contexts/rew/port-manifest.cue",
 				"contexts/ssc/port-manifest.cue"
