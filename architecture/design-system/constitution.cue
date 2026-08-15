@@ -15,10 +15,19 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // A jurisprudência (VIII) vive em canonical-cases.cue; o contrato de
 // tokens (valores promulgados de VII) em token-contract.cue. Os três
 // arquivos compõem UMA instância por merge de structs CUE.
+//
+// VERSÃO 1.1 (adr-195): três emendas mínimas, cada uma marcada no
+// texto pelo prefixo "Emenda 1.1 —" e apensada ao campo que já é o
+// lar canônico da regra corrigida — o texto promulgado v1.0 permanece
+// byte a byte acima de cada emenda (PRESERVAÇÃO É LEI). São elas: o
+// critério de vínculo dos tokens (tokenRegime, VII), a segunda via de
+// reabertura por evidência (protectionClause, IX) e o domínio do
+// quantificador da geometria (layers.form, VI.4). Nenhuma outra
+// camada, trade-off, caso limite ou pendência foi tocada.
 
 designSystemConstitution: artifact_schemas.#DesignSystemConstitution & {
 	id:      "design-system-constitution"
-	version: "1.0"
+	version: "1.1"
 	status:  "layers-i-vi-frozen"
 
 	preamble: """
@@ -342,6 +351,27 @@ designSystemConstitution: artifact_schemas.#DesignSystemConstitution & {
 				Na Mesh, forma nunca comunica afeto. Cantos arredondados
 				comunicam aproximação e consumo; a Mesh comunica precisão, estabilidade e
 				permanência. Raio zero em tudo — o documento é consequência, não causa.
+
+				Emenda 1.1 — domínio do quantificador (reaberta por evidência, cláusula IX).
+				A lei permanece inteira: forma comunica função, nunca afeto; a expressão
+				estrutural da Mesh comunica precisão, estabilidade, permanência e disciplina;
+				arredondamento não é estilo, identidade nem amabilidade. O que se corrige é
+				o alcance de "em tudo". A evidência: uma prova cega da Superfície de Entrada
+				derivou uma classe que a regra nunca considerou — a superfície primária de
+				expressão humana livre, o campo onde a pessoa compõe, com suas palavras,
+				aquilo que ainda não é dado do sistema. Ela não é registro, evidência,
+				atributo estruturado, contêiner documental, grid, recibo, resultado
+				apresentado pela Mesh nem decisão estruturada — e nessas a retidão continua
+				absoluta, sem exceção. Só na classe declarada a geometria pode suavizar-se, e
+				apenas enquanto a suavização comunicar a função de receber expressão humana:
+				é a mesma lei operando, porque ali a forma passa a ter função a comunicar.
+				A classe é declarada pela Surface Spec, e declará-la é afirmação sujeita ao
+				método — superfície declarada sem essa função é arredondamento por gosto, que
+				segue proibido. Permanecem proibidos: card, grid, registro, recibo, contêiner
+				documental e controle arredondados; arredondamento como identidade global; e
+				generalizar "autoria humana ⇒ arredondamento" para além desta classe, que
+				exigiria emenda própria. A Constituição fixa a classe e a função; a medida
+				concreta é calibrada no runtime dentro desta moldura.
 				"""
 			compositionUnit: """
 				Unidade de composição. A unidade primária da Mesh é a página, não o card.
@@ -461,6 +491,19 @@ designSystemConstitution: artifact_schemas.#DesignSystemConstitution & {
 		impossível sem emenda à camada, via ADR. Nenhum valor entra sem referência à
 		decisão que o autoriza. Esta é também a única forma da lei que o código consegue
 		obedecer diretamente: é aqui que a Constituição vira lint, tema e gate.
+
+		Emenda 1.1 — critério de vínculo. O que decide o regime de um token é a causa,
+		não o lugar onde o valor foi escrito. Um token é constitution-bound somente
+		quando não resta valor livre a calibrar: quando ele expressa uma relação, um
+		caráter ou uma proibição cuja alteração, por si, muda significado, identidade,
+		distinção semântica ou personalidade. Quando a camada fixa uma moldura e ainda
+		resta valor livre dentro dela, o token é calibratable — e então a moldura (o
+		piso, o teto, a relação, o emprego, a condição) é a lei, vive no contrato e é
+		o que a emenda protege; o valor vigente vive no runtime. Um valor não vira lei
+		por ter aparecido literalmente no texto promulgado: a pergunta é qual lei
+		superior deixaria de valer se ele mudasse; se nenhuma, o valor é craft, e craft
+		calibra. Recalibrar dentro da moldura segue sendo manutenção; estreitar,
+		alargar ou remover a moldura é emenda.
 		"""
 
 	protectionClause: {
@@ -474,6 +517,22 @@ designSystemConstitution: artifact_schemas.#DesignSystemConstitution & {
 			qual elo superior mudou — invariante de arquitetura, personalidade ou lei
 			transversal. Sem elo mudado, não há reabertura; há preferência, e preferência não
 			legisla.
+
+			Emenda 1.1 — segunda via: reabertura por evidência. Elo superior mudado é uma
+			via; evidência nova é a outra. Uma regra DERIVADA — nunca um invariante de
+			arquitetura, uma lei transversal ou a personalidade, que só se reabrem pela
+			primeira via — também se reabre quando evidência nova demonstra que ela foi
+			falsificada, que seu domínio é mais amplo que o do princípio que ela pretendia
+			materializar, ou que existe classe real que ela nunca considerou. Reabrir por
+			esta via NÃO afirma que o princípio superior mudou: afirma que a derivação
+			era mais larga que ele, e a correção é estreitá-la de volta ao princípio.
+			A evidência é proporcional à profundidade da regra e verificável por terceiro
+			— gosto, moda e conveniência não são evidência, e esta via não existe para
+			eles. A emenda por evidência declara quatro coisas, sob pena de ser
+			preferência disfarçada de método: qual evidência apareceu; qual regra derivada
+			foi atingida; qual parte da lei superior permanece intacta; e qual é a menor
+			correção que restaura a derivação. Esta via não relaxa o método — é o método
+			aplicado ao caso em que a regra, e não o princípio, era o erro.
 			"""
 		warning: """
 			Se um dia esta cláusula deixar de ser obedecida, o Design System pode continuar
@@ -566,5 +625,12 @@ designSystemConstitution: artifact_schemas.#DesignSystemConstitution & {
 		tipografia, marca): adr-150 legisla o COMPORTAMENTO AI-first; esta Constituição, a
 		manifestação visual, linguística e epistemológica dele. A seção II deriva dos
 		invariantes do sistema (P3 imutabilidade, P10 gates, P11 evidência) sem duplicá-los.
+
+		v1.1 (adr-195): três emendas mínimas, nenhuma nascida de preferência estética —
+		o critério de vínculo dos tokens passa a ser causal em vez de textual (VII), a
+		reabertura ganha a via da evidência para regra derivada larga demais (IX) e o
+		quantificador universal da geometria cede à única classe que a prova cega revelou
+		(VI.4). Cada emenda vive no campo que já era o lar canônico da regra corrigida;
+		o texto promulgado v1.0 permanece integral acima dela.
 		"""
 }
