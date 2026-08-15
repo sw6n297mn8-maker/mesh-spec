@@ -7,12 +7,12 @@ package design_system
 //
 // P0 — spec é a LEI, runtime carrega os VALORES: cada token declara
 // id, papel, de onde deriva (derivesFrom — enum fechado, cue vet),
-// a moldura/valor (constraints) e o regime de mudança:
-//   calibratable       → recalibrar DENTRO da moldura é manutenção
-//                        (commit no mesh-frontend-runtime), sem reabrir
-//                        a norma.
-//   constitution-bound → o valor/range é fixado pela própria camada;
-//                        alterá-lo exige emenda via ADR (cláusula IX).
+// a moldura/valor (constraints) e o regime de mudança. O CRITÉRIO que
+// decide o regime não é redefinido aqui: vive uma vez só, na seção VII
+// (campo tokenRegime de constitution.cue), com a emenda 1.1 do
+// adr-195 — constitution-bound apenas onde não resta valor livre a
+// calibrar; calibratable onde a camada fixa moldura e resta valor
+// dentro dela, caso em que a MOLDURA é a lei e mora em constraints.
 // Os valores registrados em constraints são o REGISTRO DA PROMULGAÇÃO
 // v1.0 (seção VII) — preservados aqui como registro histórico-normativo;
 // a fonte VIVA dos valores vigentes é o mesh-frontend-runtime, sob este
@@ -27,6 +27,12 @@ designSystemConstitution: tokenContract: {
 		declarada em adr-194). Interação promulgada junto à paleta: hover escurece meio
 		tom; pressionado = tinta plena; foco = contorno 2px afastado; links = tinta
 		sublinhada.
+
+		Emenda 1.1 (adr-195): os valores acima seguem sendo o registro fiel da promulgação
+		v1.0 — o que a emenda muda é o REGIME de parte deles. Sob o critério de vínculo da
+		seção VII, token cuja camada fixa moldura mas deixa valor livre dentro dela é
+		calibratable, e a moldura passa a ser o que constraints protege. Nenhum valor foi
+		escolhido, trocado ou recalibrado por esta emenda.
 		"""
 
 	tokens: [{
@@ -34,8 +40,8 @@ designSystemConstitution: tokenContract: {
 		id:          "tinta"
 		role:        "texto, ação primária, marca, malha"
 		derivesFrom: "layers.color"
-		constraints: "Valor promulgado e vinculado: #141414 sobre o papel — contraste 16,9:1 AAA. O hex está NA decisão-raiz de VI.1 ('preto no branco — #141414 sobre o papel — a tinta de registro'): a cor da marca repete a tese; única cor com direito a identidade e ação."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: #141414 sobre o papel — contraste 16,9:1 AAA. Moldura vinculada (o que a emenda protege): a tinta é ACROMÁTICA e quase-preta sobre o papel — 'preto no branco' é a decisão-raiz de VI.1, e a cor da marca repete a tese; é a ÚNICA cor com direito a identidade e ação; e permanece no topo da escala de contraste (AAA). Cromatizá-la, colori-la, dividir a identidade com outra cor ou descer o contraste é emenda. Dentro dessa moldura o hex exato é craft: nenhuma lei superior deixa de valer se ele variar entre quase-pretos acromáticos (critério de vínculo, VII emenda 1.1)."
+		changeRegime: "calibratable"
 	}, {
 		id:          "meta"
 		role:        "metadados, rótulos, timestamps"
@@ -52,8 +58,8 @@ designSystemConstitution: tokenContract: {
 		id:          "campo"
 		role:        "superfície de escrita: campos de entrada"
 		derivesFrom: "layers.color"
-		constraints: "Valor promulgado e vinculado: #ffffff — branco puro. O emprego está NA norma de superfície de VI.1: 'O branco puro ganha emprego: superfície de escrita (campos de entrada)' — branco puro é a decisão, não um valor dentro de moldura."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: #ffffff. Moldura vinculada: existe UMA superfície de escrita e ela é o extremo claro da escala — 'O branco puro ganha emprego: superfície de escrita (campos de entrada)' (VI.1 superfície) —, perceptivelmente distinta da página em QUALQUER calibração desta, sem textura, ruído ou grão. O emprego exclusivo e a distinção em relação a pagina são a lei; o valor exato é craft dentro dela (VII emenda 1.1). Nota de relação: pagina é calibrável por teste ao sol, e o que a moldura protege é a RELAÇÃO entre suporte e superfície de escrita, não um dos lados isolado."
+		changeRegime: "calibratable"
 	}, {
 		id:          "bloco-de-agente"
 		role:        "conteúdo preparado pela Mesh"
@@ -119,8 +125,8 @@ designSystemConstitution: tokenContract: {
 		id:          "foco"
 		role:        "indicador de foco"
 		derivesFrom: "layers.color"
-		constraints: "Promulgado e vinculado: foco = contorno 2px afastado. Decisão derivada da própria camada (VI.1: 'Foco visível: contorno 2px afastado') — alterar exige emenda."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: contorno 2px afastado (VI.1: 'Foco visível: contorno 2px afastado'). Moldura vinculada: o foco é VISÍVEL, INEQUÍVOCO e AFASTADO — o afastamento é semântico, mantém o foco fora da borda funcional e preserva 'um único mecanismo visual dominante' (VI.4) — e a espessura nunca desce abaixo do piso de acessibilidade vigente, que o valor promulgado instancia. Espessura e distância exatas são craft acima do piso, inclusive por saída do teste ao sol (pend-01); remover a visibilidade, a inequivocidade, o afastamento ou furar o piso é emenda."
+		changeRegime: "calibratable"
 	}, {
 		id:          "links"
 		role:        "estilo de link"
@@ -144,8 +150,8 @@ designSystemConstitution: tokenContract: {
 		id:          "pesos"
 		role:        "pesos tipográficos"
 		derivesFrom: "layers.typography"
-		constraints: "Promulgado e vinculado: 400 / 500 / 600 — três pesos, com empregos nomeados NA camada (micro-rótulos: peso 500, cor meta; desfechos: peso 600 + primeira posição — VI.2 decisões derivadas) e LIGHT BANIDO ('Light banido: morre ao sol'). Peso marca o que mudou ou espera decisão (decisão-raiz VI.2) — alterar o conjunto exige emenda."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: 400 / 500 / 600. Moldura vinculada: EXATAMENTE TRÊS pesos, com os empregos nomeados NA camada (micro-rótulos no peso intermediário, cor meta; desfechos no peso alto + primeira posição — VI.2 decisões derivadas), PISO ANTI-LIGHT ('Light banido: morre ao sol' — nenhum peso abaixo do regular de texto), e peso marcando o que mudou ou espera decisão, nunca tom (decisão-raiz VI.2). Alterar a cardinalidade, os empregos ou o piso é emenda. Os numerais concretos instanciam a moldura na família vigente e calibram COM ela: familia é calibratable dentro das reservas qualificadas, e uma reserva convocada pode não oferecer os mesmos numerais — congelar os números tornaria inimplementável uma troca que a própria camada autoriza como calibração."
+		changeRegime: "calibratable"
 	}, {
 		id:          "entrelinha"
 		role:        "entrelinhas por emprego"
@@ -157,14 +163,20 @@ designSystemConstitution: tokenContract: {
 		id:          "grid"
 		role:        "grade de espaçamento"
 		derivesFrom: "layers.form"
-		constraints: "Promulgado e vinculado: grid 8pt (meio-passo 4 interno a componentes). Decisão derivada da própria camada (VI.4: 'Grid 8pt, meio-passo de 4 só dentro de componentes — convenção adotada por Padrão de Excelência'); alterar exige emenda."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: grid 8pt, meio-passo 4 interno a componentes. Moldura vinculada: existe UM ritmo espacial sistemático, com subdivisão controlada e restrita ao INTERIOR de componentes — espaçamento ad-hoc é arbitrariedade, e é o sistema, não a base, que a Disciplina exige. A própria camada declara a base como convenção adotada por Padrão de Excelência ('não há vantagem em reinventá-la' — VI.4), isto é, melhor craft conhecido e não consequência de lei superior: a base concreta e o meio-passo calibram desde que preservem sistema único e subdivisão restrita. Abandonar o ritmo sistemático, soltar a subdivisão para fora dos componentes ou admitir espaçamento fora da grade é emenda."
+		changeRegime: "calibratable"
 	}, {
 		id:          "raio"
 		role:        "raio de canto"
 		derivesFrom: "layers.form"
-		constraints: "Promulgado e vinculado: raio 0. O valor está NA decisão-raiz de VI.4 ('Raio zero em tudo — o documento é consequência, não causa'); a própria seção VII usa 'um raio diferente de zero' como o exemplo canônico do que é impossível sem emenda."
+		constraints: "Promulgado e vinculado: raio 0 em toda a geometria estrutural — registro, evidência, atributo estruturado, contêiner documental, grid, recibo, resultado apresentado pela Mesh, decisão estruturada e controles. O valor está NA decisão-raiz de VI.4 ('Raio zero em tudo — o documento é consequência, não causa') e CARREGA o significado que a camada atribui à geometria: qualquer degrau já é afirmação semiótica, não medida — não resta valor livre a calibrar (critério de vínculo, VII emenda 1.1). Emenda 1.1 de VI.4: o quantificador universal cede à ÚNICA classe declarada — superfície primária de expressão humana livre, cujo raio é o token raio-expressao-humana; fora dela a retidão permanece absoluta."
 		changeRegime: "constitution-bound"
+	}, {
+		id:          "raio-expressao-humana"
+		role:        "raio de canto da superfície primária de expressão humana livre"
+		derivesFrom: "layers.form"
+		constraints: "Sem valor promulgado — a moldura nasce na emenda 1.1 de VI.4 (adr-195) e o valor vigente é calibrado no mesh-frontend-runtime, nunca fixado aqui. Moldura vinculada: aplica-se EXCLUSIVAMENTE à superfície primária de expressão humana livre declarada pela Surface Spec — o campo onde a pessoa compõe, com suas palavras, o que ainda não é dado do sistema; a suavização precisa comunicar a função de RECEBER expressão humana e permanecer legível como suporte, nunca como estilo, identidade, amabilidade ou decoração; toda a demais geometria segue em raio 0 (token raio). Usar este raio fora da classe, ou estender a classe a registro, evidência, atributo estruturado, contêiner documental, grid, recibo, resultado da Mesh, decisão estruturada ou controle, é emenda — não calibração."
+		changeRegime: "calibratable"
 	}, {
 		id:          "alvos-de-toque"
 		role:        "alvos de toque mínimos"
@@ -188,14 +200,14 @@ designSystemConstitution: tokenContract: {
 		id:          "movimento-elementos"
 		role:        "duração de transição de elementos"
 		derivesFrom: "layers.motion"
-		constraints: "Range promulgado e vinculado: 120–200ms (VI.3 jurisprudência: 'tempo mínimo para continuidade perceptiva'). O RANGE é bound — o valor exato dentro dele é calibrável; sair dele exige emenda."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: 120–200ms. Moldura vinculada: a duração é a MÍNIMA para continuidade perceptiva e NUNCA é sentida como espera (VI.3 jurisprudência: 'tempo mínimo para continuidade perceptiva'), com o caráter fixado pelo token movimento-easing. A lei é a continuidade sem espera — a psicofísica é que decide onde ela cai; o range promulgado a instancia e calibra dentro dela. Duração que faça o usuário esperar, ou curta a ponto de perder o fio, viola a lei; alterar a lei é emenda."
+		changeRegime: "calibratable"
 	}, {
 		id:          "movimento-superficie"
 		role:        "assentamento de superfície inteira"
 		derivesFrom: "layers.motion"
-		constraints: "Range promulgado e vinculado: ≤240ms, único, não bloqueante, jamais somado à espera de dados (VI.3). O teto e as condições são bound; o valor dentro do teto é calibrável."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: até 240ms. Moldura vinculada: UM ÚNICO gesto de assentamento por superfície, NÃO BLOQUEANTE e JAMAIS somado à espera de dados (VI.3) — unicidade, não-bloqueio e não-soma são a lei e não admitem calibração. O teto concreto instancia a moldura e calibra dentro dela, enquanto o assentamento continuar imperceptível como espera; multiplicar o gesto, bloquear ou somar à espera é emenda."
+		changeRegime: "calibratable"
 	}, {
 		id:          "movimento-easing"
 		role:        "curva e caráter do movimento"
@@ -206,8 +218,8 @@ designSystemConstitution: tokenContract: {
 		id:          "movimento-decaimento-realce"
 		role:        "decaimento de realce de novidade"
 		derivesFrom: "layers.motion"
-		constraints: "Range promulgado e vinculado: 1–3s, decai UMA vez, sem repetir nem piscar (VI.3: 'estado expirando, não transição'). O range e a unicidade são bound; o valor dentro do range é calibrável."
-		changeRegime: "constitution-bound"
+		constraints: "Vigente: 1–3s. Moldura vinculada: o realce é ESTADO EXPIRANDO, não transição — decai UMA única vez, sem repetir nem piscar (VI.3) —, e é a unicidade que separa marcar novidade de encenar trabalho (anti-espetáculo, VI.3/VI.6 regra 5). A unicidade e o caráter de estado são a lei; a duração concreta instancia a moldura e calibra dentro dela, desde que o realce continue lido como estado que expira e não como animação."
+		changeRegime: "calibratable"
 	}, {
 		id:          "movimento-acao-do-usuario"
 		role:        "resposta a ação do usuário"

@@ -49,7 +49,7 @@ designSystemConstitutionGuide: artifact_schemas.#ProductionGuide & {
 		}, {
 			id:          "tq-dcg-02"
 			description: "Guide força as duas fronteiras: emenda vs calibração e lei vs promulgação"
-			test:        "Process da section token-and-promulgation exige classificar a mudança de token pelo texto (constitution-bound → emenda via ADR; calibratable dentro da moldura → manutenção que vive como COMMIT no mesh-frontend-runtime, NÃO como edição deste artefato) e verificar que valores vivos não são legislados no runtime nem re-promulgados aqui sem decisão (adr-194 dec 2/5); gapPolicy proíbe reclassificar regime por conveniência."
+			test:        "Process da section token-and-promulgation exige classificar a mudança de token pelo CRITÉRIO DE VÍNCULO da seção VII — causal, não textual (constitution-bound só onde não resta valor livre a calibrar → emenda via ADR; calibratable dentro da moldura → manutenção que vive como COMMIT no mesh-frontend-runtime, NÃO como edição deste artefato) e verificar que valores vivos não são legislados no runtime nem re-promulgados aqui sem decisão (adr-194 dec 2/5); gapPolicy proíbe reclassificar regime por conveniência."
 			severity:    "fail"
 			rationale:   "O regime em dois trilhos é o que tira o founder do caminho de calibrações e o preserva como única autoridade de emenda — classificar errado num sentido re-serializa o founder, no outro fura a lei."
 		}, {
@@ -70,7 +70,7 @@ designSystemConstitutionGuide: artifact_schemas.#ProductionGuide & {
 			"Para token novo ou mudança de token constitution-bound: o ADR de emenda que o autoriza (nenhum valor entra sem referência à decisão que o autoriza — VII)",
 			"Para pendência nova: a classificação pretendida (empirical-calibration | deferred-decision | reserve-condition | out-of-scope-governance) e o trigger/condição que a governa",
 		]
-		gapPolicy:     "NÃO invente conteúdo constitucional — o texto normativo é do founder; PRESERVAÇÃO É LEI: nenhuma lei, trade-off, caso limite, personalidade, jurisprudência, pendência, cláusula de reabertura, significado de token ou distinção preparado/verificado/decidido/registrado é removida, resumida ou 'melhorada' em edição. NÃO emende camada sem elo superior mudado apontado pelo founder — STOP (cláusula IX: preferência não legisla). NÃO introduza preferência sem princípio superior — decisão nova cita de que deriva e nomeia o trade-off que paga (III). NÃO reclassifique changeRegime nem classification por conveniência — o regime deriva do texto; dúvida entre os dois regimes resolve pelo texto e, persistindo, pergunta direta ao founder. NÃO materialize caso canônico sem decisão do founder. NÃO calibre valor calibratable editando este artefato — calibração é commit no mesh-frontend-runtime dentro da moldura (lei aqui, promulgação lá). NÃO infira critério normativo novo a partir de lens ou referência externa — lenses são advisory e, onde conflitam, a Constituição prevalece (adr-194 dec 8)."
+		gapPolicy:     "NÃO invente conteúdo constitucional — o texto normativo é do founder; PRESERVAÇÃO É LEI: nenhuma lei, trade-off, caso limite, personalidade, jurisprudência, pendência, cláusula de reabertura, significado de token ou distinção preparado/verificado/decidido/registrado é removida, resumida ou 'melhorada' em edição. NÃO emende camada sem elo superior mudado apontado pelo founder — STOP (cláusula IX: preferência não legisla). NÃO introduza preferência sem princípio superior — decisão nova cita de que deriva e nomeia o trade-off que paga (III). NÃO reclassifique changeRegime nem classification por conveniência — o regime deriva do critério de vínculo da seção VII (causal: resta valor livre dentro da moldura?), não do lugar onde o valor foi escrito; dúvida persistente vira pergunta direta ao founder. NÃO materialize caso canônico sem decisão do founder. NÃO calibre valor calibratable editando este artefato — calibração é commit no mesh-frontend-runtime dentro da moldura (lei aqui, promulgação lá). NÃO infira critério normativo novo a partir de lens ou referência externa — lenses são advisory e, onde conflitam, a Constituição prevalece (adr-194 dec 8)."
 		validatorNote: "cue vet valida por shape: enums fechados (verbos canônicos, derivesFrom, changeRegime, classification, axis/statute), vocabulário fechado de campos de camada, ids e pisos de runas. sc-dsc-01/02 (determinísticos, born-warn) travam deleção parcial da instância composta. O que resta ao review (self-review + founder): cadeia de derivação, trade-offs, fidelidade do texto preservado, coerência das classificações — dimensões de julgamento, nunca gate (P10/adr-040/ten-006)."
 		outputNote:    "Output é edição in-place dos arquivos da instância composta em architecture/design-system/ (constitution.cue / canonical-cases.cue / token-contract.cue), acompanhada de ADR quando a classe de mudança exigir (emenda de camada; token bound; extensão de camada nova). Version bump da Constituição acompanha emenda; calibração de token não toca o spec."
 	}
@@ -113,10 +113,10 @@ designSystemConstitutionGuide: artifact_schemas.#ProductionGuide & {
 
 		"token-and-promulgation": {
 			target:    "#TokenContract"
-			objective: "Editar o contrato de tokens sob as duas fronteiras: emenda vs calibração (regime por token, derivado do texto) e lei vs promulgação (spec legisla; mesh-frontend-runtime materializa os valores vivos)."
+			objective: "Editar o contrato de tokens sob as duas fronteiras: emenda vs calibração (regime por token, derivado do critério de vínculo da seção VII) e lei vs promulgação (spec legisla; mesh-frontend-runtime materializa os valores vivos)."
 			process: [{
-				action: "Avaliar o regime da mudança de token pelo texto da camada"
-				detail: "Valor/range fixado pela camada (ex.: tinta na decisão-raiz, raio zero, ranges de movimento) → constitution-bound → exige emenda via ADR. Valor dentro de moldura declarada (ex.: off-white por teste ao sol, hex semânticos sobre piso AA/AAA) → calibratable → manutenção."
+				action: "Avaliar o regime da mudança de token pelo critério de vínculo da seção VII"
+				detail: "O critério é CAUSAL, não textual (VII, emenda 1.1 — adr-195). Não resta valor livre a calibrar — o token é relação, caráter ou proibição cuja alteração já muda significado, identidade, distinção semântica ou personalidade (ex.: pressionado = tinta plena, links = tinta sublinhada, raio 0 na geometria estrutural, ease-out sem bounce) → constitution-bound → exige emenda via ADR. A camada fixa moldura e resta valor dentro dela (ex.: off-white por teste ao sol, hex semânticos sobre piso AA/AAA, espessura de foco acima do piso, base do grid dentro do ritmo sistemático) → calibratable → manutenção, com a MOLDURA declarada em constraints. O valor aparecer literalmente na camada promulgada NÃO o torna bound: pergunte qual lei superior deixaria de valer se ele mudasse."
 			}, {
 				action: "Verificar o destino da mudança: spec ou runtime"
 				detail: "Calibração de token calibratable NÃO edita este artefato — é commit no mesh-frontend-runtime dentro da moldura. Este guide só cobre: token novo, mudança de moldura, mudança de regime, emenda de token bound — todas com ADR."
@@ -129,10 +129,10 @@ designSystemConstitutionGuide: artifact_schemas.#ProductionGuide & {
 				"architecture/design-system/constitution.cue (tokenRegime — a seção VII — e as camadas que fixam molduras)",
 			]
 			heuristics: [
-				"Na dúvida entre os dois regimes, escolha pelo texto (ex.: 'valor exato ajustável' = calibratable) e documente em constraints; dúvida persistente → founder.",
+				"Na dúvida entre os dois regimes, decida pela CAUSA e não pelo lugar onde o valor foi escrito: se existe valor livre dentro da moldura, é calibratable e a moldura vai para constraints; documente o teste em constraints e, na dúvida persistente, pergunte ao founder.",
 				"Vendor que exigir mudar token bound para ser adotável não gera emenda — gera o sinal (a) da falsificationCondition do adr-194 (escalar, não acomodar).",
 			]
-			doneCriteria: "Todo token tocado com regime classificado pelo texto citado em constraints; derivesFrom resolvendo por enum; mudanças bound pareadas com ADR; nenhuma calibração de valor vivo executada no spec."
+			doneCriteria: "Todo token tocado com regime classificado pelo critério de vínculo (VII) e a moldura correspondente citada em constraints; derivesFrom resolvendo por enum; mudanças bound pareadas com ADR; nenhuma calibração de valor vivo executada no spec."
 			ifGap:        "Se a moldura da camada não decide o regime do token, a lacuna é da CAMADA — propor emenda de camada primeiro (section anterior), nunca inventar moldura no contrato."
 		}
 
@@ -175,7 +175,7 @@ designSystemConstitutionGuide: artifact_schemas.#ProductionGuide & {
 			"Verificar shape: cue vet ./architecture/design-system/ verde (enums fechados de verbos, derivesFrom, changeRegime, classification; vocabulário fechado de campos de camada).",
 			"Verificar tq-pg-01: workOrder é permutação exata das chaves de sections (3 sections).",
 			"Verificar tq-dcg-01 / tq-dsc-01 / tq-dsc-02: elo superior citado em toda emenda; cadeia de derivação e trade-off nomeados; nenhum trade-off pré-existente removido.",
-			"Verificar tq-dcg-02 / tq-dsc-05: regime de cada token tocado derivado do texto citado; nenhuma calibração de valor vivo executada no spec.",
+			"Verificar tq-dcg-02 / tq-dsc-05: regime de cada token tocado derivado do critério de vínculo (VII) com a moldura citada em constraints; nenhuma calibração de valor vivo executada no spec.",
 			"Verificar tq-dcg-03 / tq-dsc-03 / tq-dsc-04: casos canônicos intactos ou com decisão do founder; verbos canônicos preservados; pendências classificadas com porquê.",
 			"Verificar reconciliation: os 4 pairs cross-field conferidos sobre a instância composta exportada.",
 			"Submeter ao founder para aprovação explícita antes de commit — step próprio bloqueante (adr-057 founderConfirmation; dentro de missão adr-193, a autorização explícita da missão cumpre este gate e o receipt final presta contas).",

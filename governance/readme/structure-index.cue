@@ -200,7 +200,8 @@ structureIndex: {
 				"architecture/adrs/adr-191-centralize-verifier-resolution-mesh-local.cue",
 				"architecture/adrs/adr-192-establish-task-admission-v2-born-reject.cue",
 				"architecture/adrs/adr-193-mission-scoped-autonomous-execution.cue",
-				"architecture/adrs/adr-194-establish-design-system-constitution.cue"
+				"architecture/adrs/adr-194-establish-design-system-constitution.cue",
+				"architecture/adrs/adr-195-constitution-token-binding-and-evidence-reopening.cue"
 			],
 			"schema": "#ADRBase"
 		},

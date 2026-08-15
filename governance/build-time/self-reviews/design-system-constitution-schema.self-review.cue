@@ -86,3 +86,72 @@ designSystemConstitutionSchema: build_time.#SelfReviewReport & {
 		Modo self-reported por indisponibilidade de dispatch (disp-011).
 		"""
 }
+
+// ── Emenda 1.1 (adr-195) ── segundo report sobre o MESMO schema: o
+// alinhamento do teste de tq-dsc-05 ao critério causal de vínculo.
+designSystemConstitutionSchemaAmendment11: build_time.#SelfReviewReport & {
+	reportId: "srr-design-system-constitution-schema-amendment-1-1"
+
+	artifactPath:       "architecture/artifact-schemas/design-system-constitution.cue"
+	artifactSchemaPath: "architecture/artifact-schemas/artifact-schema.cue"
+	artifactType:       "artifact-schema"
+
+	canonicalSource: "governance/build-time/quality-gate.cue"
+	executionMode:   "self-reported"
+	generatedAt:     "2026-08-15"
+
+	roundsExecuted: 1
+	maxRounds:      4
+
+	status: "stable"
+
+	singleRoundRationale: """
+		A mudança é de UM campo de texto (o test de tq-dsc-05) e do
+		rationale que o acompanha — nenhuma struct, enum, campo ou
+		cardinalidade foi tocada: #Token continua com changeRegime como
+		enum fechado de duas opções, #DerivationSource inalterado, e o
+		vocabulário de #Layer idêntico. O round único bastou porque a
+		verificação é fechada e mecânica: (i) o texto antigo enunciava o
+		critério sintático ('constitution-bound carrega o valor/range exato
+		fixado pela camada'), que a emenda 1.1 substitui — deixá-lo
+		produziria findings falsos contra foco, tinta e os ranges de
+		movimento, agora legitimamente calibratable; (ii) o texto novo
+		APONTA o critério da seção VII em vez de reenunciá-lo com outras
+		palavras, que é a correção de P0 exigida pelo próprio diagnóstico
+		(o critério vivia em três redações divergentes); (iii) cue vet
+		./architecture/artifact-schemas/ verde e a instância composta segue
+		validando contra o schema sem alteração de shape. Round adicional
+		não teria o que encontrar: não há superfície nova para regredir.
+		"""
+
+	roundDetails: [{
+		round:     1
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Verificação do alinhamento de tq-dsc-05: o test passa a
+			carregar a pergunta causal ('qual lei superior deixaria de
+			valer se este valor mudasse') e a regra de que aparecer
+			literalmente no texto promulgado não vincula; o rationale
+			passa a nomear a falha corrigida (critério textual promove
+			craft a lei por acidente de redação) em vez de descrever o que
+			o critério faz — uq-01 conferido. Severity permanece warn, o
+			que preserva P10: a classificação de regime segue advisory,
+			nunca gate. Os outros quatro critérios (tq-dsc-01..04) e todo
+			o restante do schema saem idênticos no diff.
+			"""
+	}]
+
+	findings: {}
+
+	summary: """
+		Emenda pontual no schema da Constituição: tq-dsc-05 deixa de
+		enunciar o critério sintático de constitution-bound e passa a
+		apontar o critério causal da seção VII (adr-195). Zero mudança
+		estrutural — o schema como tipo é o mesmo; o que mudou é o teste
+		que o self-review aplica, que sob o texto antigo produziria
+		findings falsos contra os tokens legitimamente reclassificados.
+		Estável em 1 round, com rationale de round único declarado.
+		"""
+}
