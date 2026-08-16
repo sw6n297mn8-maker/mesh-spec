@@ -1,0 +1,28 @@
+{
+  "_note": "SIMULACAO 3 descartavel (sim/firstclass-canonical-home). Alvo: LAR CANONICO do termo shared. Layer 1 (E1+regressao) usa os locs REAIS do structural-check-runner.py + re.match (mesmo predicado do gate de orfao, file_classification l.704). Layer 2 (E2-E7) testa os campos novos. _trueSemantic e oraculo; o gate nunca o le.",
+
+  "extension": {
+    "currentRegex":  "^contexts/[a-z][a-z0-9-]*/glossary\\.cue$",
+    "proposedRegex": "^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\\.cue$",
+    "candidateHomeA": "architecture/shared-schemas/glossary.cue",
+    "candidateHomeB": "architecture/shared-schemas/money.cue",
+    "rationale": "Extensao minima por alternacao: adiciona UM parent dir (architecture/shared-schemas) sem .* — preserva os 12 e nao super-amplia."
+  },
+
+  "canonical": {
+    "registry": [
+      {"code": "term-money", "termEn": "Money", "home": "architecture/shared-schemas/glossary.cue", "schemaRef": "#Money", "schemaHome": "architecture/shared-schemas/money.cue"}
+    ]
+  },
+
+  "usages": [
+    {"bc": "inv", "code": "vo-money",            "coreNoun": "Money",           "category": "shared-canonical",     "shared": true,  "sourceContext": "inv", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "_trueSemantic": "money"},
+    {"bc": "p2p", "code": "vo-money",            "coreNoun": "Money",           "category": "shared-canonical",     "shared": true,  "sourceContext": "p2p", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "_trueSemantic": "money"},
+    {"bc": "bdg", "code": "vo-money",            "coreNoun": "Money",           "category": "shared-canonical",     "shared": true,  "sourceContext": "bdg", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "_trueSemantic": "money"},
+    {"bc": "bkr", "code": "vo-settlement-value", "coreNoun": "SettlementValue", "category": "local-specialization", "shared": true,  "sourceContext": "bkr", "canonicalTermRef": "term-money", "canonicalSchemaRef": "#Money", "specializes": "term-money", "localConstraint": "amount > 0 (estrito; settlement nao admite zero)", "_trueSemantic": "money-specialized"},
+    {"bc": "fce", "code": "agg-payment",         "coreNoun": "Payment",         "category": "owned",                "shared": false, "sourceContext": "fce", "_trueSemantic": "payment"},
+    {"bc": "fce", "code": "evt-invoice-issued",  "coreNoun": "Invoice",         "category": "foreign-consumed",     "shared": false, "sourceContext": "inv", "_trueSemantic": "invoice"}
+  ],
+
+  "localGlossaryTerms": []
+}
