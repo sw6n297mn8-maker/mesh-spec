@@ -21,24 +21,24 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 
 	steps: [{
 		actorRef: "sh-07"
-		action:   "O engenheiro da construtora, na visita técnica diária ao canteiro, identifica pelo cronograma físico o que as próximas etapas vão exigir — quantidades, especificações e prazos (ex.: materiais de elétrica para iniciar o forro)."
+		action:   "O engenheiro da construtora, na visita técnica diária ao canteiro, identifica pelo cronograma físico o que as próximas etapas vão exigir — quantidades, especificações e prazos (ex.: materiais de elétrica para iniciar o forro) — e expressa ali mesmo o que precisa, com as informações que possui naquele momento."
 		workItem: {
-			description:       "Registrar a necessidade identificada como demanda rastreável, ancorada na etapa do cronograma que a origina."
+			description:       "Receber a expressão do engenheiro como insumo da interpretação. Nada se materializa neste passo: a observação do canteiro não tem cerimônia de escrita própria no modelo — o fato-de-origem entra como campo da requisição que o passo seguinte cria."
 			boundedContextRef: "p2p"
 			termRefs: ["term-originadora-de-demanda"]
 		}
-		rationale: "Onde a jornada NASCE na narrativa real — e onde o modelo hoje não tem nenhum elemento de escrita; o passo testa a cobertura da ponta-canteiro do ciclo demanda-a-pedido."
+		rationale: "Onde a jornada NASCE na narrativa real, e onde a fricção da captura decide a adoção na ponta (sh-07, int-frictionless-demand-capture). As refs vazias deste passo NÃO são cobertura pendente: são a decisão registrada — o fato-de-origem vive como CAMPO (budgetStageRef, WI-151) e o adr-178 declarou que a observação no canteiro não ganha cerimônia própria. O passo segue sendo o teste da ponta-canteiro: se um dia a expressão precisar de lar de escrita, é aqui que a falta aparece."
 	}, {
 		actorRef: "sh-07"
-		action:   "O engenheiro formaliza a solicitação de compra no sistema, direto do canteiro, selecionando o centro de custo da obra e vinculando cada item a uma etapa do orçamento (ex.: reboco)."
+		action:   "O engenheiro formaliza a solicitação de compra direto do canteiro: confirma a Requisição de Compra que a Mesh estruturou a partir do que ele expressou, respondendo apenas o que ela não conseguiu resolver com segurança."
 		workItem: {
-			description:       "Criar a requisição de compra com vínculo a centro de custo e etapa do orçamento, garantindo rastreabilidade do custo desde a origem."
+			description:       "Interpretar a expressão, estruturar a Requisição de Compra — Centro de Custo, etapa do orçamento que origina a demanda, categoria e escopo —, preencher o que puder ser inferido com segurança da própria expressão, pedir ao engenheiro apenas o que restar, e materializar a requisição, que nasce submetida e entra na fila de triagem."
 			boundedContextRef: "p2p"
 			commandRefs: ["cmd-submit-purchase-requisition"]
 			eventRefs: ["evt-purchase-requisition-submitted"]
 			termRefs: ["term-requisitante"]
 		}
-		rationale: "A requisição é o elo de rastreabilidade custo↔obra que as fontes tratam como fundação. No exame original (2026-07-12) este era o vazio mais importante que a story revelou — 'requisi' tinha zero ocorrências em todos os domain-models; FECHADO na mesma data pelo WI-151/adr-174: agg-purchase-requisition materializa a requisição com vínculo a Centro de Custo (costCenterRef) e etapa do orçamento (budgetStageRef, fato-de-origem), e as refs deste passo apontam os elementos reais criados."
+		rationale: "A requisição é o elo de rastreabilidade custo↔obra que as fontes tratam como fundação. No exame original (2026-07-12) este era o vazio mais importante que a story revelou — 'requisi' tinha zero ocorrências em todos os domain-models; FECHADO na mesma data pelo WI-151/adr-174: agg-purchase-requisition materializa a requisição com vínculo a Centro de Custo (costCenterRef) e etapa do orçamento (budgetStageRef, fato-de-origem), e as refs deste passo apontam os elementos reais criados. Sobre a ORIGEM, o passo narra o regime vigente do adr-178: a informação nasce fora do sistema (origem net-new), então o que a Mesh preenche vem da própria expressão — quando o cronograma virar input de sistema, a origem migra para a Generative Form padrão da adr-150 (def-081) sem mudar a forma deste passo. A completude NÃO é julgada aqui: a submissão não tem guard na porta por design (adr-178) — quem devolve o incompleto é a triagem do passo 3 (inv-requisition-completeness)."
 	}, {
 		actorRef: "sh-08"
 		action:   "O comprador, no escritório, recebe a solicitação que chega automaticamente, tria e analisa a necessidade antes de ir a mercado."
@@ -138,9 +138,12 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		Primeira domain story do repo: a jornada da dor que a cunha da Mesh ataca
 		(fazer o trabalho do setor de compras mais barato, mais rápido e melhor),
 		derivada de fonte real na ordem vivida — não do modelo. Executa o teste de
-		cobertura dos BCs da cunha e revela onde o modelo começa tarde: a jornada
-		real nasce no canteiro (passos 1-3, sem lar de escrita); a modelada nasce
-		na cotação (passo 5). Registro canônico per adr-170; refs verificadas
-		elemento a elemento contra os domain-models dos BCs de cada passo.
+		cobertura dos BCs da cunha e revelou, no exame original (2026-07-12), onde
+		o modelo começava tarde: a jornada real nasce no canteiro e os passos 1-3
+		não tinham lar de escrita — a modelada nascia na cotação (passo 5). Os
+		passos 2-3 fecharam pelo WI-151/adr-174 (ver rationales dos passos); o
+		passo 1 permanece sem cerimônia própria POR DECISÃO (adr-178). Registro
+		canônico per adr-170; refs verificadas elemento a elemento contra os
+		domain-models dos BCs de cada passo.
 		"""
 }
