@@ -9,7 +9,7 @@ adr196: artifact_schemas.#ADR & {
 
 	decisionClass: "structural"
 	decider:       "founder"
-	status:        "proposed"
+	status:        "accepted"
 
 	reversibility: "medium"
 	blastRadius:   "cross-artifact"
