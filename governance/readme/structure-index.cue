@@ -202,7 +202,8 @@ structureIndex: {
 				"architecture/adrs/adr-193-mission-scoped-autonomous-execution.cue",
 				"architecture/adrs/adr-194-establish-design-system-constitution.cue",
 				"architecture/adrs/adr-195-constitution-token-binding-and-evidence-reopening.cue",
-				"architecture/adrs/adr-196-materialize-sourcing-decision-proposal.cue"
+				"architecture/adrs/adr-196-materialize-sourcing-decision-proposal.cue",
+				"architecture/adrs/adr-197-exception-declares-responder.cue"
 			],
 			"schema": "#ADRBase"
 		},
