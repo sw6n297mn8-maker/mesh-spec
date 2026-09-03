@@ -49,7 +49,19 @@ def080: artifact_schemas.#DeferredDecision & {
 		aplica o critério do adr-175), com o risco de exclusão-carimbo que
 		a falsificationCondition (a) do adr-175 vigia. Volume atual baixo
 		o bastante para leitura-guiada: ~2 padrão-A claros + ~20 padrão-B
-		no repo, concentrados no rew.
+		no repo, concentrados no rew. AMENDMENT (2026-09-03, revisão da
+		ds-buyer-procurement-journey): TERCEIRA MOTIVAÇÃO INDEPENDENTE, sem
+		mudança de gatilho — o decidedBy de
+		cmd-make-one-shot-sourcing-decision é string nominal e não distingue
+		'ratificou a proposta do agente' de 'escolheu por conta própria';
+		quando der errado, a auditoria não responde quem errou (registrado no
+		rationale do passo 10 da story, na main). Dependência nos dois
+		sentidos com adr-196: a materialização da proposta dá a distinção POR
+		POSIÇÃO no stream antes da mecanização do campo — controle
+		compensatório, não substituto; a mecanização deste def segue
+		necessária para os demais commands e, quando vier, consome o
+		vocabulário do fato proposto. O gatilho permanece INALTERADO
+		(manual-review nas higienes WI-154/WI-155).
 		"""
 
 	triggerCalibrationRationale: """
