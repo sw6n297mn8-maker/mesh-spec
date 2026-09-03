@@ -86,19 +86,30 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		}
 		rationale: "Único passo do recorte com o fornecedor como ator agindo. No exame original (2026-07-12) o comando existia mas NÃO publicava evento — a submissão não virava fato observável; FECHADO em 2026-07-13 pelo WI-152: evt-quotation-submitted (internal — fato intra-BC; a confidencialidade competitiva veta evento público, não o fato existir) torna a submissão observável e alimenta o mapa de cotações."
 	}, {
-		actorRef: "sh-08"
-		action:   "O comprador consolida o mapa de cotações — no mínimo três preços lado a lado — e compara preço, prazo de entrega, condições de pagamento e qualidade."
+		actorRef: "sh-05"
+		action:   "O agente da Mesh, à medida que as propostas chegam e no fecho da janela de cotação, aplica a regra publicada da categoria sobre o mapa de cotações e propõe ao comprador um fornecedor por material — com o motivo, a alternativa mais próxima e a diferença — separando o que a regra resolveu sem margem de dúvida do que exige julgamento humano: valor acima da alçada, proposta mais barata que falha em prazo ou quantidade, fornecedor sem histórico."
 		workItem: {
-			description:       "Apresentar ao comprador a comparação consolidada das cotações recebidas no RFQ para suportar a escolha."
+			description:       "Avaliar as cotações recebidas com as fitness rules versionadas da categoria e produzir a proposta de decisão — ranking, política de alocação recomendada e rationale por material — para ratificação humana. O agente propõe; não decide."
+			boundedContextRef: "ssc"
+			readModelRefs: ["prj-quotation-map"]
+			queryRefs: ["qry-quotation-map"]
+			termRefs: ["term-fitness-rules", "term-fitness-signals", "term-decision-rationale", "term-mapa-de-cotacoes"]
+		}
+		rationale: "O operador primário da plataforma entra na narrativa. sh-05 é declarado no stakeholder-map como 'o operador primário da plataforma (a Mesh é AI-operated)' e a story não tinha NENHUM passo dele — cinco atores humanos e zero agente, numa jornada que a tese diz ser operada por agente. A preparação da decisão EXISTE no modelo de agente: act-evaluate-and-conclude-rfq (propose-and-wait, human gate antes do emit) + act-generate-decision-rationale, sobre svc-fitness-rule-evaluator e inv-decision-rationale-required. Mas as refs deste passo ficam VAZIAS em comando e evento por LACUNA HONESTA (adr-170): o schema da story não referencia act-/svc-, e o domain-model do ssc não tem elemento para a proposta que aguarda ratificação — nem comando, nem evento, nem projection (prj-active-sourcing-decisions é pós-decisão). O agente prepara para o nada observável. Lacuna descoberta em 2026-09-03 por divergência entre dois artefatos de protótipo, cada um fiel a um lado: um encarnava o agent-spec (proposta do agente), outro encarnava o passo do mapa (comprador comparando sozinho) — a story era a fonte de ambos e não decidia entre eles."
+	}, {
+		actorRef: "sh-08"
+		action:   "O comprador lê a proposta da Mesh material a material: ratifica o que a regra resolveu e, onde discorda ou onde a regra não resolveu, abre o mapa de cotações — no mínimo três preços lado a lado — e compara ele mesmo preço, prazo de entrega, condições de pagamento e qualidade."
+		workItem: {
+			description:       "Apresentar ao comprador a comparação consolidada das cotações recebidas no RFQ para suportar a escolha, como caminho de desvio da proposta do passo anterior."
 			boundedContextRef: "ssc"
 			readModelRefs: ["prj-quotation-map"]
 			queryRefs: ["qry-quotation-map"]
 			termRefs: ["term-equalizacao-tco", "term-mapa-de-cotacoes"]
 		}
-		rationale: "O 'mapa de cotações' é o instrumento central do comprador nas fontes. No exame original (2026-07-12) o modelo tinha o conceito (equalização TCO como serviço interno) mas NENHUMA projection/query consultável — lacuna de leitura no coração da jornada; FECHADA em 2026-07-13 pelo WI-152: prj-quotation-map/qry-quotation-map materializam a comparação consolidada consultável (viva durante a janela de RFQ, carimbada pela decisão), refs deste passo."
+		rationale: "O 'mapa de cotações' é o instrumento central do comprador nas fontes. No exame original (2026-07-12) o modelo tinha o conceito (equalização TCO como serviço interno) mas NENHUMA projection/query consultável — lacuna de leitura no coração da jornada; FECHADA em 2026-07-13 pelo WI-152: prj-quotation-map/qry-quotation-map materializam a comparação consolidada consultável (viva durante a janela de RFQ, carimbada pela decisão), refs deste passo. Revisão de 2026-09-03: o passo descrevia o caminho manual como ÚNICO; passa a ser o DESVIO da proposta do agente. O mapa não perde centralidade — é para onde o comprador vai quando não ratifica, e é a mesa da negociação do passo seguinte."
 	}, {
 		actorRef: "sh-08"
-		action:   "O comprador negocia com os melhores colocados: não aceita o primeiro preço, busca reduzir o custo de aquisição e, principalmente, melhorar as condições de pagamento — o fluxo de caixa é o que evita a obra quebrar; havendo cronograma e espaço no canteiro, negocia volume com entregas programadas."
+		action:   "O comprador negocia com os melhores colocados: não aceita o primeiro preço, busca reduzir o custo de aquisição e, principalmente, melhorar as condições de pagamento — o fluxo de caixa é o que evita a obra quebrar; havendo cronograma e espaço no canteiro, negocia volume com entregas programadas. Parte do alvo de contraproposta que a Mesh prepara a partir da equalização e do histórico da categoria, e decide e envia."
 		workItem: {
 			description:       "Registrar as rodadas de negociação (contrapropostas, condições de pagamento, volume e programação de entregas) até as condições finais."
 			boundedContextRef: "ssc"
@@ -108,18 +119,29 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 			queryRefs: ["qry-quotation-map"]
 			termRefs: ["term-contraproposta", "term-rodada-de-negociacao", "term-condicoes-de-pagamento", "term-entregas-programadas"]
 		}
-		rationale: "O passo que as fontes chamam de 'arte' e apontam como o que salva o fluxo de caixa. No exame original (2026-07-12) era o vazio mais denso em valor da story — zero elementos em qualquer BC; FECHADO em 2026-07-28 pelo WI-161: rodadas de contraproposta→revisão|recusa intra-open (3 commands + 3 events internal, molde dos fatos de cotação — confidencialidade preservada), condições de pagamento e entregas programadas ESTRUTURADAS (vo-payment-terms/vo-delivery-schedule), e a regra de ouro inv-negotiated-terms-materialize-on-quotation: só a revisão do fornecedor materializa condições na cotação — o gate de procedência do adr-177 resolve o preço FINAL na cotação vencedora por construção ('as condições finais que a decisão formaliza'). A mesa da negociação é o próprio mapa (prj/qry-quotation-map, agora com as rodadas), refs deste passo."
+		rationale: "O passo que as fontes chamam de 'arte' e apontam como o que salva o fluxo de caixa. No exame original (2026-07-12) era o vazio mais denso em valor da story — zero elementos em qualquer BC; FECHADO em 2026-07-28 pelo WI-161: rodadas de contraproposta→revisão|recusa intra-open (3 commands + 3 events internal, molde dos fatos de cotação — confidencialidade preservada), condições de pagamento e entregas programadas ESTRUTURADAS (vo-payment-terms/vo-delivery-schedule), e a regra de ouro inv-negotiated-terms-materialize-on-quotation: só a revisão do fornecedor materializa condições na cotação — o gate de procedência do adr-177 resolve o preço FINAL na cotação vencedora por construção ('as condições finais que a decisão formaliza'). A mesa da negociação é o próprio mapa (prj/qry-quotation-map, agora com as rodadas), refs deste passo. Revisão de 2026-09-03: o alvo de contraproposta é preparado pelo agente (act-prepare-counter-proposal, propose-and-wait) e EMITIDO pelo comprador — quem invoca cmd-propose-counter-terms segue sendo sh-08, por isso as refs não mudam."
 	}, {
-		actorRef: "sh-09"
-		action:   "O gestor revisa a compra preparada pelo comprador e aprova no sistema, garantindo alinhamento com o planejamento estratégico e financeiro da construtora."
+		actorRef: "sh-08"
+		action:   "O comprador registra a decisão de sourcing — a proposta ratificada ou a escolha própria, com o motivo por material — e a cotação se conclui."
 		workItem: {
 			description:       "Formalizar a decisão de sourcing sobre a cotação vencedora, com rationale de decisão registrado."
 			boundedContextRef: "ssc"
 			commandRefs: ["cmd-make-one-shot-sourcing-decision"]
-			eventRefs: ["evt-sourcing-decision-made"]
-			termRefs: ["term-sourcing-decision", "term-decision-rationale"]
+			eventRefs: ["evt-sourcing-decision-made", "evt-rfq-concluded"]
+			termRefs: ["term-sourcing-decision", "term-one-shot-sourcing-decision", "term-decision-rationale"]
 		}
-		rationale: "A decisão formal EXISTE no modelo (sourcing decision, ssc). O portão MECÂNICO de alçada pré-pedido agora existe (2026-07-12, adr-174/WI-151): cmd-approve-purchase invoca o Gate de Cobertura do bdg (Saldo Disponível + Alçada) na aprovação da requisição, pré-pedido — a divergência de ordem do exame original ('a aprovação do bdg dispara noutro momento') morreu. A separação preparador×aprovador FECHOU em 2026-07-29 pelo WI-157 (def-076 resolved): sh-09 gestor-aprovador é o actorRef deste passo; a operacionalização do papel na borda (quem PODE aprovar) é o desenho de identidade do WI-158."
+		rationale: "A decisão formal EXISTE no modelo (sourcing decision, ssc) — este passo carrega a metade ssc do antigo passo 9. Revisão de 2026-09-03: o antigo passo 9 colapsava DOIS atos de atores distintos — a decisão de sourcing (ssc, ato do PREPARADOR) e a aprovação por Alçada (p2p, ato do APROVADOR) — e citava nos refs o comando da primeira sob o ator da segunda. O WI-157 (def-076 resolved) separou os papéis e o stakeholder-map descreve sh-09 como quem 'revisa a compra preparada pelo comprador e APROVA por Alçada'; os refs do passo não refletiam a separação. O desmembramento a materializa: adr-174 decisão 1 já ordenava 'cotação/decisão de sourcing no ssc → APROVAÇÃO com Gate de Cobertura' como estágios distintos. A atribuição do comando a sh-08 é inferência ratificada pelo founder (2026-09-03): o repositório não nomeia o invocador literalmente, e a leitura alternativa colapsaria a separação preparador×aprovador. Lacuna registrada: o campo decidedBy de cmd-make-one-shot-sourcing-decision é string nominal e NÃO distingue 'ratificou a proposta do agente' de 'escolheu por conta própria' — quando der errado, a auditoria não responde quem errou. Mesma forma estrutural que o def-080 já defere para #Command."
+	}, {
+		actorRef: "sh-09"
+		action:   "O gestor revisa a compra preparada pelo comprador — cobertura orçamentária, Alçada e a alternativa que o comprador preteriu — e aprova ou recusa com motivo, garantindo alinhamento com o planejamento estratégico e financeiro da construtora."
+		workItem: {
+			description:       "Aprovar a requisição triada sob o portão DUPLO pré-pedido: reserva de cobertura confirmada pelo Gate de Cobertura do bdg (Saldo Disponível + Alçada) e procedência de preço verificada contra a cotação vencedora do ssc."
+			boundedContextRef: "p2p"
+			commandRefs: ["cmd-approve-purchase"]
+			eventRefs: ["evt-purchase-approved", "evt-purchase-approval-rejected"]
+			termRefs: ["term-aprovar-compra", "term-compra-aprovada", "term-aprovacao-de-compra-recusada", "term-sourcing-authority"]
+		}
+		rationale: "O portão MECÂNICO de alçada pré-pedido agora existe (2026-07-12, adr-174/WI-151): cmd-approve-purchase invoca o Gate de Cobertura do bdg (Saldo Disponível + Alçada) na aprovação da requisição, pré-pedido — a divergência de ordem do exame original ('a aprovação do bdg dispara noutro momento') morreu. A separação preparador×aprovador FECHOU em 2026-07-29 pelo WI-157 (def-076 resolved): sh-09 gestor-aprovador é o actorRef deste passo; a operacionalização do papel na borda (quem PODE aprovar) é o desenho de identidade do WI-158. Revisão de 2026-09-03: o passo referenciava nos refs o comando da decisão de sourcing (ssc) sob o ator da aprovação; passa a referenciar o comando REAL do gate, cmd-approve-purchase (p2p), com os dois desfechos do selector de adr-160 (approve/reject). A aprovação NÃO é condicional a limiar: adr-174 decisão 1 põe 'Alçada e saldo são PRÉ-CONDIÇÃO da emissão' e o lifecycle não tem outra rota de triaged→approved — a Alçada é avaliada DENTRO do Gate de Cobertura, não é condição para o passo acontecer. A 'alternativa preterida' que o gestor lê vive na decisão de sourcing (vo-tradeoff, vo-decision-rationale do ssc), não no ato de aprovar — é referência entre agregados, não campo do comando."
 	}, {
 		actorRef: "sh-08"
 		action:   "O comprador converte a solicitação aprovada em pedido de compra oficial e o envia ao fornecedor, com prazo hábil para a entrega não interromper o cronograma (solicitação de quinta, entrega programada para segunda)."
@@ -145,5 +167,13 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		passo 1 permanece sem cerimônia própria POR DECISÃO (adr-178). Registro
 		canônico per adr-170; refs verificadas elemento a elemento contra os
 		domain-models dos BCs de cada passo.
+
+		Revisão de 2026-09-03: o agente (sh-05) entra na narrativa como
+		preparador da decisão de sourcing — a story tinha cinco atores humanos
+		e nenhum passo do operador primário da plataforma; e a decisão de
+		sourcing (ssc, sh-08) foi desmembrada da aprovação por Alçada (p2p,
+		sh-09), atos distintos que o antigo passo 9 colapsava contra a
+		separação fechada pelo WI-157. Origem da descoberta: divergência entre
+		dois artefatos de protótipo, cada um fiel a um lado da story.
 		"""
 }
