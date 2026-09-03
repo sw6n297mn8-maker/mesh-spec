@@ -21,7 +21,7 @@ package artifact_schemas
 // do modelo em todas as dimensões (ator, BC, comando, política, evento,
 // read-model, query).
 //
-// ELOS E GATES (todos born-warn per adr-097; promoção junto da 1ª story):
+// ELOS E GATES (nasceram born-warn per adr-097; PROMOVIDOS a reject em adr-171):
 // - actorRef → domain/stakeholder-map.cue (sc-ds-01, cross-file-id-exists)
 // - workItem.boundedContextRef → contexts/*/canvas.cue (sc-ds-02)
 // - subdomainRef → strategic/subdomains/*.cue (sc-ds-03)
