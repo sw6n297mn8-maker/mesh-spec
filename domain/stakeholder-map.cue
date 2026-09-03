@@ -17,7 +17,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/artifact-schemas:arti
 // 30/6 refs estruturais nos canvases, verificado por grep na fatia; a
 // story consome sh-01/sh-02 como actorRef). NOVOS: sh-07/08/09 — as
 // personas intra-org do lado-comprador que o adr-172 item 5 declarou
-// absorvidas em sh-01 Phase 0 e o passo 9 da ds-buyer-procurement-journey
+// absorvidas em sh-01 Phase 0 e o passo 11 da ds-buyer-procurement-journey
 // exigia separadas (preparador × aprovador). Personas são archetypes de
 // PESSOA no fluxo interno da originadora — posições no fluxo da
 // organização, NÃO tipos cadastrais de participante (adr-172 intocado:
@@ -385,7 +385,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			code:        "int-schedule-fidelity"
 			description: "Materiais certos chegando no prazo que o cronograma físico exige — a demanda que ele origina não pode virar ruptura de etapa."
 			priority:    "critical"
-			rationale:   "Fonte: passo 1 ('o que as próximas etapas vão exigir — quantidades, especificações e prazos') e passo 10 ('prazo hábil para a entrega não interromper o cronograma')."
+			rationale:   "Fonte: passo 1 ('o que as próximas etapas vão exigir — quantidades, especificações e prazos') e passo 12 ('prazo hábil para a entrega não interromper o cronograma')."
 		}]
 		painPoints: [{
 			code:        "pp-untraceable-demand-origin"
@@ -412,7 +412,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 	}, {
 		code:        "sh-08"
 		name:        "Comprador"
-		description: "Persona do lado-comprador: o profissional de suprimentos que tria a fila de requisições, verifica fornecedores homologados, abre a cotação, consolida o mapa, NEGOCIA com os melhores colocados e converte a aprovação em pedido (passos 3-5, 7-8 e 10 da ds-buyer-procurement-journey; o glossário do p2p canoniza term-comprador). Archetype de PESSOA no fluxo interno da originadora (sh-01) — posição no fluxo, não tipo cadastral (adr-172 intocado)."
+		description: "Persona do lado-comprador: o profissional de suprimentos que tria a fila de requisições, verifica fornecedores homologados, abre a cotação, consolida o mapa, NEGOCIA com os melhores colocados e converte a aprovação em pedido (passos 3-5, 8-9 e 12 da ds-buyer-procurement-journey; o glossário do p2p canoniza term-comprador). Archetype de PESSOA no fluxo interno da originadora (sh-01) — posição no fluxo, não tipo cadastral (adr-172 intocado)."
 		category:    "network-participant"
 		platformRelationships: ["direct-user"]
 		interests: [{
@@ -424,12 +424,12 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			code:        "int-payment-terms-leverage"
 			description: "Condições de pagamento melhores — o eixo da negociação que protege o fluxo de caixa da obra."
 			priority:    "critical"
-			rationale:   "Fonte: passo 8 da story ('principalmente, melhorar as condições de pagamento — o fluxo de caixa é o que evita a obra quebrar'); estruturado no WI-161 (vo-payment-terms)."
+			rationale:   "Fonte: passo 9 da story ('principalmente, melhorar as condições de pagamento — o fluxo de caixa é o que evita a obra quebrar'); estruturado no WI-161 (vo-payment-terms)."
 		}, {
 			code:        "int-comparable-map"
 			description: "Comparação consolidada e equalizada (preço, prazo, condições, qualidade) em vez de planilha manual."
 			priority:    "important"
-			rationale:   "Fonte: passo 7 da story ('consolida o mapa de cotações... e compara') — o instrumento central da persona, materializado no prj-quotation-map."
+			rationale:   "Fonte: passo 8 da story ('consolida o mapa de cotações... e compara') — o instrumento central da persona, materializado no prj-quotation-map."
 		}]
 		painPoints: [{
 			code:        "pp-manual-quotation-map"
@@ -442,7 +442,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			description: "Negociar condições de pagamento sem instrumento — rodadas por telefone/e-mail, sem registro das contrapropostas nem do delta obtido; o que salva o caixa da obra não deixava rastro."
 			costRef:     "ce-05"
 			severity:    "degrading"
-			rationale:   "Derivado do passo 8 da story (fechado pelo WI-161: rodadas registradas, preço inicial vs vigente observável). LACUNA NOMEADA (calibração D4): ce-05 é o custo de capital da organização (bearer sh-01) que a negociação da persona protege — o fit é pelo custo defendido, não por bearer; sem ce novo."
+			rationale:   "Derivado do passo 9 da story (fechado pelo WI-161: rodadas registradas, preço inicial vs vigente observável). LACUNA NOMEADA (calibração D4): ce-05 é o custo de capital da organização (bearer sh-01) que a negociação da persona protege — o fit é pelo custo defendido, não por bearer; sem ce novo."
 		}]
 		incentiveProfile: {
 			desiredOutcomes: [
@@ -465,18 +465,18 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			}]
 			rationale: "O comprador é o protagonista operacional da jornada (6 dos 10 passos) e o operador humano dos dois vetores conhecidos do lado-comprador — dp-08 exige nomeá-los na persona que os executa, não só na organização."
 		}
-		rationale: "O protagonista assume a jornada na triagem (passo 3) e a conduz até o pedido (passo 10) — o glossário do p2p já canonizava term-comprador; o mapa agora dá à persona identidade própria para a story (actorRef dos passos 3-5, 7-8, 10) e para o modelo de identidade do WI-158 (quem prepara ≠ quem aprova)."
+		rationale: "O protagonista assume a jornada na triagem (passo 3) e a conduz até o pedido (passo 12) — o glossário do p2p já canonizava term-comprador; o mapa agora dá à persona identidade própria para a story (actorRef dos passos 3-5, 8-9, 12) e para o modelo de identidade do WI-158 (quem prepara ≠ quem aprova)."
 	}, {
 		code:        "sh-09"
 		name:        "Gestor aprovador"
-		description: "Persona do lado-comprador: o gestor que revisa a compra preparada pelo comprador e APROVA por Alçada — o de-acordo humano do portão duplo pré-pedido (passo 9 da ds-buyer-procurement-journey; adr-174 braço de cobertura + adr-177 braço de procedência). Archetype de PESSOA no fluxo interno da originadora (sh-01) — posição no fluxo, não tipo cadastral (adr-172 intocado). A separação preparador (sh-08) × aprovador (sh-09) é a segregação que o passo 9 exigia e o def-076 deferiu."
+		description: "Persona do lado-comprador: o gestor que revisa a compra preparada pelo comprador e APROVA por Alçada — o de-acordo humano do portão duplo pré-pedido (passo 11 da ds-buyer-procurement-journey; adr-174 braço de cobertura + adr-177 braço de procedência). Archetype de PESSOA no fluxo interno da originadora (sh-01) — posição no fluxo, não tipo cadastral (adr-172 intocado). A separação preparador (sh-08) × aprovador (sh-09) é a segregação que o passo 11 exigia e o def-076 deferiu."
 		category:    "network-participant"
 		platformRelationships: ["direct-user"]
 		interests: [{
 			code:        "int-informed-approval"
 			description: "Aprovar com os dois braços provados — cobertura reservada (bdg) e procedência de preço contra a cotação vencedora (ssc) — em vez de confiar em prosa."
 			priority:    "critical"
-			rationale:   "Fonte: passo 9 da story ('garantindo alinhamento com o planejamento estratégico e financeiro') mecanizado pelo portão duplo adr-174/adr-177 — o instrumento da persona."
+			rationale:   "Fonte: passo 11 da story ('garantindo alinhamento com o planejamento estratégico e financeiro') mecanizado pelo portão duplo adr-174/adr-177 — o instrumento da persona."
 		}, {
 			code:        "int-identifiable-accountability"
 			description: "Responsabilidade identificável pelo de-acordo — quem aprovou, sob qual alçada, com que evidência."
@@ -488,7 +488,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			description: "Aprovar compras revisando documentos dispersos, sem gate que prove cobertura e procedência — o de-acordo era assinatura sobre confiança, não sobre verificação."
 			costRef:     "ce-02"
 			severity:    "degrading"
-			rationale:   "Derivado do passo 9 da story + rationale do exame original ('a atribuição do de-acordo a um papel-gestor específico aguarda os papéis intra-org'). LACUNA NOMEADA (calibração D4): ce-02 (compliance documental, bearer tomador) é o custo canônico mais próximo — a aprovação manual é uma das suas formas; sem ce por-persona nesta fatia."
+			rationale:   "Derivado do passo 11 da story + rationale do exame original ('a atribuição do de-acordo a um papel-gestor específico aguarda os papéis intra-org'). LACUNA NOMEADA (calibração D4): ce-02 (compliance documental, bearer tomador) é o custo canônico mais próximo — a aprovação manual é uma das suas formas; sem ce por-persona nesta fatia."
 		}]
 		incentiveProfile: {
 			desiredOutcomes: [
@@ -504,7 +504,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			}]
 			rationale: "A persona existe para ser o controle humano do portão — seu vetor único é a abdicação desse controle; nomeá-lo é o que torna a taxa de supervised-approvals um observável de design, não só métrica operacional."
 		}
-		rationale: "O passo 9 da story exigia a separação preparador×aprovador que o mapa não tinha (adr-172 item 5: absorção Phase 0; def-076: re-autoria deferida) — sh-09 encerra a absorção e dá ao WI-158 o papel que o modelo de identidade referencia para o de-acordo por Alçada. actorRef do passo 9 re-apontado nesta fatia; termo de glossário do gestor entra com o desenho de identidade (lacuna nomeada no adr-172, fora desta fatia)."
+		rationale: "O passo 11 da story exigia a separação preparador×aprovador que o mapa não tinha (adr-172 item 5: absorção Phase 0; def-076: re-autoria deferida) — sh-09 encerra a absorção e dá ao WI-158 o papel que o modelo de identidade referencia para o de-acordo por Alçada. actorRef do passo 11 re-apontado nesta fatia; termo de glossário do gestor entra com o desenho de identidade (lacuna nomeada no adr-172, fora desta fatia)."
 	}]
 
 	rationale: "Re-autoria completa na shape v1 (WI-157; resolve def-076): 9 archetypes — 2 organizações da cadeia (sh-01/sh-02), 3 personas intra-org do lado-comprador (sh-07/08/09 — fim da absorção Phase 0 do adr-172 item 5; a story re-aponta os actorRefs e o WI-158 ganha os papéis que o modelo de identidade referencia), 1 funder (sh-03, vetores derivados de domínio financeiro — calibração D4), 1 regulador (sh-04, ce-02 como espelho honesto sem dor inventada), o operador-agente (sh-05, platform-operator — vetores verbatim dos canvases) e a classe adversarial canônica (sh-06, adversarial-actor-class per adr-181 — os 5 vetores R4+++ com lares verificados nos 6 canvases consumidores). Todos os painPoints rastreiam a ce-01..07 do domain-definition; onde o fit por-persona é imperfeito, a lacuna está NOMEADA no rationale do painPoint (sem ce novo nesta fatia — calibração D4). Ids sh-01..06 preservados (115 refs estruturais em canvases seguem válidas); sh-07/08/09 aguardam referência de canvas (esperado: sc-sm-02 warn até a operacionalização das personas no WI-158+)."
