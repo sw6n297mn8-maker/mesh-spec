@@ -250,17 +250,17 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:           "value-object-ref"
 			name:           "amount"
 			valueObjectRef: "vo-money"
-			description:    "Valor aprovado — declarado pelo gestor e VERIFICADO contra a cotação vencedora do sourcing (ssc) pelo 2º braço do portão (unitPrice × quantity == amount + currency match; inv-approval-amount-matches-winning-quotation, adr-177), reservado pelo Gate de Cobertura. A fonte-de-verdade do preço unitário é a cotação no ssc; a procedência do valor aprovado é provada no disco, não confiada."
+			description:    "Valor TOTAL aprovado — declarado pelo gestor e VERIFICADO como soma das linhas pelo 2º braço do portão (por linha: unitPrice × quantity == lineAmount + currency match; total: Σ lineAmount == amount; inv-approval-amount-matches-winning-quotation, adr-177/adr-198), reservado pelo Gate de Cobertura. A fonte-de-verdade do preço unitário é a linha da cotação no ssc; a procedência do valor aprovado é provada no disco, não confiada."
 		}, {
 			kind:        "primitive"
 			name:        "sourcingDecisionRef"
 			type:        "string"
-			description: "Decisão de sourcing cuja cotação vencedora precificou a compra aprovada — língua ssc (sourcingDecisionId; identidade canônica vive no ssc vo-sourcing-decision-id). O elo formal requisição↔cotação (adr-177) viaja no evento: a procedência do valor é auditável a partir do próprio fato, sem reconstrução."
+			description: "Decisão de sourcing cujos item-awards precificaram a compra aprovada — língua ssc (sourcingDecisionId; identidade canônica vive no ssc vo-sourcing-decision-id). O elo (adr-177/adr-198) viaja no evento: a procedência do valor é auditável a partir do próprio fato, sem reconstrução."
 		}, {
-			kind:        "primitive"
-			name:        "quantity"
-			type:        "decimal"
-			description: "Quantidade FIRME aprovada — base da fórmula verificada pelo 2º braço do portão (unitPrice × quantity == amount; adr-177)."
+			kind:        "domain-type"
+			name:        "lines"
+			type:        "ApprovalLineList"
+			description: "Linhas aprovadas (vo-approval-line, adr-198) — o elo requisição-item ↔ item-da-decisão ↔ linha-da-cotação viaja no fato; a quantity FIRME vive por linha (o singular do adr-177 migrou)."
 		}, {
 			kind:        "primitive"
 			name:        "coverageReservationRef"
@@ -582,8 +582,8 @@ domainModel: artifact_schemas.#DomainModel & {
 		firstClassReason: "financial"
 		coreNoun:         "Approve Purchase"
 		name:        "ApprovePurchase"
-		description: "Decisão de aprovação do gestor por Alçada sobre requisição triada — Sync, decision approve | reject. PRÉ-CONDIÇÕES do approve (portão DUPLO, padrão adr-055): (1) reserva de cobertura CONFIRMADA pelo Gate de Cobertura do bdg (cmd-approve-budget sync: Saldo Disponível suficiente + Alçada satisfeita) — inv-approval-requires-coverage-reservation (adr-174); (2) procedência de preço VERIFICADA contra a cotação vencedora do ssc (sourcingDecisionRef resolve a cotação; unitPrice × quantity == amount + currency match) — inv-approval-amount-matches-winning-quotation (adr-177). Falha de QUALQUER braço: requisição permanece triaged (escalada supervisionada); reject do gestor: triaged→rejected."
-		rationale:   "O de-acordo do gestor como pré-condição da emissão — a ordem que o setor de compras vive (adr-174 decisão 1). O mecanismo bdg é integralmente reusado: muda o invocador e o momento (pré-pedido), não o gate. Two-phase Reservation/Confirmation §2.0.8: approve RESERVA; commitment EFETIVA (WI-153); cancel LIBERA. Outcome-split approve/reject via selectors per adr-160. O amount permanece campo de ENTRADA — o gestor declara o valor (ato de autoridade humana real) — e o 2º braço determinístico do portão prova a procedência contra a cotação vencedora do ssc via sourcingDecisionRef (elo formal requisição↔cotação, adr-177 — resolve def-079); divergência não transiciona e escala."
+		description: "Decisão de aprovação do gestor por Alçada sobre requisição triada — Sync, decision approve | reject. PRÉ-CONDIÇÕES do approve (portão DUPLO, padrão adr-055): (1) reserva de cobertura CONFIRMADA pelo Gate de Cobertura do bdg (cmd-approve-budget sync: Saldo Disponível suficiente + Alçada satisfeita) sobre o amount TOTAL — inv-approval-requires-coverage-reservation (adr-174; o braço bdg não é tocado por item); (2) procedência de preço VERIFICADA POR LINHA contra a decisão do ssc (cada vo-approval-line resolve o item-award awarded e sua linha vencedora; unitPrice × quantity == lineAmount por linha; currency match; Σ lineAmount == amount) — inv-approval-amount-matches-winning-quotation (adr-177 reexpresso pelo adr-198). Falha de QUALQUER braço: requisição permanece triaged (escalada supervisionada); reject do gestor: triaged→rejected."
+		rationale:   "O de-acordo do gestor como pré-condição da emissão — a ordem que o setor de compras vive (adr-174 decisão 1). O mecanismo bdg é integralmente reusado: muda o invocador e o momento (pré-pedido), não o gate. Two-phase Reservation/Confirmation §2.0.8: approve RESERVA; commitment EFETIVA (WI-153); cancel LIBERA. Outcome-split approve/reject via selectors per adr-160. O amount permanece campo de ENTRADA — o gestor declara o valor (ato de autoridade humana real) — e o 2º braço determinístico do portão prova a procedência POR LINHA contra a decisão do ssc via sourcingDecisionRef + sourcingItemId (o elo no nível do item, adr-198 — resolve def-088; a linha de aprovação É o elo); divergência não transiciona e escala."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "requisitionId"
@@ -602,17 +602,17 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:           "value-object-ref"
 			name:           "amount"
 			valueObjectRef: "vo-money"
-			description:    "Valor da compra a aprovar — declarado pelo gestor (campo de ENTRADA; ato de autoridade humana) e VERIFICADO pelo 2º braço do portão contra a cotação vencedora do ssc (unitPrice × quantity == amount + currency match — inv-approval-amount-matches-winning-quotation, adr-177). É sobre este valor que o Gate de Cobertura avalia Saldo Disponível + Alçada."
+			description:    "Valor TOTAL da compra a aprovar — declarado pelo gestor (campo de ENTRADA; ato de autoridade humana) e VERIFICADO como SOMA das linhas pelo 2º braço (Σ lineAmount == amount; cada linha provada contra a linha vencedora — adr-198). É sobre este valor que o Gate de Cobertura avalia Saldo Disponível + Alçada (braço bdg intocado por item)."
 		}, {
 			kind:        "primitive"
 			name:        "sourcingDecisionRef"
 			type:        "string"
-			description: "Decisão de sourcing cuja cotação vencedora precifica esta compra — língua ssc (sourcingDecisionId; identidade canônica vive no ssc vo-sourcing-decision-id; padrão primitive ref cross-BC de costCenterRef/claimedAuthorityRef: p2p referencia, ssc mantém). O elo formal requisição↔cotação (adr-177): o 2º braço resolve a cotação vencedora por este ref via QueryQuotationMap."
+			description: "Decisão de sourcing cujos item-awards precificam esta compra — língua ssc (sourcingDecisionId; identidade canônica vive no ssc vo-sourcing-decision-id; padrão primitive ref cross-BC de costCenterRef/claimedAuthorityRef: p2p referencia, ssc mantém). O elo (adr-177/adr-198): cada linha resolve seu item-award por este ref + sourcingItemId via QueryQuotationMap."
 		}, {
-			kind:        "primitive"
-			name:        "quantity"
-			type:        "decimal"
-			description: "Quantidade FIRME sendo comprada — declarada pelo gestor no ato da aprovação. Base da fórmula do 2º braço: unitPrice (cotação vencedora) × quantity == amount. Distinta de scope.estimatedVolume (estimativa da submissão — NUNCA base de reconciliação; adr-177)."
+			kind:        "domain-type"
+			name:        "lines"
+			type:        "ApprovalLineList"
+			description: "Lista de vo-approval-line (≥1) — o elo no nível do item (adr-198): requisitionItemId + sourcingItemId + quantity FIRME + lineAmount por linha. O quantity singular do adr-177 migrou para cá. quantity estimada do escopo NUNCA é base de reconciliação."
 		}, {
 			kind:        "primitive"
 			name:        "coverageReservationRef"
@@ -726,8 +726,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:      "inv-approval-amount-matches-winning-quotation"
 		name:      "Aprovação Exige Procedência de Preço da Cotação Vencedora (2º Braço do Portão adr-177)"
-		rule:      "Transição triaged→approved (decision approve) EXIGE procedência de preço verificada contra o ssc ANTES de efetivar: (a) sourcingDecisionRef aponta para decisão de sourcing existente e concluída; (b) a cotação VENCEDORA dessa decisão é resolvível — one-shot: vencedor único, resolução trivial; preferred/strategic multi-supplier: cotação vencedora ambígua → escalada ambiguous-case, o gate NÃO efetiva (espelho do padrão multi-supplier da emissão); (c) currency da cotação vencedora == currency do amount; (d) unitPrice (cotação vencedora) × quantity (firme, declarada no command) == amount. Divergência em qualquer verificação NÃO transiciona — requisição permanece triaged + escalada supervisionada. A base da fórmula é quantity FIRME; scope.estimatedVolume (estimativa) NUNCA é base de reconciliação."
-		rationale: "2º braço do portão de aprovação (adr-177, resolve def-079): o 1º braço prova COBERTURA (bdg: saldo + alçada); este prova PROCEDÊNCIA (ssc: o valor aprovado é o da cotação certa). Transforma 'confio que o valor é o da cotação vencedora' em 'o disco prova a procedência do valor aprovado' — fecha o furo de auditoria da SCD. Mesma mecânica determinística do braço bdg (falha de gate não transiciona, escala — P10); a decisão do gestor permanece humana (amount é entrada verificada, não derivação). Cross-BC dependency declarada per adr-055."
+		rule:      "Transição triaged→approved (decision approve) EXIGE procedência de preço verificada POR LINHA contra o ssc ANTES de efetivar (adr-198): (a) sourcingDecisionRef aponta para decisão de sourcing existente e concluída; (b) POR LINHA: sourcingItemId resolve um vo-item-award com outcome=awarded e a linha da cotação vencedora é resolvível — linha de aprovação contra item no-quotation/withheld NÃO efetiva e escala (não se aprova dinheiro contra linha sem proposta vencedora); no one-shot o vencedor por item é único POR CONSTRUÇÃO (o ambíguo dissolve); decisão preferred/strategic sem itens → escalada ambiguous-case preservada (adr-177); (c) POR LINHA: currency da cotação vencedora == currency do lineAmount/amount; (d) POR LINHA: unitPrice (linha vencedora) × quantity (firme, da vo-approval-line) == lineAmount — igualdade exata; (e) TOTAL: Σ lineAmount == amount. Divergência em qualquer verificação NÃO transiciona — requisição permanece triaged + escalada supervisionada. A base da fórmula é a quantity FIRME das linhas; a quantity estimada do escopo NUNCA é base de reconciliação."
+		rationale: "2º braço do portão de aprovação (adr-177, reexpresso pelo adr-198 sob a falsificação (a) disparada): o 1º braço prova COBERTURA (bdg: saldo + alçada, sobre o amount total — intocado por item); este prova PROCEDÊNCIA linha a linha (ssc: cada valor de linha é o da linha vencedora certa) com o total como soma. A forma aritmética acompanhou o domínio (a adjudicação real é por linha, com vencedores distintos por item); a pergunta e a mecânica não mudaram — falha de gate não transiciona, escala (P10); a decisão do gestor permanece humana (amount e lines são entrada verificada, não derivação). Cross-BC dependency declarada per adr-055."
 		dependsOnAggregateState: {
 			boundedContextRef: "ssc"
 			aggregateRef:      "agg-sourcing-process"
@@ -847,15 +847,12 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-purchase-scope"
 		name:        "PurchaseScope"
-		description: "Descrição estruturada do escopo de um Pedido de Compra — descrição do item/serviço, volume estimado, prazo de entrega, location relevante. Alinhado nominalmente com SSC vo-rfq-scope para coerência cross-BC vocabulary (estimatedVolume + deadline + location)."
+		description: "Descrição estruturada do escopo — requisição E pedido usam a mesma VO. Per adr-198: prazo e location no nível do escopo; o CONTEÚDO é a lista de itens (vo-purchase-item, ≥1) — description/estimatedVolume singulares migraram para os itens. Alinhado nominalmente com SSC vo-rfq-scope (itemizado da mesma forma) para coerência cross-BC vocabulary."
 		fields: [{
-			kind: "primitive"
-			name: "description"
-			type: "string"
-		}, {
-			kind: "primitive"
-			name: "estimatedVolume"
-			type: "decimal"
+			kind:        "domain-type"
+			name:        "items"
+			type:        "PurchaseItemList"
+			description: "Lista de vo-purchase-item (≥1) — os itens da demanda/pedido, cada um com identidade LOCAL (itemId). A linha de aprovação (vo-approval-line) referencia estes itens (adr-198)."
 		}, {
 			kind: "primitive"
 			name: "deadline"
@@ -865,7 +862,58 @@ domainModel: artifact_schemas.#DomainModel & {
 			name: "location"
 			type: "string"
 		}]
-		rationale: "Estruturação do escopo de PO é precondição de emit válido. estimatedVolume sustenta allocation tracking aggregate-level (prj-allocation-tracking computa volume agregado por authorityRef + supplier + category). Nomenclatura alinhada com SSC vo-rfq-scope (estimatedVolume + deadline) per cross-BC vocabulary consistency — drift prévio (requestedVolume + deliveryDeadline + unit) corrigido mecanicamente sem rationale defensável para divergência. Unit removido: não usado em invariants nem allocation tracking; sustentação prévia era especulativa. Quando unit emergir como conceito primário (e.g., per-categoryRef unit canonization), formalizar como VO próprio ou extension."
+		rationale: "Estruturação do escopo é precondição de submit/emit válido. Itemizado per adr-198 em espelho do vo-rfq-scope — o caso do caminhão nasce aqui: a requisição sempre descreveu vários materiais; sem itens, a granularidade fina morre na porta. O volume por item sustenta allocation tracking; unit volta como string DECLARADA no item (a remoção anterior registrava 'quando unit emergir como conceito primário, formalizar' — emergiu; canonização deferida em def-093)."
+	}, {
+		code:        "vo-purchase-item"
+		name:        "PurchaseItem"
+		description: "Um item do escopo de requisição/pedido — identidade LOCAL ao aggregate (itemId); mesma forma do vo-rfq-item do ssc (adr-198). Não é entity: declaração de demanda, não coisa mutável — o saldo por item do recebimento (def-091) herdará itemId + quantity + unit desta linha (adr-198 N4)."
+		fields: [{
+			kind:        "primitive"
+			name:        "itemId"
+			type:        "string"
+			description: "Identidade LOCAL à requisição/pedido — endereçamento externo pelo par (requisitionId|purchaseOrderId) + itemId."
+		}, {
+			kind: "primitive"
+			name: "description"
+			type: "string"
+		}, {
+			kind:        "primitive"
+			name:        "quantity"
+			type:        "decimal"
+			description: "Quantidade declarada do item — na requisição, estimativa da demanda; a quantity FIRME da compra é declarada na linha de aprovação (vo-approval-line, adr-198)."
+		}, {
+			kind:        "primitive"
+			name:        "unit"
+			type:        "string"
+			description: "Unidade de medida DECLARADA (string) — canonização/normalização deferida em def-093."
+		}]
+		rationale: "Materializa a primitiva do item no p2p (adr-198, resolve def-087 do lado da demanda): a requisição descreve vários materiais desde sempre — o item dá a cada material a linha onde a triagem, a aprovação e (futuramente, def-091) o recebimento podem falar dele."
+	}, {
+		code:        "vo-approval-line"
+		name:        "ApprovalLine"
+		description: "Uma linha da aprovação — O ELO requisição↔cotação no nível do item (adr-198, resolve def-088): requisitionItemId (item da própria requisição) + sourcingItemId (língua ssc: o itemId dentro da decisão referenciada por sourcingDecisionRef) + quantity FIRME declarada pelo gestor + lineAmount. O 2º braço do portão verifica POR LINHA: unitPrice(linha vencedora) × quantity == lineAmount, e Σ lineAmount == amount. Nasce no p2p, no ato da aprovação — nada entra em cmd-open-rfq nem no agg-sourcing-process; (i-b) segue rejeitada (adr-177)."
+		fields: [{
+			kind:        "primitive"
+			name:        "requisitionItemId"
+			type:        "string"
+			description: "Item da requisição sendo comprado (ref local ao vo-purchase-item do scope da própria requisição)."
+		}, {
+			kind:        "primitive"
+			name:        "sourcingItemId"
+			type:        "string"
+			description: "Item da decisão de sourcing que precifica esta linha — língua ssc (itemId do vo-item-award dentro da decisão referenciada por sourcingDecisionRef); o gate exige outcome=awarded."
+		}, {
+			kind:        "primitive"
+			name:        "quantity"
+			type:        "decimal"
+			description: "Quantidade FIRME da linha, declarada pelo gestor no ato da aprovação — base da fórmula por linha (adr-177/adr-198). Distinta da quantity estimada do item do escopo."
+		}, {
+			kind:           "value-object-ref"
+			name:           "lineAmount"
+			valueObjectRef: "vo-money"
+			description:    "Valor da linha — verificado por unitPrice(linha vencedora) × quantity == lineAmount; o amount total é a soma das lineAmounts."
+		}]
+		rationale: "O terceiro nível do elo (adr-198): itens de N requisições podem apontar, em N aprovações, para o mesmo item de uma decisão — o modelo categoria-escopado do ssc intocado, a agregação (def-089) permitida por construção sem ser modelada. Item awarded ausente das lines é legítimo (compra-se o subconjunto — espelho da proposta parcial)."
 	}, {
 		code:        "vo-cancellation-reason"
 		name:        "CancellationReason"
@@ -1038,6 +1086,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-category-ref",
 			"vo-money",
 			"vo-purchase-scope",
+			"vo-purchase-item",
 			"vo-cancellation-reason",
 		]
 
@@ -1175,10 +1224,10 @@ domainModel: artifact_schemas.#DomainModel & {
 			type:        "string"
 			description: "Decisão de sourcing cuja cotação vencedora precificou a compra — língua ssc; presente quando status=approved (preservada em converted para auditoria da procedência do valor, adr-177). O elo requisição↔cotação persiste no aggregate."
 		}, {
-			kind:        "primitive"
-			name:        "quantity"
-			type:        "decimal"
-			description: "Quantidade firme aprovada — presente quando status=approved; base da fórmula do 2º braço (unitPrice × quantity == amount; adr-177)."
+			kind:        "domain-type"
+			name:        "approvalLines"
+			type:        "ApprovalLineList"
+			description: "Linhas aprovadas (vo-approval-line, adr-198) — presentes quando status=approved (preservadas em converted para auditoria do elo por item e da procedência por linha). O quantity singular do adr-177 migrou para cá."
 		}, {
 			kind:           "value-object-ref"
 			name:           "purchaseOrderRef"
@@ -1277,7 +1326,7 @@ domainModel: artifact_schemas.#DomainModel & {
 						terminam).
 						"""
 				}
-				description: "Gestor aprova COM reserva de cobertura confirmada pelo Gate de Cobertura (Saldo Disponível + Alçada, sync) E procedência de preço verificada contra a cotação vencedora do ssc (unitPrice × quantity == amount, sync) — triaged → approved + evt-purchase-approved. O PORTÃO DUPLO (adr-174 + adr-177)."
+				description: "Gestor aprova COM reserva de cobertura confirmada pelo Gate de Cobertura (Saldo Disponível + Alçada, sync, sobre o amount total) E procedência de preço verificada POR LINHA contra a decisão do ssc (unitPrice × quantity == lineAmount por linha; Σ lineAmount == amount, sync) — triaged → approved + evt-purchase-approved. O PORTÃO DUPLO (adr-174 + adr-177/adr-198)."
 			}, {
 				from:               "triaged"
 				to:                 "rejected"
@@ -1348,6 +1397,8 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-requisition-id",
 			"vo-category-ref",
 			"vo-purchase-scope",
+			"vo-purchase-item",
+			"vo-approval-line",
 			"vo-purchase-order-id",
 			"vo-cancellation-reason",
 		]

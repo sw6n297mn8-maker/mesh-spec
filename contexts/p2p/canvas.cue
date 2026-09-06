@@ -250,7 +250,7 @@ canvas: artifact_schemas.#Canvas & {
 			type:          "query-dependency"
 			targetContext: "ssc"
 			query:         "QueryQuotationMap"
-			purpose:       "2º braço do PORTÃO de aprovação (adr-177): no cmd-approve-purchase, P2P resolve a cotação vencedora referenciada por sourcingDecisionRef e verifica a procedência do preço (currency match + unitPrice × quantity == amount) — pré-condição inv-approval-amount-matches-winning-quotation."
+			purpose:       "2º braço do PORTÃO de aprovação (adr-177, reexpresso pelo adr-198): no cmd-approve-purchase, P2P resolve POR LINHA o item-award da decisão referenciada (sourcingDecisionRef + sourcingItemId) e verifica a procedência do preço (outcome=awarded; currency match por linha; unitPrice × quantity == lineAmount; Σ lineAmount == amount) — pré-condição inv-approval-amount-matches-winning-quotation."
 			description:   "Espelho estrutural do braço ssc do portão DUPLO (adr-055 — mesmo shape do braço bdg QueryBudgetApprovalStatus na entry acima). Query-only sync, call-site fora do grafo per adr-120. Cross-checked com strategic/context-map.cue (ssc-to-p2p, hybrid: events + queries per adr-177)."
 		}, {
 			type:          "query-dependency"

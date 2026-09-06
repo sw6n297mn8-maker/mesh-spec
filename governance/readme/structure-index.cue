@@ -203,7 +203,8 @@ structureIndex: {
 				"architecture/adrs/adr-194-establish-design-system-constitution.cue",
 				"architecture/adrs/adr-195-constitution-token-binding-and-evidence-reopening.cue",
 				"architecture/adrs/adr-196-materialize-sourcing-decision-proposal.cue",
-				"architecture/adrs/adr-197-exception-declares-responder.cue"
+				"architecture/adrs/adr-197-exception-declares-responder.cue",
+				"architecture/adrs/adr-198-quotation-item-primitive-and-line-level-gate.cue"
 			],
 			"schema": "#ADRBase"
 		},
@@ -684,7 +685,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-089-requisition-aggregation-into-rfq.cue",
 				"architecture/deferred-decisions/def-090-fitness-signals-provenance-verification.cue",
 				"architecture/deferred-decisions/def-091-goods-receipt-per-item.cue",
-				"architecture/deferred-decisions/def-092-exception-responder-mechanization.cue"
+				"architecture/deferred-decisions/def-092-exception-responder-mechanization.cue",
+				"architecture/deferred-decisions/def-093-unit-of-measure-canonization.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},

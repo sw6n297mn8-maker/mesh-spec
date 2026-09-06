@@ -110,14 +110,19 @@ domainModel: artifact_schemas.#DomainModel & {
 			valueObjectRef: "vo-category-ref"
 		}, {
 			kind:        "domain-type"
+			name:        "itemAwards"
+			type:        "ItemAwardList"
+			description: "Lista de vo-item-award cobrindo TODOS os itens do escopo (adr-198) — cada linha com outcome (awarded | no-quotation | withheld; nomes indicativos, glossário decide na fatia). A adjudicação POR LINHA; a conclusão não exige adjudicação total."
+		}, {
+			kind:        "domain-type"
 			name:        "selectedSuppliers"
 			type:        "SupplierRefList"
-			description: "Lista de SupplierRef (≥1; tipicamente 1; multi-supplier suportado)."
+			description: "Lista de SupplierRef (≥1) — DERIVADA dos itemAwards per adr-198 (união dos awardedSupplierRef); mantida no payload para consumidores que operam no nível da decisão."
 		}, {
 			kind:           "value-object-ref"
 			name:           "allocationPolicy"
 			valueObjectRef: "vo-allocation-policy"
-			description:    "Política de allocation (single ou split)."
+			description:    "Política de allocation — single/split DERIVADO dos itemAwards per adr-198 (vencedores distintos por linha = split concreto)."
 		}, {
 			kind:           "value-object-ref"
 			name:           "decisionRationale"
@@ -326,17 +331,14 @@ domainModel: artifact_schemas.#DomainModel & {
 			name:           "supplierRef"
 			valueObjectRef: "vo-supplier-ref"
 		}, {
-			kind: "primitive"
-			name: "unitPrice"
-			type: "decimal"
+			kind:        "domain-type"
+			name:        "lines"
+			type:        "QuotationLineList"
+			description: "Lista de vo-quotation-line (≥1) — preço por item (adr-198); espelho do command, nenhum dado novo nasce aqui."
 		}, {
 			kind: "primitive"
 			name: "currency"
 			type: "string"
-		}, {
-			kind: "primitive"
-			name: "declaredCapacity"
-			type: "decimal"
 		}, {
 			kind: "primitive"
 			name: "termsNotes"
@@ -397,8 +399,8 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:        "evt-quotation-revised"
 		name:        "QuotationRevised"
 		visibility:  "internal"
-		description: "Fornecedor revisa a própria cotação durante a janela (intra-open) — tipicamente em resposta a contraproposta. A revisão MATERIALIZA as condições negociadas na ent-quotation (unitPrice e/ou paymentTerms/deliverySchedule/termsNotes; currency imutável — invariante de handler) e incrementa revisionNumber. Fato INTERNO. É o único mecanismo pelo qual condições negociadas entram na comparação, na decisão e no gate de procedência (adr-177)."
-		rationale:   "A regra de ouro da negociação (inv-negotiated-terms-materialize-on-quotation): o preço tem UMA casa canônica (ent-quotation, P0) — a revisão do fornecedor é o ato que muda essa casa, preservando quotationId (continuidade para decisionRationale.evaluatedSuppliers e para o gate unitPrice × quantity do p2p). Histórico de rodadas vive no event log (correção por novos eventos, nunca edição do passado). WI-161."
+		description: "Fornecedor revisa a própria cotação durante a janela (intra-open) — tipicamente em resposta a contraproposta. A revisão MATERIALIZA as condições negociadas na ent-quotation (lines — preço por item, per adr-198 — e/ou paymentTerms/deliverySchedule/termsNotes; currency imutável — invariante de handler) e incrementa revisionNumber. Fato INTERNO. É o único mecanismo pelo qual condições negociadas entram na comparação, na decisão e no gate de procedência (adr-177)."
+		rationale:   "A regra de ouro da negociação (inv-negotiated-terms-materialize-on-quotation): o preço tem UMA casa canônica (ent-quotation, P0) — a revisão do fornecedor é o ato que muda essa casa, preservando quotationId (continuidade para decisionRationale.evaluatedSuppliers e para o gate por linha do p2p — unitPrice × quantity == lineAmount, adr-198). Histórico de rodadas vive no event log (correção por novos eventos, nunca edição do passado). WI-161."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "rfqId"
@@ -417,9 +419,10 @@ domainModel: artifact_schemas.#DomainModel & {
 			type:        "integer"
 			description: "Contador de revisões da cotação (0 na submissão original; incrementa a cada revisão)."
 		}, {
-			kind: "primitive"
-			name: "unitPrice"
-			type: "decimal"
+			kind:        "domain-type"
+			name:        "lines"
+			type:        "QuotationLineList"
+			description: "Linhas VIGENTES pós-revisão (preço por item, adr-198) — restatement completo; o histórico por rodada vive no event log."
 		}, {
 			kind:           "value-object-ref"
 			name:           "paymentTerms"
@@ -556,17 +559,14 @@ domainModel: artifact_schemas.#DomainModel & {
 			name:           "supplierRef"
 			valueObjectRef: "vo-supplier-ref"
 		}, {
-			kind: "primitive"
-			name: "unitPrice"
-			type: "decimal"
+			kind:        "domain-type"
+			name:        "lines"
+			type:        "QuotationLineList"
+			description: "Lista de vo-quotation-line (≥1) — preço por item (adr-198). Subconjunto dos itens do escopo = proposta parcial, legítima por construção."
 		}, {
 			kind: "primitive"
 			name: "currency"
 			type: "string"
-		}, {
-			kind: "primitive"
-			name: "declaredCapacity"
-			type: "decimal"
 		}, {
 			kind: "primitive"
 			name: "termsNotes"
@@ -627,8 +627,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "cmd-revise-quotation"
 		name:        "ReviseQuotation"
-		description: "Fornecedor revisa a própria cotação durante a janela (mutação intra-open; RFQ status=open e cotação status=submitted obrigatórios; supplierRef deve match o da cotação; currency IMUTÁVEL — invariantes de handler). Restatement das condições comerciais: unitPrice obrigatório; paymentTerms/deliverySchedule/termsNotes opcionais (ausente = mantém vigente). Resultado: ent-quotation atualizada (revisionNumber incrementado, lastRevisedAt carimbado) + evt-quotation-revised (internal) — o histórico de rodadas vive no event log."
-		rationale:   "O ato que MATERIALIZA condições negociadas na casa canônica do preço (ent-quotation, P0) preservando quotationId — continuidade para decisionRationale.evaluatedSuppliers e para o gate de procedência do p2p (adr-177: unitPrice × quantity == amount resolve na cotação vencedora com o preço FINAL por construção). Revisão não é withdraw+resubmit (que quebraria a continuidade da identidade e o audit trail da negociação). Status da cotação INALTERADO (submitted — a revisão não é mudança de lifecycle). WI-161."
+		description: "Fornecedor revisa a própria cotação durante a janela (mutação intra-open; RFQ status=open e cotação status=submitted obrigatórios; supplierRef deve match o da cotação; currency IMUTÁVEL — invariantes de handler). Restatement das condições comerciais: lines obrigatório (preço por item, restatement completo — adr-198); paymentTerms/deliverySchedule/termsNotes opcionais (ausente = mantém vigente). Resultado: ent-quotation atualizada (revisionNumber incrementado, lastRevisedAt carimbado) + evt-quotation-revised (internal) — o histórico de rodadas vive no event log."
+		rationale:   "O ato que MATERIALIZA condições negociadas na casa canônica do preço (ent-quotation, P0) preservando quotationId — continuidade para decisionRationale.evaluatedSuppliers e para o gate de procedência do p2p (adr-177/adr-198: unitPrice × quantity == lineAmount resolve na LINHA vencedora com o preço FINAL por construção). Revisão não é withdraw+resubmit (que quebraria a continuidade da identidade e o audit trail da negociação). Status da cotação INALTERADO (submitted — a revisão não é mudança de lifecycle). WI-161."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "rfqId"
@@ -643,9 +643,10 @@ domainModel: artifact_schemas.#DomainModel & {
 			valueObjectRef: "vo-supplier-ref"
 			description:    "Supplier que revisa (deve match supplier original — invariante de handler)."
 		}, {
-			kind: "primitive"
-			name: "unitPrice"
-			type: "decimal"
+			kind:        "domain-type"
+			name:        "lines"
+			type:        "QuotationLineList"
+			description: "Linhas revisadas (preço por item, adr-198) — restatement completo da cobertura vigente."
 		}, {
 			kind:           "value-object-ref"
 			name:           "paymentTerms"
@@ -694,7 +695,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "cmd-make-one-shot-sourcing-decision"
 		name:        "MakeOneShotSourcingDecision"
-		description: "Concluir RFQ de tipo one-shot com decisão emitida. Sync. Precondição: rfq.decisionType=one-shot. Resultado: agg-sourcing-process status open→concluded + evt-rfq-concluded + evt-sourcing-decision-made (com selectedSuppliers + allocationPolicy + decisionRationale + fitnessRuleSnapshot)."
+		description: "Concluir RFQ de tipo one-shot com decisão emitida. Sync. Precondição: rfq.decisionType=one-shot. Resultado: agg-sourcing-process status open→concluded + evt-rfq-concluded + evt-sourcing-decision-made (com itemAwards POR LINHA cobrindo todos os itens do escopo, adr-198 + selectedSuppliers/allocationPolicy derivados + decisionRationale + fitnessRuleSnapshot). A conclusão NÃO exige adjudicação total: linha sem proposta válida registra no-quotation; linha deixada sem destino registra withheld com narrative."
 		rationale:   "Command de conclusão para tipo one-shot. Aplica fitness rules sobre signals via svc-fitness-rule-evaluator; produz decisão atômica com hard binding em P2P. Tipo da RFQ deve match tipo do command (per inv-decision-type-declared-upfront)."
 		fields: [{
 			kind:           "value-object-ref"
@@ -808,7 +809,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:      "inv-decision-rationale-required"
 		name:      "DecisionRationale Obrigatório"
-		rule:      "Toda decisão emitida (3 tipos) carrega decisionRationale completo: criteria aplicados, weights vigentes da categoria, evaluatedSuppliers (todos os cotantes válidos com score por critério), tradeoffs articulados (justificativa de escolha vs alternativa específica). decisionRationale vazio ou parcial bloqueia emissão. Quotations com status=withdrawn NÃO entram em evaluatedSuppliers."
+		rule:      "Toda decisão emitida (3 tipos) carrega decisionRationale completo: criteria aplicados, weights vigentes da categoria, evaluatedSuppliers (todos os cotantes válidos com score por critério, POR LINHA per adr-198 — cada entrada nomeia o itemId disputado), tradeoffs articulados (justificativa de escolha vs alternativa específica). decisionRationale vazio ou parcial bloqueia emissão. Quotations com status=withdrawn NÃO entram em evaluatedSuppliers; linha sem cotante válido não gera entradas — o vo-item-award correspondente registra no-quotation."
 		rationale: "Materializa moat de inteligência da Mesh per subdomain SSC. DecisionRationale é o output canônico estruturado — sustenta auditoria de processo competitivo (Lei 12.846) + reconciliação spend + consumo NIM futuro (oq-ssc-2). Materializa term-decision-rationale do glossary."
 	}, {
 		code:      "inv-rfq-public-lifecycle-events"
@@ -818,8 +819,8 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:      "inv-competitive-pool-or-supervised-exception"
 		name:      "Pool Competitivo ou Exceção Supervisionada"
-		rule:      "Decisão emitida AUTOMATICAMENTE exige pool ≥ 2 fornecedores qualificados no decision time. Pool < 2 (incluindo cenário sole-source genuíno: item proprietário, fornecedor único qualificado, urgência operacional) exige supervisedDecision approve-decision-with-insufficient-pool com justificativa documentada — sem bloqueio absoluto, apenas escalation para gate humano."
-		rationale: "Materializa premissa de seleção competitiva sem rigidez universal. Pool < 2 quebra premissa core de RFQ no caso default, mas sole-source é caso real e legítimo em algumas categorias — exige decisão humana com justificativa, não bloqueio. Sustenta as-ssc-1 (pool qualificado viável). Re-validation pre-decision detecta drift do pool durante RFQ. Materializa escalationCriterion insufficient-qualified-pool do canvas. Cross-BC dependency declarada em dependsOnAggregateState per adr-055."
+		rule:      "Adjudicação AUTOMÁTICA de uma LINHA exige ≥ 2 cotantes válidos naquela linha no decision time (per adr-198 a avaliação é por item — o pool competitivo avalia-se linha a linha, não pela cotação inteira). Linha com < 2 (incluindo sole-source genuíno: item proprietário, fornecedor único qualificado, urgência operacional) exige supervisedDecision approve-decision-with-insufficient-pool NA LINHA, com justificativa documentada — sem bloqueio absoluto, apenas escalation para gate humano; as demais linhas seguem automáticas."
+		rationale: "Materializa premissa de seleção competitiva sem rigidez universal — POR LINHA per adr-198 (proposta parcial legítima torna o pool heterogêneo entre linhas da mesma RFQ; a Mesa pratica linha supervisionada ao lado de linhas automáticas). Pool < 2 quebra premissa core de RFQ no caso default, mas sole-source é caso real e legítimo em algumas categorias — exige decisão humana com justificativa, não bloqueio. Sustenta as-ssc-1 (pool qualificado viável). Re-validation pre-decision detecta drift do pool durante RFQ. Materializa escalationCriterion insufficient-qualified-pool do canvas. Cross-BC dependency declarada em dependsOnAggregateState per adr-055."
 		dependsOnAggregateState: {
 			boundedContextRef: "npm"
 			aggregateRef:      "agg-participant"
@@ -838,7 +839,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:      "inv-negotiated-terms-materialize-on-quotation"
 		name:      "Condições Negociadas Materializam na Cotação"
 		rule:      "Contraproposta do comprador (cmd-propose-counter-terms) NUNCA muta a ent-quotation — é fato registrado (evt-counter-terms-proposed) aguardando resposta. Condições negociadas só entram na comparação (prj-quotation-map), na avaliação (svc-fitness-rule-evaluator) e na decisão quando o FORNECEDOR as materializa via cmd-revise-quotation (evt-quotation-revised) na própria ent-quotation — a localização canônica do preço (P0), com quotationId preservado e currency imutável. Toda negociação é intra-open: contraproposta, revisão e recusa exigem RFQ status=open; a decisão formaliza as condições VIGENTES na cotação no decision time."
-		rationale: "A regra de ouro da negociação (WI-161): preserva o gate de procedência do adr-177 por construção — o 2º braço do portão do p2p resolve unitPrice × quantity == amount na cotação VENCEDORA, e com a revisão materializando o preço final na mesma ent-quotation, toda compra negociada passa pelo gate com o valor negociado real (sem a regra, cada negociação divergiria no portão e viraria escalada rotineira — teatro de gate). A assimetria comprador-pede/fornecedor-declara também protege a autoria comercial: a cotação é do fornecedor; o comprador nunca escreve nela. Enforcement: handler-level nos 3 commands (estrutural — nenhum caminho de escrita do comprador alcança a ent-quotation) + audit trail via event log; não é guard de transição de lifecycle (molde inv-rfq-public-lifecycle-events: proteção estrutural documentada, não gate de conclusão)."
+		rationale: "A regra de ouro da negociação (WI-161): preserva o gate de procedência do adr-177 por construção — o 2º braço do portão do p2p resolve unitPrice × quantity == lineAmount na LINHA vencedora (adr-198), e com a revisão materializando o preço final nas lines da mesma ent-quotation, toda compra negociada passa pelo gate com o valor negociado real (sem a regra, cada negociação divergiria no portão e viraria escalada rotineira — teatro de gate). A assimetria comprador-pede/fornecedor-declara também protege a autoria comercial: a cotação é do fornecedor; o comprador nunca escreve nela. Enforcement: handler-level nos 3 commands (estrutural — nenhum caminho de escrita do comprador alcança a ent-quotation) + audit trail via event log; não é guard de transição de lifecycle (molde inv-rfq-public-lifecycle-events: proteção estrutural documentada, não gate de conclusão)."
 	}]
 
 	// =============================================
@@ -921,7 +922,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:        "domain-type"
 			name:        "splitDetails"
 			type:        "AllocationSplitDetails"
-			description: "Estrutura de split — para split-by-percentage: {supplierRef → percentage}; para split-by-criteria: descrição estruturada do critério; para single: vazio."
+			description: "Estrutura de split — para split-by-percentage: {supplierRef → percentage}; para split-by-criteria: descrição estruturada do critério; para single: vazio. Per adr-198, no one-shot single/split é DERIVADO dos itemAwards (vencedores distintos por linha = split concreto — o caso real que faltava ao split-by-criteria)."
 		}]
 		constraints: [
 			"type deve ser um dos: single, split-by-percentage, split-by-criteria",
@@ -949,7 +950,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:        "domain-type"
 			name:        "rfqResponses"
 			type:        "QuotationRefList"
-			description: "Lista de quotations submetidas (refs a ent-quotation com status=submitted)."
+			description: "Lista de quotations submetidas (refs a ent-quotation com status=submitted). Per adr-198 cada cotação carrega lines (preço por item); rfqContext (vo-rfq-scope) traz os itens do escopo — a aplicação de fitness rules opera por linha."
 		}, {
 			kind:        "primitive"
 			name:        "performanceScore"
@@ -984,7 +985,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-decision-rationale"
 		name:        "DecisionRationale"
-		description: "Captura estruturada do rationale de uma Decisão de Sourcing — criteria aplicados, weights vigentes, evaluatedSuppliers (todos cotantes válidos com score por critério), tradeoffs articulados."
+		description: "Captura estruturada do rationale de uma Decisão de Sourcing — criteria aplicados, weights vigentes, evaluatedSuppliers (todos cotantes válidos com score por critério, POR LINHA per adr-198), tradeoffs articulados."
 		fields: [{
 			kind: "domain-type"
 			name: "criteria"
@@ -1008,8 +1009,13 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-evaluated-supplier"
 		name:        "EvaluatedSupplier"
-		description: "Avaliação per-supplier dentro de uma Decisão de Sourcing — scores por critério + posição final + observações relevantes."
+		description: "Avaliação per-supplier POR LINHA dentro de uma Decisão de Sourcing (adr-198) — scores por critério + posição final + observações relevantes, no item que a avaliação disputou."
 		fields: [{
+			kind:        "primitive"
+			name:        "itemId"
+			type:        "string"
+			description: "Linha avaliada (ref local ao vo-rfq-item, adr-198) — o score por critério é por item, não pela cotação inteira."
+		}, {
 			kind:           "value-object-ref"
 			name:           "supplierRef"
 			valueObjectRef: "vo-supplier-ref"
@@ -1053,19 +1059,16 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-rfq-scope"
 		name:        "RFQScope"
-		description: "Descrição estruturada do escopo de uma RFQ — categoria, descrição do item/serviço, volume estimado, prazo, location relevante."
+		description: "Descrição estruturada do escopo de uma RFQ — categoria, prazo e location no nível do escopo; o CONTEÚDO é a lista de itens (vo-rfq-item, ≥1) per adr-198. description/estimatedVolume singulares migraram para os itens — a matriz item × fornecedor nasce aqui."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "categoryRef"
 			valueObjectRef: "vo-category-ref"
 		}, {
-			kind: "primitive"
-			name: "description"
-			type: "string"
-		}, {
-			kind: "primitive"
-			name: "estimatedVolume"
-			type: "decimal"
+			kind:        "domain-type"
+			name:        "items"
+			type:        "RfqItemList"
+			description: "Lista de vo-rfq-item (≥1) — os itens do escopo, cada um com identidade LOCAL à RFQ (itemId). É sobre estas linhas que cotação, decisão e procedência operam (adr-198)."
 		}, {
 			kind: "primitive"
 			name: "deadline"
@@ -1075,7 +1078,93 @@ domainModel: artifact_schemas.#DomainModel & {
 			name: "location"
 			type: "string"
 		}]
-		rationale: "Estruturação do escopo é precondição de RFQ válida."
+		rationale: "Estruturação do escopo é precondição de RFQ válida. Itemizado per adr-198: escopo plural com preço singular seria incoerência interna (alt-1 rejeitada) — o item é a primitiva sobre a qual proposta, decisão e gate de procedência se expressam."
+	}, {
+		code:        "vo-rfq-item"
+		name:        "RFQItem"
+		description: "Um item do escopo da RFQ — a LINHA da matriz item × fornecedor. Identidade LOCAL à RFQ (itemId); endereçamento cross-BC pelo par rfqId+itemId. Não é entity: o item do escopo não muta durante a janela (quem muta é a cotação, quem carimba é a decisão) — declaração, não coisa viva (adr-198 alt-2 rejeitada)."
+		fields: [{
+			kind:        "primitive"
+			name:        "itemId"
+			type:        "string"
+			description: "Identidade LOCAL à RFQ — sem VO de id standalone porque o item não tem vida fora da sua RFQ (adr-198)."
+		}, {
+			kind: "primitive"
+			name: "description"
+			type: "string"
+		}, {
+			kind:        "primitive"
+			name:        "quantity"
+			type:        "decimal"
+			description: "Quantidade do item no escopo — estimativa da abertura; NUNCA base de reconciliação do gate (a quantity firme é declarada na aprovação, por linha — adr-177/adr-198)."
+		}, {
+			kind:        "primitive"
+			name:        "unit"
+			type:        "string"
+			description: "Unidade de medida DECLARADA (string) — canonização/normalização deferida em def-093: unidades divergentes quebram a comparação por linha em silêncio."
+		}, {
+			kind:        "primitive"
+			name:        "neededBy"
+			type:        "datetime"
+			description: "Opcional — data de necessidade da linha (a Mesa pratica gate de entrega por linha; formalização do gate é config de fitness, não schema)."
+		}]
+		rationale: "Materializa a primitiva do item (adr-198, resolve def-087): a comparação que a prática usa é por linha, e a linha precisa existir no modelo antes de existir na cotação, na decisão e no gate."
+	}, {
+		code:        "vo-quotation-line"
+		name:        "QuotationLine"
+		description: "Linha de uma cotação — o preço do fornecedor para UM item do escopo (itemId + unitPrice; declaredCapacity e deliveryDate opcionais por linha). A cobertura da cotação É a lista de linhas: ausência de linha para um item = item não cotado por aquele fornecedor — proposta parcial é legítima por construção, nenhum invariante força cobertura total (adr-198; prática observada na Mesa de Adjudicação)."
+		fields: [{
+			kind:        "primitive"
+			name:        "itemId"
+			type:        "string"
+			description: "Ref LOCAL ao vo-rfq-item da mesma RFQ — a linha cota um item do escopo."
+		}, {
+			kind: "primitive"
+			name: "unitPrice"
+			type: "decimal"
+		}, {
+			kind:        "primitive"
+			name:        "declaredCapacity"
+			type:        "decimal"
+			description: "Opcional — capacidade declarada para esta linha."
+		}, {
+			kind:        "primitive"
+			name:        "deliveryDate"
+			type:        "datetime"
+			description: "Opcional — entrega prometida para esta linha."
+		}]
+		rationale: "A casa canônica do preço desce ao nível da linha (P0, adr-198): unitPrice por item é o que torna a matriz item × fornecedor comparável e o gate de procedência verificável linha a linha. currency permanece da cotação (uma por cotação — o invariante de imutabilidade do WI-161 segue simples)."
+	}, {
+		code:        "vo-item-award"
+		name:        "ItemAward"
+		description: "A adjudicação de UMA linha do escopo (adr-198): outcome awarded | no-quotation | withheld (nomes indicativos — glossário do ssc decide na fatia, precedente adr-196). awarded referencia a cotação vencedora (awardedSupplierRef + awardedQuotationRef; o unitPrice resolve na linha da cotação — P0, nunca cópia). no-quotation registra item sem proposta válida de nenhum fornecedor — linha não adjudicável, nunca silenciosa. withheld registra a linha que a compradora deixa sem destino deliberadamente, com narrative obrigatória. A soma da adjudicação percorre só as linhas awarded; a conclusão da janela não exige adjudicação total."
+		fields: [{
+			kind:        "primitive"
+			name:        "itemId"
+			type:        "string"
+			description: "Linha adjudicada (ref local ao vo-rfq-item)."
+		}, {
+			kind:        "primitive"
+			name:        "outcome"
+			type:        "string"
+			description: "awarded | no-quotation | withheld (indicativos, adr-198)."
+		}, {
+			kind:           "value-object-ref"
+			name:           "awardedSupplierRef"
+			valueObjectRef: "vo-supplier-ref"
+			description:    "Presente quando outcome=awarded — o vencedor da linha, único por construção."
+		}, {
+			kind:           "value-object-ref"
+			name:           "awardedQuotationRef"
+			valueObjectRef: "vo-quotation-id"
+			description:    "Presente quando outcome=awarded — a cotação cuja linha precifica o award (o gate do p2p resolve o unitPrice aqui)."
+		}, {
+			kind:        "primitive"
+			name:        "narrative"
+			type:        "string"
+			description: "Obrigatória quando outcome=withheld (por que a linha ficou sem destino); opcional nos demais."
+		}]
+		rationale: "Materializa a linha vazia com nome (adr-198): a soma por linha sabe o que fazer com ela porque ela existe e tem outcome — prática da Mesa (linhas decididas 12 de 14, linhas paradas visíveis). O award por item dissolve o ambíguo multi-supplier do one-shot: vencedor único por construção; ambiguous-case fica restrito a preferred/strategic (adr-177 N2 preservado lá)."
 	}, {
 		code:        "vo-validity-period"
 		name:        "ValidityPeriod"
@@ -1143,8 +1232,13 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-counter-terms"
 		name:        "CounterTerms"
-		description: "Conteúdo da contraproposta do comprador — os eixos pedidos ao fornecedor: targetUnitPrice (preço-alvo), requestedPaymentTerms (condições de pagamento pedidas), requestedDeliverySchedule (volume/programação pedidos). Todos opcionais individualmente; ≥1 eixo preenchido é obrigatório (invariante de handler — contraproposta vazia não é rodada). message carrega a articulação livre do comprador."
+		description: "Conteúdo da contraproposta do comprador — os eixos pedidos ao fornecedor: targetUnitPrice (preço-alvo), requestedPaymentTerms (condições de pagamento pedidas), requestedDeliverySchedule (volume/programação pedidos). Todos opcionais individualmente; ≥1 eixo preenchido é obrigatório (invariante de handler — contraproposta vazia não é rodada). Per adr-198, itemId opcional mira a rodada numa LINHA (targetUnitPrice de linha); ausente = eixos da cotação inteira (paymentTerms/deliverySchedule). message carrega a articulação livre do comprador."
 		fields: [{
+			kind:        "primitive"
+			name:        "itemId"
+			type:        "string"
+			description: "Opcional (adr-198) — alvo da rodada quando a contraproposta é de linha (ref local ao vo-rfq-item); ausente = contraproposta sobre a cotação inteira."
+		}, {
 			kind:        "primitive"
 			name:        "targetUnitPrice"
 			type:        "decimal"
@@ -1258,7 +1352,12 @@ domainModel: artifact_schemas.#DomainModel & {
 			kind:           "value-object-ref"
 			name:           "allocationPolicy"
 			valueObjectRef: "vo-allocation-policy"
-			description:    "Policy de allocation — populated quando status=concluded."
+			description:    "Policy de allocation — populated quando status=concluded; single/split derivado dos itemAwards no one-shot (adr-198)."
+		}, {
+			kind:        "domain-type"
+			name:        "itemAwards"
+			type:        "ItemAwardList"
+			description: "Lista de vo-item-award cobrindo todos os itens do escopo — populated quando status=concluded via cmd-make-one-shot-sourcing-decision (adr-198). A adjudicação POR LINHA persiste no aggregate."
 		}, {
 			kind:        "domain-type"
 			name:        "selectedSuppliers"
@@ -1269,7 +1368,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		entities: [{
 			code:        "ent-quotation"
 			name:        "Quotation"
-			description: "Cotação submetida por fornecedor durante janela de RFQ. Owned exclusivamente por agg-sourcing-process — não existe fora de uma RFQ. Lifecycle: submitted → withdrawn (terminal). Withdrawal opera marcando status, não deletando — preserva audit trail. Revisão (WI-161) NÃO é mudança de lifecycle: atualiza as condições comerciais in-place (revisionNumber incrementa; histórico no event log) — a cotação segue submitted e comparável."
+			description: "Cotação submetida por fornecedor durante janela de RFQ. Owned exclusivamente por agg-sourcing-process — não existe fora de uma RFQ. Lifecycle: submitted → withdrawn (terminal). Withdrawal opera marcando status, não deletando — preserva audit trail. Revisão (WI-161) NÃO é mudança de lifecycle: atualiza as condições comerciais in-place (revisionNumber incrementa; histórico no event log) — a cotação segue submitted e comparável. Per adr-198 a cotação é POR LINHA: lines carrega o preço por item (proposta parcial legítima); currency/paymentTerms/deliverySchedule/termsNotes permanecem da cotação inteira."
 			identity: {
 				field: "quotationId"
 				type: {
@@ -1282,17 +1381,14 @@ domainModel: artifact_schemas.#DomainModel & {
 				name:           "supplierRef"
 				valueObjectRef: "vo-supplier-ref"
 			}, {
-				kind: "primitive"
-				name: "unitPrice"
-				type: "decimal"
+				kind:        "domain-type"
+				name:        "lines"
+				type:        "QuotationLineList"
+				description: "Lista de vo-quotation-line (≥1) — o preço POR ITEM (adr-198; unitPrice/declaredCapacity singulares migraram para cá). Subconjunto dos itens do escopo = proposta parcial, legítima."
 			}, {
 				kind: "primitive"
 				name: "currency"
 				type: "string"
-			}, {
-				kind: "primitive"
-				name: "declaredCapacity"
-				type: "decimal"
 			}, {
 				kind: "primitive"
 				name: "termsNotes"
@@ -1332,7 +1428,7 @@ domainModel: artifact_schemas.#DomainModel & {
 				type:        "datetime"
 				description: "Presente quando status=withdrawn."
 			}]
-			rationale: "Entity (não value object) porque tem identidade própria persistente (quotationId) que sobrevive à mudança de status (submitted → withdrawn) e à revisão (WI-161 — revisionNumber incrementa, identidade e status permanecem), e é referenciada em decisionRationale.evaluatedSuppliers + audit trail de withdrawal + gate de procedência do p2p (adr-177 resolve unitPrice na cotação vencedora — a continuidade da identidade através das rodadas é o que faz o gate ver o preço FINAL). Não é aggregate root separado porque sua existência é derivada da RFQ — sem agg-sourcing-process pai, quotation isolada não tem semântica."
+			rationale: "Entity (não value object) porque tem identidade própria persistente (quotationId) que sobrevive à mudança de status (submitted → withdrawn) e à revisão (WI-161 — revisionNumber incrementa, identidade e status permanecem), e é referenciada em decisionRationale.evaluatedSuppliers + audit trail de withdrawal + gate de procedência do p2p (adr-177/adr-198: o gate resolve o unitPrice na LINHA vencedora da cotação — a continuidade da identidade através das rodadas é o que faz o gate ver o preço FINAL). Não é aggregate root separado porque sua existência é derivada da RFQ — sem agg-sourcing-process pai, quotation isolada não tem semântica."
 		}]
 
 		lifecycle: {
@@ -1433,6 +1529,9 @@ domainModel: artifact_schemas.#DomainModel & {
 			"vo-rfq-id",
 			"vo-sourcing-decision-id",
 			"vo-quotation-id",
+			"vo-rfq-item",
+			"vo-quotation-line",
+			"vo-item-award",
 			"vo-category-ref",
 			"vo-supplier-ref",
 			"vo-decision-type",
@@ -1516,7 +1615,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "prj-quotation-map"
 		name:        "QuotationMapProjection"
-		description: "Read model do MAPA DE COTAÇÕES — a comparação consolidada consultável que a jornada nomeia (ds-buyer-procurement-journey, passo do mapa). DURANTE a janela de RFQ: cotações lado a lado (fornecedor, preço unitário, capacidade declarada, condições de pagamento estruturadas, programação de entregas, termos, status submitted/withdrawn) com a comparação equalizada DERIVADA deterministicamente — e, com a negociação (WI-161), as RODADAS por cotação: contraproposta aberta/respondida/declinada, revisionNumber, preço inicial vs vigente (a economia da negociação observável). PÓS-decisão: o carimbo da decisão — vencedor(es), ranking final (evaluatedSuppliers), tradeoffs e fitness-rule-snapshot."
+		description: "Read model do MAPA DE COTAÇÕES — a MATRIZ ITEM × FORNECEDOR consultável que a jornada nomeia (ds-buyer-procurement-journey, passo do mapa; adr-198). DURANTE a janela de RFQ: uma linha por item do escopo, uma coluna por fornecedor — preço por linha (vo-quotation-line), capacidade declarada, item não cotado visível como célula vazia (proposta parcial), condições de pagamento estruturadas, programação de entregas, termos, status submitted/withdrawn — com a comparação equalizada POR LINHA derivada deterministicamente; e, com a negociação (WI-161), as RODADAS por cotação e por linha (vo-counter-terms.itemId): contraproposta aberta/respondida/declinada, revisionNumber, preço inicial vs vigente (a economia da negociação observável). PÓS-decisão: o carimbo da decisão POR LINHA — itemAwards (awarded/no-quotation/withheld), ranking final por linha (evaluatedSuppliers com itemId), tradeoffs e fitness-rule-snapshot; o total da adjudicação é a soma das linhas awarded."
 		consumesEvents: [
 			"evt-quotation-submitted",
 			"evt-quotation-withdrawn",
@@ -1530,7 +1629,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		]
 		queryCapabilities: [{
 			code:        "qry-quotation-map"
-			description: "Retorna o QuotationMap por rfqId (com filtro por categoryRef) — cotações lado a lado ordenadas pela equalização TCO derivada, vencedor destacado quando a decisão existe (selectedSuppliers + finalRank + tradeoffs da decisão), status da janela (open/concluded/cancelled) e, com a negociação (WI-161), o estado das rodadas por cotação (contraproposta aguardando/respondida/declinada; revisionNumber; preço inicial vs vigente) + condições de pagamento e entregas estruturadas comparáveis. Consumers: comprador (a comparação que suporta a escolha E a mesa de negociação — passos do mapa e da negociação da jornada), supervisor (visibilidade) e auditoria (reconstituição da comparação e das rodadas que sustentaram a decisão)."
+			description: "Retorna o QuotationMap por rfqId (com filtro por categoryRef) — a matriz item × fornecedor (adr-198): linhas do escopo × colunas de fornecedores, equalização TCO derivada POR LINHA, célula vazia onde o fornecedor não cotou o item, vencedor POR LINHA destacado quando a decisão existe (itemAwards + finalRank por linha + tradeoffs da decisão; linha no-quotation/withheld visível com o outcome), status da janela (open/concluded/cancelled) e, com a negociação (WI-161), o estado das rodadas por cotação e por linha (contraproposta aguardando/respondida/declinada; revisionNumber; preço inicial vs vigente). Consumers: comprador (a comparação que suporta a escolha E a mesa de negociação — passos do mapa e da negociação da jornada), supervisor (visibilidade), auditoria (reconstituição da comparação e das rodadas que sustentaram a decisão) e o gate de procedência do p2p (resolve a LINHA vencedora por sourcingDecisionRef + sourcingItemId — adr-198)."
 			rationale:   "A superfície onde a decisão de escolha se torna OBSERVÁVEL e rastreável — a comparação equalizada deixa de ser cálculo trancado no write. Canvas query-surface QueryQuotationMap. É também a superfície de leitura que o elo requisição↔cotação REFERENCIA (def-079 resolvido pelo adr-177): o 2º braço do portão de aprovação do p2p resolve a cotação vencedora por sourcingDecisionRef via esta query — a fatia WI-152 entregou o pré-requisito; o adr-177 consumou o exit."
 		}]
 		rationale: "Fecha a lacuna de leitura que a story mediu no exame original ('o modelo tem o conceito — equalização TCO como serviço interno — mas NENHUMA projection/query consultável'). A equalização no read model é DERIVADA deterministicamente do mesmo material do svc-fitness-rule-evaluator (fitness rules vigentes da categoria aplicadas sobre as cotações — reaplicação dado mesmos inputs produz mesmo output), seguindo o precedente do prj-cost-center-availability ('encapsula derivação numérica para evitar drift de cálculo entre consumers'); a projection NÃO redefine componentes de TCO — a lógica vive em FitnessRuleContent (configuração versionada; shape em oq-ssc-8). Pré-decisão a derivação usa as fitness rules VIGENTES (comparação indicativa); pós-decisão o carimbo usa o SNAPSHOT da decisão (comparação auditável) — a distinção indicativa-vs-decidida é explícita no payload. Confidencialidade competitiva preservada: consumido por comprador/supervisor intra-organização via query surface; NUNCA exposto a fornecedores (NTF não propaga o mapa; os events de cotação são internal). Latência alvo <5s (eda-projections SLO)."

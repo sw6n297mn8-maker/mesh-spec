@@ -6,7 +6,8 @@ def087: artifact_schemas.#DeferredDecision & {
 	id:     "def-087"
 	title:  "Item de cotação como primitiva do modelo (matriz item × fornecedor)"
 	date:   "2026-09-06"
-	status: "open"
+	status:     "resolved" // decisão do founder 2026-09-06: a frente §0+L1 devolveu a forma e o adr-198 a canonizou — vo-rfq-item/vo-purchase-item (VO com identidade local), linhas na cotação, adjudicação por item
+	resolvedBy: "architecture/adrs/adr-198-quotation-item-primitive-and-line-level-gate.cue"
 
 	description: """
 		O modelo de sourcing não tem o ITEM como primitiva: vo-rfq-scope é

@@ -6,7 +6,8 @@ def088: artifact_schemas.#DeferredDecision & {
 	id:     "def-088"
 	title:  "Elo requisição↔cotação no nível do ITEM — o terceiro nível que a deliberação do def-079/adr-177 não considerou"
 	date:   "2026-09-06"
-	status: "open"
+	status:     "resolved" // decisão do founder 2026-09-06: o elo formalizado pelo adr-198 — vo-approval-line (requisitionItemId + sourcingItemId), carregado pelo p2p no ato da aprovação; (i-b) segue rejeitada; agregação (def-089) permitida por construção, não modelada
+	resolvedBy: "architecture/adrs/adr-198-quotation-item-primitive-and-line-level-gate.cue"
 
 	description: """
 		def-079 está resolved (resolvedBy: adr-177): o elo requisição↔
