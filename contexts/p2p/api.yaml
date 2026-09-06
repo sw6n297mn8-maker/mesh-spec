@@ -282,9 +282,14 @@ paths:
         transição triaged→approved): (1) reserva de cobertura CONFIRMADA
         pelo Gate de Cobertura do bdg — Saldo Disponível suficiente +
         Alçada satisfeita (inv-approval-requires-coverage-reservation);
-        (2) procedência de preço VERIFICADA contra a cotação vencedora do
-        ssc via sourcingDecisionRef — unitPrice × quantity == amount +
-        currency match (inv-approval-amount-matches-winning-quotation).
+        (2) procedência de preço VERIFICADA POR LINHA contra a decisão do
+        ssc — cada linha resolve seu item-award (sourcingDecisionRef +
+        sourcingItemId; outcome=awarded exigido) e sua cotação vencedora:
+        unitPrice × quantity == lineAmount + currency match, com o TOTAL
+        como soma (Σ lineAmount == amount) —
+        inv-approval-amount-matches-winning-quotation (adr-177 reexpresso
+        por adr-198). Linha contra item no-quotation/withheld não
+        efetiva: 422.
         coverageReservationRef NÃO é entrada do cliente: é preenchida pela
         interação sync com o bdg no ato da aprovação (campo do command
         populado handler-side; viaja no evento). Falha de QUALQUER braço:
@@ -518,21 +523,68 @@ components:
         Estado canônico da PurchaseRequisition no lifecycle materializado do
         agg-purchase-requisition (adr-174). Espelha #PurchaseRequisitionState
         (disjunção fechada).
+    PurchaseItem:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#PurchaseItem'
+      type: object
+      description: >
+        Um item do escopo de requisição/pedido (vo-purchase-item,
+        adr-198) — identidade LOCAL ao aggregate; mesma forma do item da
+        RFQ no ssc. quantity é ESTIMATIVA da demanda — nunca base de
+        reconciliação (a quantity FIRME vive na linha de aprovação). unit
+        é string DECLARADA; canonização deferida em def-093.
+      required: [itemId, description, quantity, unit]
+      properties:
+        itemId:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        quantity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        unit:
+          type: string
+          minLength: 1
+    ApprovalLine:
+      x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#ApprovalLine'
+      type: object
+      description: >
+        Uma linha da aprovação (vo-approval-line, adr-198) — O ELO
+        requisição↔cotação no nível do ITEM: requisitionItemId (item da
+        própria requisição) + sourcingItemId (língua ssc: o itemId dentro
+        da decisão referenciada por sourcingDecisionRef) + quantity FIRME
+        + lineAmount. O 2º braço do portão verifica POR LINHA (unitPrice
+        da linha vencedora × quantity == lineAmount, currency match) e o
+        TOTAL como soma (Σ lineAmount == amount).
+      required: [requisitionItemId, sourcingItemId, quantity, lineAmount]
+      properties:
+        requisitionItemId:
+          type: string
+          minLength: 1
+        sourcingItemId:
+          type: string
+          minLength: 1
+        quantity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        lineAmount:
+          $ref: '#/components/schemas/Money'
     PurchaseScope:
       x-mesh-cue-ref: 'contexts/p2p/schemas/events.cue#PurchaseScope'
       type: object
       description: >
-        Escopo da demanda (vo-purchase-scope): descrição, volume estimado,
-        prazo, location. estimatedVolume é ESTIMATIVA — nunca base de
-        reconciliação de valor (adr-177 usa quantity firme da aprovação).
-      required: [description, estimatedVolume, deadline, location]
+        Escopo da demanda ITEMIZADO (vo-purchase-scope, adr-198): prazo e
+        location no nível do escopo; o CONTEÚDO é a lista de itens
+        (description/estimatedVolume singulares migraram para eles).
+        Requisição E pedido usam a mesma VO.
+      required: [items, deadline, location]
       properties:
-        description:
-          type: string
-          minLength: 1
-        estimatedVolume:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PurchaseItem'
         deadline:
           type: string
           format: date-time
@@ -624,8 +676,9 @@ components:
         Uma requisição na fila — projeção do event log espelhando os campos
         do agg-purchase-requisition. Campos condicionais por estado:
         triageOutcome após a primeira triagem; coverageReservationRef +
-        sourcingDecisionRef + quantity quando approved (os dois braços do
-        portão, adr-174/adr-177); purchaseOrderRef quando converted;
+        sourcingDecisionRef + approvalLines quando approved (os dois
+        braços do portão, adr-174 + adr-177 reexpresso por linha em
+        adr-198); purchaseOrderRef quando converted;
         cancellationReason quando cancelled.
       required: [requisitionId, status, requestedBy, costCenterRef, budgetStageRef, categoryRef, scope, submittedAt]
       properties:
@@ -656,10 +709,13 @@ components:
           description: presente quando approved — reserva do Gate de Cobertura (bdg, adr-174)
         sourcingDecisionRef:
           $ref: '#/components/schemas/SourcingDecisionRef'
-        quantity:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
-          description: quantidade firme aprovada (adr-177)
+        approvalLines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalLine'
+          description: >
+            Linhas aprovadas (adr-198) — presentes quando approved; o elo
+            por item e a quantidade firme de cada linha.
         purchaseOrderRef:
           $ref: '#/components/schemas/PurchaseOrderId'
         submittedAt:
@@ -803,7 +859,7 @@ components:
         Espelho dos campos de ENTRADA do command — coverageReservationRef
         fica FORA do request: é preenchida pela interação sync com o bdg no
         ato da aprovação (campo do command populado handler-side; adr-174).
-      required: [requisitionId, decision, decidedBy, amount, sourcingDecisionRef, quantity]
+      required: [requisitionId, decision, decidedBy, amount, sourcingDecisionRef, lines]
       properties:
         requisitionId:
           $ref: '#/components/schemas/RequisitionId'
@@ -820,16 +876,23 @@ components:
             Gestor cuja Alçada cobre o valor (língua bdg) — atribuição
             nominal NÃO-verificada nesta borda até o ADR de auth (def-024).
         amount:
-          $ref: '#/components/schemas/Money'
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: >
+            Valor TOTAL declarado pelo gestor (ato de autoridade humana)
+            — verificado como SOMA das linhas pelo 2º braço (adr-198).
         sourcingDecisionRef:
           $ref: '#/components/schemas/SourcingDecisionRef'
-        quantity:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ApprovalLine'
           description: >
-            Quantidade FIRME declarada pelo gestor — base da fórmula do 2º
-            braço (unitPrice × quantity == amount, adr-177); distinta de
-            scope.estimatedVolume.
+            As linhas da aprovação (adr-198) — o elo por item e a
+            quantidade FIRME de cada linha (o quantity singular do
+            adr-177 migrou para cá). Base da verificação por linha e da
+            soma Σ lineAmount == amount.
         narrative:
           type: string
           description: >
@@ -946,7 +1009,7 @@ components:
           const: contexts/p2p/schemas/events.cue#PurchaseApproved
         data:
           type: object
-          required: [requisitionId, approvedBy, amount, sourcingDecisionRef, quantity, coverageReservationRef, approvedAt]
+          required: [requisitionId, approvedBy, amount, sourcingDecisionRef, lines, coverageReservationRef, approvedAt]
           properties:
             requisitionId:
               $ref: '#/components/schemas/RequisitionId'
@@ -957,9 +1020,11 @@ components:
               $ref: '#/components/schemas/Money'
             sourcingDecisionRef:
               $ref: '#/components/schemas/SourcingDecisionRef'
-            quantity:
-              type: string
-              pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+            lines:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/ApprovalLine'
             coverageReservationRef:
               type: string
               minLength: 1

@@ -231,6 +231,10 @@ adr198: artifact_schemas.#ADR & {
 	affectedArtifacts: [
 		"contexts/ssc/domain-model.cue",
 		"contexts/p2p/domain-model.cue",
+		"contexts/ssc/schemas/events.cue",
+		"contexts/p2p/schemas/events.cue",
+		"contexts/ssc/api.yaml",
+		"contexts/p2p/api.yaml",
 		"contexts/ssc/agents/ssc-primary-agent.cue",
 		"contexts/p2p/agents/p2p-primary-agent.cue",
 		"contexts/ssc/canvas.cue",
