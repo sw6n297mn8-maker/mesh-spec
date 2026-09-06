@@ -142,6 +142,11 @@ adr197: artifact_schemas.#ADR & {
 		"contexts/ssc/agents/ssc-primary-agent.governance.cue",
 	]
 
+	// Morada da mecanização encomendada pela decisão (4) — higiene de
+	// registro pós-autoria (passe de morada, 2026-09-06): a decisão do ADR
+	// permanece intocada; a pendência que o texto declarou ganha def.
+	defersTo: ["def-092"]
+
 	principlesApplied: [
 		"P10 — o gate novo varre marcas declaradas deterministicamente; o julgamento (quem DEVE responder) permanece decisão humana na autoria, nunca no check.",
 		"P12 — quem responde à exceção vira contrato declarado e verificável, em vez de conhecimento em memória ou prosa de placeholder.",

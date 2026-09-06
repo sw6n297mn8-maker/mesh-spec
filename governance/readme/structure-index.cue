@@ -678,7 +678,13 @@ structureIndex: {
 				"architecture/deferred-decisions/def-083-work-governance-engine-enforcement-gap.cue",
 				"architecture/deferred-decisions/def-084-cross-repo-effect-proof-verification.cue",
 				"architecture/deferred-decisions/def-085-verifier-resolution-shared-abstraction-home.cue",
-				"architecture/deferred-decisions/def-086-frontend-design-system-vendor-and-tooling.cue"
+				"architecture/deferred-decisions/def-086-frontend-design-system-vendor-and-tooling.cue",
+				"architecture/deferred-decisions/def-087-quotation-item-as-model-primitive.cue",
+				"architecture/deferred-decisions/def-088-requisition-quotation-link-at-item-level.cue",
+				"architecture/deferred-decisions/def-089-requisition-aggregation-into-rfq.cue",
+				"architecture/deferred-decisions/def-090-fitness-signals-provenance-verification.cue",
+				"architecture/deferred-decisions/def-091-goods-receipt-per-item.cue",
+				"architecture/deferred-decisions/def-092-exception-responder-mechanization.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},

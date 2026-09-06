@@ -11,9 +11,9 @@ adr197ExceptionDeclaresResponder: build_time.#SelfReviewReport & {
 
 	canonicalSource: "governance/build-time/quality-gate.cue"
 	executionMode:   "self-reported"
-	generatedAt:     "2026-09-03"
+	generatedAt:     "2026-09-06"
 
-	roundsExecuted: 2
+	roundsExecuted: 3
 	maxRounds:      4
 
 	status: "stable"
@@ -30,6 +30,19 @@ adr197ExceptionDeclaresResponder: build_time.#SelfReviewReport & {
 		warnCount: 2
 		infoCount: 0
 		summary:   "Zero fails. Dois warns declarados e mantidos como transparência: (uq-05) contagem de envelopes dos demais BCs e nomes de campo (respondedBy/rota) ficam para a fatia de mecanização; a demonstração de fronteira com a def-080 (invocador-passado x respondedor-futuro) foi apresentada integral no chat e resumida no rationale."
+	}, {
+		round:     3
+		failCount: 0
+		warnCount: 0
+		infoCount: 0
+		summary: """
+			Round de higiene (passe de morada, 2026-09-06): adicionado
+			defersTo: ["def-092"] apontando a morada da mecanização que a
+			decisão (4) encomendara em prosa — nenhuma alteração na decisão,
+			no contexto ou nas consequências (o defeito era registro, não
+			conteúdo; mesmo par adr↔def de adr-175/178/183/184). Aprovação
+			nominal do founder no passe; def-092 autorado no mesmo commit.
+			"""
 	}]
 
 	findings: {}
