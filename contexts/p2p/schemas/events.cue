@@ -15,8 +15,11 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 //
 // TIMESTAMPS: #RFC3339Timestamp (shared) nos data.* de domínio — alinhado
 // FCE/CMT. MONEY: #Money consolidado (shared-schemas, def-025) no amount do
-// PurchaseApproved. DECIMAL: quantity/estimatedVolume como #DecimalString
-// (Ion-4; espelho da regra rtd-013 decimal→string).
+// PurchaseApproved. DECIMAL: quantity (por linha/item, adr-198) como
+// #DecimalString (Ion-4; espelho da regra rtd-013 decimal→string).
+// ITEMIZAÇÃO (adr-198): escopo por itens (#PurchaseItem) e aprovação por
+// linhas (#ApprovalLine — o elo requisição↔cotação no nível do item);
+// defs de lista exigidos pelo gerador (molde WI-159, correção na fatia).
 
 // ── Aliases para shared_schemas ──
 //
@@ -66,16 +69,42 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	splitDetails: {...}
 }
 
-// Escopo da demanda (vo-purchase-scope): descrição, volume estimado, prazo,
-// location. estimatedVolume é ESTIMATIVA da submissão — NUNCA base de
-// reconciliação de valor (adr-177: a fórmula do 2º braço usa quantity FIRME
-// declarada na aprovação, não este campo).
-#PurchaseScope: {
-	description:     string & !=""
-	estimatedVolume: #DecimalString
-	deadline:        #RFC3339Timestamp
-	location:        string & !=""
+// Um item do escopo de requisição/pedido (vo-purchase-item, adr-198) —
+// identidade LOCAL ao aggregate. quantity é ESTIMATIVA da demanda — NUNCA
+// base de reconciliação (a quantity FIRME vive na linha de aprovação).
+// unit é string DECLARADA (canonização deferida em def-093).
+#PurchaseItem: {
+	itemId:      string & !=""
+	description: string & !=""
+	quantity:    #DecimalString
+	unit:        string & !=""
 }
+
+// Lista de itens do escopo (domain-type PurchaseItemList) — ≥1.
+#PurchaseItemList: [#PurchaseItem, ...#PurchaseItem]
+
+// Escopo da demanda (vo-purchase-scope, itemizado per adr-198): prazo e
+// location no escopo; o conteúdo é a lista de itens.
+#PurchaseScope: {
+	items:    #PurchaseItemList
+	deadline: #RFC3339Timestamp
+	location: string & !=""
+}
+
+// Linha de aprovação (vo-approval-line, adr-198) — O ELO no nível do
+// item: requisitionItemId (item da própria requisição) + sourcingItemId
+// (língua ssc: itemId dentro da decisão referenciada) + quantity FIRME +
+// lineAmount. Gate por linha: unitPrice(linha vencedora) × quantity ==
+// lineAmount; Σ lineAmount == amount.
+#ApprovalLine: {
+	requisitionItemId: string & !=""
+	sourcingItemId:    string & !=""
+	quantity:          #DecimalString
+	lineAmount:        #Money
+}
+
+// Lista de linhas da aprovação (domain-type ApprovalLineList) — ≥1.
+#ApprovalLineList: [#ApprovalLine, ...#ApprovalLine]
 
 // Justificativa estruturada de cancelamento (vo-cancellation-reason).
 // reasonCode FECHADO com fidelidade: o domain-model fecha via constraint
@@ -142,9 +171,9 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	data: {
 		requisitionId:          #RequisitionId
 		approvedBy:             string & !="" // gestor por Alçada — língua bdg
-		amount:                 #Money
-		sourcingDecisionRef:    #SourcingDecisionRef // o elo formal (adr-177) viaja no fato
-		quantity:               #DecimalString       // quantidade FIRME — base de unitPrice × quantity == amount
+		amount:                 #Money               // TOTAL — verificado como Σ lineAmount (adr-198)
+		sourcingDecisionRef:    #SourcingDecisionRef // o elo (adr-177/adr-198) viaja no fato
+		lines:                  #ApprovalLineList    // o elo por item; quantity FIRME por linha (o singular do adr-177 migrou)
 		coverageReservationRef: #CoverageReservationRef
 		approvedAt:             #RFC3339Timestamp
 	}

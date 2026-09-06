@@ -94,10 +94,13 @@ paths:
       summary: Consultar o mapa de cotações de uma RFQ
       description: >
         Implementa a query capability qry-quotation-map da
-        prj-quotation-map (WI-152): a comparação consolidada que o
-        comprador usa para escolher — cotações lado a lado ordenadas pela
-        equalização TCO DERIVADA deterministicamente, com o carimbo da
-        decisão quando ela existe. Leitura pura sem side-effects (read
+        prj-quotation-map (WI-152; itemizada em adr-198): a comparação
+        consolidada que o comprador usa para escolher — a MATRIZ ITEM ×
+        FORNECEDOR, uma linha por item do escopo e uma célula por
+        fornecedor que o cotou, com a equalização TCO DERIVADA
+        deterministicamente POR LINHA e o carimbo da decisão (award por
+        linha) quando ela existe. Item que nenhum fornecedor cotou APARECE
+        na matriz, com células vazias. Leitura pura sem side-effects (read
         model do event log). Molde by-id do FCE. LEITURA INTERPRETATIVA
         (adr-180 dec 4) da prosa da capability ('por rfqId, com filtro por
         categoryRef'): o GET é by-rfqId e categoryRef viaja NO PAYLOAD — o
@@ -291,10 +294,11 @@ paths:
         decisão (inv-negotiated-terms-materialize-on-quotation): a revisão
         atualiza a ent-quotation in-place preservando quotationId
         (continuidade para decisionRationale.evaluatedSuppliers e para o
-        gate de procedência do p2p — adr-177 resolve unitPrice × quantity
-        na cotação vencedora com o preço FINAL por construção), incrementa
-        revisionNumber e carimba lastRevisedAt; o histórico de rodadas
-        vive no event log. Restatement: unitPrice obrigatório;
+        gate de procedência do p2p — adr-177/adr-198 resolvem unitPrice ×
+        quantity == lineAmount na LINHA vencedora com o preço FINAL por
+        construção), incrementa revisionNumber e carimba lastRevisedAt; o
+        histórico de rodadas vive no event log. Restatement: lines
+        obrigatório (preço por item, restatement completo da cobertura);
         paymentTerms/deliverySchedule/termsNotes opcionais (ausente =
         mantém vigente). CURRENCY IMUTÁVEL por construção — o request não
         a carrega (invariante de handler). Status da cotação INALTERADO
@@ -588,8 +592,17 @@ components:
         eixos opcionais individualmente; '≥1 eixo preenchido' é invariante
         de handler (o espelho não fecha disjunção que o domínio declara
         como handler-level; violação gera 422). message pode ser vazia.
+        Per adr-198, itemId opcional mira a rodada numa LINHA
+        (targetUnitPrice de linha); ausente = eixos da cotação inteira
+        (paymentTerms/deliverySchedule).
       required: [message]
       properties:
+        itemId:
+          type: string
+          minLength: 1
+          description: >
+            Opcional (adr-198) — alvo da rodada quando a contraproposta é
+            de linha (ref local ao item do escopo).
         targetUnitPrice:
           type: string
           pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
@@ -606,19 +619,104 @@ components:
       description: >
         Tipo declarado upfront (vo-decision-type) — FECHADO com fidelidade:
         o domain-model fecha via constraint.
-    RFQScope:
-      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RfqScope'
+    RFQItem:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RfqItem'
       type: object
-      required: [categoryRef, description, estimatedVolume, deadline, location]
+      description: >
+        Um item do escopo (vo-rfq-item, adr-198) — a LINHA da matriz item
+        × fornecedor. itemId é identidade LOCAL à RFQ (endereçamento
+        cross-BC pelo par rfqId+itemId). unit é string DECLARADA;
+        canonização/normalização de unidade deferida em def-093. quantity
+        é ESTIMATIVA do escopo — nunca base de reconciliação (a quantity
+        FIRME vive na linha de aprovação do p2p).
+      required: [itemId, description, quantity, unit]
       properties:
-        categoryRef:
-          $ref: '#/components/schemas/CategoryRef'
+        itemId:
+          type: string
+          minLength: 1
         description:
           type: string
           minLength: 1
-        estimatedVolume:
+        quantity:
           type: string
           pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        unit:
+          type: string
+          minLength: 1
+        neededBy:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+          description: Opcional — data de necessidade da linha.
+    QuotationLine:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#QuotationLine'
+      type: object
+      description: >
+        Linha de uma cotação (vo-quotation-line, adr-198) — o preço do
+        fornecedor para UM item do escopo. A cobertura da cotação É a
+        lista de linhas: ausência de linha para um item = item não cotado
+        por aquele fornecedor (proposta PARCIAL é legítima por
+        construção; nenhum invariante força cobertura total).
+      required: [itemId, unitPrice]
+      properties:
+        itemId:
+          type: string
+          minLength: 1
+        unitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        declaredCapacity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+          description: Opcional — capacidade declarada para esta linha.
+        deliveryDate:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+          description: Opcional — entrega prometida para esta linha.
+    ItemAward:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#ItemAward'
+      type: object
+      description: >
+        A adjudicação de UMA linha (vo-item-award, adr-198). outcome
+        ABERTO no espelho — awarded | no-quotation | withheld são
+        INDICATIVOS no domain-model (o glossário do ssc os sela na fatia
+        de naming; P14: o espelho não fecha o que o domínio não fecha,
+        molde da nota 'outcome' do p2p). awardedSupplierRef/
+        awardedQuotationRef presentes quando awarded; narrative
+        obrigatória quando withheld (invariante de handler; 422). A LINHA
+        VAZIA tem nome: item sem proposta válida registra no-quotation,
+        nunca silêncio.
+      required: [itemId, outcome]
+      properties:
+        itemId:
+          type: string
+          minLength: 1
+        outcome:
+          type: string
+          minLength: 1
+        awardedSupplierRef:
+          $ref: '#/components/schemas/SupplierRef'
+        awardedQuotationRef:
+          $ref: '#/components/schemas/QuotationId'
+        narrative:
+          type: string
+    RFQScope:
+      x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#RfqScope'
+      type: object
+      description: >
+        Escopo da RFQ ITEMIZADO (vo-rfq-scope, adr-198): categoria, prazo
+        e location no nível do escopo; o CONTEÚDO é a lista de itens
+        (description/estimatedVolume singulares migraram para eles).
+      required: [categoryRef, items, deadline, location]
+      properties:
+        categoryRef:
+          $ref: '#/components/schemas/CategoryRef'
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RFQItem'
         deadline:
           type: string
           format: date-time
@@ -723,11 +821,16 @@ components:
       x-mesh-cue-ref: 'contexts/ssc/schemas/events.cue#EvaluatedSupplier'
       type: object
       description: >
-        Avaliação per-supplier (vo-evaluated-supplier). scoresPerCriterion
-        é mapa critério→score ABERTO no espelho (ScoresByCriterion sem
-        shape fechado no domain-model — P14); notes pode ser vazia.
-      required: [supplierRef, scoresPerCriterion, finalRank, notes]
+        Avaliação per-supplier POR LINHA (vo-evaluated-supplier, adr-198)
+        — itemId nomeia o item disputado; o score é por linha, não pela
+        cotação inteira. scoresPerCriterion é mapa critério→score ABERTO
+        no espelho (ScoresByCriterion sem shape fechado no domain-model —
+        P14); notes pode ser vazia.
+      required: [itemId, supplierRef, scoresPerCriterion, finalRank, notes]
       properties:
+        itemId:
+          type: string
+          minLength: 1
         supplierRef:
           $ref: '#/components/schemas/SupplierRef'
         scoresPerCriterion:
@@ -781,23 +884,21 @@ components:
     QuotationMapItem:
       type: object
       description: >
-        Uma cotação no mapa — shape SINTÉTICO do read model (precedente
-        ActiveSourcingDecisionItem): campos do fato interno
-        evt-quotation-submitted + status do lifecycle da ent-quotation
-        (submitted → withdrawn, enum FECHADO com fidelidade) +
-        equalizedScore DERIVADO deterministicamente (fitness rules
-        aplicadas sobre a cotação — ausente quando a derivação não
-        produziu score para o item; nunca input manual) e, com a
-        negociação (WI-161, prosa canônica de prj-quotation-map/
-        qry-quotation-map), as RODADAS por cotação: quotationId,
-        revisionNumber, preço inicial vs vigente (a economia da
-        negociação observável — unitPrice é o VIGENTE; initialUnitPrice o
-        da submissão original), condições estruturadas comparáveis
+        O CABEÇALHO de uma cotação no mapa — shape SINTÉTICO do read
+        model (precedente ActiveSourcingDecisionItem). Per adr-198 o
+        PREÇO não mora aqui: ele é por linha e vive nas células
+        (QuotationMapCell) das linhas do escopo. Aqui ficam os campos da
+        cotação INTEIRA: identidade, fornecedor, currency, status do
+        lifecycle da ent-quotation (submitted → withdrawn, enum FECHADO
+        com fidelidade) e, com a negociação (WI-161, prosa canônica de
+        prj-quotation-map/qry-quotation-map), as RODADAS por cotação:
+        revisionNumber, condições estruturadas comparáveis
         (paymentTerms/deliverySchedule — vigentes, da submissão ou da
         última revisão) e o estado da rodada (counterTermsState +
-        pendingCounterTerms). termsNotes pode ser vazia (espelho de
-        events.cue).
-      required: [quotationId, supplierRef, unitPrice, initialUnitPrice, revisionNumber, counterTermsState, currency, declaredCapacity, termsNotes, status, submittedAt]
+        pendingCounterTerms; pendingCounterTerms.itemId nomeia a linha
+        quando a rodada é de linha). termsNotes pode ser vazia (espelho
+        de events.cue).
+      required: [quotationId, supplierRef, revisionNumber, counterTermsState, currency, termsNotes, status, submittedAt]
       properties:
         quotationId:
           allOf:
@@ -809,20 +910,6 @@ components:
             de procedência referenciam).
         supplierRef:
           $ref: '#/components/schemas/SupplierRef'
-        unitPrice:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
-          description: >
-            Preço unitário VIGENTE (da submissão ou da última revisão —
-            a casa canônica do preço, inv-negotiated-terms-materialize-
-            on-quotation).
-        initialUnitPrice:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
-          description: >
-            Preço unitário da submissão original (revisionNumber=0) — o
-            'preço inicial vs vigente' da prosa da projection: a economia
-            da negociação observável.
         revisionNumber:
           type: integer
           description: >
@@ -860,9 +947,6 @@ components:
         currency:
           type: string
           minLength: 1
-        declaredCapacity:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
         termsNotes:
           type: string
         status:
@@ -872,20 +956,84 @@ components:
           type: string
           format: date-time
           pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+    QuotationMapCell:
+      type: object
+      description: >
+        Uma CÉLULA da matriz item × fornecedor (adr-198): o que este
+        fornecedor ofereceu para ESTA linha. Ausência de célula para um
+        fornecedor na linha = item não cotado por ele (proposta parcial —
+        a célula vazia é a ausência, não um registro com zeros).
+        unitPrice é o VIGENTE (da submissão ou da última revisão — a casa
+        canônica do preço, inv-negotiated-terms-materialize-on-quotation);
+        initialUnitPrice é o da submissão original, e o par exibe a
+        economia da negociação POR LINHA. equalizedScore é DERIVADO
+        deterministicamente (fitness rules aplicadas sobre a linha —
+        ausente quando a derivação não produziu score; nunca input
+        manual).
+      required: [quotationId, supplierRef, unitPrice, initialUnitPrice]
+      properties:
+        quotationId:
+          $ref: '#/components/schemas/QuotationId'
+        supplierRef:
+          $ref: '#/components/schemas/SupplierRef'
+        unitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        initialUnitPrice:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        declaredCapacity:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        deliveryDate:
+          type: string
+          format: date-time
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
         equalizedScore:
           type: string
           pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+    QuotationMapRow:
+      type: object
+      description: >
+        Uma LINHA da matriz (adr-198): o item do escopo + as células dos
+        fornecedores que o cotaram + o award quando a janela concluiu.
+        cells pode ser VAZIA — item que nenhum fornecedor cotou existe na
+        matriz e é visível; é a linha que o award registra como
+        no-quotation. A linha é a unidade que a comparação, a decisão e o
+        gate de procedência do p2p percorrem.
+      required: [item, cells]
+      properties:
+        item:
+          $ref: '#/components/schemas/RFQItem'
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuotationMapCell'
+        award:
+          allOf:
+            - $ref: '#/components/schemas/ItemAward'
+          description: >
+            O carimbo da decisão NESTA linha — presente apenas quando
+            windowStatus=concluded.
     QuotationMapDecision:
       type: object
       description: >
         O carimbo da decisão (presente apenas quando
-        windowStatus=concluded): vencedor(es), ranking final
-        (evaluatedSuppliers), tradeoffs e o snapshot de fitness rules que
-        sustentou a comparação — a reconstituição auditável.
-      required: [sourcingDecisionId, selectedSuppliers, evaluatedSuppliers, tradeoffs, fitnessRuleSnapshot]
+        windowStatus=concluded): a adjudicação POR LINHA (itemAwards,
+        adr-198 — repetida em cada QuotationMapRow.award para leitura na
+        linha), vencedor(es) derivados, ranking final por linha
+        (evaluatedSuppliers com itemId), tradeoffs e o snapshot de
+        fitness rules que sustentou a comparação — a reconstituição
+        auditável.
+      required: [sourcingDecisionId, itemAwards, selectedSuppliers, evaluatedSuppliers, tradeoffs, fitnessRuleSnapshot]
       properties:
         sourcingDecisionId:
           $ref: '#/components/schemas/SourcingDecisionId'
+        itemAwards:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ItemAward'
         selectedSuppliers:
           type: array
           minItems: 1
@@ -904,14 +1052,22 @@ components:
     QuotationMapView:
       type: object
       description: >
-        Read model da qry-quotation-map — o mapa de cotações de UMA RFQ.
-        categoryRef viaja no payload (leitura interpretativa adr-180 dec
-        4). windowStatus espelha o lifecycle FECHADO do
-        agg-sourcing-process; comparisonBasis explicita o regime da
-        equalização (indicative = fitness rules vigentes durante a
-        janela; decided = snapshot carimbado pós-decisão); decision
-        presente apenas quando concluded.
-      required: [rfqId, categoryRef, windowStatus, comparisonBasis, quotations]
+        Read model da qry-quotation-map — a MATRIZ ITEM × FORNECEDOR de
+        UMA RFQ (adr-198). items são as LINHAS (item do escopo + células
+        dos fornecedores que o cotaram + award pós-decisão); quotations
+        são os CABEÇALHOS por fornecedor (o que é da cotação inteira:
+        currency, rodadas de negociação, condições estruturadas, status)
+        — sem duplicar preço, que vive nas células. categoryRef viaja no
+        payload (leitura interpretativa adr-180 dec 4). windowStatus
+        espelha o lifecycle FECHADO do agg-sourcing-process;
+        comparisonBasis explicita o regime da equalização (indicative =
+        fitness rules vigentes durante a janela; decided = snapshot
+        carimbado pós-decisão); decision presente apenas quando
+        concluded. A matriz é ENTREGUE pela projection, não montada na
+        borda: transpor no consumidor recriaria a derivação fora do read
+        model (o vício que prj-quotation-map existe para evitar) e não
+        teria onde representar a linha que ninguém cotou.
+      required: [rfqId, categoryRef, windowStatus, comparisonBasis, items, quotations]
       properties:
         rfqId:
           $ref: '#/components/schemas/RFQId'
@@ -923,10 +1079,22 @@ components:
         comparisonBasis:
           type: string
           enum: [indicative, decided]
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuotationMapRow'
+          description: >
+            As LINHAS da matriz — uma por item do escopo, na ordem do
+            escopo. Cobertura TOTAL: item sem nenhuma cotação aparece com
+            cells vazia (adr-198).
         quotations:
           type: array
           items:
             $ref: '#/components/schemas/QuotationMapItem'
+          description: >
+            Os CABEÇALHOS por fornecedor — campos da cotação inteira; o
+            preço por linha vive em items[].cells.
         decision:
           $ref: '#/components/schemas/QuotationMapDecision'
 
@@ -1059,22 +1227,25 @@ components:
       description: >
         Espelho dos campos do command na superfície desta fatia —
         paymentTerms/deliverySchedule (opcionais, WI-161) entram com a
-        fatia da negociação.
-      required: [rfqId, supplierRef, unitPrice, currency, declaredCapacity, termsNotes]
+        fatia da negociação. Per adr-198 a proposta é POR LINHA: lines
+        carrega o preço de cada item cotado (unitPrice/declaredCapacity
+        singulares migraram); subconjunto dos itens do escopo = proposta
+        PARCIAL, legítima. currency permanece da cotação (uma por
+        cotação).
+      required: [rfqId, supplierRef, lines, currency, termsNotes]
       properties:
         rfqId:
           $ref: '#/components/schemas/RFQId'
         supplierRef:
           $ref: '#/components/schemas/SupplierRef'
-        unitPrice:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuotationLine'
         currency:
           type: string
           pattern: '^[A-Z]{3}$'
-        declaredCapacity:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
         termsNotes:
           type: string
           description: pode ser vazia (espelho de events.cue)
@@ -1107,10 +1278,12 @@ components:
       type: object
       description: >
         Espelho dos campos do command — restatement das condições
-        comerciais: unitPrice obrigatório; paymentTerms/deliverySchedule/
-        termsNotes opcionais (ausente = mantém vigente). CURRENCY IMUTÁVEL
-        por construção — o command não a carrega (invariante de handler).
-      required: [rfqId, quotationId, supplierRef, unitPrice, revisionNote]
+        comerciais: lines obrigatório (preço POR LINHA, adr-198 —
+        restatement completo da cobertura vigente); paymentTerms/
+        deliverySchedule/termsNotes opcionais (ausente = mantém vigente).
+        CURRENCY IMUTÁVEL por construção — o command não a carrega
+        (invariante de handler).
+      required: [rfqId, quotationId, supplierRef, lines, revisionNote]
       properties:
         rfqId:
           $ref: '#/components/schemas/RFQId'
@@ -1123,9 +1296,14 @@ components:
             Supplier que revisa — deve match o da cotação original
             (invariante de handler; 422). Atribuição nominal
             NÃO-verificada até o ADR de auth (def-024).
-        unitPrice:
-          type: string
-          pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuotationLine'
+          description: >
+            Linhas revisadas (adr-198) — restatement completo da
+            cobertura vigente.
         paymentTerms:
           allOf:
             - $ref: '#/components/schemas/PaymentTerms'
@@ -1214,21 +1392,20 @@ components:
           const: contexts/ssc/schemas/events.cue#QuotationSubmitted
         data:
           type: object
-          required: [rfqId, supplierRef, unitPrice, currency, declaredCapacity, termsNotes, submittedAt]
+          required: [rfqId, supplierRef, lines, currency, termsNotes, submittedAt]
           properties:
             rfqId:
               $ref: '#/components/schemas/RFQId'
             supplierRef:
               $ref: '#/components/schemas/SupplierRef'
-            unitPrice:
-              type: string
-              pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+            lines:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/QuotationLine'
             currency:
               type: string
               pattern: '^[A-Z]{3}$'
-            declaredCapacity:
-              type: string
-              pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
             termsNotes:
               type: string
             submittedAt:
@@ -1306,7 +1483,7 @@ components:
           const: contexts/ssc/schemas/events.cue#QuotationRevised
         data:
           type: object
-          required: [rfqId, quotationId, supplierRef, revisionNumber, unitPrice, revisionNote, revisedAt]
+          required: [rfqId, quotationId, supplierRef, revisionNumber, lines, revisionNote, revisedAt]
           properties:
             rfqId:
               $ref: '#/components/schemas/RFQId'
@@ -1316,9 +1493,11 @@ components:
               $ref: '#/components/schemas/SupplierRef'
             revisionNumber:
               type: integer
-            unitPrice:
-              type: string
-              pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+            lines:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/QuotationLine'
             paymentTerms:
               allOf:
                 - $ref: '#/components/schemas/PaymentTerms'
@@ -1407,7 +1586,7 @@ components:
           const: contexts/ssc/schemas/events.cue#SourcingDecisionMade
         data:
           type: object
-          required: [sourcingDecisionId, rfqId, categoryRef, selectedSuppliers, allocationPolicy, decisionRationale, fitnessRuleSnapshot, decidedAt, decidedBy]
+          required: [sourcingDecisionId, rfqId, categoryRef, itemAwards, selectedSuppliers, allocationPolicy, decisionRationale, fitnessRuleSnapshot, decidedAt, decidedBy]
           properties:
             sourcingDecisionId:
               $ref: '#/components/schemas/SourcingDecisionId'
@@ -1415,11 +1594,24 @@ components:
               $ref: '#/components/schemas/RFQId'
             categoryRef:
               $ref: '#/components/schemas/CategoryRef'
+            itemAwards:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/ItemAward'
+              description: >
+                A adjudicação POR LINHA (adr-198) — cobre TODOS os itens
+                do escopo, cada um com seu outcome. A conclusão da janela
+                NÃO exige adjudicação total.
             selectedSuppliers:
               type: array
               minItems: 1
               items:
                 $ref: '#/components/schemas/SupplierRef'
+              description: >
+                DERIVADO dos itemAwards (união dos awardedSupplierRef,
+                adr-198) — mantido para consumidores que operam no nível
+                da decisão.
             allocationPolicy:
               $ref: '#/components/schemas/AllocationPolicy'
             decisionRationale:

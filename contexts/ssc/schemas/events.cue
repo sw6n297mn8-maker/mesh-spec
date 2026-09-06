@@ -22,6 +22,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // TIMESTAMPS: #RFC3339Timestamp (shared) nos data.* de domínio. DECIMAL:
 // #DecimalString (Ion-4) em preços/volumes/scores — nunca float.
 //
+// ITEMIZAÇÃO (adr-198): escopo, cotação e decisão falam POR LINHA —
+// #RfqItem/#QuotationLine/#ItemAward + defs de lista exigidos pelo
+// gerador (correção pós-CI no mesmo molde WI-159: o codegen tipa os
+// payloads dos commands a partir destes defs; espelho segue o catálogo
+// do domain-model, verbatim).
+//
 // TRANSPARÊNCIA P14 (molde da nota 'outcome' do p2p): os domain-types
 // FitnessRuleContent (shape deliberadamente em oq-ssc-8),
 // AllocationSplitDetails, CriterionList, WeightsByCriterion e
@@ -60,14 +66,59 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 	splitDetails: {...}
 }
 
-// Escopo da RFQ (vo-rfq-scope).
-#RfqScope: {
-	categoryRef:     #CategoryRef
-	description:     string & !=""
-	estimatedVolume: #DecimalString
-	deadline:        #RFC3339Timestamp
-	location:        string & !=""
+// Um item do escopo (vo-rfq-item, adr-198) — identidade LOCAL à RFQ;
+// endereçamento cross-BC pelo par rfqId+itemId. unit é string DECLARADA
+// (canonização deferida em def-093). neededBy opcional.
+#RfqItem: {
+	itemId:      string & !=""
+	description: string & !=""
+	quantity:    #DecimalString
+	unit:        string & !=""
+	neededBy?:   #RFC3339Timestamp
 }
+
+// Lista de itens do escopo (domain-type RfqItemList) — ≥1 per vo-rfq-scope.
+#RfqItemList: [#RfqItem, ...#RfqItem]
+
+// Escopo da RFQ (vo-rfq-scope, itemizado per adr-198): categoria/prazo/
+// location no escopo; o conteúdo é a lista de itens.
+#RfqScope: {
+	categoryRef: #CategoryRef
+	items:       #RfqItemList
+	deadline:    #RFC3339Timestamp
+	location:    string & !=""
+}
+
+// Linha de cotação (vo-quotation-line, adr-198) — preço do fornecedor
+// para UM item; declaredCapacity/deliveryDate opcionais por linha.
+// Ausência de linha = item não cotado (proposta parcial legítima).
+#QuotationLine: {
+	itemId:            string & !=""
+	unitPrice:         #DecimalString
+	declaredCapacity?: #DecimalString
+	deliveryDate?:     #RFC3339Timestamp
+}
+
+// Lista de linhas da cotação (domain-type QuotationLineList) — ≥1.
+#QuotationLineList: [#QuotationLine, ...#QuotationLine]
+
+// Adjudicação de uma linha (vo-item-award, adr-198). outcome ABERTO no
+// espelho (awarded | no-quotation | withheld são INDICATIVOS no
+// domain-model — nomes fecham no glossário na fatia; o espelho não sela
+// o que o domínio não fecha, molde da nota 'outcome' do p2p).
+// awardedSupplierRef/awardedQuotationRef presentes quando awarded;
+// narrative obrigatória quando withheld (invariante de handler).
+#ItemAward: {
+	itemId:              string & !=""
+	outcome:             string & !=""
+	awardedSupplierRef?:  #SupplierRef
+	awardedQuotationRef?: #QuotationId
+	narrative?:           string
+}
+
+// Lista de awards por item (domain-type ItemAwardList) — cobre TODOS os
+// itens do escopo na conclusão (adr-198).
+#ItemAwardList: [#ItemAward, ...#ItemAward]
 
 // Janela de validade (vo-validity-period) — preferred designation expira
 // passivamente após validUntil.
@@ -94,6 +145,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // Avaliação per-supplier (vo-evaluated-supplier). scoresPerCriterion é mapa
 // critério→score (ScoresByCriterion sem shape fechado — mapa de decimal).
 #EvaluatedSupplier: {
+	itemId:      string & !="" // linha disputada (adr-198 — score por item)
 	supplierRef: #SupplierRef
 	scoresPerCriterion: [string]: #DecimalString
 	finalRank: int
@@ -146,6 +198,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 // individualmente; '≥1 eixo preenchido' é invariante de handler (o
 // espelho não fecha disjunção que o domínio declara como handler-level).
 #CounterTerms: {
+	itemId?:                    string & !="" // alvo de linha (adr-198); ausente = cotação inteira
 	targetUnitPrice?:           #DecimalString
 	requestedPaymentTerms?:     #PaymentTerms
 	requestedDeliverySchedule?: #DeliverySchedule
@@ -201,6 +254,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 		sourcingDecisionId: #SourcingDecisionId
 		rfqId:              #RfqId
 		categoryRef:        #CategoryRef
+		itemAwards:          #ItemAwardList
 		selectedSuppliers: [...#SupplierRef]
 		allocationPolicy:    #AllocationPolicy
 		decisionRationale:   #DecisionRationale
@@ -249,13 +303,12 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 #QuotationSubmitted: #Envelope & {
 	type: "mesh.ssc.quotation-submitted.v1"
 	data: {
-		rfqId:            #RfqId
-		supplierRef:      #SupplierRef
-		unitPrice:        #DecimalString
-		currency:         string & !=""
-		declaredCapacity: #DecimalString
-		termsNotes:       string
-		submittedAt:      #RFC3339Timestamp
+		rfqId:       #RfqId
+		supplierRef: #SupplierRef
+		lines:       #QuotationLineList
+		currency:    string & !=""
+		termsNotes:  string
+		submittedAt: #RFC3339Timestamp
 	}
 }
 
@@ -294,7 +347,7 @@ import "github.com/sw6n297mn8-maker/mesh-spec/architecture/shared-schemas:shared
 		quotationId:    #QuotationId
 		supplierRef:    #SupplierRef
 		revisionNumber: int
-		unitPrice:      #DecimalString
+		lines:          #QuotationLineList
 		paymentTerms?:     #PaymentTerms
 		deliverySchedule?: #DeliverySchedule
 		termsNotes?:       string
