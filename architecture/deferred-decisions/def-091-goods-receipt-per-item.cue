@@ -30,6 +30,43 @@ def091: artifact_schemas.#DeferredDecision & {
 		requisição sempre descreveu vários materiais e a entrega sempre foi
 		de escopo); o item apenas a torna visível. Depende de def-087: o
 		saldo por item herda a forma do item.
+
+		SEGUNDA FRENTE (2026-09-07) — A FORMA DO ACEITE, divergência em
+		ABERTO. Além da granularidade, este def passa a cobrir a QUESTÃO
+		DA CERIMÔNIA: há um momento de aceite ENTRE AS PARTES na entrega,
+		ou a entrega se prova por evidência verificada de um lado só? Duas
+		leituras estão sobre a mesa e NENHUMA está decidida:
+		(a) A ENTREGA MERECE ACEITE BILATERAL PRÓPRIO, e o modelo está
+		atrás da tese. O aceite bilateral É da tese — mas hoje mora no cmt
+		('compromisso é acordo bilateral com aceite mútuo', subdomains/
+		p2p.cue; 'confirmação bilateral' + 'invariantes de aceite mútuo' +
+		'aceite bilateral registrado como fato com integridade
+		criptográfica via CAS/DSSE, o primeiro elo da cadeia de
+		evidência', subdomains/cmt.cue), e incide sobre o COMPROMISSO. Se
+		o fato que move dinheiro é a entrega, e se a prova desse fato
+		exige as duas partes concordando e não apenas o comprador
+		conferindo, então falta ao dlv um ato que a tese já sustenta em
+		outro nível — e a fronteira cmt/dlv se desloca.
+		(b) O ACEITE JÁ ESTÁ NO LUGAR CERTO e o que falta é vocabulário. O
+		cmt declara explicitamente que 'não verifica execução operacional
+		(DLV)'; o dlv verifica execução por evidência (cmd-record-evidence
+		→ cmd-evaluate-verification → evt-delivery-verified |
+		evt-delivery-rejected), sem cerimônia entre partes. Nesta leitura
+		a entrega é VERIFICADA, não aceita, e um 'aceite de entrega' seria
+		o vocabulário do cmt aplicado ao BC errado.
+		ORIGEM DA DIVERGÊNCIA: a EntregaScreen do design system afirma um
+		evt-delivery-accepted que NÃO existe em contexts/ (verificado:
+		zero ocorrências), com gate de aceite físico e 'aceite bilateral
+		registrado'; o dlv não tem a palavra 'bilateral' uma única vez.
+		NENHUM DOS DOIS FOI TESTADO CONTRA A REALIDADE — a ausência no
+		modelo não é prova de que a tela errou, e a presença na tela não é
+		prova de que o modelo está atrás. É divergência entre dois
+		artefatos, cada um fiel a uma leitura, sem árbitro empírico. Molde
+		reconhecido: o rationale do passo 7 da ds-buyer-procurement-journey
+		registra a mesma forma ('divergência entre dois artefatos de
+		protótipo, cada um fiel a um lado') — lá a story era fonte dos dois
+		e não decidia; aqui a story do fornecedor herdaria a indecisão, e
+		por isso a declara como limite em vez de escolher.
 		"""
 
 	deferralRationale: """
@@ -70,7 +107,9 @@ def091: artifact_schemas.#DeferredDecision & {
 
 	originatingArtifacts: [
 		"contexts/p2p/domain-model.cue",
+		"contexts/dlv/domain-model.cue",
 		"session:passe-de-morada",
+		"session:divergencia-aceite-entrega",
 	]
 
 	costOfDeferral: {
@@ -85,8 +124,16 @@ def091: artifact_schemas.#DeferredDecision & {
 			granularidade grossa exatamente onde o dinheiro se move — a
 			cadeia de evidência muda de granularidade no último passo.
 			cross-cutting porque toca p2p (pedido/saldo), o arco fiscal do
-			recebido efetivo e o nascimento do recebível. Exit: fatia
-			própria do recebimento por item, após def-087 dar a forma.
+			recebido efetivo e o nascimento do recebível — e, com a segunda
+			frente (2026-09-07), também dlv (a forma do aceite) e a
+			fronteira cmt/dlv que a leitura (a) deslocaria. A severidade
+			NÃO muda com a frente nova: continua high pelo mesmo motivo
+			(pagamento indevido), e a indecisão sobre a cerimônia não
+			acrescenta custo cumulativo próprio — ela custa quando a fatia
+			abrir e precisar escolher. Exit: fatia própria do recebimento
+			por item, após def-087 dar a forma, decidindo as duas frentes
+			juntas (granularidade e cerimônia) — separá-las modelaria o
+			saldo por item sob uma forma de aceite ainda não escolhida.
 			"""
 	}
 
