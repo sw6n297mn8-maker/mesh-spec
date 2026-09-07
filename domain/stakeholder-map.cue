@@ -419,7 +419,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			code:        "int-competitive-sourcing"
 			description: "Processo competitivo saudável — no mínimo três propostas comparáveis por cotação."
 			priority:    "critical"
-			rationale:   "Fonte: passo 5 da story ('pedindo no mínimo três propostas') — a régua que a persona usa."
+			rationale:   "Fonte: passo 5 da story ('pedindo no mínimo três propostas') — a régua que a persona usa. O piso MECÂNICO do modelo é outro: inv-competitive-pool-or-supervised-exception exige ≥ 2 cotantes válidos por LINHA para adjudicação automática (por item per adr-198). Três é prática, não norma — se um dia virar piso, vira invariante primeiro e o glossário segue."
 		}, {
 			code:        "int-payment-terms-leverage"
 			description: "Condições de pagamento melhores — o eixo da negociação que protege o fluxo de caixa da obra."

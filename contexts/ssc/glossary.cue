@@ -241,7 +241,7 @@ glossary: artifact_schemas.#Glossary & {
 		code:       "term-mapa-de-cotacoes"
 		name:       "Mapa de Cotações"
 		termEn:     "Quotation Map"
-		definition: "Comparação consolidada e CONSULTÁVEL das cotações de uma RFQ — no mínimo três preços lado a lado, com a equalização TCO derivada deterministicamente das fitness rules vigentes da categoria. Vive DURANTE a janela de cotação (comparação indicativa que suporta a escolha do comprador) e ganha o carimbo da decisão quando ela vem (vencedor, ranking, tradeoffs, snapshot — comparação auditável). Materializado por prj-quotation-map/qry-quotation-map (WI-152). Consumido intra-organização; nunca exposto a fornecedores."
+		definition: "Comparação consolidada e CONSULTÁVEL das cotações de uma RFQ — as cotações recebidas lado a lado, com a equalização TCO derivada deterministicamente das fitness rules vigentes da categoria. Vive DURANTE a janela de cotação (comparação indicativa que suporta a escolha do comprador) e ganha o carimbo da decisão quando ela vem (vencedor, ranking, tradeoffs, snapshot — comparação auditável). Materializado por prj-quotation-map/qry-quotation-map (WI-152). Consumido intra-organização; nunca exposto a fornecedores."
 		category:   "value"
 		rationale:  "O instrumento central do comprador na jornada real — as fontes o chamam pelo nome ('consolida o mapa de cotações... e compara'), e a ds-buyer-procurement-journey mediu que o modelo tinha o conceito (Equalização TCO como serviço interno) mas nenhuma superfície consultável: o comprador estava cego na comparação que o sistema calcula. O termo canoniza o instrumento na UL — a comparação equalizada como a superfície onde a decisão de escolha acontece, observável e rastreável, não cálculo trancado no write."
 		antiTerms: [{
