@@ -229,5 +229,17 @@ supplierNetworkJourney: artifact_schemas.#DomainStory & {
 		(def-095 nomeia cinco; o passo 1 narra o único sustentado hoje) e
 		qual a forma do aceite na entrega (def-091, segunda frente; o passo
 		10 declara o limite em vez de escolher).
+
+		POR QUE OS PASSOS 7 E 8 VIVEM SÓ AQUI, E O 5 NÃO (2026-09-07, fatia
+		0): vale a regra que a ds-buyer-procurement-journey enuncia — ato de
+		sh-02 aparece lá quando é INSUMO do arco do comprador, e só aqui
+		quando é RESPOSTA dentro da rodada. cmd-submit-quotation é insumo
+		(sem cotação não há mapa) e por isso está nas duas; revisar e
+		declinar são resposta, e por isso saíram de lá. A aresta A2 registra
+		o efeito: o evento cruza, mas com sh-02 dos dois lados — não é
+		bilateralidade, é o mesmo ato narrado de dois pontos de vista. E A2
+		PERMANECE REGISTRADA COMO ARESTA SEM LADO COMPRADOR: a aparência de
+		par vem da regra acima, não de uma contraparte que falte. Ninguém
+		deve ler esta regra e concluir que A2 precisa ganhar par.
 		"""
 }

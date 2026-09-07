@@ -180,5 +180,18 @@ buyerProcurementJourney: artifact_schemas.#DomainStory & {
 		sh-09), atos distintos que o antigo passo 9 colapsava contra a
 		separação fechada pelo WI-157. Origem da descoberta: divergência entre
 		dois artefatos de protótipo, cada um fiel a um lado da story.
+
+		REGRA DO ATO DO FORNECEDOR (2026-09-07, fatia 0): um ato de sh-02
+		aparece NESTA story quando é INSUMO do arco do comprador — a
+		submissão da cotação (passo 6) é o que faz existir o mapa que ele
+		compara — e vive SÓ na ds-supplier-network-journey quando é RESPOSTA
+		dentro da rodada de negociação. É por isso que cmd-submit-quotation
+		está nas duas stories e cmd-revise-quotation/cmd-decline-counter-terms
+		saíram desta. A assimetria é deliberada e NENHUM GATE A ENXERGA: o
+		sc-ds-04 confere que a ref resolve, e ela resolve dos dois lados.
+		Consequência medida: a derivação de arestas por interseção de evento
+		produz um par com sh-02 dos DOIS lados em evt-quotation-submitted —
+		aresta aparente, que esta regra explica e que a story do fornecedor
+		já declarava como A2 sem lado comprador.
 		"""
 }
