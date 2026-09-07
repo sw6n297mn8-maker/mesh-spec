@@ -56,7 +56,7 @@ package ssc
 // prj-cost-center-availability; viva durante a janela, carimbada
 // pela decisão). Decisão B do founder no Tempo 1 do WI-152.
 //
-// [ATUALIZADO 2026-07-28 — WI-161] A NEGOCIAÇÃO (passo 8 da
+// [ATUALIZADO 2026-07-28 — WI-161] A NEGOCIAÇÃO (passo 9 da
 // ds-buyer-procurement-journey — o vazio mais denso em valor: "não
 // aceita o primeiro preço... o fluxo de caixa é o que evita a obra
 // quebrar"): rodadas de contraproposta→revisão INTRA-OPEN, molde
@@ -372,7 +372,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		name:        "CounterTermsProposed"
 		visibility:  "internal"
 		description: "Contraproposta do comprador registrada sobre uma cotação específica durante a janela de RFQ (intra-open) — abre uma rodada de negociação. Fato INTERNO (mesmo veto de confidencialidade dos fatos de cotação: um fornecedor jamais vê a negociação do outro). NÃO muta a ent-quotation — é pedido aguardando resposta do fornecedor (inv-negotiated-terms-materialize-on-quotation)."
-		rationale:   "O passo 8 da ds-buyer-procurement-journey nomeia a contraproposta como o instrumento do comprador ('não aceita o primeiro preço'). Registrá-la como fato torna a rodada projetável no mapa (quem está aguardando resposta, qual alvo foi pedido) e auditável — sem o fato, a negociação seria conversa fora do sistema. WI-161."
+		rationale:   "O passo 9 da ds-buyer-procurement-journey nomeia a contraproposta como o instrumento do comprador ('não aceita o primeiro preço'). Registrá-la como fato torna a rodada projetável no mapa (quem está aguardando resposta, qual alvo foi pedido) e auditável — sem o fato, a negociação seria conversa fora do sistema. WI-161."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "rfqId"
@@ -605,7 +605,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		code:        "cmd-propose-counter-terms"
 		name:        "ProposeCounterTerms"
 		description: "Comprador registra contraproposta sobre uma cotação específica durante a janela (mutação intra-open; RFQ status=open obrigatório — invariante de handler). NÃO muta a ent-quotation (inv-negotiated-terms-materialize-on-quotation): abre rodada aguardando resposta do fornecedor. Resultado: evt-counter-terms-proposed (internal) registrado — o mapa passa a mostrar a rodada aberta."
-		rationale:   "Materializa o instrumento do comprador no passo 8 da jornada ('não aceita o primeiro preço, busca reduzir o custo e, principalmente, melhorar as condições de pagamento'). Contraproposta é PEDIDO, nunca mutação da cotação — a assimetria é deliberada: quem declara condições comerciais é o fornecedor (a cotação é dele); o comprador pede. counterTerms exige ≥1 eixo preenchido (contraproposta vazia não é rodada — invariante de handler). WI-161."
+		rationale:   "Materializa o instrumento do comprador no passo 9 da jornada ('não aceita o primeiro preço, busca reduzir o custo e, principalmente, melhorar as condições de pagamento'). Contraproposta é PEDIDO, nunca mutação da cotação — a assimetria é deliberada: quem declara condições comerciais é o fornecedor (a cotação é dele); o comprador pede. counterTerms exige ≥1 eixo preenchido (contraproposta vazia não é rodada — invariante de handler). WI-161."
 		fields: [{
 			kind:           "value-object-ref"
 			name:           "rfqId"
@@ -1216,7 +1216,7 @@ domainModel: artifact_schemas.#DomainModel & {
 	}, {
 		code:        "vo-delivery-schedule"
 		name:        "DeliverySchedule"
-		description: "Volume com entregas programadas — a programação que o comprador negocia 'havendo cronograma e espaço no canteiro' (passo 8 da jornada). entries é a lista de parcelas de entrega (quantidade + data); o volume total é DERIVÁVEL (soma das quantities), nunca duplicado como campo."
+		description: "Volume com entregas programadas — a programação que o comprador negocia 'havendo cronograma e espaço no canteiro' (passo 9 da jornada). entries é a lista de parcelas de entrega (quantidade + data); o volume total é DERIVÁVEL (soma das quantities), nunca duplicado como campo."
 		fields: [{
 			kind:        "domain-type"
 			name:        "entries"
@@ -1259,7 +1259,7 @@ domainModel: artifact_schemas.#DomainModel & {
 			type:        "string"
 			description: "Articulação livre da contraproposta — possivelmente vazia quando os eixos estruturados bastam."
 		}]
-		rationale: "A contraproposta é PEDIDO, não condição vigente (inv-negotiated-terms-materialize-on-quotation) — por isso é VO próprio consumido por cmd-propose-counter-terms/evt-counter-terms-proposed, nunca campo da ent-quotation. Os 3 eixos espelham exatamente os da narrativa do passo 8. WI-161."
+		rationale: "A contraproposta é PEDIDO, não condição vigente (inv-negotiated-terms-materialize-on-quotation) — por isso é VO próprio consumido por cmd-propose-counter-terms/evt-counter-terms-proposed, nunca campo da ent-quotation. Os 3 eixos espelham exatamente os da narrativa do passo 9. WI-161."
 	}]
 
 	// =============================================
@@ -1793,7 +1793,7 @@ domainModel: artifact_schemas.#DomainModel & {
 		carimbo da decisão (snapshot — auditável). O comprador compara
 		ANTES de escolher — o momento que a jornada vive.
 
-		A NEGOCIAÇÃO (WI-161, passo 8 da mesma story — o vazio mais
+		A NEGOCIAÇÃO (WI-161, passo 9 da mesma story — o vazio mais
 		denso em valor: as fontes a chamam de 'arte' e apontam as
 		condições de pagamento como o que salva o fluxo de caixa da
 		obra): rodadas intra-open no molde exato dos fatos de cotação —

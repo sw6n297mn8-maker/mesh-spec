@@ -412,7 +412,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 	}, {
 		code:        "sh-08"
 		name:        "Comprador"
-		description: "Persona do lado-comprador: o profissional de suprimentos que tria a fila de requisições, verifica fornecedores homologados, abre a cotação, consolida o mapa, NEGOCIA com os melhores colocados e converte a aprovação em pedido (passos 3-5, 8-9 e 12 da ds-buyer-procurement-journey; o glossário do p2p canoniza term-comprador). Archetype de PESSOA no fluxo interno da originadora (sh-01) — posição no fluxo, não tipo cadastral (adr-172 intocado)."
+		description: "Persona do lado-comprador: o profissional de suprimentos que tria a fila de requisições, verifica fornecedores homologados, abre a cotação, consolida o mapa, NEGOCIA com os melhores colocados, REGISTRA A DECISÃO DE SOURCING e converte a aprovação em pedido (passos 3-5, 8-10 e 12 da ds-buyer-procurement-journey; o glossário do p2p canoniza term-comprador). Archetype de PESSOA no fluxo interno da originadora (sh-01) — posição no fluxo, não tipo cadastral (adr-172 intocado)."
 		category:    "network-participant"
 		platformRelationships: ["direct-user"]
 		interests: [{
@@ -465,7 +465,7 @@ stakeholderMap: artifact_schemas.#StakeholderMap & {
 			}]
 			rationale: "O comprador é o protagonista operacional da jornada (6 dos 10 passos) e o operador humano dos dois vetores conhecidos do lado-comprador — dp-08 exige nomeá-los na persona que os executa, não só na organização."
 		}
-		rationale: "O protagonista assume a jornada na triagem (passo 3) e a conduz até o pedido (passo 12) — o glossário do p2p já canonizava term-comprador; o mapa agora dá à persona identidade própria para a story (actorRef dos passos 3-5, 8-9, 12) e para o modelo de identidade do WI-158 (quem prepara ≠ quem aprova)."
+		rationale: "O protagonista assume a jornada na triagem (passo 3) e a conduz até o pedido (passo 12) — o glossário do p2p já canonizava term-comprador; o mapa agora dá à persona identidade própria para a story (actorRef dos passos 3-5, 8-10, 12) e para o modelo de identidade do WI-158 (quem prepara ≠ quem aprova)."
 	}, {
 		code:        "sh-09"
 		name:        "Gestor aprovador"
