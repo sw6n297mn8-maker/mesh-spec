@@ -686,7 +686,8 @@ structureIndex: {
 				"architecture/deferred-decisions/def-090-fitness-signals-provenance-verification.cue",
 				"architecture/deferred-decisions/def-091-goods-receipt-per-item.cue",
 				"architecture/deferred-decisions/def-092-exception-responder-mechanization.cue",
-				"architecture/deferred-decisions/def-093-unit-of-measure-canonization.cue"
+				"architecture/deferred-decisions/def-093-unit-of-measure-canonization.cue",
+				"architecture/deferred-decisions/def-094-cross-repo-contract-staging.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
