@@ -689,7 +689,9 @@ structureIndex: {
 				"architecture/deferred-decisions/def-092-exception-responder-mechanization.cue",
 				"architecture/deferred-decisions/def-093-unit-of-measure-canonization.cue",
 				"architecture/deferred-decisions/def-094-cross-repo-contract-staging.cue",
-				"architecture/deferred-decisions/def-095-supplier-network-entry-paths.cue"
+				"architecture/deferred-decisions/def-095-supplier-network-entry-paths.cue",
+				"architecture/deferred-decisions/def-096-command-event-link-machine-readability.cue",
+				"architecture/deferred-decisions/def-097-supplier-rfq-read-path.cue"
 			],
 			"schema": "_#DeferredDecisionBase"
 		},
