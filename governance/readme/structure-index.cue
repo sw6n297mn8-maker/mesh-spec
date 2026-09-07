@@ -449,7 +449,8 @@ structureIndex: {
 		{
 			"canonicalPathRegex": "^strategic/domain-stories/[a-z][a-z0-9-]*\\.cue$",
 			"files": [
-				"strategic/domain-stories/buyer-procurement-journey.cue"
+				"strategic/domain-stories/buyer-procurement-journey.cue",
+				"strategic/domain-stories/supplier-network-journey.cue"
 			],
 			"schema": "#DomainStory"
 		},
