@@ -1,0 +1,25 @@
+{
+  "_note": "SIMULACAO descartavel (sim/firstclass-fce). Marcacao firstClass proposta para os conceitos do FCE domain-model. coreNoun = nome canonico do conceito que um termo DEDICADO do glossario deveria carregar (e a superficie de tuning da regra 'corresponde'). crossesContract derivado de am-payment + ge-fce-prepayment-guard-terminal + pm-fce. NAO e lei; informa a decisao do founder.",
+  "positiveReasons": ["financial", "risk", "eligibility", "compliance", "governance", "delivery", "qualification", "reputation", "cross-artifact-contract"],
+  "negativeReasons": ["transport-envelope", "persistence", "derived-mechanical", "internal-temporary", "id-ref-only"],
+  "concepts": [
+    {"code": "agg-payment", "type": "aggregate", "coreNoun": "Payment", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+
+    {"code": "evt-payment-authorized", "type": "event", "coreNoun": "Authorization", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "evt-payment-instruction-dispatched", "type": "event", "coreNoun": "Dispatch", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "evt-payment-settled", "type": "event", "coreNoun": "Settlement", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "evt-payment-obligation-defaulted", "type": "event", "coreNoun": "Default", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "evt-invoice-issued", "type": "event", "coreNoun": "Invoice", "firstClass": true, "firstClassReason": "cross-artifact-contract", "crossesContract": true},
+    {"code": "evt-settlement-finalized", "type": "event", "coreNoun": "SettlementFinalized", "firstClass": true, "firstClassReason": "cross-artifact-contract", "crossesContract": true},
+
+    {"code": "cmd-materialize-payment", "type": "command", "coreNoun": "Materialization", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "cmd-authorize-payment", "type": "command", "coreNoun": "Authorization", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "cmd-dispatch-payment-instruction", "type": "command", "coreNoun": "Dispatch", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "cmd-settle-payment", "type": "command", "coreNoun": "Settlement", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+
+    {"code": "vo-payment-id", "type": "value-object", "coreNoun": "Payment Id", "firstClass": false, "firstClassReason": "id-ref-only", "crossesContract": true},
+    {"code": "vo-commitment-ref", "type": "value-object", "coreNoun": "Commitment Ref", "firstClass": false, "firstClassReason": "id-ref-only", "crossesContract": true},
+    {"code": "vo-authorization-proof", "type": "value-object", "coreNoun": "Authorization Proof", "firstClass": true, "firstClassReason": "financial", "crossesContract": true},
+    {"code": "vo-eligibility-decision", "type": "value-object", "coreNoun": "Eligibility Decision", "firstClass": true, "firstClassReason": "eligibility", "crossesContract": true}
+  ]
+}

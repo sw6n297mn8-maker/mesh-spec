@@ -1,0 +1,149 @@
+########################################################################
+# SIMULACAO firstClass + rastreabilidade glossario<->modelo  (FCE, descartavel)
+########################################################################
+
+========================================================================
+ RUN: BASELINE (FCE real, 7 termos vs 15 conceitos)
+========================================================================
+  G1 COBERTURA-DEDICADA  gaps(owned)=6 foreign-exempt=2 covered=5
+     gaps(owned):
+      - ('agg-payment', 'Payment')
+      - ('evt-payment-instruction-dispatched', 'Dispatch')
+      - ('evt-payment-obligation-defaulted', 'Default')
+      - ('cmd-materialize-payment', 'Materialization')
+      - ('cmd-dispatch-payment-instruction', 'Dispatch')
+      - ('vo-eligibility-decision', 'Eligibility Decision')
+     foreign-exempt:
+      - ('evt-invoice-issued', 'Invoice', 'inv')
+      - ('evt-settlement-finalized', 'SettlementFinalized', 'bkr')
+  G2 CLASSIFICACAO-FORCADA unclassified=0
+      (vazio)
+  G3 REF+CORRESPOND  dangling=0 correspondence_fail=0
+     dangling:
+      (vazio)
+     correspondence_fail:
+      (vazio)
+  G4 CONSISTENCIA-BIDIR  contradiction=0
+      (vazio)
+  G5 RAZAO-TIPADA  mistyped=0
+      (vazio)
+  FILA DE REVISAO  (2):
+      - ('vo-payment-id', 'Payment Id', 'id-ref-only')
+      - ('vo-commitment-ref', 'Commitment Ref', 'id-ref-only')
+  -> gates disparados: ['G1']
+
+========================================================================
+ RUN: INJECAO 4a
+ INJECAO: glossary += termo termEn='Payment' refs=[vo-eligibility-decision] (vizinho errado)
+========================================================================
+  G1 COBERTURA-DEDICADA  gaps(owned)=6 foreign-exempt=2 covered=5
+     gaps(owned):
+      - ('agg-payment', 'Payment')
+      - ('evt-payment-instruction-dispatched', 'Dispatch')
+      - ('evt-payment-obligation-defaulted', 'Default')
+      - ('cmd-materialize-payment', 'Materialization')
+      - ('cmd-dispatch-payment-instruction', 'Dispatch')
+      - ('vo-eligibility-decision', 'Eligibility Decision')
+     foreign-exempt:
+      - ('evt-invoice-issued', 'Invoice', 'inv')
+      - ('evt-settlement-finalized', 'SettlementFinalized', 'bkr')
+  G2 CLASSIFICACAO-FORCADA unclassified=0
+      (vazio)
+  G3 REF+CORRESPOND  dangling=0 correspondence_fail=1
+     dangling:
+      (vazio)
+     correspondence_fail:
+      - ('term-pagamento', 'Payment', 'agg-payment')
+  G4 CONSISTENCIA-BIDIR  contradiction=0
+      (vazio)
+  G5 RAZAO-TIPADA  mistyped=0
+      (vazio)
+  FILA DE REVISAO  (2):
+      - ('vo-payment-id', 'Payment Id', 'id-ref-only')
+      - ('vo-commitment-ref', 'Commitment Ref', 'id-ref-only')
+  -> gates disparados: ['G1', 'G3']
+
+========================================================================
+ RUN: INJECAO 4b
+ INJECAO: annotations: agg-payment.firstClass true->false reason='derived-mechanical' (mentira bem-tipada)
+========================================================================
+  G1 COBERTURA-DEDICADA  gaps(owned)=5 foreign-exempt=2 covered=5
+     gaps(owned):
+      - ('evt-payment-instruction-dispatched', 'Dispatch')
+      - ('evt-payment-obligation-defaulted', 'Default')
+      - ('cmd-materialize-payment', 'Materialization')
+      - ('cmd-dispatch-payment-instruction', 'Dispatch')
+      - ('vo-eligibility-decision', 'Eligibility Decision')
+     foreign-exempt:
+      - ('evt-invoice-issued', 'Invoice', 'inv')
+      - ('evt-settlement-finalized', 'SettlementFinalized', 'bkr')
+  G2 CLASSIFICACAO-FORCADA unclassified=0
+      (vazio)
+  G3 REF+CORRESPOND  dangling=0 correspondence_fail=0
+     dangling:
+      (vazio)
+     correspondence_fail:
+      (vazio)
+  G4 CONSISTENCIA-BIDIR  contradiction=1
+      - ('term-financializacao', 'agg-payment', 'derived-mechanical')
+  G5 RAZAO-TIPADA  mistyped=0
+      (vazio)
+  FILA DE REVISAO  (3):
+      - ('agg-payment', 'Payment', 'derived-mechanical')
+      - ('vo-payment-id', 'Payment Id', 'id-ref-only')
+      - ('vo-commitment-ref', 'Commitment Ref', 'id-ref-only')
+  -> gates disparados: ['G1', 'G4']
+
+========================================================================
+ RUN: INJECAO 4c
+ INJECAO: glossary += termo termEn='PaymentCycle' refs=[agg-payment] (pasta, nao cobre)
+========================================================================
+  G1 COBERTURA-DEDICADA  gaps(owned)=6 foreign-exempt=2 covered=5
+     gaps(owned):
+      - ('agg-payment', 'Payment')
+      - ('evt-payment-instruction-dispatched', 'Dispatch')
+      - ('evt-payment-obligation-defaulted', 'Default')
+      - ('cmd-materialize-payment', 'Materialization')
+      - ('cmd-dispatch-payment-instruction', 'Dispatch')
+      - ('vo-eligibility-decision', 'Eligibility Decision')
+     foreign-exempt:
+      - ('evt-invoice-issued', 'Invoice', 'inv')
+      - ('evt-settlement-finalized', 'SettlementFinalized', 'bkr')
+  G2 CLASSIFICACAO-FORCADA unclassified=0
+      (vazio)
+  G3 REF+CORRESPOND  dangling=0 correspondence_fail=0
+     dangling:
+      (vazio)
+     correspondence_fail:
+      (vazio)
+  G4 CONSISTENCIA-BIDIR  contradiction=0
+      (vazio)
+  G5 RAZAO-TIPADA  mistyped=0
+      (vazio)
+  FILA DE REVISAO  (2):
+      - ('vo-payment-id', 'Payment Id', 'id-ref-only')
+      - ('vo-commitment-ref', 'Commitment Ref', 'id-ref-only')
+  -> gates disparados: ['G1']
+
+########################################################################
+# MATRIZ DE DETECCAO  (criterio: nenhum erro escapa como verde falso)
+########################################################################
+  baseline: agg-payment(Payment) e gap em G1 = True  (gap headline: Payment sem termo dedicado)
+
+  [CAPTURADO           ] 4a wrong-neighbor (G3 esperado)
+       detector esperado: G3-correspondence
+         (x) G3-correspondence: [('term-pagamento', 'Payment', 'agg-payment')]
+         (x) G1-gap-persiste: True
+  [CAPTURADO           ] 4b firstClass:false-lie (fila esperada)
+       detector esperado: FILA-DE-REVISAO
+         (x) FILA-DE-REVISAO: True
+         (x) G4-contradiction: [('term-financializacao', 'agg-payment', 'derived-mechanical')]
+         (.) G5(nao pega: mentira bem-tipada): False
+  [CAPTURADO           ] 4c grazing-term (G1 esperado)
+       detector esperado: G1-gap-persiste
+         (x) G1-gap-persiste: True
+         (x) nao-confundido-por-grazing: True
+
+########################################################################
+# VEREDITO DO PILOTO: PASSA — nenhum dos 3 erros escapou como verde falso
+########################################################################

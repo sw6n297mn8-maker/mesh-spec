@@ -1,0 +1,188 @@
+{
+    "code": "fce",
+    "name": "Financial Commitment Execution",
+    "boundedContextRef": "fce",
+    "terms": [
+        {
+            "code": "term-guarda-pre-pagamento",
+            "name": "Guarda Pré-Pagamento",
+            "termEn": "PrePaymentGuard",
+            "definition": "Gate determinístico pré-dispatch que compõe três condições —\nfatura válida (InvoiceIssued de INV), elegibilidade de risco\nsatisfeita (REW) e cadeia de evidência íntegra — e autoriza\nmovimento de dinheiro apenas quando a operação comprova que\ndeve se mover (P11). É função categórica das 3 condições\n(sim/não), reproduzível em replay; o agente recomenda, o gate\nvalida (P10). Ausência de qualquer condição bloqueia o\ndispatch sem override autônomo.",
+            "category": "rule",
+            "rationale": "Termo que define o FCE (canvas purpose + bd-money-moves-only-\non-proof + bd-prepayment-guard-deterministic). Nomeá-lo com\nprecisão evita que o gate seja confundido com julgamento do\nagente ou com validações upstream.",
+            "synonyms": [
+                "o guard",
+                "gate de pré-pagamento"
+            ],
+            "antiTerms": [
+                {
+                    "term": "Scoring de risco",
+                    "clarification": "Precificar/decidir elegibilidade é REW; o guard CONSOME a\nelegibilidade como condição, não a produz."
+                },
+                {
+                    "term": "Validação de fatura",
+                    "clarification": "Materializar e validar fatura é INV; o guard consome\nInvoiceIssued como condição."
+                },
+                {
+                    "term": "Decisão do agente",
+                    "clarification": "O agente nunca despacha pagamento diretamente; override do\nguard é sempre supervisedDecision (linha vermelha P10/P11,\ncanvas governanceScope)."
+                }
+            ],
+            "rejectedAlternatives": [
+                {
+                    "term": "Pagamento Condicionado",
+                    "reason": "Descreve o efeito, não o mecanismo; o termo canônico nomeia\no gate que produz a condição (precisão para code generation\ne para o cenário do WI-138)."
+                }
+            ],
+            "relatedTerms": [
+                "term-cadeia-de-evidencia",
+                "term-autorizacao"
+            ],
+            "domainModelRefs": [
+                "inv-money-moves-only-on-proof",
+                "inv-guard-deterministic",
+                "cmd-authorize-payment"
+            ]
+        },
+        {
+            "code": "term-financializacao",
+            "name": "Financialização",
+            "termEn": "Financialization",
+            "definition": "Sequência atômica all-or-nothing que executa um pagamento:\nguard → authorize → dispatch → settle → realização\norçamentária → liberação de retenção. Settlement parcial não\né estado de domínio válido; falha em qualquer etapa reverte ou\nmantém o Payment em estado não-final auditável.",
+            "category": "process",
+            "rationale": "bd-financialization-atomic: a atomicidade é precondition de\ndp-04 (determinismo operacional) e elimina a classe de bugs de\nmeio-pagamento. NOTA DE FATIA: o domain-model desta fatia\nmodela a sequência até settle (T1 — realização orçamentária e\nliberação de retenção entram com BDG na composição).",
+            "antiTerms": [
+                {
+                    "term": "Originação de produto financeiro",
+                    "clarification": "Estruturar antecipação/working capital é SCF; FCE executa o\nmovimento de dinheiro que o SCF origina."
+                }
+            ],
+            "relatedTerms": [
+                "term-liquidacao",
+                "term-autorizacao"
+            ],
+            "domainModelRefs": [
+                "inv-no-partial-settlement",
+                "agg-payment"
+            ]
+        },
+        {
+            "code": "term-liquidacao",
+            "name": "Liquidação",
+            "termEn": "Settlement",
+            "definition": "Efetivação física do movimento de dinheiro, executada pelo BKR\nsob authorization proof e reconciliada de volta ao FCE\n(SettlementFinalized). O fato canônico de conclusão é\nPaymentSettled — SoT único de \"dinheiro moveu\", consumido por\nREW/SCF/ATO/TCM sem fonte concorrente.",
+            "category": "process",
+            "rationale": "bd-settlement-fact-canonical + ax-07 (ledger como primitiva):\nfonte concorrente de \"pagamento liquidado\" criaria divergência\nsilenciosa entre risco, contábil e tesouraria.",
+            "antiTerms": [
+                {
+                    "term": "Autorização",
+                    "clarification": "Authorized não é settled: a autorização é decisão econômica\ndo FCE; a liquidação só conclui com a reconciliação do rail."
+                },
+                {
+                    "term": "Lançamento contábil",
+                    "clarification": "ATO conforma (conformist) consumindo PaymentSettled; o\nlançamento é downstream, não parte da liquidação."
+                }
+            ],
+            "relatedTerms": [
+                "term-financializacao",
+                "term-prova-de-autorizacao"
+            ],
+            "domainModelRefs": [
+                "evt-payment-settled",
+                "inv-settled-fact-canonical",
+                "cmd-settle-payment"
+            ]
+        },
+        {
+            "code": "term-retencao",
+            "name": "Retenção",
+            "termEn": "Retention",
+            "definition": "Parcela do pagamento retida contratualmente, liberada somente\nquando a evidência comprova que o critério de liberação foi\nsatisfeito — instância de release-on-proof, a mesma invariante\nP11 aplicada à retenção. O critério é input (commitment/\ncontrato), nunca decisão autônoma do FCE.",
+            "category": "value",
+            "rationale": "bd-conditional-retention-release + as-fce-4: liberação por\ninstrução manual desacoplada da evidência é o problema que a\ntese resolve. FORA do caminho desta fatia (T1) — o termo é\ncanonizado agora porque pertence ao vocabulário nuclear do BC\ne evita re-trabalho terminológico na expansão.",
+            "antiTerms": [
+                {
+                    "term": "Multa ou garantia bancária",
+                    "clarification": "Retenção é parcela do próprio pagamento condicionada a\ncritério de liberação, não instrumento de garantia externo\n(INS) nem penalidade."
+                }
+            ],
+            "relatedTerms": [
+                "term-guarda-pre-pagamento"
+            ]
+        },
+        {
+            "code": "term-autorizacao",
+            "name": "Autorização",
+            "termEn": "Authorization",
+            "definition": "Decisão econômica do FCE de pagar, tomada exclusivamente após\no PrePaymentGuard aprovar; materializa-se na emissão da\nauthorization proof ao BKR. FCE decide quando e por que pagar;\nBKR executa fisicamente sob a proof (FCE nunca toca rails).",
+            "category": "process",
+            "rationale": "bd-economic-authority-not-rails: separar autoridade econômica\nde execução física é o que permite trocar rails sem alterar a\nlógica financeira e mantém a responsabilidade da decisão no\nFCE (P10).",
+            "antiTerms": [
+                {
+                    "term": "Dispatch",
+                    "clarification": "Dispatch é o ato subsequente de emitir a PaymentInstruction\nao BKR; a autorização é a decisão que o precede e o habilita."
+                }
+            ],
+            "relatedTerms": [
+                "term-prova-de-autorizacao",
+                "term-guarda-pre-pagamento"
+            ],
+            "domainModelRefs": [
+                "cmd-authorize-payment",
+                "evt-payment-authorized"
+            ]
+        },
+        {
+            "code": "term-prova-de-autorizacao",
+            "name": "Prova de Autorização",
+            "termEn": "Authorization Proof",
+            "definition": "Artefato verificável emitido pelo FCE — assinatura + nonce +\nvalidity window + claim chain — que acompanha toda\nPaymentInstruction. O BKR valida a proof estruturalmente antes\nde qualquer dispatch físico; instrução sem proof válida é\nrejeitada de forma terminal (InstructionRejected), e nova\ntentativa exige novo InstructionId + nova proof.",
+            "category": "value",
+            "rationale": "as-fce-3 + bd-economic-authority-not-rails: a proof torna a\ndelegação FCE→BKR verificável e auditável; é a materialização\nda autoridade econômica como artefato, não como confiança\nimplícita entre serviços.",
+            "antiTerms": [
+                {
+                    "term": "Comprovante de pagamento",
+                    "clarification": "A proof autoriza ANTES do movimento; comprovante atesta\nDEPOIS — o fato pós-liquidação é PaymentSettled."
+                }
+            ],
+            "rejectedAlternatives": [
+                {
+                    "term": "Comprovante de Autorização",
+                    "reason": "\"Comprovante\" sugere recibo a posteriori; \"prova\" captura o\nartefato criptográfico verificável ex-ante (consistente com\nIntegrityProof do EvidencePort e com a família proof-* do\necossistema)."
+                }
+            ],
+            "relatedTerms": [
+                "term-autorizacao",
+                "term-liquidacao"
+            ],
+            "domainModelRefs": [
+                "vo-authorization-proof"
+            ]
+        },
+        {
+            "code": "term-cadeia-de-evidencia",
+            "name": "Cadeia de Evidência",
+            "termEn": "Evidence Chain",
+            "definition": "Encadeamento íntegro da evidência operacional upstream\n(DLV → INV) que lastreia um pagamento: do registro de\nevidência verificado à fatura emitida. A INTEGRIDADE desse\nencadeamento é a condição (c) do PrePaymentGuard; a\ninviabilidade computacional de falsificação é ancorada no\nmecanismo criptográfico (assinatura + hash chain +\nnotarização, as-fce-1/adr-128).",
+            "category": "value",
+            "rationale": "Sem este termo, \"evidência\" no FCE colide com os termos de\ncustódia/ingestão do DLV. No FCE o conceito é a PROPRIEDADE\ncomposta (integridade do encadeamento) que o gate verifica —\nnão o ato de registrar nem o blob custodiado.",
+            "antiTerms": [
+                {
+                    "term": "Registro de Evidência (DLV)",
+                    "clarification": "Registrar/custodiar evidência é DLV (ingestão BD11,\nlocal-first); o FCE consome a integridade do encadeamento\njá verificado, não re-executa a verificação operacional."
+                },
+                {
+                    "term": "Verdade semântica",
+                    "clarification": "Integridade != verdade (defense in depth BD9 do DLV): a\ncadeia íntegra prova lineage não-adulterado, não a verdade\nmaterial do conteúdo — que é responsabilidade das camadas\nde verificação upstream."
+                }
+            ],
+            "relatedTerms": [
+                "term-guarda-pre-pagamento"
+            ],
+            "domainModelRefs": [
+                "inv-money-moves-only-on-proof"
+            ]
+        }
+    ],
+    "rationale": "Fatia da Ubiquitous Language do FCE recortada no caminho do\nPrePaymentGuard (claim parcial WI-043; precedente WI-140): 7\ntermos derivados integralmente do canvas, suficientes para o\ndomain-model recortado e o cenário terminal do WI-138. Termos do\nvocabulário de falha/exceção (default, indeterminação,\nreissuance) entram com os estados correspondentes (T2). Bilingual\nmapping habilita codegen (termEn vira identificador); antiTerms\npreservam as fronteiras com REW/INV/DLV/BKR/SCF/ATO que o canvas\ndesenhou."
+}
