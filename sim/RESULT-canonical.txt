@@ -1,0 +1,78 @@
+############################################################################
+# SIMULACAO 3 — LAR CANONICO do termo shared (Money). Enforcer REAL p/ Layer 1.
+############################################################################
+
+=== LAYER 1 — E1 (teste-mae) + regressao + alt A/B  [structural-check-runner REAL] ===
+  regex atual    : ^contexts/[a-z][a-z0-9-]*/glossary\.cue$
+  regex proposto : ^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\.cue$
+  E1 candidato A 'architecture/shared-schemas/glossary.cue'
+     ANTES da extensao: matches=[]  -> ORFAO (bloqueante)
+     DEPOIS da extensao: matches=['#Glossary']  -> LIMPO (so #Glossary)
+  REGRESSAO 12 glossarios: ZERO quebra
+  AMBIGUIDADE nova (arquivos existentes recem-admitidos): nenhum
+  ALT B (termo em money.cue): is_type_definition_file=True -> PULADO da classificacao (termo ESCAPA a governanca); money.cue casa #Glossary? nao
+
+=== LAYER 2 — BASELINE (4 categorias) ===
+  inv/vo-money                 -> shared-canonical
+  p2p/vo-money                 -> shared-canonical
+  bdg/vo-money                 -> shared-canonical
+  bkr/vo-settlement-value      -> local-specialization
+  fce/agg-payment              -> owned
+  fce/evt-invoice-issued       -> foreign-consumed
+  fila de revisao baseline:
+      - ('bkr/vo-settlement-value', 'especializacao local (amount > 0 (estrito; settlement nao admite zero)) — revisao leve')
+
+=== LAYER 2 — INJECOES E2-E7 ===
+  [E2] usage ctr/vo-x canonicalTermRef='term-ghost' (inexistente)
+        achado: [('ctr/vo-x', 'term-ghost')]
+  [E3] usage ctr/vo-y canonicalSchemaRef='#GhostMoney' (inexistente em shared-schemas/)
+        achado: [('ctr/vo-y', '#GhostMoney')]
+  [E4] inv/vo-money: canonicalTermRef removido, shared:true mantido
+        achado: ['inv/vo-money']
+  [E5] p2p/vo-money: canonicalSchemaRef removido, shared:true mantido
+        achado: ['p2p/vo-money']
+  [E6] usage ctr/vo-z: canonicalTermRef='term-money' MAS shared:false (inconsistente)
+        achado: ['ctr/vo-z']
+  [E7] ctr cria termo LOCAL term-money-local termEn='Money' (duplica canonico — evasao P0)
+        achado: [('ctr/term-money-local', 'Money')]
+
+############################################################################
+# MATRIZ (criterio: nenhum E1-E7 escapa verde silencioso; E6/E7 podem ir p/ revisao)
+############################################################################
+  [CAPTURADO                 ] E1 path fora do regex                      detector=Layer1 orfao->extensao
+  [CAPTURADO                 ] E2 canonicalTermRef inexistente            detector=C-TERM-EXISTS
+  [CAPTURADO                 ] E3 canonicalSchemaRef inexistente          detector=C-SCHEMA-EXISTS
+  [CAPTURADO                 ] E4 shared sem canonicalTermRef             detector=C-SHARED-NEEDS-TERMREF
+  [CAPTURADO                 ] E5 shared sem canonicalSchemaRef           detector=C-SHARED-NEEDS-SCHEMAREF
+  [CAPTURADO                 ] E6 canonicalTermRef sem shared (revisao)   detector=C-TERMREF-NEEDS-SHARED
+  [CAPTURADO                 ] E7 duplicacao local P0 (revisao)           detector=C-NO-DUP
+
+############################################################################
+# VEREDITO: PASSA — nenhum erro escapou verde silencioso
+############################################################################
+
+--- RESPOSTAS (RESULT.txt) ---
+Q1 melhor lar canonico: architecture/shared-schemas/glossary.cue (alt A). Alt B (money.cue) so 'funciona' por ESCAPAR a governanca (typedef-skip) + mistura schema/linguagem.
+Q2 mudanca minima: trocar #Glossary.canonicalPathRegex por alternacao: ^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\.cue$
+Q3 quebra os 12? NAO — zero regressao (provado contra os 12 + zero ambiguidade nova)
+Q4 canonicalTermRef verificavel? SIM (C-TERM-EXISTS contra registry; E2 pego)
+Q5 canonicalSchemaRef verificavel? SIM (C-SCHEMA-EXISTS contra shared-schemas/ real; E3 pego)
+Q6 shared sobrepoe sourceContext? SIM (categoria 'foreign-consumed' so quando shared:false; shared:true nunca isenta)
+Q7 distingue as 4 categorias? SIM (vistas: ['foreign-consumed', 'local-specialization', 'owned', 'shared-canonical']). local-specialization (bkr) SO e distinguivel de masquerade COM os campos novos specializes+localConstraint — sem eles, fresta (licao do piloto 2).
+Q8 algum erro escapou? NAO
+Q9 ADR agora ou +1 piloto: ver relatorio (recomendacao do agente).
+
+================================================================================
+DIFF-SUMMARY (mudanca minima real — NAO aplicada; so demonstrada)
+================================================================================
+arquivo: architecture/artifact-schemas/glossary.cue  (linha 74)
+
+- canonicalPathRegex: "^contexts/[a-z][a-z0-9-]*/glossary\\.cue$"
++ canonicalPathRegex: "^(contexts/[a-z][a-z0-9-]*|architecture/shared-schemas)/glossary\\.cue$"
+
+Consumidor afetado: scripts/ci/structural-check-runner.py (file_classification, re.match).
+cue vet: indiferente (trata o regex como string opaca; nao ve filesystem).
+Co-evolucao derivada (follow-up, nao gate-break): regenerar governance/readme/structure-index.cue
+  (generate-structure-index.py deriva de _schema.location) + check-readme-coevolution.
+Novo residente canonico: architecture/shared-schemas/glossary.cue com term-money (termEn "Money",
+  schemaRef #Money). Mantem linguagem (glossary) SEPARADA de schema (money.cue) — alt A.
