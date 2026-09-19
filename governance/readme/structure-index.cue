@@ -204,7 +204,8 @@ structureIndex: {
 				"architecture/adrs/adr-195-constitution-token-binding-and-evidence-reopening.cue",
 				"architecture/adrs/adr-196-materialize-sourcing-decision-proposal.cue",
 				"architecture/adrs/adr-197-exception-declares-responder.cue",
-				"architecture/adrs/adr-198-quotation-item-primitive-and-line-level-gate.cue"
+				"architecture/adrs/adr-198-quotation-item-primitive-and-line-level-gate.cue",
+				"architecture/adrs/adr-199-typed-reason-for-withheld-award-line.cue"
 			],
 			"schema": "#ADRBase"
 		},
